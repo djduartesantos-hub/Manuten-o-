@@ -5,7 +5,7 @@
 Ao nível de: **Infraspeak**, **ManWinWin**, **Fracttal One**
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
-![Version](https://img.shields.io/badge/Version-1.2.0-blue)
+![Version](https://img.shields.io/badge/Version-1.2.1-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.2-blue)
 ![React](https://img.shields.io/badge/React-18.2-blue)

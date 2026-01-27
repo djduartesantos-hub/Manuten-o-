@@ -1,6 +1,6 @@
 {
   "name": "cmms-enterprise-frontend",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Enterprise CMMS SaaS Platform - Frontend",
   "type": "module",
   "scripts": {

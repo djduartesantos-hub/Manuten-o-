@@ -1,6 +1,6 @@
 {
   "name": "cmms-enterprise-backend",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Enterprise CMMS SaaS Platform - Backend",
   "main": "dist/server.js",
   "type": "module",
