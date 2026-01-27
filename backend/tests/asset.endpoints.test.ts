@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
+import { eq } from 'drizzle-orm';
 import { createApp } from '../src/app';
 import request from 'supertest';
 import { db } from '../src/config/database';
@@ -20,9 +21,8 @@ describe('Asset Endpoints', () => {
     const [tenant] = await db
       .insert(tenants)
       .values({
-        id: crypto.randomUUID(),
         name: 'Test Tenant',
-        domain: 'test-tenant',
+        slug: 'test-tenant',
       })
       .returning();
 
@@ -32,10 +32,9 @@ describe('Asset Endpoints', () => {
     const [plant] = await db
       .insert(plants)
       .values({
-        id: crypto.randomUUID(),
         tenant_id: tenantId,
         name: 'Test Plant',
-        location: 'Test Location',
+        code: 'TEST-PLANT',
       })
       .returning();
 
@@ -57,10 +56,10 @@ describe('Asset Endpoints', () => {
     const [user] = await db
       .insert(users)
       .values({
-        id: crypto.randomUUID(),
         tenant_id: tenantId,
         email: 'test@example.com',
-        name: 'Test User',
+        first_name: 'Test',
+        last_name: 'User',
         password_hash: 'dummy_hash',
         role: 'admin',
       })
@@ -72,7 +71,7 @@ describe('Asset Endpoints', () => {
     token = generateToken({
       userId: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role as any,
       tenantId: tenant.id,
       plantIds: [plant.id],
     });

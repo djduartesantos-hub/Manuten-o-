@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { eq } from 'drizzle-orm';
 import { AssetService } from '../src/services/asset.service';
 import { db } from '../src/config/database';
 import { tenants, plants, assetCategories, assets } from '../src/db/schema';
@@ -13,9 +14,8 @@ describe('AssetService', () => {
     const [tenant] = await db
       .insert(tenants)
       .values({
-        id: crypto.randomUUID(),
         name: 'Test Tenant',
-        domain: 'test-tenant',
+        slug: 'test-tenant',
       })
       .returning();
 
@@ -24,10 +24,9 @@ describe('AssetService', () => {
     const [plant] = await db
       .insert(plants)
       .values({
-        id: crypto.randomUUID(),
         tenant_id: tenantId,
         name: 'Test Plant',
-        location: 'Test Location',
+        code: 'TEST-PLANT',
       })
       .returning();
 
@@ -47,10 +46,10 @@ describe('AssetService', () => {
 
   afterAll(async () => {
     // Cleanup
-    await db.delete(assets).where({ tenant_id: tenantId });
-    await db.delete(assetCategories).where({ tenant_id: tenantId });
-    await db.delete(plants).where({ tenant_id: tenantId });
-    await db.delete(tenants).where({ id: tenantId });
+    await db.delete(assets).where(eq(assets.tenant_id, tenantId));
+    await db.delete(assetCategories).where(eq(assetCategories.tenant_id, tenantId));
+    await db.delete(plants).where(eq(plants.tenant_id, tenantId));
+    await db.delete(tenants).where(eq(tenants.id, tenantId));
   });
 
   describe('createAsset', () => {
@@ -153,7 +152,7 @@ describe('AssetService', () => {
       });
 
       expect(updated).toBeDefined();
-      expect(updated[0].name).toBe('Updated Asset Name');
+      expect(updated?.name).toBe('Updated Asset Name');
     });
   });
 

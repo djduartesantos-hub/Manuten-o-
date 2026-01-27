@@ -48,6 +48,9 @@
     "@typescript-eslint/parser": "^8.54.0",
     "drizzle-kit": "^0.19.13",
     "eslint": "^8.50.0",
+    "supertest": "^6.3.3",
+    "@types/supertest": "^2.0.12",
+    "vitest": "^0.34.6",
     "ts-node": "^10.9.1",
     "tsx": "^3.13.0",
     "typescript": "^5.2.2"
