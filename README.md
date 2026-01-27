@@ -764,25 +764,185 @@ GET    /api/tenants/:plantId/assets/maintenance/due
 
 Veja [PHASE_1_COMPLETION.md](./PHASE_1_COMPLETION.md) para detalhes completos.
 
-### Phase 2 - Planos de Manutenção & Peças (2-3 semanas)
-- [ ] Endpoints de Maintenance Plans (CRUD)
-- [ ] Endpoints de Spare Parts (CRUD + Inventário)
-- [ ] Endpoints de Stock Movements (Entrada/Saída)
-- [ ] Upload de ficheiros para Assets
-- [ ] Relatórios de manutenção
+---
 
-### Phase 3 - Escalabilidade (2-3 semanas)
-- [ ] WebSocket (notificações em tempo real)
-- [ ] Redis (caching de assets e planos)
-- [ ] Elasticsearch (busca avançada)
-- [ ] Message queue (Bull para tarefas assíncronas)
+### 🔧 Phase 2 - Planos de Manutenção e Gestão de Peças (2-3 semanas)
+**Resumo:** Implementar sistema completo de manutenção preventiva e gestão de inventário de peças sobressalentes.
 
-### Phase 4 - Produção (1 semana)
-- [ ] Helmet (security headers)
-- [ ] Rate limiting
-- [ ] Swagger/OpenAPI
-- [ ] Monitoring (Sentry)
-- [ ] CI/CD (GitHub Actions)
+**Funcionalidades:**
+- [ ] **Planos de Manutenção (CRUD)** - Criar, ler, atualizar e eliminar planos de manutenção preventiva
+  - Agendamento por tempo (horas, dias) ou contador (km, ciclos)
+  - Histórico de execuções com datas de próxima manutenção
+  - Alertas automáticos quando manutenção está vencida
+  - Relatórios de conformidade (% de planos executados)
+
+- [ ] **Peças Sobressalentes (CRUD + Inventário)** - Catálogo completo de peças com controle de stock
+  - Código de peça, fabricante, custo unitário
+  - Nível mínimo de stock e quantidade em stock
+  - Histórico de consumo e previsão de necessidade
+  - Associação de peças a planos de manutenção
+
+- [ ] **Movimentos de Stock (Entrada/Saída)** - Rastreamento de todo o movimento de inventário
+  - Entrada: Compras, devoluções, ajustes
+  - Saída: Consumo em ordens, devoluções, ajustes
+  - Histórico completo com utilizador e data
+  - Alertas de stock baixo
+
+- [ ] **Upload de Ficheiros para Assets** - Documentação de equipamentos
+  - Suporte para fotos, manuais, certificados
+  - Armazenamento seguro em cloud (AWS S3 ou similar)
+  - Versionamento de documentos
+  - Limite de tamanho e tipos de ficheiro
+
+- [ ] **Relatórios de Manutenção** - Análise de dados de manutenção
+  - Custos por equipamento e por plano
+  - MTTR (Mean Time To Repair) e MTBF (Mean Time Between Failures)
+  - Equipamentos mais problemáticos
+  - Aderência a planos de manutenção
+
+**Endpoints esperados:** 15+ novos endpoints
+**Base de dados:** 3-4 novas tabelas
+
+---
+
+### ⚡ Phase 3 - Escalabilidade e Performance (2-3 semanas)
+**Resumo:** Otimizar plataforma para suportar volumes grandes de dados e notificações em tempo real.
+
+**Funcionalidades:**
+- [ ] **WebSocket (Notificações em Tempo Real)** - Comunicação bidirecional
+  - Notificações de novas ordens de trabalho
+  - Alertas de equipamentos críticos
+  - Status live de ordens em execução
+  - Avisos de manutenção vencida
+  - Dashboard atualizado em tempo real
+
+- [ ] **Redis (Caching)** - Cache distribuído para performance
+  - Cache de assets e categorias (evita queries frequentes)
+  - Cache de planos de manutenção
+  - Sessões de utilizador
+  - Dados de dashboard (KPIs)
+  - TTL (Time To Live) automático
+
+- [ ] **Elasticsearch (Busca Avançada)** - Motor de busca full-text
+  - Busca rápida de assets por múltiplos campos
+  - Busca em histórico de ordens de trabalho
+  - Filtros complexos e faceted search
+  - Auto-complete para códigos e nomes
+  - Análise de relatórios
+
+- [ ] **Message Queue (Bull + Redis)** - Processamento assíncrono
+  - Geração de relatórios em background
+  - Envio de emails de notificações
+  - Backup automático de dados
+  - Processamento de uploads de ficheiros
+  - Limpeza de dados antigos (soft deletes)
+
+**Impacto:** Suportar 1000+ equipamentos e 10000+ ordens de trabalho sem degradação
+
+---
+
+### 🚀 Phase 4 - Produção e Conformidade (1 semana)
+**Resumo:** Preparar plataforma para ambiente de produção com segurança, monitoramento e documentação.
+
+**Funcionalidades:**
+- [ ] **Helmet (Security Headers)** - Proteção de segurança HTTP
+  - Content Security Policy (CSP)
+  - X-Frame-Options (Clickjacking protection)
+  - Strict-Transport-Security (HTTPS)
+  - X-Content-Type-Options (MIME type sniffing)
+  - Proteção contra XSS
+
+- [ ] **Rate Limiting** - Proteção contra abuso
+  - Limite de requisições por IP
+  - Limite de requisições por utilizador
+  - Limite de requisições por endpoint
+  - Whitelist de IPs seguros
+  - Alertas de tentativas de abuso
+
+- [ ] **Swagger/OpenAPI** - Documentação automática de APIs
+  - Especificação OpenAPI 3.0 gerada automaticamente
+  - Interface Swagger UI para testar endpoints
+  - Documentação automática de schemas
+  - Exemplos de requisição/resposta
+  - Download de documentação em PDF
+
+- [ ] **Monitoring (Sentry)** - Rastreamento de erros e performance
+  - Captura automática de exceções
+  - Rastreamento de performance (slow queries, slow requests)
+  - Source maps para debugging
+  - Alerts em tempo real
+  - Dashboard com histórico de erros
+
+- [ ] **CI/CD (GitHub Actions)** - Automação de deployment
+  - Testes automáticos em cada push
+  - Build automático de imagens Docker
+  - Deploy automático para staging/production
+  - Rollback automático em caso de falha
+  - Notificações em Slack/Email
+
+**Impacto:** Plataforma enterprise-ready com SLA de 99.9% uptime
+
+---
+
+### 💡 Phase 5 - Análise Avançada e IA (Futuro)
+**Resumo:** Recursos avançados de análise e machine learning para otimização de manutenção.
+
+**Ideias de Desenvolvimento:**
+- [ ] **Previsão de Falhas** - Machine Learning para prever quando equipamentos vão falhar
+  - Análise de padrões históricos
+  - Alertas precoces antes de falhas
+  - Otimização de planos de manutenção
+  - Redução de downtime não planejado
+
+- [ ] **Otimização de Rotas** - Para técnicos em campo
+  - Agrupamento inteligente de ordens próximas
+  - Rotas otimizadas (Traveling Salesman Problem)
+  - Estimativa de tempo de deslocamento
+  - Sincronização com GPS do técnico
+
+- [ ] **Análise de Custos** - Dashboard financeiro
+  - Custo total de propriedade (TCO) por equipamento
+  - ROI de planos de manutenção
+  - Análise de fornecedores
+  - Previsão de orçamento
+
+- [ ] **Benchmarking Setorial** - Comparação com outras empresas
+  - KPIs da sua empresa vs. setor
+  - Relatórios de eficiência comparativa
+  - Best practices recomendadas
+  - Oportunidades de otimização
+
+- [ ] **Mobile App Nativa** - Aplicação iOS e Android
+  - Execução de ordens de trabalho offline
+  - Captura de fotos e assinaturas
+  - Sincronização automática
+  - Notificações push
+  - QR code scanning para assets
+
+---
+
+## 🆕 Novas Ideias de Desenvolvimento
+
+### Curto Prazo (1-2 meses)
+1. **Dashboard Customizável** - Cada utilizador pode criar seu próprio dashboard com widgets
+2. **Relatórios Agendados** - Enviar relatórios automáticos por email (semanal, mensal)
+3. **API REST Pública** - Permitir integrações com sistemas externos (ERP, CRM)
+4. **Autenticação OAuth2** - Login com Google, Microsoft, GitHub
+5. **Dark Mode** - Interface escura para reduzir fadiga ocular
+
+### Médio Prazo (2-4 meses)
+6. **Integração com IoT** - Conectar sensores aos equipamentos para dados em tempo real
+7. **Chatbot IA** - Assistente virtual para responder dúvidas sobre manutenção
+8. **Análise Preditiva Avançada** - Prever necessidade de peças baseado em padrões
+9. **Gamificação** - Pontos e badges para técnicos motivação
+10. **Multi-idioma** - Suporte para EN, ES, FR, DE além de PT
+
+### Longo Prazo (4+ meses)
+11. **Realidade Aumentada (AR)** - Visualizar manuais e instruções em AR
+12. **Gemini/GPT Integration** - Descrever problema em texto natural para gerar ordem
+13. **Supply Chain Optimization** - Integração com fornecedores para reordenação automática
+14. **Conformidade Regulatória** - Auditorias automáticas para OSHA, ISO, etc.
+15. **Marketplace de Add-ons** - Plugin architecture para extensibilidade
 
 ---
 
