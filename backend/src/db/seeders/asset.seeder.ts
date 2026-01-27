@@ -1,5 +1,5 @@
-import { db } from '../config/database';
-import { assets, assetCategories, plants, tenants } from '../db/schema';
+import { db } from '../../config/database';
+import { assets, assetCategories } from '../schema';
 
 const ASSET_CATEGORIES_DATA = [
   { name: 'Bomba', description: 'Equipamentos de bombeamento' },
@@ -72,11 +72,6 @@ const METER_TYPES = ['horas', 'km', 'ciclos', 'outro'];
 interface AssetCategoryData {
   name: string;
   description: string;
-}
-
-interface NameData {
-  category: number;
-  names: string[];
 }
 
 export async function seedAssets(tenantId: string, plantId: string) {

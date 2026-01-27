@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { db } from '../config/database';
 import {
   spareParts,
   stockMovements,
@@ -58,18 +58,26 @@ export class SparePartService {
         updated_at: spareParts.updated_at,
       })
       .from(spareParts)
-      .leftJoin(suppliers, eq(spareParts.supplier_id, suppliers.id))
-      .where(eq(spareParts.tenant_id, tenant_id));
+      .leftJoin(suppliers, eq(spareParts.supplier_id, suppliers.id));
+
+    // Build conditions array
+    const conditions = [eq(spareParts.tenant_id, tenant_id)];
 
     if (filters?.supplier_id) {
-      query = query.andWhere(eq(spareParts.supplier_id, filters.supplier_id));
+      conditions.push(eq(spareParts.supplier_id, filters.supplier_id));
     }
 
     if (filters?.search) {
       const searchPattern = `%${filters.search}%`;
-      query = query.andWhere(
+      conditions.push(
         sql`${spareParts.code} ILIKE ${searchPattern} OR ${spareParts.name} ILIKE ${searchPattern}`
       );
+    }
+
+    if (conditions.length > 1) {
+      query = query.where(and(...conditions));
+    } else {
+      query = query.where(conditions[0]);
     }
 
     return await query.orderBy(desc(spareParts.created_at));
@@ -214,7 +222,7 @@ export class SparePartService {
   ): Promise<number> {
     const result = await db
       .select({
-        quantity: sql`SUM(CASE WHEN type = 'entrada' OR type = 'ajuste' THEN quantity ELSE -quantity END)`,
+        quantity: sql<number>`SUM(CASE WHEN type = 'entrada' OR type = 'ajuste' THEN quantity ELSE -quantity END)`,
       })
       .from(stockMovements)
       .where(
@@ -225,7 +233,8 @@ export class SparePartService {
         )
       );
 
-    return parseInt(result[0]?.quantity || '0', 10);
+    const quantity = result[0]?.quantity;
+    return typeof quantity === 'number' ? quantity : 0;
   }
 
   /**
@@ -311,7 +320,17 @@ export class SparePartService {
     // Verify spare part exists
     await this.getSparePartById(tenant_id, spare_part_id);
 
-    let query = db
+    // Build conditions array
+    const conditions = [
+      eq(stockMovements.tenant_id, tenant_id),
+      eq(stockMovements.spare_part_id, spare_part_id),
+    ];
+
+    if (plant_id) {
+      conditions.push(eq(stockMovements.plant_id, plant_id));
+    }
+
+    return await db
       .select({
         id: stockMovements.id,
         tenant_id: stockMovements.tenant_id,
@@ -327,18 +346,8 @@ export class SparePartService {
         created_at: stockMovements.created_at,
       })
       .from(stockMovements)
-      .where(
-        and(
-          eq(stockMovements.tenant_id, tenant_id),
-          eq(stockMovements.spare_part_id, spare_part_id)
-        )
-      );
-
-    if (plant_id) {
-      query = query.andWhere(eq(stockMovements.plant_id, plant_id));
-    }
-
-    return await query.orderBy(desc(stockMovements.created_at));
+      .where(and(...conditions))
+      .orderBy(desc(stockMovements.created_at));
   }
 
   /**

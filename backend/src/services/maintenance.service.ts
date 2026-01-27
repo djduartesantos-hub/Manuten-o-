@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { db } from '../config/database';
 import { maintenancePlans, maintenanceTasks, workOrders, assets } from '../db/schema';
 import { eq, and, desc, like } from 'drizzle-orm';
 
@@ -59,24 +59,31 @@ export class MaintenanceService {
         updated_at: maintenancePlans.updated_at,
       })
       .from(maintenancePlans)
-      .leftJoin(assets, eq(maintenancePlans.asset_id, assets.id))
-      .where(eq(maintenancePlans.tenant_id, tenant_id));
+      .leftJoin(assets, eq(maintenancePlans.asset_id, assets.id));
 
-    // Apply filters
+    // Build conditions array
+    const conditions = [eq(maintenancePlans.tenant_id, tenant_id)];
+
     if (filters?.asset_id) {
-      query = query.andWhere(eq(maintenancePlans.asset_id, filters.asset_id));
+      conditions.push(eq(maintenancePlans.asset_id, filters.asset_id));
     }
 
     if (filters?.type) {
-      query = query.andWhere(eq(maintenancePlans.type, filters.type as any));
+      conditions.push(eq(maintenancePlans.type, filters.type as any));
     }
 
     if (filters?.is_active !== undefined) {
-      query = query.andWhere(eq(maintenancePlans.is_active, filters.is_active));
+      conditions.push(eq(maintenancePlans.is_active, filters.is_active));
     }
 
     if (filters?.search) {
-      query = query.andWhere(like(maintenancePlans.name, `%${filters.search}%`));
+      conditions.push(like(maintenancePlans.name, `%${filters.search}%`));
+    }
+
+    if (conditions.length > 1) {
+      query = query.where(and(...conditions));
+    } else {
+      query = query.where(conditions[0]);
     }
 
     return await query.orderBy(desc(maintenancePlans.created_at));
