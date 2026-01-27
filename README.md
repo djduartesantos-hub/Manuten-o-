@@ -5,7 +5,7 @@
 Ao nível de: **Infraspeak**, **ManWinWin**, **Fracttal One**
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
-![Version](https://img.shields.io/badge/Version-1.1.0-blue)
+![Version](https://img.shields.io/badge/Version-1.2.0-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.2-blue)
 ![React](https://img.shields.io/badge/React-18.2-blue)
@@ -16,7 +16,9 @@ Ao nível de: **Infraspeak**, **ManWinWin**, **Fracttal One**
 ## 📋 Índice Rápido
 
 - [Visão Geral](#visão-geral)
+- [Sistema de Versionamento](#-sistema-de-versionamento)
 - [Roadmap Desenvolvimento](#roadmap-desenvolvimento)
+- [Novas Ideias](#-novas-ideias-de-desenvolvimento)
 - [Características](#características-principais)
 - [Stack Tecnológico](#stack-tecnológico)
 - [Instalação](#instalação)
@@ -40,6 +42,30 @@ Ao nível de: **Infraspeak**, **ManWinWin**, **Fracttal One**
 ✅ Escalar para múltiplas empresas com isolamento de dados  
 
 **Status Atual:** Phase 2 (Maintenance Planning & Spare Parts) ✅ Completa | Veja [PHASE_1_COMPLETION.md](./PHASE_1_COMPLETION.md)
+
+---
+
+## 🔢 Sistema de Versionamento
+
+Veja documentação completa em [VERSIONING.md](./VERSIONING.md)
+
+### Estrutura de Versão
+
+```
+X.Y.Z
+│ │ └─ Número de correção/patch durante a phase
+│ └─── Número da phase
+└───── Versão major (sempre 1)
+```
+
+**Exemplos:**
+- **v1.1.0** = Phase 1 Completa (Asset Management)
+- **v1.1.1-1.1.9** = Correções/Melhorias Phase 1
+- **v1.2.0** = Phase 2 Completa (Maintenance Planning) ← ATUAL
+- **v1.2.1-1.2.9** = Correções/Melhorias Phase 2
+- **v1.3.0** = Phase 3 Completa (Escalabilidade)
+- **v1.4.0** = Phase 4 Completa (Produção)
+- **v1.5.0** = Phase 5 Completa (IA & Analytics)
 
 ---
 
