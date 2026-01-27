@@ -5,7 +5,7 @@
 Ao nível de: **Infraspeak**, **ManWinWin**, **Fracttal One**
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
-![Version](https://img.shields.io/badge/Version-1.0.0-blue)
+![Version](https://img.shields.io/badge/Version-1.1.0-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.2-blue)
 ![React](https://img.shields.io/badge/React-18.2-blue)
@@ -16,6 +16,7 @@ Ao nível de: **Infraspeak**, **ManWinWin**, **Fracttal One**
 ## 📋 Índice Rápido
 
 - [Visão Geral](#visão-geral)
+- [Roadmap Desenvolvimento](#roadmap-desenvolvimento)
 - [Características](#características-principais)
 - [Stack Tecnológico](#stack-tecnológico)
 - [Instalação](#instalação)
@@ -38,7 +39,169 @@ Ao nível de: **Infraspeak**, **ManWinWin**, **Fracttal One**
 ✅ Manter conformidade RGPD com auditoria total  
 ✅ Escalar para múltiplas empresas com isolamento de dados  
 
-**Status Atual:** Phase 1 (Asset Management) ✅ Completa | Veja [PHASE_1_COMPLETION.md](./PHASE_1_COMPLETION.md)
+**Status Atual:** Phase 2 (Maintenance Planning & Spare Parts) ✅ Completa | Veja [PHASE_1_COMPLETION.md](./PHASE_1_COMPLETION.md)
+
+---
+
+## 🚀 Roadmap Desenvolvimento
+
+### ✅ Phase 1: Asset Management (COMPLETO - v1.0.0)
+**Data:** Dezembro 2025 - Janeiro 2026  
+**Status:** ✅ Production Ready
+
+Gestão completa de ativos com:
+- 6 CRUD endpoints para equipamentos
+- Categorias e subcategorias
+- Números de série e QR codes
+- Rastreamento de contadores (horas/km)
+- Integração com ordens de trabalho
+
+**Commits:** 023b8b6, ef45292, 6cf42a9
+
+---
+
+### ✅ Phase 2: Maintenance Planning & Spare Parts (COMPLETO - v1.1.0)
+**Data:** Janeiro 2026  
+**Status:** ✅ Production Ready
+
+Planeamento de manutenção preventiva com:
+- 9 endpoints para planos de manutenção
+- 12+ endpoints para gestão de peças sobressalentes
+- Cálculo automático de manutenção vencida
+- Gestão de stock por planta
+- Movimentos de stock (entrada/saída/ajuste)
+- Integração com fornecedores
+
+**Commits:** 0be699a, cef311b
+
+---
+
+### 📋 Phase 3: Escalabilidade & Performance (POR INICIAR - 2-3 semanas)
+**Funcionalidades Planeadas:**
+- ⚡ **WebSocket** para notificações em tempo real
+- 🔴 **Redis** para cache e sessões
+- 🔍 **Elasticsearch** para busca avançada
+- 📮 **Bull Job Queue** para processamento assíncrono
+- 📊 **Performance Metrics** e monitoring
+
+---
+
+### 🔐 Phase 4: Produção & Conformidade (POR INICIAR - 1 semana)
+**Funcionalidades Planeadas:**
+- 🛡️ **Helmet** para segurança HTTP
+- 🚦 **Rate Limiting** e throttling
+- 📖 **Swagger/OpenAPI** documentation
+- 🔔 **Sentry** para error tracking
+- 🔄 **CI/CD Setup** com GitHub Actions
+
+---
+
+### 🤖 Phase 5: Análise Avançada & IA (POR INICIAR)
+**Funcionalidades Planeadas:**
+- 📈 Análise preditiva de falhas
+- 🗺️ Otimização de rotas de manutenção
+- 💰 Análise de custos e ROI
+- 🎯 Recomendações inteligentes
+- 📊 Dashboard de análise avançada
+
+---
+
+## 💡 Novas Ideias de Desenvolvimento
+
+### Curto Prazo (1-2 meses)
+
+**1. Dashboard Customizável por Utilizador** ⭐⭐
+- Drag-and-drop para reorganizar widgets
+- Múltiplos layouts salvos
+- Preferências por role
+- **ROI:** Alto | **Esforço:** Médio
+
+**2. Relatórios Agendados por Email** ⭐⭐
+- Templates de relatório (semanal, mensal, anual)
+- Seleção de destinatários por role
+- Anexos em PDF
+- **ROI:** Alto | **Esforço:** Médio
+
+**3. Mobile App com React Native** ⭐⭐⭐
+- Acesso em tempo real
+- Notificações push
+- Offline mode
+- **ROI:** Muito Alto | **Esforço:** Alto
+
+**4. Integração com IoT Sensors** ⭐⭐⭐
+- Leitura de sensores em tempo real
+- Alertas automáticos
+- Histórico de métricas
+- **ROI:** Muito Alto | **Esforço:** Alto
+
+**5. Análise Predictiva de Falhas** ⭐⭐⭐
+- Machine Learning para predição
+- Alertas preventivos
+- Otimização de manutenção
+- **ROI:** Muito Alto | **Esforço:** Alto
+
+### Médio Prazo (3-4 meses)
+
+**6. Integração com ERP Systems** ⭐⭐⭐
+- SAP, Microsoft Dynamics, Oracle
+- Sincronização de dados
+- **ROI:** Muito Alto | **Esforço:** Alto
+
+**7. Sistema de Documentação Integrado** ⭐⭐
+- Manuais técnicos
+- Procedimentos passo-a-passo
+- Histórico de alterações
+- **ROI:** Médio | **Esforço:** Médio
+
+**8. Gestão de Contratos e Garantias** ⭐⭐
+- Rastreamento de garantias
+- Alertas de renovação
+- Análise de custos
+- **ROI:** Médio | **Esforço:** Médio
+
+**9. Portal do Utilizador (Self-Service)** ⭐⭐⭐
+- Submissão de requisições
+- Acompanhamento de status
+- Feedback e avaliações
+- **ROI:** Alto | **Esforço:** Médio
+
+**10. Sistema de Training & Compliance** ⭐⭐
+- Cursos online
+- Certificações
+- Tracking de conclusão
+- **ROI:** Médio | **Esforço:** Médio
+
+### Longo Prazo (6+ meses)
+
+**11. Gamification & Incentivos** ⭐⭐
+- Badges e achievements
+- Leaderboards
+- Recompensas
+- **ROI:** Médio | **Esforço:** Médio
+
+**12. Supply Chain Management** ⭐⭐⭐
+- Gestão de inventário
+- Reordering automático
+- Fornecedores e negociações
+- **ROI:** Muito Alto | **Esforço:** Alto
+
+**13. Conformidade e Regulação** ⭐⭐⭐
+- ISO compliance tracking
+- Auditoria integrada
+- Documentação automática
+- **ROI:** Alto | **Esforço:** Alto
+
+**14. Energy Management & Sustainability** ⭐⭐
+- Monitorização de consumo
+- Relatórios de emissão
+- Otimizações sustentáveis
+- **ROI:** Médio | **Esforço:** Médio
+
+**15. Marketplace de Integrações** ⭐⭐⭐
+- API marketplace
+- Extensões de terceiros
+- Plugins community-driven
+- **ROI:** Muito Alto | **Esforço:** Muito Alto
 
 ---
 
