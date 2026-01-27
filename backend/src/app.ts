@@ -2,6 +2,7 @@ import express, { Express } from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes';
 import workOrderRoutes from './routes/workorder.routes';
+import assetRoutes from './routes/asset.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import { errorHandler, notFoundHandler, requestLogger } from './middlewares/error';
 
@@ -22,6 +23,7 @@ export function createApp(): Express {
   // Routes
   app.use('/api/auth', authRoutes);
   app.use('/api/tenants', workOrderRoutes);
+  app.use('/api/tenants', assetRoutes);
   app.use('/api/dashboard', dashboardRoutes);
 
   // Health check
