@@ -13,9 +13,25 @@ Ao nível de: **Infraspeak**, **ManWinWin**, **Fracttal One**
 
 ---
 
+## 🪟 Setup Rápido no Windows
+
+**Novo! Instalação automática em 3 passos:**
+
+1. Execute: `setup-windows.bat`
+2. Configure: `backend\.env` (credenciais PostgreSQL)
+3. Inicie: `start-all.bat`
+
+👉 [**QUICKSTART_WINDOWS.md**](./QUICKSTART_WINDOWS.md) - Guia rápido (2 min)  
+📖 [**WINDOWS_SETUP.md**](./WINDOWS_SETUP.md) - Guia completo  
+🆘 [**WINDOWS_TROUBLESHOOTING.md**](./WINDOWS_TROUBLESHOOTING.md) - Resolvendo problemas  
+🎮 [**start-menu.bat**](./start-menu.bat) - Painel de controle interativo  
+
+---
+
 ## 📋 Índice Rápido
 
 - [Visão Geral](#visão-geral)
+- [Setup Windows](#-setup-rápido-no-windows) ⭐ NEW
 - [Sistema de Versionamento](#-sistema-de-versionamento)
 - [Roadmap Desenvolvimento](#roadmap-desenvolvimento)
 - [Novas Ideias](#-novas-ideias-de-desenvolvimento)
