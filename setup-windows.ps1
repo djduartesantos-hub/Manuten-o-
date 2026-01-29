@@ -4,7 +4,7 @@ Write-Host "CMMS Enterprise - Windows Auto Setup" -ForegroundColor Cyan
 Write-Host "================================" -ForegroundColor Cyan
 Write-Host ""
 
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Continue'
 
 function Confirm-YesNo([string]$msg) {
     $r = Read-Host "$msg [Y/n]"
@@ -19,7 +19,9 @@ if (-not (Test-Path "backend\package.json" -PathType Leaf) -or -not (Test-Path "
 
 Write-Host "Checking Node.js and npm..." -ForegroundColor Yellow
 $nodeFound = $false
-try { node --version > $null; npm --version > $null; $nodeFound = $true } catch { $nodeFound = $false }
+if ((Get-Command node -ErrorAction SilentlyContinue) -and (Get-Command npm -ErrorAction SilentlyContinue)) {
+    $nodeFound = $true
+}
 
 if (-not $nodeFound) {
     Write-Host "Node.js / npm not found in PATH." -ForegroundColor Yellow
@@ -58,14 +60,24 @@ CORS_ORIGIN=http://localhost:5173
 "@ | Out-File -FilePath .env -Encoding utf8; Write-Host "✓ default .env written" -ForegroundColor Green }
 }
 
-if (Test-Path package-lock.json) { Write-Host "Detected package-lock.json — using npm ci for reproducible install" -ForegroundColor Yellow; npm ci } else { npm install }
+if (Test-Path package-lock.json) { 
+    Write-Host "Detected package-lock.json — using npm ci for reproducible install" -ForegroundColor Yellow
+    npm ci 
+} else { 
+    npm install 
+}
 if ($LASTEXITCODE -ne 0) { Write-Host "✗ Error installing backend dependencies" -ForegroundColor Red; Pop-Location; exit 1 }
 Write-Host "✓ Backend dependencies installed" -ForegroundColor Green
 Pop-Location
 
 Write-Host "Installing frontend dependencies..." -ForegroundColor Cyan
 Push-Location frontend
-if (Test-Path package-lock.json) { Write-Host "Detected package-lock.json — using npm ci" -ForegroundColor Yellow; npm ci } else { npm install }
+if (Test-Path package-lock.json) { 
+    Write-Host "Detected package-lock.json — using npm ci" -ForegroundColor Yellow
+    npm ci 
+} else { 
+    npm install 
+}
 if ($LASTEXITCODE -ne 0) { Write-Host "✗ Error installing frontend dependencies" -ForegroundColor Red; Pop-Location; exit 1 }
 Write-Host "✓ Frontend dependencies installed" -ForegroundColor Green
 Pop-Location
