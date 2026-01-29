@@ -432,7 +432,9 @@ Content-Type: application/json
 {
   "email": "admin@cmms.com",
   "password": "Admin@123456",
-  "tenant_id": "cmms-demo"
+  // Either provide tenant_id (UUID) or tenant_slug (easier for demo)
+  // "tenant_id": "00000000-0000-0000-0000-000000000000",
+  "tenant_slug": "cmms-demo"
 }
 
 Response:
@@ -447,7 +449,7 @@ Response:
       "firstName": "Admin",
       "lastName": "User",
       "role": "SuperAdmin",
-      "tenantId": "cmms-demo"
+      "tenantId": "<tenant-uuid>"
     }
   }
 }
