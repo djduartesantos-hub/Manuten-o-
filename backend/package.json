@@ -8,8 +8,8 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio",
+    "db:migrate": "drizzle-kit migrate --config=drizzle.config.mjs",
+    "db:studio": "drizzle-kit studio --config=drizzle.config.mjs",
     "db:seed": "tsx src/db/seed.ts",
     "lint": "eslint src",
     "type-check": "tsc --noEmit"
