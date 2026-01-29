@@ -1,5 +1,5 @@
 import { db } from '../config/database';
-import { users } from '../db/schema';
+import { users, tenants } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { comparePasswords, hashPassword } from '../auth/jwt';
 
@@ -10,6 +10,13 @@ export class AuthService {
         and(eq(fields.tenant_id, tenantId), eq(fields.email, email)),
     });
     return user;
+  }
+
+  static async findTenantBySlug(slug: string) {
+    const tenant = await db.query.tenants.findFirst({
+      where: (fields: any) => eq(fields.slug, slug),
+    });
+    return tenant;
   }
 
   static async findUserById(userId: string) {

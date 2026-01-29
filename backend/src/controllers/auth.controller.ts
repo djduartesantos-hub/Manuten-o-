@@ -7,18 +7,32 @@ import { logger } from '../config/logger';
 export class AuthController {
   static async login(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const { email, password, tenant_id } = req.body;
+      const { email, password, tenant_id, tenant_slug } = req.body;
 
-      if (!email || !password || !tenant_id) {
+      if (!email || !password || (!tenant_id && !tenant_slug)) {
         res.status(400).json({
           success: false,
-          error: 'Email, password and tenant_id are required',
+          error: 'Email, password and tenant_id or tenant_slug are required',
         });
         return;
       }
 
+      let resolvedTenantId = tenant_id;
+
+      if (!resolvedTenantId && tenant_slug) {
+        const tenant = await AuthService.findTenantBySlug(tenant_slug);
+        if (!tenant) {
+          res.status(400).json({
+            success: false,
+            error: 'Tenant not found for provided tenant_slug',
+          });
+          return;
+        }
+        resolvedTenantId = tenant.id;
+      }
+
       const user = await AuthService.validateCredentials(
-        tenant_id,
+        resolvedTenantId as string,
         email,
         password,
       );
