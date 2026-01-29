@@ -9,16 +9,12 @@ import {
   jsonb,
   uniqueIndex,
   index,
+  pgEnum,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
-// Custom enum support for older drizzle-orm versions
-const createEnum = (_name: string, values: string[]) => {
-  return values as any;
-};
-
 // Enums
-const orderStatusEnum = createEnum('order_status', [
+export const orderStatusEnum = pgEnum('order_status', [
   'aberta',
   'atribuida',
   'em_curso',
@@ -26,14 +22,14 @@ const orderStatusEnum = createEnum('order_status', [
   'cancelada',
 ]);
 
-const maintenanceTypeEnum = createEnum('maintenance_type', [
+export const maintenanceTypeEnum = pgEnum('maintenance_type', [
   'preventiva',
   'corretiva',
 ]);
 
-const priorityEnum = createEnum('priority', ['baixa', 'media', 'alta', 'critica']);
+export const priorityEnum = pgEnum('priority', ['baixa', 'media', 'alta', 'critica']);
 
-const stockMovementTypeEnum = createEnum('stock_movement_type', [
+export const stockMovementTypeEnum = pgEnum('stock_movement_type', [
   'entrada',
   'saida',
   'ajuste',
