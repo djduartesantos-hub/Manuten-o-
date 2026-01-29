@@ -41,14 +41,14 @@ echo.
 
 REM Iniciar Backend em nova janela
 echo [1/2] Starting Backend (http://localhost:3000)...
-start "CMMS Backend" cmd /k "cd /d "%cd%\backend" && echo Initializing Backend... && timeout /t 2 && npm run dev"
+start "CMMS Backend" cmd /k "cd /d backend && echo Initializing Backend... && timeout /t 2 && npm run dev"
 
 REM Aguardar um pouco para o backend iniciar
 timeout /t 4 /nobreak
 
 REM Iniciar Frontend em nova janela
 echo [2/2] Starting Frontend (http://localhost:5173)...
-start "CMMS Frontend" cmd /k "cd /d "%cd%\frontend" && echo Initializing Frontend... && timeout /t 2 && npm run dev"
+start "CMMS Frontend" cmd /k "cd /d frontend && echo Initializing Frontend... && timeout /t 2 && npm run dev"
 
 REM Aguardar para frontend ficar pronto
 timeout /t 5 /nobreak

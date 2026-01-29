@@ -96,8 +96,9 @@ echo ═════════════════════════
 echo  INICIANDO APENAS BACKEND
 echo ═══════════════════════════════════════════════════════════
 echo.
-cd backend
+pushd backend
 npm run dev
+popd
 goto menu
 
 :frontend
@@ -107,8 +108,9 @@ echo ═════════════════════════
 echo  INICIANDO APENAS FRONTEND
 echo ═══════════════════════════════════════════════════════════
 echo.
-cd frontend
+pushd frontend
 npm run dev
+popd
 goto menu
 
 :clean
@@ -125,21 +127,27 @@ if /i not "%confirm%"=="S" goto menu
 
 echo.
 echo Limpando Backend...
-cd backend
-if exist node_modules rmdir /s /q node_modules
+pushd backend
+if exist node_modules (
+    echo Removendo node_modules do Backend...
+    rmdir /s /q node_modules 2>nul || echo Aviso: não foi possível remover alguns arquivos
+)
 if exist package-lock.json del package-lock.json
 echo Reinstalando Backend...
-npm install
+call npm install
+popd
 
 echo.
 echo Limpando Frontend...
-cd ../frontend
-if exist node_modules rmdir /s /q node_modules
+pushd frontend
+if exist node_modules (
+    echo Removendo node_modules do Frontend...
+    rmdir /s /q node_modules 2>nul || echo Aviso: não foi possível remover alguns arquivos
+)
 if exist package-lock.json del package-lock.json
 echo Reinstalando Frontend...
-npm install
-
-cd ..
+call npm install
+popd
 echo.
 echo ✓ Limpeza completa! Pressione qualquer tecla.
 pause

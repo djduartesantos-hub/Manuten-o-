@@ -19,8 +19,7 @@ if (-not (Test-Path "backend\package.json" -PathType Leaf) -or -not (Test-Path "
 
 Write-Host "Checking Node.js and npm..." -ForegroundColor Yellow
 $nodeFound = $false
-try { node --version > $null; $nodeFound = $true } catch {}
-try { npm --version > $null } catch { $nodeFound = $false }
+try { node --version > $null; npm --version > $null; $nodeFound = $true } catch { $nodeFound = $false }
 
 if (-not $nodeFound) {
     Write-Host "Node.js / npm not found in PATH." -ForegroundColor Yellow
@@ -77,7 +76,7 @@ Write-Host "✓ Setup Complete!" -ForegroundColor Green
 Write-Host "================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Cyan
-Write-Host " - Configure backend\.env with your PostgreSQL credentials if needed." -ForegroundColor White
+Write-Host " - Configure backend/.env with your PostgreSQL credentials if needed." -ForegroundColor White
 Write-Host " - Start backend: cd backend && npm run dev" -ForegroundColor White
 Write-Host " - Start frontend: cd frontend && npm run dev" -ForegroundColor White
 Write-Host ""
