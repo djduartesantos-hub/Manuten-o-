@@ -21,6 +21,8 @@ Ao nível de: **Infraspeak**, **ManWinWin**, **Fracttal One**
 2. Configure: `backend\.env` (credenciais PostgreSQL)
 3. Inicie: `start-all.bat`
 
+Nota: o `setup-windows.ps1` agora tenta instalar o Node.js LTS via `winget` se estiver ausente, e usa `npm ci` quando existir `package-lock.json`. Execute `setup-windows.bat` para invocar o PowerShell automaticamente.
+
 👉 [**QUICKSTART_WINDOWS.md**](./QUICKSTART_WINDOWS.md) - Guia rápido (2 min)  
 📖 [**WINDOWS_SETUP.md**](./WINDOWS_SETUP.md) - Guia completo  
 🆘 [**WINDOWS_TROUBLESHOOTING.md**](./WINDOWS_TROUBLESHOOTING.md) - Resolvendo problemas  
