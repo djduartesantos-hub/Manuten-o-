@@ -98,6 +98,35 @@ Manuten-o/
 - [PHASE_1_COMPLETION.md - Asset Endpoints](./PHASE_1_COMPLETION.md#api-documentation)
 - [Backend - API Docs](./backend/README.md#api-documentation)
 
+#### Exemplo de Login (tenant_slug)
+```bash
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@cmms.com",
+  "password": "Admin@123456",
+  "tenant_slug": "cmms-demo"
+}
+
+# Resposta esperada (exemplo)
+{
+  "success": true,
+  "data": {
+    "token": "<jwt>",
+    "refreshToken": "<jwt>",
+    "user": {
+      "id": "<uuid>",
+      "email": "admin@cmms.com",
+      "firstName": "Admin",
+      "lastName": "CMMS",
+      "role": "superadmin",
+      "tenantId": "<tenant-uuid>"
+    }
+  }
+}
+```
+
 ### Database
 - [Backend - Database Schema](./backend/README.md#database-schema)
 - [PHASE_1_COMPLETION.md - Database Changes](./PHASE_1_COMPLETION.md#database-changes)

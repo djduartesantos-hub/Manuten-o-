@@ -46,15 +46,16 @@ export async function apiCall<T = any>(
 export async function login(
   email: string,
   password: string,
-  tenantId: string,
+  tenant: string,
 ): Promise<{
   token: string;
   refreshToken: string;
   user: any;
 }> {
+  // Sends tenant as tenant_slug for convenience (backend also accepts tenant_id)
   return apiCall('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password, tenant_id: tenantId }),
+    body: JSON.stringify({ email, password, tenant_slug: tenant }),
   });
 }
 

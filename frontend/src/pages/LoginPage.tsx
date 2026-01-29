@@ -9,7 +9,7 @@ export function LoginPage() {
   const { setAuth } = useAuth();
   const [email, setEmail] = React.useState('admin@cmms.com');
   const [password, setPassword] = React.useState('Admin@123456');
-  const [tenantId, setTenantId] = React.useState('');
+  const [tenantSlug, setTenantSlug] = React.useState('cmms-demo');
   const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
@@ -20,7 +20,7 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await apiLogin(email, password, tenantId);
+      const result = await apiLogin(email, password, tenantSlug);
       setAuth(result.user, result.token, result.refreshToken);
       navigate('/dashboard');
     } catch (err) {
@@ -54,21 +54,21 @@ export function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Tenant ID */}
+            {/* Tenant (slug) */}
             <div>
-              <label htmlFor="tenantId" className="block text-sm font-medium text-gray-700 mb-1">
-                ID da Empresa
+              <label htmlFor="tenantSlug" className="block text-sm font-medium text-gray-700 mb-1">
+                Empresa (slug)
               </label>
               <input
-                id="tenantId"
+                id="tenantSlug"
                 type="text"
-                value={tenantId}
-                onChange={(e) => setTenantId(e.target.value)}
+                value={tenantSlug}
+                onChange={(e) => setTenantSlug(e.target.value)}
                 placeholder="cmms-demo"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent"
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">Use: cmms-demo (para demo)</p>
+              <p className="text-xs text-gray-500 mt-1">Use: <code className="bg-white px-1 rounded">cmms-demo</code> (para demo)</p>
             </div>
 
             {/* Email */}
