@@ -9,7 +9,10 @@ export function LoginPage() {
   const { setAuth } = useAuth();
   const [email, setEmail] = React.useState('admin@cmms.com');
   const [password, setPassword] = React.useState('Admin@123456');
-  const [tenantSlug, setTenantSlug] = React.useState('cmms-demo');
+  const [tenantSlug, setTenantSlug] = React.useState(() => {
+    // Load saved tenant_slug from localStorage, default to cmms-demo
+    return localStorage.getItem('lastTenantSlug') || 'cmms-demo';
+  });
   const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
@@ -21,6 +24,8 @@ export function LoginPage() {
 
     try {
       const result = await apiLogin(email, password, tenantSlug);
+      // Save tenant_slug for next login
+      localStorage.setItem('lastTenantSlug', tenantSlug);
       setAuth(result.user, result.token, result.refreshToken);
       navigate('/dashboard');
     } catch (err) {
