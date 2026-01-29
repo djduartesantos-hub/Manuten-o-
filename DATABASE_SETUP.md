@@ -6,16 +6,37 @@ Existem 3 formas de criar a base de dados:
 
 ### **Opção 1: Script Automático (Recomendado)** ⭐
 
+#### **Linux/macOS**
 ```bash
 chmod +x setup-database.sh
 ./setup-database.sh
 ```
 
+#### **Windows (PowerShell)**
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+.\setup-database.ps1
+```
+
+#### **Windows (Batch/CMD)**
+```cmd
+setup-database.bat
+```
+
 **Parâmetros opcionais:**
 ```bash
+# Linux/macOS
 ./setup-database.sh [DB_USER] [DB_PASSWORD] [DB_NAME] [DB_HOST] [DB_PORT]
 
-# Exemplo com customização
+# Windows PowerShell
+.\setup-database.ps1 -DbUser "user" -DbPassword "pass" -DbName "db" -DbHost "localhost" -DbPort "5432"
+
+# Windows Batch
+setup-database.bat user password database localhost 5432
+```
+
+**Exemplo com customização:**
+```bash
 ./setup-database.sh meu_user minhasenha minha_bd localhost 5432
 ```
 
