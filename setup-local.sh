@@ -52,9 +52,24 @@ echo -e "${GREEN}✅ PostgreSQL started${NC}"
 
 # Create database and user
 echo -e "${BLUE}3️⃣ Creating database and user...${NC}"
-sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';" 2>/dev/null || echo "User already exists"
+
+# Drop existing user/database if they exist (for fresh setup)
+if [ "$FRESH_SETUP" = "true" ]; then
+  echo -e "${YELLOW}Dropping existing database and user...${NC}"
+  sudo -u postgres psql -c "DROP DATABASE IF EXISTS $DB_NAME;" 2>/dev/null || true
+  sudo -u postgres psql -c "DROP USER IF EXISTS $DB_USER;" 2>/dev/null || true
+fi
+
+# Create user
+sudo -u postgres psql -c "CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASSWORD';" 2>/dev/null || echo "User already exists"
 sudo -u postgres psql -c "ALTER USER $DB_USER CREATEDB;" 2>/dev/null || true
+
+# Create database
 sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" 2>/dev/null || echo "Database already exists"
+
+# Grant privileges
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" 2>/dev/null || true
+
 echo -e "${GREEN}✅ Database created${NC}"
 
 # Configure backend .env
