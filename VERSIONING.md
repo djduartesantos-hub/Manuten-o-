@@ -43,11 +43,16 @@ X.Y.Z
   - Commit: `cef311b` - "fix: Corrigir erros TypeScript e atualizar versão"
   - Commit: `916af4d` - "chore: Adicionar ESLint configs e roadmap"
 
+- **v1.2.2** - Phase 2 UI + melhorias operacionais (ATUAL)
+  - UI moderna para Planos de Manutenção e Peças
+  - Kanban, SLA, alertas e templates nas Ordens de Trabalho
+  - Filtros guardados e exportação CSV
+  - Seeds e testes básicos de Phase 2
+
 - **v1.2.1 a v1.2.9** - Correções e Melhorias Phase 2 (POR FAZER)
-  - Testes unitários
-  - Seed data generation
-  - Componentes frontend Phase 2
   - Bug fixes e performance
+  - Upload de ficheiros para assets
+  - Relatórios avançados
 
 - **v1.2.9** - Phase 2 Finalizada (Antes de Phase 3)
 

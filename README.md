@@ -5,7 +5,7 @@
 Ao nível de: **Infraspeak**, **ManWinWin**, **Fracttal One**
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
-![Version](https://img.shields.io/badge/Version-1.2.1-blue)
+![Version](https://img.shields.io/badge/Version-1.2.2-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.2-blue)
 ![React](https://img.shields.io/badge/React-18.2-blue)
@@ -59,7 +59,7 @@ Nota: o `setup-windows.ps1` agora tenta instalar o Node.js LTS via `winget` se e
 ✅ Manter conformidade RGPD com auditoria total  
 ✅ Escalar para múltiplas empresas com isolamento de dados  
 
-**Status Atual:** Phase 2 (Maintenance Planning & Spare Parts) ✅ Completa | Veja [PHASE_1_COMPLETION.md](./PHASE_1_COMPLETION.md)
+**Status Atual:** Phase 2 (Maintenance Planning & Spare Parts) ✅ Completa + UI moderna | Veja [PHASE_1_COMPLETION.md](./PHASE_1_COMPLETION.md)
 
 ---
 
@@ -79,7 +79,8 @@ X.Y.Z
 **Exemplos:**
 - **v1.1.0** = Phase 1 Completa (Asset Management)
 - **v1.1.1-1.1.9** = Correções/Melhorias Phase 1
-- **v1.2.0** = Phase 2 Completa (Maintenance Planning) ← ATUAL
+- **v1.2.0** = Phase 2 Completa (Maintenance Planning)
+- **v1.2.2** = Phase 2 UI + melhorias de ordens ← ATUAL
 - **v1.2.1-1.2.9** = Correções/Melhorias Phase 2
 - **v1.3.0** = Phase 3 Completa (Escalabilidade)
 - **v1.4.0** = Phase 4 Completa (Produção)
@@ -104,7 +105,7 @@ Gestão completa de ativos com:
 
 ---
 
-### ✅ Phase 2: Maintenance Planning & Spare Parts (COMPLETO - v1.1.0)
+### ✅ Phase 2: Maintenance Planning & Spare Parts (COMPLETO - v1.2.0)
 **Data:** Janeiro 2026  
 **Status:** ✅ Production Ready
 
@@ -117,6 +118,12 @@ Planeamento de manutenção preventiva com:
 - Integração com fornecedores
 
 **Commits:** 0be699a, cef311b
+
+**Melhorias recentes (v1.2.2):**
+- UI moderna para Planos de Manutenção e Peças
+- Kanban e alertas de SLA em Ordens de Trabalho
+- Templates, filtros guardados e exportação CSV
+- Seeds e testes básicos de Phase 2
 
 ---
 
@@ -936,11 +943,12 @@ Linhas de Código:       5200+
 Backend Packages:       360
 Frontend Packages:      277
 Database Tables:        17
-API Endpoints:          17+ (6 novos - Assets)
-React Components:       20+
+API Endpoints:          25+ (Assets, Maintenance, Spare Parts)
+React Components:       30+
 TypeScript Files:       100% (strict mode)
 Compilation Errors:     0 ✅
 Phase 1 Status:         ✅ Complete
+Phase 2 Status:         ✅ Complete + UI
 ```
 
 ---
@@ -975,39 +983,29 @@ Veja [PHASE_1_COMPLETION.md](./PHASE_1_COMPLETION.md) para detalhes completos.
 
 ---
 
-### 🔧 Phase 2 - Planos de Manutenção e Gestão de Peças (2-3 semanas)
-**Resumo:** Implementar sistema completo de manutenção preventiva e gestão de inventário de peças sobressalentes.
+### ✅ Phase 2 - Planos de Manutenção e Gestão de Peças (COMPLETA)
+**Resumo:** Sistema completo de manutenção preventiva e gestão de inventário de peças sobressalentes.
 
 **Funcionalidades:**
-- [ ] **Planos de Manutenção (CRUD)** - Criar, ler, atualizar e eliminar planos de manutenção preventiva
-  - Agendamento por tempo (horas, dias) ou contador (km, ciclos)
-  - Histórico de execuções com datas de próxima manutenção
-  - Alertas automáticos quando manutenção está vencida
-  - Relatórios de conformidade (% de planos executados)
+- [x] **Planos de Manutenção (CRUD)** - Criar, ler, atualizar e eliminar planos
+  - Agendamento por tempo (dias/meses) ou contador
+  - Gestão de tarefas/checklists
 
-- [ ] **Peças Sobressalentes (CRUD + Inventário)** - Catálogo completo de peças com controle de stock
-  - Código de peça, fabricante, custo unitário
-  - Nível mínimo de stock e quantidade em stock
-  - Histórico de consumo e previsão de necessidade
-  - Associação de peças a planos de manutenção
+- [x] **Peças Sobressalentes (CRUD + Inventário)**
+  - Catálogo completo de peças com custo unitário
+  - Movimentos de stock (entrada/saída/ajuste)
 
-- [ ] **Movimentos de Stock (Entrada/Saída)** - Rastreamento de todo o movimento de inventário
-  - Entrada: Compras, devoluções, ajustes
-  - Saída: Consumo em ordens, devoluções, ajustes
-  - Histórico completo com utilizador e data
-  - Alertas de stock baixo
+- [x] **UI moderna Phase 2**
+  - Planos de manutenção com criação e listagem
+  - Peças e stock com movimentos e resumo
 
-- [ ] **Upload de Ficheiros para Assets** - Documentação de equipamentos
-  - Suporte para fotos, manuais, certificados
-  - Armazenamento seguro em cloud (AWS S3 ou similar)
-  - Versionamento de documentos
-  - Limite de tamanho e tipos de ficheiro
+- [x] **Ordens de Trabalho aprimoradas**
+  - Kanban, SLA, alertas, templates e exportação CSV
+  - Filtros guardados e pesquisa rápida
 
-- [ ] **Relatórios de Manutenção** - Análise de dados de manutenção
-  - Custos por equipamento e por plano
-  - MTTR (Mean Time To Repair) e MTBF (Mean Time Between Failures)
-  - Equipamentos mais problemáticos
-  - Aderência a planos de manutenção
+**Pendentes para fase seguinte:**
+- [ ] Upload de ficheiros para assets
+- [ ] Relatórios avançados de manutenção
 
 **Endpoints esperados:** 15+ novos endpoints
 **Base de dados:** 3-4 novas tabelas
