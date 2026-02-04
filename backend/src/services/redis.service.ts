@@ -188,10 +188,17 @@ export const CacheKeys = {
   // Assets
   asset: (tenantId: string, assetId: string) => `asset:${tenantId}:${assetId}`,
   assetsList: (tenantId: string) => `assets:${tenantId}`,
+
+  // Work Orders
+  workOrder: (tenantId: string, workOrderId: string) =>
+    `workorder:${tenantId}:${workOrderId}`,
+  workOrdersList: (tenantId: string, plantId: string, status?: string) =>
+    `workorders:${tenantId}:${plantId}:${status || 'all'}`,
   
   // Alerts
   alertConfig: (tenantId: string, alertId: string) => `alert:${tenantId}:${alertId}`,
-  alertConfigs: (tenantId: string) => `alerts:${tenantId}`,
+  alertConfigs: (tenantId: string, assetId?: string) =>
+    `alerts:${tenantId}:${assetId || 'all'}`,
   alertsHistory: (tenantId: string) => `alerts-history:${tenantId}`,
   
   // Maintenance Plans
@@ -211,6 +218,7 @@ export const CacheKeys = {
 // TTL values (in seconds)
 export const CacheTTL = {
   ASSETS: 5 * 60, // 5 minutes
+  WORK_ORDERS: 2 * 60, // 2 minutes
   ALERTS: 2 * 60, // 2 minutes
   PLANS: 10 * 60, // 10 minutes
   DOCUMENTS: 5 * 60, // 5 minutes

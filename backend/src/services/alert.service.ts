@@ -6,6 +6,9 @@ import {
 } from '../db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { CacheKeys, CacheTTL, RedisService } from './redis.service';
+import { logger } from '../config/logger';
+import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance';
 
 export class AlertService {
   // ========== ALERT CONFIGURATIONS ==========
@@ -39,16 +42,37 @@ export class AlertService {
       })
       .returning();
 
+    // Invalidate cache
+    try {
+      await RedisService.delMultiple([
+        CacheKeys.alertConfigs(data.tenant_id),
+        CacheKeys.alertConfigs(data.tenant_id, data.asset_id),
+      ]);
+    } catch (cacheError) {
+      logger.warn('Alert config cache invalidation error:', cacheError);
+    }
+
     return alert;
   }
 
-  static async getAlertConfigurations(tenantId: string, assetId?: string) {
+  static async getAlertConfigurations(tenantId: string, assetId?: string): Promise<any[]> {
+    try {
+      const cacheKey = CacheKeys.alertConfigs(tenantId, assetId);
+      const cached = await RedisService.getJSON<any[]>(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for alert configs: ${cacheKey}`);
+        return cached;
+      }
+    } catch (cacheError) {
+      logger.warn('Cache read error, continuing with DB query:', cacheError);
+    }
+
     const conditions = [eq(alertConfigurations.tenant_id, tenantId)];
     if (assetId) {
       conditions.push(eq(alertConfigurations.asset_id, assetId));
     }
 
-    return db.query.alertConfigurations.findMany({
+    const configs = await db.query.alertConfigurations.findMany({
       where: and(...conditions),
       with: {
         asset: {
@@ -60,6 +84,15 @@ export class AlertService {
         },
       },
     });
+
+    try {
+      const cacheKey = CacheKeys.alertConfigs(tenantId, assetId);
+      await RedisService.setJSON(cacheKey, configs, CacheTTL.ALERTS);
+    } catch (cacheError) {
+      logger.warn('Cache write error:', cacheError);
+    }
+
+    return configs;
   }
 
   static async updateAlertConfiguration(
@@ -90,10 +123,27 @@ export class AlertService {
       )
       .returning();
 
+    // Invalidate cache
+    try {
+      await RedisService.delMultiple([
+        CacheKeys.alertConfigs(tenantId),
+        CacheKeys.alertConfigs(tenantId, updated.asset_id),
+      ]);
+    } catch (cacheError) {
+      logger.warn('Alert config cache invalidation error:', cacheError);
+    }
+
     return updated;
   }
 
   static async deleteAlertConfiguration(alertId: string, tenantId: string) {
+    const existing = await db.query.alertConfigurations.findFirst({
+      where: and(
+        eq(alertConfigurations.id, alertId),
+        eq(alertConfigurations.tenant_id, tenantId),
+      ),
+    });
+
     await db
       .delete(alertConfigurations)
       .where(
@@ -102,6 +152,16 @@ export class AlertService {
           eq(alertConfigurations.tenant_id, tenantId),
         ),
       );
+
+    // Invalidate cache
+    try {
+      await RedisService.delMultiple([
+        CacheKeys.alertConfigs(tenantId),
+        CacheKeys.alertConfigs(tenantId, existing?.asset_id),
+      ]);
+    } catch (cacheError) {
+      logger.warn('Alert config cache invalidation error:', cacheError);
+    }
   }
 
   // ========== ALERTS HISTORY ==========
@@ -126,6 +186,23 @@ export class AlertService {
       })
       .returning();
 
+    // Invalidate cache
+    try {
+      await RedisService.del(CacheKeys.alertsHistory(data.tenant_id));
+    } catch (cacheError) {
+      logger.warn('Alert history cache invalidation error:', cacheError);
+    }
+
+    // Emit real-time alert
+    if (isSocketManagerReady()) {
+      const socketManager = getSocketManager();
+      socketManager.emitAlertTriggered(data.tenant_id, {
+        ...alert,
+        message: data.message,
+        severity: data.severity,
+      });
+    }
+
     return alert;
   }
 
@@ -139,6 +216,26 @@ export class AlertService {
       offset?: number;
     },
   ) {
+    const hasFilters =
+      !!filter?.asset_id ||
+      !!filter?.severity ||
+      filter?.is_resolved !== undefined ||
+      !!filter?.limit ||
+      !!filter?.offset;
+
+    if (!hasFilters) {
+      try {
+        const cacheKey = CacheKeys.alertsHistory(tenantId);
+        const cached = await RedisService.getJSON(cacheKey);
+        if (cached) {
+          logger.debug(`Cache hit for alerts history: ${cacheKey}`);
+          return cached;
+        }
+      } catch (cacheError) {
+        logger.warn('Cache read error, continuing with DB query:', cacheError);
+      }
+    }
+
     const conditions = [eq(alertsHistory.tenant_id, tenantId)];
 
     if (filter?.asset_id) {
@@ -153,7 +250,7 @@ export class AlertService {
       conditions.push(eq(alertsHistory.is_resolved, filter.is_resolved));
     }
 
-    return db.query.alertsHistory.findMany({
+    const alerts = await db.query.alertsHistory.findMany({
       where: and(...conditions),
       with: {
         asset: {
@@ -182,6 +279,17 @@ export class AlertService {
       limit: filter?.limit || 50,
       offset: filter?.offset || 0,
     });
+
+    if (!hasFilters) {
+      try {
+        const cacheKey = CacheKeys.alertsHistory(tenantId);
+        await RedisService.setJSON(cacheKey, alerts, CacheTTL.ALERTS);
+      } catch (cacheError) {
+        logger.warn('Cache write error:', cacheError);
+      }
+    }
+
+    return alerts;
   }
 
   static async resolveAlert(
@@ -207,6 +315,13 @@ export class AlertService {
         ),
       )
       .returning();
+
+    // Invalidate cache
+    try {
+      await RedisService.del(CacheKeys.alertsHistory(tenantId));
+    } catch (cacheError) {
+      logger.warn('Alert history cache invalidation error:', cacheError);
+    }
 
     return updated;
   }

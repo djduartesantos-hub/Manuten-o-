@@ -4,6 +4,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import { CreateAssetInput, UpdateAssetInput } from '../schemas/validation';
 import { RedisService, CacheKeys, CacheTTL } from './redis.service';
 import { logger } from '../config/logger';
+import { ElasticsearchService } from './elasticsearch.service';
 
 export class AssetService {
   /**
@@ -139,6 +140,21 @@ export class AssetService {
       logger.warn('Cache invalidation error:', cacheError);
     }
 
+    // Index into Elasticsearch (best-effort)
+    try {
+      await ElasticsearchService.index('assets_v1', asset.id, {
+        id: asset.id,
+        tenant_id: tenantId,
+        plant_id: asset.plant_id,
+        name: asset.name,
+        code: asset.code,
+        category: asset.category_id,
+        created_at: asset.created_at,
+      });
+    } catch (error) {
+      logger.warn('Elasticsearch index error for asset:', error);
+    }
+
     return asset;
   }
 
@@ -204,6 +220,21 @@ export class AssetService {
       logger.warn('Cache invalidation error:', cacheError);
     }
 
+    // Index into Elasticsearch (best-effort)
+    try {
+      await ElasticsearchService.index('assets_v1', updated.id, {
+        id: updated.id,
+        tenant_id: tenantId,
+        plant_id: updated.plant_id,
+        name: updated.name,
+        code: updated.code,
+        category: updated.category_id,
+        created_at: updated.created_at,
+      });
+    } catch (error) {
+      logger.warn('Elasticsearch index error for asset:', error);
+    }
+
     return updated;
   }
 
@@ -224,6 +255,23 @@ export class AssetService {
         ),
       )
       .returning();
+
+    // Invalidate cache
+    try {
+      await RedisService.delMultiple([
+        CacheKeys.asset(tenantId, assetId),
+        CacheKeys.assetsList(tenantId),
+      ]);
+    } catch (cacheError) {
+      logger.warn('Cache invalidation error:', cacheError);
+    }
+
+    // Remove from Elasticsearch (best-effort)
+    try {
+      await ElasticsearchService.delete('assets_v1', assetId);
+    } catch (error) {
+      logger.warn('Elasticsearch delete error for asset:', error);
+    }
 
     return deleted;
   }

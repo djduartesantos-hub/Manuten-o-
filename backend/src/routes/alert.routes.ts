@@ -5,6 +5,7 @@ import { AlertService } from '../services/alert.service';
 import { DocumentService } from '../services/document.service';
 import { AuthenticatedRequest } from '../types';
 import { z } from 'zod';
+import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance';
 
 const router = Router();
 
@@ -268,6 +269,16 @@ router.post(
         ...req.body,
         expires_at: req.body.expires_at ? new Date(req.body.expires_at) : undefined,
       });
+
+      if (isSocketManagerReady()) {
+        const socketManager = getSocketManager();
+        socketManager.emitDocumentUploaded(tenantId, {
+          id: document.id,
+          title: document.title,
+          asset_id: document.asset_id,
+          document_type: document.document_type,
+        });
+      }
 
       return res.status(201).json(document);
     } catch (error) {

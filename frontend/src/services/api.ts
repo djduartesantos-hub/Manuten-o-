@@ -136,3 +136,54 @@ export async function createStockMovement(data: any) {
     body: JSON.stringify(data),
   });
 }
+
+export async function getJobQueueStats() {
+  return apiCall('/jobs/stats');
+}
+
+export async function enqueueJob(data: {
+  queue: string;
+  jobName: string;
+  payload?: any;
+  delayMs?: number;
+}) {
+  return apiCall('/jobs/enqueue', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getJobDetails(queue: string, jobId: string) {
+  return apiCall(`/jobs/${queue}/${jobId}`);
+}
+
+export async function getRecentJobs(queue: string, limit: number = 20) {
+  return apiCall(`/jobs/${queue}/recent?limit=${limit}`);
+}
+
+export async function searchAll(
+  query: string,
+  options?: {
+    type?: 'orders' | 'assets';
+    plantId?: string;
+    status?: string;
+    priority?: string;
+    category?: string;
+    page?: number;
+    limit?: number;
+    sort?: 'score' | 'date_desc' | 'date_asc';
+  },
+) {
+  const params = new URLSearchParams();
+  params.append('q', query);
+  if (options?.type) params.append('type', options.type);
+  if (options?.plantId) params.append('plant_id', options.plantId);
+  if (options?.status) params.append('status', options.status);
+  if (options?.priority) params.append('priority', options.priority);
+  if (options?.category) params.append('category', options.category);
+  if (options?.page) params.append('page', String(options.page));
+  if (options?.limit) params.append('limit', String(options.limit));
+  if (options?.sort && options.sort !== 'score') params.append('sort', options.sort);
+
+  return apiCall(`/search?${params.toString()}`);
+}

@@ -2,71 +2,44 @@
 
 ## 🎯 Convenção de Versionamento
 
-A plataforma utiliza **Semantic Versioning** com uma estrutura específica para fases de desenvolvimento:
+A plataforma utiliza **Semantic Versioning** com **pré‑releases** para fases em curso:
 
 ```
-X.Y.Z
-│ │ └─ Número de correção/patch durante a fase
-│ └─── Número da phase (1 = Phase 1, 2 = Phase 2, etc)
-└───── Versão major (sempre 1 para este projeto)
+MAJOR.MINOR.PATCH[-PRERELEASE]
 ```
+
+### Regras
+- **MAJOR**: mudanças incompatíveis (breaking changes)
+- **MINOR**: novas funcionalidades compatíveis
+- **PATCH**: correções compatíveis
+- **PRERELEASE**: fases antes do release estável
+  - `alpha.N` (exploração inicial)
+  - `beta.N` (estabilização e integração)
+  - `rc.N` (release candidate)
+
+### Exemplos
+- `1.3.0-beta.1`
+- `1.3.0-rc.1`
+- `1.3.0`
 
 ---
 
 ## 📅 Cronograma de Versões
 
-### ✅ Phase 1: Asset Management
-- **v1.1.0** - Phase 1 Completa (Base + Asset Management)
-  - 6 CRUD endpoints para equipamentos
-  - Categorias e subcategorias
-  - QR codes e números de série
-  - Rastreamento de contadores
-  - Commit: `023b8b6` - "Phase 1: Complete Asset Management Module"
+### ✅ Releases Estáveis
+- **v1.2.2** - Phase 2 UI + melhorias operacionais (estável)
 
-- **v1.1.1 a v1.1.8** - Correções e Melhorias Phase 1
-  - `ef45292` - Phase 1 completion report
-  - `6cf42a9` - Atualizar README com Phase 1
-  - `342f7b9` - Roadmap em português
-  - `95dca88` - 15 novas ideias de desenvolvimento
-  - E outras correções/melhorias incrementais
-
-- **v1.1.9** - Phase 1 Finalizada (Antes de Phase 2)
-
-### ✅ Phase 2: Maintenance Planning & Spare Parts
-- **v1.2.0** - Phase 2 Completa (ATUAL)
-  - 9 endpoints para planos de manutenção
-  - 12+ endpoints para gestão de peças sobressalentes
-  - Cálculo automático de manutenção vencida
-  - Gestão de stock por planta
-  - Movimentos de stock (entrada/saída/ajuste)
-  - Commit: `0be699a` - "feat: Phase 2 - Implementação de Planos de Manutenção"
-  - Commit: `cef311b` - "fix: Corrigir erros TypeScript e atualizar versão"
-  - Commit: `916af4d` - "chore: Adicionar ESLint configs e roadmap"
-
-- **v1.2.2** - Phase 2 UI + melhorias operacionais (ATUAL)
-  - UI moderna para Planos de Manutenção e Peças
-  - Kanban, SLA, alertas e templates nas Ordens de Trabalho
-  - Filtros guardados e exportação CSV
-  - Seeds e testes básicos de Phase 2
-
-- **v1.2.1 a v1.2.9** - Correções e Melhorias Phase 2 (POR FAZER)
-  - Bug fixes e performance
-  - Upload de ficheiros para assets
-  - Relatórios avançados
-
-- **v1.2.9** - Phase 2 Finalizada (Antes de Phase 3)
+### 🔄 Releases em Fase (Pré‑release)
+- **v1.3.0-beta.1** - Phase 3 (Real‑time & Performance)
+  - WebSocket + Redis + Elasticsearch + Bull
+  - Search UI + Job Queue UI
+  - Integrações incrementais durante a fase
 
 ---
 
 ### 📋 Phase 3: Escalabilidade & Performance
-- **v1.3.0** - Phase 3 Completa (POR INICIAR)
-  - WebSocket para notificações em tempo real
-  - Redis para cache e sessões
-  - Elasticsearch para busca avançada
-  - Bull Job Queue para processamento assíncrono
-  - Performance metrics e monitoring
-
-- **v1.3.1 a v1.3.9** - Correções e Melhorias Phase 3
+- **v1.3.0** - Release estável após `beta/rc`
+- **v1.3.x** - Correções pós‑release
 
 ---
 
@@ -127,14 +100,11 @@ ef45292 docs: Add Phase 1 completion report for Asset Management module
 
 ## 🔄 Ciclo de Versioning
 
-Cada phase segue este padrão:
-
-1. **x.y.0** - Implementação completa da phase
-2. **x.y.1** - Primeira correção/melhoria
-3. **x.y.2** - Segunda correção/melhoria
-4. ...
-5. **x.y.9** - Última correção/ajuste antes da próxima phase
-6. **(x+1).0.0** - Próxima phase completa
+1. **x.y.0‑alpha.N** – protótipos iniciais
+2. **x.y.0‑beta.N** – integração e estabilização
+3. **x.y.0‑rc.N** – candidata a release
+4. **x.y.0** – release estável
+5. **x.y.(PATCH)** – correções pós‑release
 
 ---
 
@@ -191,6 +161,7 @@ Antes de fazer commit de uma nova versão:
 | 1.1.1-1.1.9 | 1 - Melhorias | ⏳ Em Andamento | - |
 | 1.2.0 | 2 - Manutenção & Peças | ✅ Completa | Jan 2026 |
 | 1.2.1-1.2.9 | 2 - Melhorias | 📋 Por Fazer | - |
+| 1.3.0-beta.1 | 3 - Escalabilidade | 🔄 Em Curso | Feb 2026 |
 | 1.3.0 | 3 - Escalabilidade | 📋 Por Iniciar | - |
 | 1.4.0 | 4 - Produção | 📋 Por Iniciar | - |
 | 1.5.0 | 5 - IA & Analytics | 📋 Futuro | - |

@@ -5,6 +5,8 @@ import { initDatabase } from './config/database';
 import { logger } from './config/logger';
 import { SocketManager } from './services/socket.manager';
 import { setSocketManager } from './utils/socket-instance';
+import { initJobProcessors } from './jobs/processors';
+import { ElasticsearchService } from './services/elasticsearch.service';
 
 const PORT = process.env.PORT || 3000;
 
@@ -23,6 +25,25 @@ async function startServer() {
     const socketManager = new SocketManager(server);
     setSocketManager(socketManager); // Make available globally
     logger.info('✅ Socket.io initialized');
+
+    // Initialize Elasticsearch indices (best-effort)
+    try {
+      await ElasticsearchService.initializeIndices();
+    } catch (error) {
+      logger.warn('Elasticsearch initialization failed:', error);
+    }
+
+    // Initialize job processors (best-effort, Redis may not be available on Windows)
+    try {
+      initJobProcessors();
+      logger.info('✅ Job processors initialized');
+    } catch (error) {
+      if (error instanceof Error && (error.message.includes('Redis') || error.message.includes('ECONNREFUSED'))) {
+        logger.warn('⚠️  Redis not available - job processing will be limited. Make sure Redis is running for production.');
+      } else {
+        logger.error('Job processors initialization failed:', error);
+      }
+    }
 
     // Start server
     server.listen(PORT, () => {

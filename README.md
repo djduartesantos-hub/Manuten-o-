@@ -5,8 +5,9 @@
 Ao nível de: **Infraspeak**, **ManWinWin**, **Fracttal One**
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
-![Version](https://img.shields.io/badge/Version-1.3.5--beta-blue)
-![Phase](https://img.shields.io/badge/Phase-3B%20Real--time-yellow)
+![Version](https://img.shields.io/badge/Version-1.3.0--beta.2-blue)
+![Phase](https://img.shields.io/badge/Phase%203B-Complete%20✅-brightgreen)
+![Phase](https://img.shields.io/badge/Phase%203A-Complete%20✅-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.2-blue)
 ![React](https://img.shields.io/badge/React-18.2-blue)
@@ -98,7 +99,7 @@ chmod +x scripts/setup/setup-local.sh
 
 Veja [VERSIONING.md](./docs/ARCHITECTURE/VERSIONING.md) para detalhes.
 
-**Versão Atual:** v1.3.5-beta (Phase 3B - Real-time Infrastructure - 55% complete)
+**Versão Atual:** v1.3.0-beta.1 (Phase 3B - Real-time Infrastructure - completo)
 
 ---
 
@@ -114,21 +115,35 @@ Gestão de ativos, categorias, histórico de manutenção.
 **Status:** ✅ Production Ready  
 Planos de manutenção, ordens de trabalho, gestão de peças.
 
-### ✅ Phase 3A: Settings & UI Components (v1.3.0 - COMPLETO)
-**Status:** ✅ Complete  
+### 🔄 Phase 3A: Settings & UI Components (em desenvolvimento)
+**Status:** 🔄 Em progresso  
 Alertas configuráveis, avisos preditivos, documentação de ativos, planos de manutenção.
 
-### 🔄 Phase 3B: Real-time Infrastructure (v1.3.5 - EM DESENVOLVIMENTO)
-**Status:** 🔄 55% completo (1 semana)  
+### ✅ Phase 3B: Real-time Infrastructure (v1.3.0-beta.1)
+**Status:** ✅ Completo  
 WebSocket real-time, Redis caching, Elasticsearch search, Bull job queue.
 - ✅ Socket.io integration (broadcast, tenant rooms, JWT auth)
-- ✅ Redis caching (5min TTL, cache invalidation)
-- ✅ Elasticsearch service (full-text search, aggregations)
-- ✅ Bull job queue (async jobs, retry logic)
-- 🔄 Extending caching to more services
-- ⏳ Elasticsearch indexing on mutations
-- ⏳ Bull job processors (email, reports, exports)
-- ⏳ Frontend real-time UI updates
+- ✅ Redis caching (assets, work orders, alerts, maintenance plans)
+- ✅ Elasticsearch indexing + search endpoint + search UI
+- ✅ Bull job queue (processors + monitoring UI)
+- ✅ Frontend real-time UI updates
+
+### ✅ Phase 3A: Settings Hub Enhancements (COMPLETE ✅)
+- ✅ AlertsSettings (form builder completo, test notifications, status badges)
+- ✅ PredictiveWarnings dashboard (severity metrics, confidence scores, recommendations)
+- ✅ DocumentsLibrary (drag-drop upload, file validation, success/error messages)
+- ✅ MaintenancePlannerSettings (ROI calculator, cost tracking, downtime analysis)
+- ✅ Roles & Permissions matrix (6 roles com acesso granular)
+- ✅ Job queue monitoring UI (stats, recent jobs, enqueue form)
+- ✅ Elasticsearch integration (search UI com filtros e paginação)
+
+### 🎯 Phase 4: Advanced Features & Integrations (Próximas)
+- React Query adoption across all pages
+- Advanced analytics dashboard with charts
+- Webhooks & Event streaming
+- OAuth2 + SSO (Google, Microsoft, GitHub)
+- Mobile app (React Native)
+- AI-powered predictions & demand forecasting
 
 👉 **Roadmap Completo:** [ROADMAP_2026.md](./docs/ARCHITECTURE/ROADMAP_2026.md)
 

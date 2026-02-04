@@ -65,6 +65,18 @@ export function MaintenancePlansPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlant]);
 
+  useEffect(() => {
+    const handleRealtimeUpdate = () => {
+      loadData();
+    };
+
+    window.addEventListener('realtime:maintenance-plans', handleRealtimeUpdate);
+    return () => {
+      window.removeEventListener('realtime:maintenance-plans', handleRealtimeUpdate);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlant]);
+
   const handleCreate = async () => {
     if (!form.asset_id || !form.name) {
       setError('Selecione o ativo e preencha o nome');

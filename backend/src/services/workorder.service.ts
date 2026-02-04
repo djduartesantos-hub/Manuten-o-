@@ -5,8 +5,35 @@ import {
 } from '../db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { CacheKeys, CacheTTL, RedisService } from './redis.service';
+import { logger } from '../config/logger';
+import { ElasticsearchService } from './elasticsearch.service';
 
 export class WorkOrderService {
+  private static getStatusCacheKeys(tenantId: string, plantId: string) {
+    const statuses = ['aberta', 'atribuida', 'em_curso', 'concluida', 'cancelada'];
+    return [
+      CacheKeys.workOrdersList(tenantId, plantId),
+      ...statuses.map((status) => CacheKeys.workOrdersList(tenantId, plantId, status)),
+    ];
+  }
+
+  private static async invalidateWorkOrderCache(
+    tenantId: string,
+    plantId: string,
+    workOrderId?: string,
+  ) {
+    try {
+      const keys = this.getStatusCacheKeys(tenantId, plantId);
+      if (workOrderId) {
+        keys.push(CacheKeys.workOrder(tenantId, workOrderId));
+      }
+      await RedisService.delMultiple(keys);
+    } catch (cacheError) {
+      logger.warn('Work order cache invalidation error:', cacheError);
+    }
+  }
+
   static async createWorkOrder(data: {
     tenant_id: string;
     plant_id: string;
@@ -53,11 +80,44 @@ export class WorkOrderService {
       })
       .returning();
 
+    // Invalidate cache lists
+    await this.invalidateWorkOrderCache(data.tenant_id, data.plant_id, workOrder.id);
+
+    // Index into Elasticsearch (best-effort)
+    try {
+      await ElasticsearchService.index('orders_v1', workOrder.id, {
+        id: workOrder.id,
+        tenant_id: data.tenant_id,
+        plant_id: data.plant_id,
+        asset_id: workOrder.asset_id,
+        title: workOrder.title,
+        description: workOrder.description,
+        status: workOrder.status,
+        priority: workOrder.priority,
+        sla: workOrder.sla_deadline,
+        created_at: workOrder.created_at,
+        updated_at: workOrder.updated_at,
+      });
+    } catch (error) {
+      logger.warn('Elasticsearch index error for work order:', error);
+    }
+
     return workOrder;
   }
 
   static async getWorkOrderById(tenantId: string, workOrderId: string) {
-    return db.query.workOrders.findFirst({
+    try {
+      const cacheKey = CacheKeys.workOrder(tenantId, workOrderId);
+      const cached = await RedisService.getJSON(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for work order: ${cacheKey}`);
+        return cached;
+      }
+    } catch (cacheError) {
+      logger.warn('Cache read error, continuing with DB query:', cacheError);
+    }
+
+    const workOrder = await db.query.workOrders.findFirst({
       where: (fields: any, { eq, and }: any) =>
         and(eq(fields.tenant_id, tenantId), eq(fields.id, workOrderId)),
       with: {
@@ -85,6 +145,20 @@ export class WorkOrderService {
         attachments: true,
       },
     });
+
+    if (workOrder) {
+      try {
+        await RedisService.setJSON(
+          CacheKeys.workOrder(tenantId, workOrderId),
+          workOrder,
+          CacheTTL.WORK_ORDERS,
+        );
+      } catch (cacheError) {
+        logger.warn('Cache write error:', cacheError);
+      }
+    }
+
+    return workOrder;
   }
 
   static async updateWorkOrder(
@@ -103,6 +177,28 @@ export class WorkOrderService {
       )
       .returning();
 
+    // Invalidate cache lists
+    await this.invalidateWorkOrderCache(tenantId, updated.plant_id, workOrderId);
+
+    // Index into Elasticsearch (best-effort)
+    try {
+      await ElasticsearchService.index('orders_v1', updated.id, {
+        id: updated.id,
+        tenant_id: tenantId,
+        plant_id: updated.plant_id,
+        asset_id: updated.asset_id,
+        title: updated.title,
+        description: updated.description,
+        status: updated.status,
+        priority: updated.priority,
+        sla: updated.sla_deadline,
+        created_at: updated.created_at,
+        updated_at: updated.updated_at,
+      });
+    } catch (error) {
+      logger.warn('Elasticsearch index error for work order:', error);
+    }
+
     return updated;
   }
 
@@ -111,7 +207,18 @@ export class WorkOrderService {
     plantId: string,
     status?: string,
   ) {
-    let query = db.query.workOrders.findMany({
+    try {
+      const cacheKey = CacheKeys.workOrdersList(tenantId, plantId, status);
+      const cached = await RedisService.getJSON(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for work orders list: ${cacheKey}`);
+        return cached;
+      }
+    } catch (cacheError) {
+      logger.warn('Cache read error, continuing with DB query:', cacheError);
+    }
+
+    const workOrders = await db.query.workOrders.findMany({
       where: (fields: any, { eq, and }: any) => {
         const conditions = [
           eq(fields.tenant_id, tenantId),
@@ -138,7 +245,14 @@ export class WorkOrderService {
       limit: 100,
     });
 
-    return query;
+    try {
+      const cacheKey = CacheKeys.workOrdersList(tenantId, plantId, status);
+      await RedisService.setJSON(cacheKey, workOrders, CacheTTL.WORK_ORDERS);
+    } catch (cacheError) {
+      logger.warn('Cache write error:', cacheError);
+    }
+
+    return workOrders;
   }
 
   static async addTask(workOrderId: string, taskDescription: string) {
@@ -152,6 +266,17 @@ export class WorkOrderService {
       })
       .returning();
 
+    try {
+      const workOrder = await db.query.workOrders.findFirst({
+        where: (fields: any, { eq }: any) => eq(fields.id, workOrderId),
+      });
+      if (workOrder) {
+        await RedisService.del(CacheKeys.workOrder(workOrder.tenant_id, workOrderId));
+      }
+    } catch (cacheError) {
+      logger.warn('Work order cache invalidation error:', cacheError);
+    }
+
     return task;
   }
 
@@ -164,6 +289,19 @@ export class WorkOrderService {
       })
       .where(eq(workOrderTasks.id, taskId))
       .returning();
+
+    try {
+      const workOrder = await db.query.workOrders.findFirst({
+        where: (fields: any, { eq }: any) => eq(fields.id, task.work_order_id),
+      });
+      if (workOrder) {
+        await RedisService.del(
+          CacheKeys.workOrder(workOrder.tenant_id, task.work_order_id),
+        );
+      }
+    } catch (cacheError) {
+      logger.warn('Work order cache invalidation error:', cacheError);
+    }
 
     return task;
   }

@@ -1,6 +1,8 @@
 import { db } from '../config/database';
 import { maintenancePlans, maintenanceTasks, workOrders, assets } from '../db/schema';
 import { eq, and, desc, like } from 'drizzle-orm';
+import { CacheKeys, CacheTTL, RedisService } from './redis.service';
+import { logger } from '../config/logger';
 
 export interface CreateMaintenancePlanInput {
   asset_id: string;
@@ -42,6 +44,25 @@ export class MaintenanceService {
       search?: string;
     }
   ) {
+    const hasFilters =
+      !!filters?.asset_id ||
+      !!filters?.type ||
+      filters?.is_active !== undefined ||
+      !!filters?.search;
+
+    if (!hasFilters) {
+      try {
+        const cacheKey = CacheKeys.maintenancePlans(tenant_id);
+        const cached = await RedisService.getJSON(cacheKey);
+        if (cached) {
+          logger.debug(`Cache hit for maintenance plans: ${cacheKey}`);
+          return cached;
+        }
+      } catch (cacheError) {
+        logger.warn('Cache read error, continuing with DB query:', cacheError);
+      }
+    }
+
     let query = db
       .select({
         id: maintenancePlans.id,
@@ -86,13 +107,35 @@ export class MaintenanceService {
       query = query.where(conditions[0]);
     }
 
-    return await query.orderBy(desc(maintenancePlans.created_at));
+    const plans = await query.orderBy(desc(maintenancePlans.created_at));
+
+    if (!hasFilters) {
+      try {
+        const cacheKey = CacheKeys.maintenancePlans(tenant_id);
+        await RedisService.setJSON(cacheKey, plans, CacheTTL.PLANS);
+      } catch (cacheError) {
+        logger.warn('Cache write error:', cacheError);
+      }
+    }
+
+    return plans;
   }
 
   /**
    * Get a single maintenance plan by ID
    */
   async getMaintenancePlanById(tenant_id: string, plan_id: string) {
+    try {
+      const cacheKey = CacheKeys.maintenancePlan(tenant_id, plan_id);
+      const cached = await RedisService.getJSON(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for maintenance plan: ${cacheKey}`);
+        return cached;
+      }
+    } catch (cacheError) {
+      logger.warn('Cache read error, continuing with DB query:', cacheError);
+    }
+
     const plan = await db
       .select({
         id: maintenancePlans.id,
@@ -121,6 +164,13 @@ export class MaintenanceService {
 
     if (!plan.length) {
       throw new Error('Maintenance plan not found');
+    }
+
+    try {
+      const cacheKey = CacheKeys.maintenancePlan(tenant_id, plan_id);
+      await RedisService.setJSON(cacheKey, plan[0], CacheTTL.PLANS);
+    } catch (cacheError) {
+      logger.warn('Cache write error:', cacheError);
     }
 
     return plan[0];
@@ -166,6 +216,16 @@ export class MaintenanceService {
       })
       .returning();
 
+    // Invalidate cache
+    try {
+      await RedisService.delMultiple([
+        CacheKeys.maintenancePlans(tenant_id),
+        CacheKeys.maintenancePlan(tenant_id, plan.id),
+      ]);
+    } catch (cacheError) {
+      logger.warn('Maintenance cache invalidation error:', cacheError);
+    }
+
     return this.getMaintenancePlanById(tenant_id, plan.id);
   }
 
@@ -196,6 +256,16 @@ export class MaintenanceService {
       })
       .where(eq(maintenancePlans.id, plan_id));
 
+    // Invalidate cache
+    try {
+      await RedisService.delMultiple([
+        CacheKeys.maintenancePlans(tenant_id),
+        CacheKeys.maintenancePlan(tenant_id, plan_id),
+      ]);
+    } catch (cacheError) {
+      logger.warn('Maintenance cache invalidation error:', cacheError);
+    }
+
     return this.getMaintenancePlanById(tenant_id, plan_id);
   }
 
@@ -213,6 +283,16 @@ export class MaintenanceService {
           eq(maintenancePlans.id, plan_id)
         )
       );
+
+      // Invalidate cache
+      try {
+        await RedisService.delMultiple([
+          CacheKeys.maintenancePlans(tenant_id),
+          CacheKeys.maintenancePlan(tenant_id, plan_id),
+        ]);
+      } catch (cacheError) {
+        logger.warn('Maintenance cache invalidation error:', cacheError);
+      }
 
     return { success: true };
   }

@@ -6,6 +6,7 @@ import {
   updateMaintenancePlanSchema,
   createMaintenanceTaskSchema,
 } from '../schemas/maintenance.validation';
+import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance';
 
 const maintenanceService = new MaintenanceService();
 
@@ -91,6 +92,16 @@ export async function createMaintenancePlan(req: AuthenticatedRequest, res: Resp
       validation.data
     );
 
+    if (isSocketManagerReady()) {
+      const socketManager = getSocketManager();
+      socketManager.emitNotification(req.tenantId!, {
+        type: 'success',
+        entity: 'maintenance-plan',
+        action: 'created',
+        message: `Plano de manutenção criado: ${plan.name}`,
+      });
+    }
+
     res.status(201).json({
       success: true,
       data: plan,
@@ -138,6 +149,16 @@ export async function updateMaintenancePlan(req: AuthenticatedRequest, res: Resp
       validation.data
     );
 
+    if (isSocketManagerReady()) {
+      const socketManager = getSocketManager();
+      socketManager.emitNotification(req.tenantId!, {
+        type: 'info',
+        entity: 'maintenance-plan',
+        action: 'updated',
+        message: `Plano de manutenção atualizado: ${plan.name}`,
+      });
+    }
+
     res.json({
       success: true,
       data: plan,
@@ -169,6 +190,16 @@ export async function deleteMaintenancePlan(req: AuthenticatedRequest, res: Resp
     }
 
     await maintenanceService.deleteMaintenancePlan(req.tenantId!, plan_id);
+
+    if (isSocketManagerReady()) {
+      const socketManager = getSocketManager();
+      socketManager.emitNotification(req.tenantId!, {
+        type: 'warning',
+        entity: 'maintenance-plan',
+        action: 'deleted',
+        message: 'Plano de manutenção eliminado',
+      });
+    }
 
     res.json({
       success: true,

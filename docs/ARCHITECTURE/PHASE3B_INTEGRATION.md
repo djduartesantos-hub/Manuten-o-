@@ -17,31 +17,34 @@
 - [x] Cache invalidation on mutations (create, update)
 - [x] All TypeScript errors fixed, both builds pass (0 errors)
 
-## 🔄 Next Steps (In Progress - 55% Complete)
+## 🔄 Next Steps (In Progress - 85% Complete)
 
 ### ✅ Completed
 1. ✅ Socket.io emit calls added to work order routes
 2. ✅ Socket.io emit calls added to asset routes
-3. ✅ Redis caching implemented for asset queries
-4. ✅ Cache invalidation on mutations
+3. ✅ Socket.io emit calls added to maintenance routes
+4. ✅ Socket.io emit calls added to alert routes (alert triggered)
+5. ✅ Redis caching implemented for asset queries
+6. ✅ Redis caching implemented for work order queries
+7. ✅ Redis caching implemented for alert queries
+8. ✅ Redis caching implemented for maintenance plan queries
+9. ✅ Cache invalidation on mutations
+10. ✅ Bull job processors implemented (email, reports, exports, maintenance)
+11. ✅ Elasticsearch indexing on work order/asset mutations
+12. ✅ Search endpoint + Search UI (filters + pagination)
+13. ✅ Real-time list updates on socket events
+14. ✅ Job queue monitoring UI (stats + job lookup + recent jobs)
 
 ### 🔄 Next: Extend to More Services
-1. [ ] Add socket emit to maintenance routes (plan create/update)
-2. [ ] Add socket emit to alert routes (alert triggered)
-3. [ ] Add Redis caching to work order queries
-4. [ ] Add Redis caching to alert queries
-5. [ ] Add Redis caching to maintenance plan queries
+1. [ ] Adopt React Query hooks across pages
 
 ### ⏳ Later: Background Processing
-1. [ ] Implement Bull job processors (email, reports, exports)
-2. [ ] Add Elasticsearch indexing to work order/asset mutations
-3. [ ] Create admin dashboard for job queue monitoring
+1. [ ] Add job history persistence (DB)
+2. [ ] Add job log download and retry actions
 
 ### ⏳ Final: Frontend Enhancements
 1. [ ] Use React Query hooks in pages
-2. [ ] Implement real-time list updates on socket events
-3. [ ] Add job progress tracking UI
-4. [ ] Add Elasticsearch search UI
+2. [ ] Add job progress timeline UI
 
 ## 📊 Impact Metrics
 - **Latency:** Expected ↓50-70% (caching + optimization)

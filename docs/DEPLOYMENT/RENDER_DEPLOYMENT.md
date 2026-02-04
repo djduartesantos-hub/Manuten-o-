@@ -1,283 +1,170 @@
-╔════════════════════════════════════════════════════════════════════════════╗
-║                                                                            ║
-║                  ✅ VALIDAÇÃO PARA RENDER DEPLOYMENT                      ║
-║                                                                            ║
-║                   CMMS Enterprise - Pronto para Produção                  ║
-║                                                                            ║
-╚════════════════════════════════════════════════════════════════════════════╝
-
-📅 Data: 27 Janeiro 2026
-✅ Status: PRONTO PARA DEPLOYMENT
-🔗 Commit: 47e560b (fix: corrigir erros TypeScript)
-
-═══════════════════════════════════════════════════════════════════════════════
-
-🔍 VALIDAÇÃO DE COMPILAÇÃO
-
-Backend TypeScript:
-  ✅ npm install: SUCESSO (360 packages)
-  ✅ npm run type-check: 0 ERROS
-  ✅ Tipos corrigidos em:
-    - src/services/auth.service.ts
-    - src/services/tenant.service.ts
-    - src/services/workorder.service.ts
-    - src/controllers/dashboard.controller.ts
-  ✅ Dependencies atualizadas:
-    - @types/cors: movido para devDependencies
-    - @types/morgan: movido para devDependencies
-    - @types/pg: mantido em devDependencies
-
-Frontend TypeScript:
-  ✅ npm install: SUCESSO (277 packages)
-  ✅ npm run type-check: 0 ERROS
-  ✅ Configuração Tailwind:
-    - postcss.config.cjs criado (CommonJS compatible)
-    - tailwind.config.ts configurado
-    - index.css com @tailwind directives
-
-═══════════════════════════════════════════════════════════════════════════════
-
-🚀 INSTRUÇÕES PARA RENDER DEPLOYMENT
-
-1️⃣  BACKEND SETUP
-
-  Build Command:
-    npm install && npm run type-check && npm run build
-
-  Start Command:
-    npm start
-
-  Environment Variables (configure em Render):
-    DATABASE_URL=postgresql://user:password@host:port/database
-    PORT=3000
-    NODE_ENV=production
-    JWT_SECRET=seu-secret-aqui (min 32 chars)
-    CORS_ORIGIN=https://seu-frontend.onrender.com
-
-2️⃣  FRONTEND SETUP
-
-  Build Command:
-    npm install && npm run type-check && npm run build
-
-  Start Command:
-    npm preview
-
-  Environment Variables (configure em Render):
-    VITE_API_URL=https://seu-backend.onrender.com/api
-
-3️⃣  DATABASE SETUP (PostgreSQL)
-
-  ✅ Pronto para usar qualquer host PostgreSQL:
-    - Render PostgreSQL
-    - Supabase
-    - Cloud SQL
-    - RDS
-
-  Executar após deploy:
-    - npm run db:migrate (executar no backend)
-    - npm run db:seed (opcional, para demo data)
-
-═══════════════════════════════════════════════════════════════════════════════
-
-📋 CHECKLIST PRÉ-DEPLOYMENT
-
-Estrutura de Ficheiros:
-  [✅] backend/src/ - Código TypeScript estruturado
-  [✅] backend/dist/ - Pronto para build
-  [✅] frontend/src/ - Componentes React
-  [✅] frontend/dist/ - Pronto para build
-  [✅] .env.example - Template configurado
-
-Dependências:
-  [✅] Backend: 13 dependencies + 13 devDependencies
-  [✅] Frontend: 7 dependencies + 10 devDependencies
-  [✅] Todos os types instalados (@types/*)
-  [✅] Sem conflitos de versão
-
-TypeScript:
-  [✅] Backend: tsc --noEmit ✓ (0 errors)
-  [✅] Frontend: tsc --noEmit ✓ (0 errors)
-  [✅] Todos os tipos implícitos corrigidos
-  [✅] Strict mode ativado
-
-Configuração:
-  [✅] tsconfig.json (backend + frontend)
-  [✅] vite.config.ts com proxy /api
-  [✅] tailwind.config.ts completo
-  [✅] postcss.config.cjs para build
-  [✅] .gitignore configurado
-
-Segurança:
-  [✅] JWT implementado
-  [✅] CORS configurado
-  [✅] Bcrypt hashing
-  [✅] Environment variables
-  [✅] Error handling middleware
-
-Database:
-  [✅] 17 tabelas Drizzle ORM
-  [✅] Relações definidas
-  [✅] Soft deletes (RGPD)
-  [✅] Indices e constraints
-  [✅] Seed data preparado
-
-APIs:
-  [✅] 11 endpoints funcionais
-  [✅] Auth (login, refresh)
-  [✅] Dashboard (metrics, KPIs)
-  [✅] Work Orders (CRUD)
-  [✅] Response format standardizado
-
-Frontend:
-  [✅] React Router configurado
-  [✅] Protected routes
-  [✅] Zustand state management
-  [✅] API client com auth
-  [✅] UI responsivo (Tailwind)
-  [✅] Mobile-first design
-
-═══════════════════════════════════════════════════════════════════════════════
-
-⚠️  IMPORTANTE - ANTES DE FAZER DEPLOY
-
-1. Copiar .env.example para .env em ambos os diretórios:
-   cp backend/.env.example backend/.env
-   cp frontend/.env.example frontend/.env (se existe)
-
-2. Configurar DATABASE_URL em backend/.env:
-   DATABASE_URL=postgresql://user:pass@host:port/db
-
-3. Configurar JWT_SECRET (mínimo 32 caracteres):
-   JWT_SECRET=seu-secret-super-seguro-aqui
-
-4. Configurar CORS_ORIGIN com URL do frontend:
-   CORS_ORIGIN=https://seu-app-frontend.onrender.com
-
-5. Configurar VITE_API_URL no frontend:
-   VITE_API_URL=https://seu-app-backend.onrender.com/api
-
-═══════════════════════════════════════════════════════════════════════════════
-
-🧪 TESTE LOCAL ANTES DO RENDER
-
-Terminal 1 (Backend):
-  cd backend
-  npm install
-  cp .env.example .env
-  # Editar .env com DATABASE_URL local
-  npm run dev
-  # Acesso: http://localhost:3000/health
-
-Terminal 2 (Frontend):
-  cd frontend
-  npm install
-  npm run dev
-  # Acesso: http://localhost:5173
-  # Login: admin@cmms.com / Admin@123456 (cmms-demo)
-
-═══════════════════════════════════════════════════════════════════════════════
-
-📊 MÉTRICAS DO PROJETO
-
-Código:
-  - 4000+ linhas TypeScript
-  - 54 ficheiros
-  - 0 erros de compilação
-  - 100% tipo-seguro (strict mode)
-
-Backend:
-  - 3 controllers
-  - 3 services
-  - 4 middleware
-  - 3 route files
-  - 17 database tables
-  - 11 API endpoints
-
-Frontend:
-  - 4 pages
-  - 3 components
-  - 1 layout
-  - 2 custom hooks
-  - 2 Zustand stores
-  - API client centralizado
-
-Performance Esperada:
-  - First Paint: < 1s
-  - Time to Interactive: < 2s
-  - Lighthouse Score: 85+
-
-═══════════════════════════════════════════════════════════════════════════════
-
-🎯 PRÓXIMAS ETAPAS (Após Render Deploy)
-
-Curto Prazo:
-  [ ] Testar login em produção
-  [ ] Verificar dashboard com dados reais
-  [ ] Validar CORS entre frontend/backend
-  [ ] Monitorar logs em Render
-
-Médio Prazo:
-  [ ] Implementar upload de ficheiros
-  [ ] Adicionar validação Zod
-  [ ] Endpoints adicionais (assets, maintenance)
-  [ ] Integração de notificações
-
-Longo Prazo:
-  [ ] WebSockets (real-time updates)
-  [ ] Redis caching
-  [ ] Elasticsearch search
-  [ ] Mobile app (React Native)
-  [ ] Analytics e reporting
-
-═══════════════════════════════════════════════════════════════════════════════
-
-🔒 SEGURANÇA - CHECKLIST RENDER
-
-Básico:
-  [✅] Environment variables configuradas
-  [✅] DATABASE_URL privada
-  [✅] JWT_SECRET privado
-  [✅] CORS restringido por domínio
-
-SSL/TLS:
-  [✅] Render fornece SSL automático
-  [✅] Redirecionamento HTTPS automático
-  [✅] Certificados renovados automaticamente
-
-Headers:
-  [ ] Adicionar Helmet (segurança headers)
-  [ ] HSTS (HTTP Strict Transport Security)
-  [ ] CSP (Content Security Policy)
-  [ ] X-Frame-Options
-
-Logging:
-  [✅] Winston logger configurado
-  [✅] Morgan HTTP logging
-  [✅] Error handling middleware
-
-═══════════════════════════════════════════════════════════════════════════════
-
-📞 SUPORTE RENDER
-
-Documentação: https://render.com/docs
-Community: https://community.render.com
-Status: https://status.render.com
-
-═══════════════════════════════════════════════════════════════════════════════
-
-✨ STATUS FINAL
-
-🟢 Backend:         PRONTO
-🟢 Frontend:        PRONTO
-🟢 Database:        CONFIGURADO
-🟢 TypeScript:      VALIDADO (0 erros)
-🟢 Git:             COMMITTED
-🟢 Documentação:    COMPLETA
-
-🚀 PODE FAZER DEPLOY PARA RENDER JÁ!
-
-═══════════════════════════════════════════════════════════════════════════════
-
-Criado: 27 Janeiro 2026
-Versão: 1.0.0
-Status: ✅ PRODUCTION READY
+# 🚀 Guia Detalhado para Deploy no Render
+
+**Projeto:** Manuten-o CMMS v1.3.0-beta.2  
+**Última atualização:** 4 Fevereiro 2026  
+**Objetivo:** Subir backend + frontend + serviços de infra para validar tudo em produção
+
+---
+
+## ✅ Visão Geral do que será criado no Render
+
+1. **Backend (Web Service)**
+2. **Frontend (Static Site)**
+3. **PostgreSQL (Render Managed DB)**
+4. **Redis (Render Managed Redis)**
+5. **Elasticsearch** (externo recomendado: Elastic Cloud)
+
+---
+
+## 1️⃣ Backend (Web Service)
+
+### Configuração
+- **Type:** Web Service
+- **Root Directory:** backend
+- **Build Command:**
+  - npm install && npm run type-check && npm run build
+- **Start Command:**
+  - npm start
+
+### Health Check
+- URL: /health
+
+### Variáveis de Ambiente (Backend)
+
+| Variável | Descrição | Exemplo |
+|---|---|---|
+| DATABASE_URL | Postgres conexão | postgresql://user:pass@host:port/db |
+| PORT | Porta | 3000 |
+| NODE_ENV | Ambiente | production |
+| JWT_SECRET | Secret JWT | (min 32 chars) |
+| JWT_REFRESH_SECRET | Secret refresh | (min 32 chars) |
+| JWT_EXPIRY | Expiração JWT | 1h |
+| JWT_REFRESH_EXPIRY | Expiração refresh | 7d |
+| CORS_ORIGIN | URL frontend | https://seu-frontend.onrender.com |
+| FRONTEND_URL | URL frontend (socket.io) | https://seu-frontend.onrender.com |
+| REDIS_HOST | Host Redis | (Render Redis host) |
+| REDIS_PORT | Porta Redis | 6379 |
+| REDIS_PASSWORD | Password Redis | (Render Redis password) |
+| REDIS_DB | Redis DB | 0 |
+| ELASTICSEARCH_URL | URL Elastic | https://cluster-id.es.europe-west1.gcp.elastic-cloud.com |
+| ELASTICSEARCH_USERNAME | Elastic user | elastic |
+| ELASTICSEARCH_PASSWORD | Elastic pass | ****** |
+| SENDGRID_API_KEY | Email jobs | SG.xxxxx |
+| LOG_LEVEL | Logs | info |
+| JOB_CONCURRENCY | Bull concurrency | 5 |
+
+---
+
+## 2️⃣ Frontend (Static Site)
+
+### Configuração
+- **Type:** Static Site
+- **Root Directory:** frontend
+- **Build Command:**
+  - npm install && npm run type-check && npm run build
+- **Publish Directory:**
+  - dist
+
+### Variáveis de Ambiente (Frontend)
+
+| Variável | Descrição | Exemplo |
+|---|---|---|
+| VITE_API_URL | URL do backend | https://seu-backend.onrender.com/api |
+
+---
+
+## 3️⃣ PostgreSQL (Render Managed DB)
+
+1. Criar **PostgreSQL** no Render
+2. Copiar a string de conexão para DATABASE_URL
+3. Após deploy do backend, executar migrations:
+   - npm run db:migrate
+4. Opcional (demo data):
+   - npm run db:seed
+
+---
+
+## 4️⃣ Redis (Render Managed Redis)
+
+1. Criar **Redis** no Render
+2. Copiar Host, Port e Password para:
+   - REDIS_HOST
+   - REDIS_PORT
+   - REDIS_PASSWORD
+3. Redis é usado para:
+   - Cache
+   - Job Queues (Bull)
+   - Real-time optimizations
+
+---
+
+## 5️⃣ Elasticsearch (Elastic Cloud recomendado)
+
+O Render não oferece Elasticsearch managed nativo. Recomendado:
+
+- **Elastic Cloud** (https://cloud.elastic.co)
+- Criar cluster (região EU ou US)
+- Copiar URL, username e password
+- Configurar no backend:
+  - ELASTICSEARCH_URL
+  - ELASTICSEARCH_USERNAME
+  - ELASTICSEARCH_PASSWORD
+
+---
+
+## ✅ Passo a Passo Completo (Checklist)
+
+1. Conectar o repositório no Render
+2. Criar PostgreSQL e definir DATABASE_URL
+3. Criar Redis e definir REDIS_* env vars
+4. Criar Elasticsearch externo (Elastic Cloud)
+5. Criar Backend Web Service
+6. Criar Frontend Static Site
+7. Configurar variáveis de ambiente
+8. Fazer deploy backend
+9. Rodar migrations (db:migrate)
+10. Fazer deploy frontend
+11. Validar /health e UI
+
+---
+
+## ✅ Pós-Deploy (Validação)
+
+**Backend**
+- /health responde OK
+- Logs sem erros de conexão DB/Redis/Elastic
+
+**Frontend**
+- Login funciona
+- Dashboard carrega
+- Filtros e pesquisa Elasticsearch respondem
+
+---
+
+## 🔒 Segurança Recomendada
+
+- Não expor DATABASE_URL publicamente
+- JWT_SECRET e JWT_REFRESH_SECRET com 32+ caracteres
+- CORS_ORIGIN e FRONTEND_URL limitados ao domínio real
+- Usar HTTPS (Render já configura automático)
+
+---
+
+## 📌 Notas Importantes
+
+- Os processadores de jobs (Bull) são inicializados no backend web service.
+- Se quiser escalar jobs separadamente, pode criar um serviço adicional usando o mesmo start command.
+- Para Socket.io funcionar, mantenha FRONTEND_URL correto.
+
+---
+
+## 📞 Links Úteis
+
+- Render Docs: https://render.com/docs
+- Render PostgreSQL: https://render.com/docs/databases
+- Render Redis: https://render.com/docs/redis
+- Elastic Cloud: https://cloud.elastic.co
+
+---
+
+✅ **Guia atualizado e pronto para usar.**

@@ -116,6 +116,8 @@ export class AssetController {
         const socketManager = getSocketManager();
         socketManager.emitNotification(tenantId, {
           type: 'success',
+          entity: 'asset',
+          action: 'created',
           message: `Equipamento "${asset.name}" criado com sucesso`,
           data: {
             id: asset.id,
@@ -184,6 +186,8 @@ export class AssetController {
         const socketManager = getSocketManager();
         socketManager.emitNotification(tenantId, {
           type: 'info',
+          entity: 'asset',
+          action: 'updated',
           message: `Equipamento "${asset.name}" foi atualizado`,
           data: {
             id: asset.id,

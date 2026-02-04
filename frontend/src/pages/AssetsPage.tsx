@@ -39,6 +39,29 @@ export function AssetsPage() {
     loadAssets();
   }, [selectedPlant]);
 
+  useEffect(() => {
+    const handleRealtimeUpdate = () => {
+      if (!selectedPlant) return;
+      (async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const data = await getAssets(selectedPlant);
+          setAssets(data || []);
+        } catch (err: any) {
+          setError(err.message || 'Erro ao carregar equipamentos');
+        } finally {
+          setLoading(false);
+        }
+      })();
+    };
+
+    window.addEventListener('realtime:assets', handleRealtimeUpdate);
+    return () => {
+      window.removeEventListener('realtime:assets', handleRealtimeUpdate);
+    };
+  }, [selectedPlant]);
+
   return (
     <MainLayout>
       <div className="mb-8">

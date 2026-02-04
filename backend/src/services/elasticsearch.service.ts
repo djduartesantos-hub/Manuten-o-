@@ -33,6 +33,7 @@ export class ElasticsearchService {
           properties: {
             id: { type: 'keyword' },
             tenant_id: { type: 'keyword' },
+            plant_id: { type: 'keyword' },
             asset_id: { type: 'keyword' },
             title: { type: 'text', analyzer: 'standard' },
             description: { type: 'text', analyzer: 'standard' },
@@ -52,6 +53,7 @@ export class ElasticsearchService {
           properties: {
             id: { type: 'keyword' },
             tenant_id: { type: 'keyword' },
+            plant_id: { type: 'keyword' },
             name: { type: 'text', analyzer: 'standard' },
             code: { type: 'keyword' },
             category: { type: 'keyword' },

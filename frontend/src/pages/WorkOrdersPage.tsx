@@ -168,6 +168,18 @@ export function WorkOrdersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlant, statusFilter, searchTerm]);
 
+  useEffect(() => {
+    const handleRealtimeUpdate = () => {
+      loadData();
+    };
+
+    window.addEventListener('realtime:work-orders', handleRealtimeUpdate);
+    return () => {
+      window.removeEventListener('realtime:work-orders', handleRealtimeUpdate);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlant, statusFilter, searchTerm]);
+
   const handleCreate = async () => {
     if (!selectedPlant) return;
     if (!form.asset_id || !form.title) {

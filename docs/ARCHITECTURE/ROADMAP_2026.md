@@ -1,4 +1,4 @@
-# 💡 Roadmap de Desenvolvimento - Manuten-o CMMS v1.2.2+
+# 💡 Roadmap de Desenvolvimento - Manuten-o CMMS v1.3.0-beta.1
 
 **Status Atual:** Phase 3 - Settings & Configuration Hub (EM DESENVOLVIMENTO)  
 **Última Atualização:** 4 Fevereiro 2026  
@@ -87,29 +87,29 @@
 #### Phase 3B: Real-time & Performance (3-4 semanas) 🔜
 **Objetivo:** Notificações live, caching, busca rápida
 
-1. **WebSocket Real-time** (1 semana)
+1. **WebSocket Real-time** ✅
    - Socket.io setup
    - Notificações de novas ordens
    - Atualizações ao vivo
    - Room management por tenant
 
-2. **Redis Caching** (1 semana)
+2. **Redis Caching** ✅
    - Cache de sessões JWT
    - Cache de queries frequentes
    - Cache de relações
    - TTL strategy por tipo de dado
 
-3. **Elasticsearch** (1 semana)
-   - Índices de ordens, equipamentos, peças
+3. **Elasticsearch** ✅
+   - Índices de ordens, equipamentos
    - Full-text search com filtros
-   - Aggregations para analytics
    - Reindex automático
+   - Search UI integrada
 
-4. **Job Queue** (3 dias)
+4. **Job Queue** ✅
    - Bull.js + Redis
    - Tarefas assíncronas (emails, exports)
    - Retry logic
-   - Dashboard de jobs
+   - Dashboard de jobs (stats + lookup)
 
 **Impacto:** ↓50-70% latência, Live UX, escalável a 100k+ registos
 

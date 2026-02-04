@@ -55,6 +55,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         duration: 4000,
         icon: '📋',
       });
+      window.dispatchEvent(new CustomEvent('realtime:work-orders'));
     });
 
     newSocket.on('order:updated', (data) => {
@@ -62,6 +63,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         duration: 3000,
         icon: '✏️',
       });
+      window.dispatchEvent(new CustomEvent('realtime:work-orders'));
     });
 
     newSocket.on('order:status-changed', (data) => {
@@ -69,6 +71,24 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         duration: 4000,
         icon: '✅',
       });
+      window.dispatchEvent(new CustomEvent('realtime:work-orders'));
+    });
+
+    // Asset events
+    newSocket.on('asset:created', (data) => {
+      toast.success(data.message || 'Novo equipamento criado', {
+        duration: 3000,
+        icon: '🧰',
+      });
+      window.dispatchEvent(new CustomEvent('realtime:assets'));
+    });
+
+    newSocket.on('asset:updated', (data) => {
+      toast.success(data.message || 'Equipamento atualizado', {
+        duration: 3000,
+        icon: '🧰',
+      });
+      window.dispatchEvent(new CustomEvent('realtime:assets'));
     });
 
     // Alert events
@@ -99,6 +119,14 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       toastType(data.message, {
         duration: 3000,
       });
+
+      if (data.entity === 'asset') {
+        window.dispatchEvent(new CustomEvent('realtime:assets'));
+      }
+
+      if (data.entity === 'maintenance-plan') {
+        window.dispatchEvent(new CustomEvent('realtime:maintenance-plans'));
+      }
     });
 
     // Error handling

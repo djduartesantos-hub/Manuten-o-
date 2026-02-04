@@ -18,6 +18,7 @@ import { MaintenancePlansPage } from './pages/MaintenancePlansPage';
 import { SparePartsPage } from './pages/SparePartsPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { SearchPage } from './pages/SearchPage';
 
 import './index.css';
 
@@ -125,6 +126,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/search"
+              element={
+                <ProtectedRoute>
+                  <SearchPage />
                 </ProtectedRoute>
               }
             />

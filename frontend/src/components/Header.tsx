@@ -22,6 +22,7 @@ export function Header() {
     { label: 'Dashboard', href: '/dashboard', active: location.pathname === '/dashboard' },
     { label: 'Ordens', href: '/work-orders', active: location.pathname === '/work-orders' },
     { label: 'Equipamentos', href: '/assets', active: location.pathname === '/assets' },
+    { label: 'Pesquisa', href: '/search', active: location.pathname === '/search' },
     {
       label: 'Planos',
       href: '/maintenance-plans',
