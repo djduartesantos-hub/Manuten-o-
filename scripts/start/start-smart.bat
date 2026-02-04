@@ -78,6 +78,19 @@ echo [1/2] Starting Backend (http://localhost:3000)
 set "ROOTDIR=%CD%"
 cd backend
 
+if not exist "node_modules" (
+    echo [INFO] Installing backend dependencies...
+    call npm install
+    if errorlevel 1 (
+        color 0C
+        echo [ERROR] Failed to install backend dependencies
+        color 07
+        cd ..
+        pause
+        exit /b 1
+    )
+)
+
 if not exist ".env" (
     echo.
     color 0E
@@ -102,6 +115,19 @@ cd ..
 REM Start Frontend
 echo [2/2] Starting Frontend (http://localhost:5173)
 cd frontend
+
+if not exist "node_modules" (
+    echo [INFO] Installing frontend dependencies...
+    call npm install
+    if errorlevel 1 (
+        color 0C
+        echo [ERROR] Failed to install frontend dependencies
+        color 07
+        cd ..
+        pause
+        exit /b 1
+    )
+)
 
 start "CMMS Frontend" cmd /k "cd /d ""%ROOTDIR%\frontend"" && cls && color 0A && echo Starting Frontend... && timeout /t 2 /nobreak && npm run dev || (color 0C && echo. && echo [ERROR] Frontend failed to start && color 07 && echo Press any key to close this window... && pause)"
 
