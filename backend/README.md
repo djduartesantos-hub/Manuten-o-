@@ -37,9 +37,9 @@ Enterprise Computerized Maintenance Management System (CMMS) - Backend API
    DATABASE_URL=postgresql://user:password@localhost:5432/cmms_enterprise
    ```
 
-4. Run migrations and seeds:
+4. Push schema and seed data:
    ```bash
-   npm run db:migrate
+   npm run db:push
    npm run db:seed
    ```
 

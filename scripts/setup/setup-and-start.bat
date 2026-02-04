@@ -162,16 +162,16 @@ if errorlevel 1 (
 )
 echo.
 
-echo [INFO] Running database migrations...
+echo [INFO] Pushing database schema...
 cd backend
-call npm run db:migrate
+call npm run db:push
 if errorlevel 1 (
     color 0E
-    echo [WARNING] Migration failed - database may need manual setup
+    echo [WARNING] Schema push failed - database may need manual setup
     echo [INFO]   Trying to continue with seed...
     color 07
 ) else (
-    echo [OK] Database migrations completed
+    echo [OK] Database schema applied
 )
 echo.
 

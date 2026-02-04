@@ -37,11 +37,11 @@ echo ""
 # ============================================
 # OPTION 1: Try Drizzle Migrations
 # ============================================
-echo -e "${BLUE}Option 1: Trying Drizzle migrations...${NC}"
+echo -e "${BLUE}Option 1: Pushing schema to database...${NC}"
 echo ""
 
-if npm run db:migrate 2>/dev/null; then
-    echo -e "${GREEN}✅ Migrations completed successfully${NC}"
+if npm run db:push 2>/dev/null; then
+    echo -e "${GREEN}✅ Schema pushed successfully${NC}"
     
     echo ""
     echo -e "${BLUE}Seeding demo data...${NC}"

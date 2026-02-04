@@ -82,10 +82,10 @@ echo.
 REM ============================================
 REM Try Drizzle Migration
 REM ============================================
-echo [1] Running Drizzle migrations...
+echo [1] Pushing schema to database...
 echo.
 
-call npm run db:migrate
+call npm run db:push
 
 if %ERRORLEVEL% EQU 0 (
     color 0A
