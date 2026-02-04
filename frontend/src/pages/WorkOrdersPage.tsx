@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { MainLayout } from '../layouts/MainLayout';
-import { AlertCircle, Loader2, Plus, RefreshCcw } from 'lucide-react';
+import { AlertCircle, Download, LayoutGrid, List, Loader2, Plus, RefreshCcw, Save } from 'lucide-react';
 import { useAppStore } from '../context/store';
 import { createWorkOrder, getAssets, getWorkOrders } from '../services/api';
 
@@ -18,6 +18,7 @@ interface WorkOrder {
   priority?: string | null;
   estimated_hours?: string | null;
   created_at?: string;
+  sla_deadline?: string | null;
   asset?: {
     code: string;
     name: string;
@@ -28,23 +29,66 @@ interface WorkOrder {
   } | null;
 }
 
+interface WorkOrderFormState {
+  asset_id: string;
+  title: string;
+  description: string;
+  priority: string;
+  estimated_hours: string;
+}
+
 export function WorkOrdersPage() {
   const { selectedPlant } = useAppStore();
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [assets, setAssets] = useState<AssetOption[]>([]);
   const [statusFilter, setStatusFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<WorkOrderFormState>({
     asset_id: '',
     title: '',
     description: '',
     priority: 'media',
     estimated_hours: '',
   });
+  const [templates, setTemplates] = useState<
+    Array<{ name: string; data: WorkOrderFormState }>
+  >([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('workOrdersFilters');
+    const savedTemplates = localStorage.getItem('workOrdersTemplates');
+
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setStatusFilter(parsed.statusFilter || '');
+        setSearchTerm(parsed.searchTerm || '');
+        setViewMode(parsed.viewMode || 'table');
+      } catch {
+        // ignore
+      }
+    }
+
+    if (savedTemplates) {
+      try {
+        setTemplates(JSON.parse(savedTemplates));
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(
+      'workOrdersFilters',
+      JSON.stringify({ statusFilter, searchTerm, viewMode }),
+    );
+  }, [statusFilter, searchTerm, viewMode]);
 
   const statusOptions = useMemo(
     () => [
@@ -68,7 +112,13 @@ export function WorkOrdersPage() {
         getAssets(selectedPlant),
       ]);
 
-      setWorkOrders(orders || []);
+      const normalizedOrders = (orders || []).filter((order: WorkOrder) => {
+        if (!searchTerm) return true;
+        const haystack = `${order.title} ${order.description || ''} ${order.asset?.code || ''} ${order.asset?.name || ''}`.toLowerCase();
+        return haystack.includes(searchTerm.toLowerCase());
+      });
+
+      setWorkOrders(normalizedOrders);
       setAssets(assetsData || []);
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar ordens de trabalho');
@@ -80,7 +130,7 @@ export function WorkOrdersPage() {
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPlant, statusFilter]);
+  }, [selectedPlant, statusFilter, searchTerm]);
 
   const handleCreate = async () => {
     if (!selectedPlant) return;
@@ -116,6 +166,69 @@ export function WorkOrdersPage() {
     }
   };
 
+  const handleSaveTemplate = () => {
+    if (!form.title) {
+      setError('Indique um nome no título para salvar o template');
+      return;
+    }
+
+    const newTemplate = { name: form.title, data: { ...form } };
+    const updatedTemplates = [newTemplate, ...templates].slice(0, 10);
+    setTemplates(updatedTemplates);
+    localStorage.setItem('workOrdersTemplates', JSON.stringify(updatedTemplates));
+  };
+
+  const handleApplyTemplate = (template: { name: string; data: WorkOrderFormState }) => {
+    setForm({ ...template.data });
+    setShowCreate(true);
+  };
+
+  const exportCsv = () => {
+    const headers = ['Título', 'Descrição', 'Status', 'Prioridade', 'Ativo', 'Responsável', 'SLA'];
+    const rows = workOrders.map((order) => [
+      order.title,
+      order.description || '',
+      order.status,
+      order.priority || '',
+      order.asset ? `${order.asset.code} - ${order.asset.name}` : '',
+      order.assignedUser
+        ? `${order.assignedUser.first_name} ${order.assignedUser.last_name}`
+        : '',
+      order.sla_deadline ? new Date(order.sla_deadline).toISOString() : '',
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'work-orders.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const groupedByStatus = useMemo(() => {
+    return workOrders.reduce<Record<string, WorkOrder[]>>((acc, order) => {
+      const key = order.status || 'aberta';
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(order);
+      return acc;
+    }, {});
+  }, [workOrders]);
+
+  const statusLabels: Record<string, string> = {
+    aberta: 'Aberta',
+    atribuida: 'Atribuída',
+    em_curso: 'Em curso',
+    concluida: 'Concluída',
+    cancelada: 'Cancelada',
+  };
+
   return (
     <MainLayout>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -131,6 +244,13 @@ export function WorkOrdersPage() {
           >
             <Plus className="w-4 h-4" />
             Nova ordem
+          </button>
+          <button
+            onClick={exportCsv}
+            className="btn-secondary inline-flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Exportar CSV
           </button>
           <button
             onClick={loadData}
@@ -230,7 +350,32 @@ export function WorkOrdersPage() {
             >
               Cancelar
             </button>
+            <button
+              onClick={handleSaveTemplate}
+              className="btn-secondary inline-flex items-center gap-2"
+              disabled={creating}
+            >
+              <Save className="w-4 h-4" />
+              Guardar template
+            </button>
           </div>
+
+          {templates.length > 0 && (
+            <div className="mt-4">
+              <p className="text-sm text-gray-500 mb-2">Templates guardados</p>
+              <div className="flex flex-wrap gap-2">
+                {templates.map((template) => (
+                  <button
+                    key={template.name}
+                    className="btn-secondary"
+                    onClick={() => handleApplyTemplate(template)}
+                  >
+                    {template.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -243,6 +388,12 @@ export function WorkOrdersPage() {
             </div>
 
             <div className="flex items-center gap-2">
+              <input
+                className="input"
+                placeholder="Pesquisar..."
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
               <label className="text-sm text-gray-600">Status</label>
               <select
                 className="input"
@@ -255,6 +406,20 @@ export function WorkOrdersPage() {
                   </option>
                 ))}
               </select>
+              <div className="flex items-center gap-1">
+                <button
+                  className={`btn-secondary ${viewMode === 'table' ? 'bg-gray-200' : ''}`}
+                  onClick={() => setViewMode('table')}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+                <button
+                  className={`btn-secondary ${viewMode === 'kanban' ? 'bg-gray-200' : ''}`}
+                  onClick={() => setViewMode('kanban')}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -272,7 +437,7 @@ export function WorkOrdersPage() {
             </div>
           )}
 
-          {!loading && !error && (
+          {!loading && !error && viewMode === 'table' && (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -287,6 +452,9 @@ export function WorkOrdersPage() {
                       Responsável
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      SLA
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       Prioridade
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -297,39 +465,103 @@ export function WorkOrdersPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {workOrders.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-6 py-6 text-center text-gray-500">
+                      <td colSpan={6} className="px-6 py-6 text-center text-gray-500">
                         Nenhuma ordem encontrada
                       </td>
                     </tr>
                   )}
-                  {workOrders.map((order) => (
-                    <tr key={order.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{order.title}</div>
-                        <div className="text-xs text-gray-500">
-                          {order.description || 'Sem descrição'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {order.asset ? `${order.asset.code} - ${order.asset.name}` : '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {order.assignedUser
-                          ? `${order.assignedUser.first_name} ${order.assignedUser.last_name}`
-                          : 'Não atribuído'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {order.priority || 'n/a'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
-                          {order.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {workOrders.map((order) => {
+                    const slaDate = order.sla_deadline ? new Date(order.sla_deadline) : null;
+                    const isOverdue = slaDate ? slaDate.getTime() < Date.now() : false;
+
+                    return (
+                      <tr key={order.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{order.title}</div>
+                          <div className="text-xs text-gray-500">
+                            {order.description || 'Sem descrição'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {order.asset ? `${order.asset.code} - ${order.asset.name}` : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {order.assignedUser
+                            ? `${order.assignedUser.first_name} ${order.assignedUser.last_name}`
+                            : 'Não atribuído'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {slaDate ? (
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs ${
+                                isOverdue ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                              }`}
+                            >
+                              {slaDate.toLocaleDateString()}
+                            </span>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {order.priority || 'n/a'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
+                            {statusLabels[order.status] || order.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {!loading && !error && viewMode === 'kanban' && (
+            <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
+              {Object.keys(statusLabels).map((statusKey) => (
+                <div key={statusKey} className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-700">
+                      {statusLabels[statusKey]}
+                    </h3>
+                    <span className="text-xs text-gray-500">
+                      {(groupedByStatus[statusKey] || []).length}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {(groupedByStatus[statusKey] || []).map((order) => {
+                      const slaDate = order.sla_deadline ? new Date(order.sla_deadline) : null;
+                      const isOverdue = slaDate ? slaDate.getTime() < Date.now() : false;
+
+                      return (
+                        <div key={order.id} className="bg-white rounded-lg p-3 shadow-sm">
+                          <p className="text-sm font-semibold text-gray-900">{order.title}</p>
+                          <p className="text-xs text-gray-500">
+                            {order.asset ? `${order.asset.code} - ${order.asset.name}` : 'Sem ativo'}
+                          </p>
+                          <div className="mt-2 flex items-center gap-2 flex-wrap">
+                            <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
+                              {order.priority || 'n/a'}
+                            </span>
+                            {slaDate && (
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs ${
+                                  isOverdue ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                                }`}
+                              >
+                                SLA {slaDate.toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

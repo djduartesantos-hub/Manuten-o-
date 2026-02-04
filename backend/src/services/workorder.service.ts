@@ -17,14 +17,32 @@ export class WorkOrderService {
     priority?: string;
     estimated_hours?: string;
     assigned_to?: string;
+    scheduled_date?: Date | string;
+    sla_deadline?: Date | string;
   }) {
+    const priority = data.priority || 'media';
+    const slaHoursMap: Record<string, number> = {
+      baixa: 96,
+      media: 72,
+      alta: 24,
+      critica: 8,
+    };
+
+    const slaHours = slaHoursMap[priority] || 72;
+    const baseDate = data.scheduled_date
+      ? new Date(data.scheduled_date)
+      : new Date();
+
+    const calculatedSla = new Date(baseDate.getTime() + slaHours * 60 * 60 * 1000);
+
     const [workOrder] = await db
       .insert(workOrders)
       .values({
         ...data,
         id: uuidv4(),
         status: 'aberta',
-        priority: data.priority || 'media',
+        priority,
+        sla_deadline: data.sla_deadline ? new Date(data.sla_deadline) : calculatedSla,
       })
       .returning();
 
