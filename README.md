@@ -15,36 +15,66 @@ Ao nível de: **Infraspeak**, **ManWinWin**, **Fracttal One**
 
 ## 🪟 Setup Rápido no Windows
 
-**Novo! Instalação automática em 3 passos:**
+**Instalação automática em 3 passos:**
 
-1. Execute: `setup-windows.bat`
+1. Execute: `scripts\setup\setup-windows.bat`
 2. Configure: `backend\.env` (credenciais PostgreSQL)
-3. Inicie: `start-all.bat`
+3. Inicie: `scripts\start\start-menu.bat`
 
-Nota: o `setup-windows.ps1` agora tenta instalar o Node.js LTS via `winget` se estiver ausente, e usa `npm ci` quando existir `package-lock.json`. Execute `setup-windows.bat` para invocar o PowerShell automaticamente.
-
-👉 [**QUICKSTART_WINDOWS.md**](./QUICKSTART_WINDOWS.md) - Guia rápido (2 min)  
-📖 [**WINDOWS_SETUP.md**](./WINDOWS_SETUP.md) - Guia completo  
-🆘 [**WINDOWS_TROUBLESHOOTING.md**](./WINDOWS_TROUBLESHOOTING.md) - Resolvendo problemas  
-🎮 [**start-menu.bat**](./start-menu.bat) - Painel de controle interativo  
+👉 [**QUICKSTART_WINDOWS.md**](./docs/GUIDES/QUICKSTART_WINDOWS.md) - Guia rápido (2 min)  
+📖 [**WINDOWS_SETUP.md**](./docs/SETUP/WINDOWS_SETUP.md) - Guia completo  
+🆘 [**WINDOWS_TROUBLESHOOTING.md**](./docs/GUIDES/WINDOWS_TROUBLESHOOTING.md) - Resolvendo problemas  
 
 ---
 
 ## 📋 Índice Rápido
 
 - [Visão Geral](#visão-geral)
-- [Setup Windows](#-setup-rápido-no-windows) ⭐ NEW
-- [Sistema de Versionamento](#-sistema-de-versionamento)
-- [Roadmap Desenvolvimento](#roadmap-desenvolvimento)
-- [Novas Ideias](#-novas-ideias-de-desenvolvimento)
-- [Características](#características-principais)
+- [Setup Rápido](#-setup-rápido-no-windows)
+- [Documentação](#-documentação)
+- [Roadmap](#-roadmap-desenvolvimento)
 - [Stack Tecnológico](#stack-tecnológico)
-- [Instalação](#instalação)
-- [Configuração](#configuração)
-- [APIs Disponíveis](#apis-disponíveis)
-- [Funcionalidades](#funcionalidades)
+- [Características](#características-principais)
+- [Instalação Detalhada](#instalação)
 - [Deployment](#deployment)
 - [Segurança](#segurança)
+
+---
+
+## 📚 Documentação
+
+Documentação organizada em:
+
+| Pasta | Conteúdo |
+|-------|----------|
+| **[`/docs/GUIDES`](./docs/GUIDES/)** | Quickstarts e troubleshooting |
+| **[`/docs/SETUP`](./docs/SETUP/)** | Setup local e database |
+| **[`/docs/DEPLOYMENT`](./docs/DEPLOYMENT/)** | Deploy em produção |
+| **[`/docs/ARCHITECTURE`](./docs/ARCHITECTURE/)** | Roadmap, status e estrutura |
+| **[`/scripts`](./scripts/)** | Scripts de automação |
+
+**Ficheiros principais:**
+- 🎯 [ROADMAP_2026.md](./docs/ARCHITECTURE/ROADMAP_2026.md) - Timeline completa 6+ meses
+- 📊 [DEVELOPMENT_STATUS.md](./docs/ARCHITECTURE/DEVELOPMENT_STATUS.md) - Status atual
+- 🏗️ [PROJECT_STRUCTURE.md](./docs/ARCHITECTURE/PROJECT_STRUCTURE.md) - Arquitetura
+
+---
+
+## 🚀 Começar Rápido
+
+### Windows (Automático)
+```batch
+scripts\setup\setup-windows.bat
+scripts\start\start-menu.bat
+```
+
+### Linux/Mac
+```bash
+chmod +x scripts/setup/setup-local.sh
+./scripts/setup/setup-local.sh
+```
+
+👉 Vê [/docs/GUIDES/](./docs/GUIDES/) para guias detalhados
 
 ---
 
@@ -59,202 +89,35 @@ Nota: o `setup-windows.ps1` agora tenta instalar o Node.js LTS via `winget` se e
 ✅ Manter conformidade RGPD com auditoria total  
 ✅ Escalar para múltiplas empresas com isolamento de dados  
 
-**Status Atual:** Phase 2 (Maintenance Planning & Spare Parts) ✅ Completa + UI moderna | Veja [PHASE_1_COMPLETION.md](./PHASE_1_COMPLETION.md)
+**Status Atual:** Phase 2 (Maintenance Planning & Spare Parts) ✅ Completo | Phase 3 (Settings & Configuration) 🔄 Em Desenvolvimento
 
 ---
 
 ## 🔢 Sistema de Versionamento
 
-Veja documentação completa em [VERSIONING.md](./VERSIONING.md)
+Veja [VERSIONING.md](./docs/ARCHITECTURE/VERSIONING.md) para detalhes.
 
-### Estrutura de Versão
-
-```
-X.Y.Z
-│ │ └─ Número de correção/patch durante a phase
-│ └─── Número da phase
-└───── Versão major (sempre 1)
-```
-
-**Exemplos:**
-- **v1.1.0** = Phase 1 Completa (Asset Management)
-- **v1.1.1-1.1.9** = Correções/Melhorias Phase 1
-- **v1.2.0** = Phase 2 Completa (Maintenance Planning)
-- **v1.2.2** = Phase 2 UI + melhorias de ordens ← ATUAL
-- **v1.2.1-1.2.9** = Correções/Melhorias Phase 2
-- **v1.3.0** = Phase 3 Completa (Escalabilidade)
-- **v1.4.0** = Phase 4 Completa (Produção)
-- **v1.5.0** = Phase 5 Completa (IA & Analytics)
+**Versão Atual:** v1.2.2 (Phase 2 completo + Phase 3 iniciado)
 
 ---
 
 ## 🚀 Roadmap Desenvolvimento
 
-### ✅ Phase 1: Asset Management (COMPLETO - v1.0.0)
-**Data:** Dezembro 2025 - Janeiro 2026  
-**Status:** ✅ Production Ready
+**Status Completo:** 👉 [ROADMAP_2026.md](./docs/ARCHITECTURE/ROADMAP_2026.md)
 
-Gestão completa de ativos com:
-- 6 CRUD endpoints para equipamentos
-- Categorias e subcategorias
-- Números de série e QR codes
-- Rastreamento de contadores (horas/km)
-- Integração com ordens de trabalho
+### ✅ Phase 1: Asset Management (v1.1.0 - COMPLETO)
+**Status:** ✅ Production Ready  
+Gestão de ativos, categorias, histórico de manutenção.
 
-**Commits:** 023b8b6, ef45292, 6cf42a9
+### ✅ Phase 2: Maintenance Planning & Spare Parts (v1.2.2 - COMPLETO)
+**Status:** ✅ Production Ready  
+Planos de manutenção, ordens de trabalho, gestão de peças.
 
----
+### 🔄 Phase 3: Settings & Configuration (v1.3.0 - EM DESENVOLVIMENTO)
+**Status:** 🔄 40% completo (2-3 semanas)  
+Alertas configuráveis, avisos preditivos, documentação de ativos.
 
-### ✅ Phase 2: Maintenance Planning & Spare Parts (COMPLETO - v1.2.0)
-**Data:** Janeiro 2026  
-**Status:** ✅ Production Ready
-
-Planeamento de manutenção preventiva com:
-- 9 endpoints para planos de manutenção
-- 12+ endpoints para gestão de peças sobressalentes
-- Cálculo automático de manutenção vencida
-- Gestão de stock por planta
-- Movimentos de stock (entrada/saída/ajuste)
-- Integração com fornecedores
-
-**Commits:** 0be699a, cef311b
-
-**Melhorias recentes (v1.2.2):**
-- UI moderna para Planos de Manutenção e Peças
-- Kanban e alertas de SLA em Ordens de Trabalho
-- Templates, filtros guardados e exportação CSV
-- Seeds e testes básicos de Phase 2
-
----
-
-### 📋 Phase 3: Escalabilidade & Performance (POR INICIAR - 2-3 semanas)
-**Funcionalidades Planeadas:**
-- ⚡ **WebSocket** para notificações em tempo real
-- 🔴 **Redis** para cache e sessões
-- 🔍 **Elasticsearch** para busca avançada
-- 📮 **Bull Job Queue** para processamento assíncrono
-- 📊 **Performance Metrics** e monitoring
-
----
-
-### 🔐 Phase 4: Produção & Conformidade (POR INICIAR - 1 semana)
-**Funcionalidades Planeadas:**
-- 🛡️ **Helmet** para segurança HTTP
-- 🚦 **Rate Limiting** e throttling
-- 📖 **Swagger/OpenAPI** documentation
-- 🔔 **Sentry** para error tracking
-- 🔄 **CI/CD Setup** com GitHub Actions
-
----
-
-### 🤖 Phase 5: Análise Avançada & IA (POR INICIAR)
-**Funcionalidades Planeadas:**
-- 📈 Análise preditiva de falhas
-- 🗺️ Otimização de rotas de manutenção
-- 💰 Análise de custos e ROI
-- 🎯 Recomendações inteligentes
-- 📊 Dashboard de análise avançada
-
----
-
-## 💡 Novas Ideias de Desenvolvimento
-
-### Curto Prazo (1-2 meses)
-
-**1. Dashboard Customizável por Utilizador** ⭐⭐
-- Drag-and-drop para reorganizar widgets
-- Múltiplos layouts salvos
-- Preferências por role
-- **ROI:** Alto | **Esforço:** Médio
-
-**2. Relatórios Agendados por Email** ⭐⭐
-- Templates de relatório (semanal, mensal, anual)
-- Seleção de destinatários por role
-- Anexos em PDF
-- **ROI:** Alto | **Esforço:** Médio
-
-**3. Mobile App com React Native** ⭐⭐⭐
-- Acesso em tempo real
-- Notificações push
-- Offline mode
-- **ROI:** Muito Alto | **Esforço:** Alto
-
-**4. Integração com IoT Sensors** ⭐⭐⭐
-- Leitura de sensores em tempo real
-- Alertas automáticos
-- Histórico de métricas
-- **ROI:** Muito Alto | **Esforço:** Alto
-
-**5. Análise Predictiva de Falhas** ⭐⭐⭐
-- Machine Learning para predição
-- Alertas preventivos
-- Otimização de manutenção
-- **ROI:** Muito Alto | **Esforço:** Alto
-
-### Médio Prazo (3-4 meses)
-
-**6. Integração com ERP Systems** ⭐⭐⭐
-- SAP, Microsoft Dynamics, Oracle
-- Sincronização de dados
-- **ROI:** Muito Alto | **Esforço:** Alto
-
-**7. Sistema de Documentação Integrado** ⭐⭐
-- Manuais técnicos
-- Procedimentos passo-a-passo
-- Histórico de alterações
-- **ROI:** Médio | **Esforço:** Médio
-
-**8. Gestão de Contratos e Garantias** ⭐⭐
-- Rastreamento de garantias
-- Alertas de renovação
-- Análise de custos
-- **ROI:** Médio | **Esforço:** Médio
-
-**9. Portal do Utilizador (Self-Service)** ⭐⭐⭐
-- Submissão de requisições
-- Acompanhamento de status
-- Feedback e avaliações
-- **ROI:** Alto | **Esforço:** Médio
-
-**10. Sistema de Training & Compliance** ⭐⭐
-- Cursos online
-- Certificações
-- Tracking de conclusão
-- **ROI:** Médio | **Esforço:** Médio
-
-### Longo Prazo (6+ meses)
-
-**11. Gamification & Incentivos** ⭐⭐
-- Badges e achievements
-- Leaderboards
-- Recompensas
-- **ROI:** Médio | **Esforço:** Médio
-
-**12. Supply Chain Management** ⭐⭐⭐
-- Gestão de inventário
-- Reordering automático
-- Fornecedores e negociações
-- **ROI:** Muito Alto | **Esforço:** Alto
-
-**13. Conformidade e Regulação** ⭐⭐⭐
-- ISO compliance tracking
-- Auditoria integrada
-- Documentação automática
-- **ROI:** Alto | **Esforço:** Alto
-
-**14. Energy Management & Sustainability** ⭐⭐
-- Monitorização de consumo
-- Relatórios de emissão
-- Otimizações sustentáveis
-- **ROI:** Médio | **Esforço:** Médio
-
-**15. Marketplace de Integrações** ⭐⭐⭐
-- API marketplace
-- Extensões de terceiros
-- Plugins community-driven
-- **ROI:** Muito Alto | **Esforço:** Muito Alto
-
----
+👉 **Roadmap Completo:** [ROADMAP_2026.md](./docs/ARCHITECTURE/ROADMAP_2026.md)
 
 ## ⭐ Características Principais
 
