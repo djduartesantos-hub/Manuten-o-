@@ -1,5 +1,7 @@
 # 💡 Novas Ideias de Desenvolvimento - Manuten-o CMMS
 
+**⚠️ DOCUMENTO LEGADO** - Veja [ROADMAP_2026.md](./ROADMAP_2026.md) para a versão atual e consolidada.
+
 Documento com 15 ideias inovadoras para expandir a plataforma Manuten-o, organizadas por prazo de implementação.
 
 ---
