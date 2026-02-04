@@ -559,3 +559,175 @@ export const workOrdersRelations = relations(workOrders, ({ one, many }) => ({
   attachments: many(attachments),
   stockMovements: many(stockMovements),
 }));
+// Alert Configurations
+export const alertConfigurations = pgTable(
+  'alert_configurations',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    asset_id: uuid('asset_id')
+      .notNull()
+      .references(() => assets.id, { onDelete: 'cascade' }),
+    alert_type: text('alert_type').notNull(), // 'sla_critical', 'high_failure_rate', 'stock_low', 'maintenance_overdue'
+    threshold: integer('threshold').notNull(),
+    time_unit: text('time_unit').notNull(), // 'hours', 'days'
+    is_active: boolean('is_active').default(true),
+    notify_roles: text('notify_roles').array().default(['admin', 'manager']),
+    notify_email: boolean('notify_email').default(true),
+    notify_push: boolean('notify_push').default(false),
+    escalate_after_hours: integer('escalate_after_hours'),
+    description: text('description'),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index('alert_config_tenant_id_idx').on(table.tenant_id),
+    assetIdIdx: index('alert_config_asset_id_idx').on(table.asset_id),
+  }),
+);
+
+// Alert History
+export const alertsHistory = pgTable(
+  'alerts_history',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    alert_config_id: uuid('alert_config_id')
+      .notNull()
+      .references(() => alertConfigurations.id, { onDelete: 'cascade' }),
+    asset_id: uuid('asset_id')
+      .notNull()
+      .references(() => assets.id, { onDelete: 'cascade' }),
+    severity: text('severity').notNull(), // 'low', 'medium', 'high', 'critical'
+    message: text('message').notNull(),
+    is_resolved: boolean('is_resolved').default(false),
+    resolved_at: timestamp('resolved_at', { withTimezone: true }),
+    resolved_by: uuid('resolved_by').references(() => users.id, { onDelete: 'set null' }),
+    resolution_notes: text('resolution_notes'),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index('alerts_history_tenant_id_idx').on(table.tenant_id),
+    assetIdIdx: index('alerts_history_asset_id_idx').on(table.asset_id),
+    severityIdx: index('alerts_history_severity_idx').on(table.severity),
+  }),
+);
+
+// Asset Documents (Manuais, esquemas, certificados)
+export const assetDocuments = pgTable(
+  'asset_documents',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    asset_id: uuid('asset_id')
+      .notNull()
+      .references(() => assets.id, { onDelete: 'cascade' }),
+    document_type: text('document_type').notNull(), // 'manual', 'schematic', 'warranty', 'sop', 'technical_spec', 'certification'
+    title: text('title').notNull(),
+    description: text('description'),
+    file_url: text('file_url').notNull(),
+    file_size_mb: decimal('file_size_mb', { precision: 5, scale: 2 }),
+    file_extension: text('file_extension'),
+    uploaded_by: uuid('uploaded_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'set null' }),
+    version_number: integer('version_number').default(1),
+    is_latest: boolean('is_latest').default(true),
+    tags: text('tags').array(),
+    expires_at: timestamp('expires_at', { withTimezone: true }),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index('asset_docs_tenant_id_idx').on(table.tenant_id),
+    assetIdIdx: index('asset_docs_asset_id_idx').on(table.asset_id),
+    docTypeIdx: index('asset_docs_type_idx').on(table.document_type),
+  }),
+);
+
+// Asset Document Versions
+export const assetDocumentVersions = pgTable(
+  'asset_document_versions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    document_id: uuid('document_id')
+      .notNull()
+      .references(() => assetDocuments.id, { onDelete: 'cascade' }),
+    version_number: integer('version_number').notNull(),
+    change_log: text('change_log'),
+    file_url: text('file_url').notNull(),
+    uploaded_by: uuid('uploaded_by').references(() => users.id, { onDelete: 'set null' }),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    documentIdIdx: index('doc_versions_doc_id_idx').on(table.document_id),
+  }),
+);
+
+// Relations for Alert Configurations
+export const alertConfigurationsRelations = relations(alertConfigurations, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [alertConfigurations.tenant_id],
+    references: [tenants.id],
+  }),
+  asset: one(assets, {
+    fields: [alertConfigurations.asset_id],
+    references: [assets.id],
+  }),
+  alerts: many(alertsHistory),
+}));
+
+// Relations for Alerts History
+export const alertsHistoryRelations = relations(alertsHistory, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [alertsHistory.tenant_id],
+    references: [tenants.id],
+  }),
+  asset: one(assets, {
+    fields: [alertsHistory.asset_id],
+    references: [assets.id],
+  }),
+  alertConfig: one(alertConfigurations, {
+    fields: [alertsHistory.alert_config_id],
+    references: [alertConfigurations.id],
+  }),
+  resolvedBy: one(users, {
+    fields: [alertsHistory.resolved_by],
+    references: [users.id],
+  }),
+}));
+
+// Relations for Asset Documents
+export const assetDocumentsRelations = relations(assetDocuments, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [assetDocuments.tenant_id],
+    references: [tenants.id],
+  }),
+  asset: one(assets, {
+    fields: [assetDocuments.asset_id],
+    references: [assets.id],
+  }),
+  uploadedByUser: one(users, {
+    fields: [assetDocuments.uploaded_by],
+    references: [users.id],
+  }),
+  versions: many(assetDocumentVersions),
+}));
+
+// Relations for Asset Document Versions
+export const assetDocumentVersionsRelations = relations(assetDocumentVersions, ({ one }) => ({
+  document: one(assetDocuments, {
+    fields: [assetDocumentVersions.document_id],
+    references: [assetDocuments.id],
+  }),
+  uploadedByUser: one(users, {
+    fields: [assetDocumentVersions.uploaded_by],
+    references: [users.id],
+  }),
+}));

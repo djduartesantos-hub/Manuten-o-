@@ -13,6 +13,7 @@ import { AssetsPage } from './pages/AssetsPage';
 import { MaintenancePlansPage } from './pages/MaintenancePlansPage';
 import { SparePartsPage } from './pages/SparePartsPage';
 import { ReportsPage } from './pages/ReportsPage';
+import { SettingsPage } from './pages/SettingsPage';
 
 import './index.css';
 
@@ -112,6 +113,16 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
+
         <Route path="/unauthorized" element={<div>Unauthorized</div>} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>

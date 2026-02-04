@@ -27,6 +27,7 @@ export function Header() {
     },
     { label: 'Peças', href: '/spare-parts', active: location.pathname === '/spare-parts' },
     { label: 'Relatórios', href: '/reports', active: location.pathname === '/reports' },
+    { label: 'Configurações', href: '/settings', active: location.pathname === '/settings' },
   ];
 
   const handleLogout = () => {

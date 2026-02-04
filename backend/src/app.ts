@@ -7,6 +7,7 @@ import assetRoutes from './routes/asset.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import maintenanceRoutes from './routes/maintenance.routes';
 import sparePartRoutes from './routes/sparepart.routes';
+import alertRoutes from './routes/alert.routes';
 import { errorHandler, notFoundHandler, requestLogger } from './middlewares/error';
 
 export function createApp(): Express {
@@ -31,6 +32,7 @@ export function createApp(): Express {
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/maintenance', maintenanceRoutes);
   app.use('/api/spareparts', sparePartRoutes);
+  app.use('/api/alerts', alertRoutes);
 
   // Health check
   app.get('/health', (_req, res) => {
