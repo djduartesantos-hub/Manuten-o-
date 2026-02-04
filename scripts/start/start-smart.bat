@@ -91,7 +91,7 @@ if not exist ".env" (
     )
 )
 
-start "CMMS Backend" cmd /k "cls && echo Starting Backend... && timeout /t 2 /nobreak && npm run dev"
+start "CMMS Backend" cmd /k "cls && color 0A && echo Starting Backend... && timeout /t 2 /nobreak && npm run dev || (color 0C && echo. && echo [ERROR] Backend failed to start && color 07 && echo Press any key to close this window... && pause)"
 
 REM Wait for backend
 timeout /t 5 /nobreak
@@ -102,7 +102,7 @@ REM Start Frontend
 echo [2/2] Starting Frontend (http://localhost:5173)
 cd frontend
 
-start "CMMS Frontend" cmd /k "cls && echo Starting Frontend... && timeout /t 2 /nobreak && npm run dev"
+start "CMMS Frontend" cmd /k "cls && color 0A && echo Starting Frontend... && timeout /t 2 /nobreak && npm run dev || (color 0C && echo. && echo [ERROR] Frontend failed to start && color 07 && echo Press any key to close this window... && pause)"
 
 cd ..
 
@@ -125,6 +125,8 @@ echo.
 echo 📍 Backend:  http://localhost:3000
 echo 📍 Frontend: http://localhost:5173
 echo.
-echo To stop services, close the terminal windows.
+echo ℹ️  Services are starting in separate windows.
+echo    If you see errors, the windows will stay open so you can see them.
+echo    Press Ctrl+C in each window to stop the services.
 echo.
 pause

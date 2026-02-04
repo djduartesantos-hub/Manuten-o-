@@ -1,7 +1,8 @@
 @echo off
 REM ============================================
 REM CMMS Enterprise - Complete Setup & Start
-REM Windows Edition - All-in-One Script
+REM Windows Edition - All-in-One Script (v2)
+REM Improved: Better error handling and window management
 REM ============================================
 
 setlocal enabledelayedexpansion
@@ -198,17 +199,19 @@ echo ║   Each will open in a new window       ║
 echo ╚════════════════════════════════════════╝
 echo.
 
-REM Start Backend
-echo [1/2] Starting Backend (http://localhost:3000)...
+REM Save current directory for use in child windows
 for /f "delims=" %%A in ('cd') do set ROOTDIR=%%A
-start "CMMS Backend" cmd /k "cd /d "!ROOTDIR!\backend" && cls && color 0A && echo Starting Backend... && timeout /t 2 /nobreak && npm run dev || (color 0C && echo. && echo [ERROR] Backend failed to start && color 07 && echo Press any key to close this window... && pause)"
 
-REM Wait for backend
+REM Start Backend in new window (with better error handling)
+echo [1/2] Starting Backend (http://localhost:3000)...
+start "CMMS Backend" cmd /k "cd /d "!ROOTDIR!\backend" && cls && color 0A && echo ╔════════════════════════════════════════╗ && echo ║  CMMS Backend                          ║ && echo ║  Initializing...                       ║ && echo ╚════════════════════════════════════════╝ && echo. && timeout /t 2 /nobreak && npm run dev && (echo. && color 0A && echo ✅ Backend running successfully && echo. && pause) || (echo. && color 0C && echo ❌ Backend error occurred & echo Press any key to close this window... & pause)"
+
+REM Wait for backend to start
 timeout /t 5 /nobreak
 
-REM Start Frontend
+REM Start Frontend in new window (with better error handling)
 echo [2/2] Starting Frontend (http://localhost:5173)...
-start "CMMS Frontend" cmd /k "cd /d "!ROOTDIR!\frontend" && cls && color 0A && echo Starting Frontend... && timeout /t 2 /nobreak && npm run dev || (color 0C && echo. && echo [ERROR] Frontend failed to start && color 07 && echo Press any key to close this window... && pause)"
+start "CMMS Frontend" cmd /k "cd /d "!ROOTDIR!\frontend" && cls && color 0A && echo ╔════════════════════════════════════════╗ && echo ║  CMMS Frontend                         ║ && echo ║  Initializing...                       ║ && echo ╚════════════════════════════════════════╝ && echo. && timeout /t 2 /nobreak && npm run dev && (echo. && color 0A && echo ✅ Frontend running successfully && echo. && pause) || (echo. && color 0C && echo ❌ Frontend error occurred & echo Press any key to close this window... & pause)"
 
 echo.
 echo ╔════════════════════════════════════════╗
@@ -217,7 +220,7 @@ echo ║   Opening http://localhost:5173       ║
 echo ╚════════════════════════════════════════╝
 echo.
 
-REM Wait for services
+REM Wait for services to stabilize
 timeout /t 3 /nobreak
 
 REM Try to open browser
@@ -231,6 +234,8 @@ echo.
 echo 📍 Backend:  http://localhost:3000
 echo 📍 Frontend: http://localhost:5173
 echo.
-echo To stop services, close the terminal windows.
+echo ℹ️  Both services are starting in separate windows.
+echo    If you see errors, the windows will stay open so you can see them.
+echo    Press Ctrl+C in each window to stop the services.
 echo.
 pause
