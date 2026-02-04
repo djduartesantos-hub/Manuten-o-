@@ -18,27 +18,6 @@ async function seed() {
   console.log('🌱 Starting database seed...');
 
   try {
-    // Test database connection
-    const testConnection = await db.execute('SELECT NOW()').catch((error) => {
-      console.error('');
-      console.error('❌ Cannot connect to PostgreSQL database');
-      console.error('');
-      console.error('📋 Fix:');
-      console.error('   1. Start PostgreSQL:');
-      console.error('      Windows: Services > PostgreSQL > Start');
-      console.error('      Linux/Mac: brew services start postgresql (or systemctl start postgresql)');
-      console.error('');
-      console.error('   2. Verify PostgreSQL is running on localhost:5432');
-      console.error('');
-      console.error('   3. Check DATABASE_URL in backend/.env:');
-      console.error('      ' + (process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/cmms_enterprise'));
-      console.error('');
-      console.error('   4. Run migrations first:');
-      console.error('      npm run db:push');
-      console.error('');
-      process.exit(1);
-    });
-
     // Create default tenant
     const tenantId = uuidv4();
     const adminId = uuidv4();
@@ -232,26 +211,56 @@ async function seed() {
     console.log('');
     process.exit(0);
   } catch (error) {
-    if (error instanceof Error && error.message.includes('ECONNREFUSED')) {
-      console.error('');
-      console.error('❌ Cannot connect to PostgreSQL database');
-      console.error('');
-      console.error('📋 Fix:');
-      console.error('   1. Start PostgreSQL:');
-      console.error('      Windows: Services > PostgreSQL > Start');
-      console.error('      Linux/Mac: brew services start postgresql');
-      console.error('');
-      console.error('   2. Verify DATABASE_URL in backend/.env');
-      console.error('');
-      console.error('   3. Run db:push first (schema initialization):');
-      console.error('      npm run db:push');
-      console.error('');
-      console.error('   4. Then run seed again:');
-      console.error('      npm run db:seed');
-      console.error('');
-    } else {
-      console.error('❌ Seed failed:', error);
+    console.error('');
+    console.error('❌ Seed failed');
+    console.error('');
+
+    // Detailed error messages for common issues
+    if (error instanceof Error) {
+      if (error.message.includes('ECONNREFUSED')) {
+        console.error('📋 Connection Error - PostgreSQL is not running');
+        console.error('');
+        console.error('Fix:');
+        console.error('  1. Start PostgreSQL:');
+        console.error('     Windows: Services > PostgreSQL > Start');
+        console.error('     Linux:   sudo systemctl start postgresql');
+        console.error('     macOS:   brew services start postgresql');
+        console.error('');
+        console.error('  2. Check your DATABASE_URL in backend/.env');
+        console.error('     Should be: postgresql://user:password@localhost:5432/cmms_enterprise');
+        console.error('');
+        console.error('  3. Verify database exists:');
+        console.error('     psql -U postgres -c "CREATE DATABASE cmms_enterprise;"');
+        console.error('');
+        console.error('  4. Apply schema first:');
+        console.error('     npm run db:push');
+        console.error('');
+      } else if (error.message.includes('does not exist')) {
+        console.error('📋 Database or Schema Error');
+        console.error('');
+        console.error('Fix:');
+        console.error('  1. Create database: psql -U postgres -c "CREATE DATABASE cmms_enterprise;"');
+        console.error('  2. Apply schema:    npm run db:push');
+        console.error('  3. Run seed again:  npm run db:seed');
+        console.error('');
+      } else if (error.message.includes('password')) {
+        console.error('📋 Authentication Error - Wrong PostgreSQL credentials');
+        console.error('');
+        console.error('Fix:');
+        console.error('  1. Check DATABASE_URL in backend/.env');
+        console.error('  2. Verify PostgreSQL superuser credentials');
+        console.error('  3. Reset password if needed (see docs/GUIDES/DATABASE_SETUP_GUIDE.md)');
+        console.error('');
+      } else {
+        console.error('Error details:', error.message);
+        console.error('');
+        console.error('📚 See docs/GUIDES/DATABASE_SETUP_GUIDE.md for troubleshooting');
+        console.error('');
+      }
     }
+
+    console.error('Stack:', error instanceof Error ? error.stack : error);
+    console.error('');
     process.exit(1);
   }
 }
