@@ -5,7 +5,8 @@
 Ao nível de: **Infraspeak**, **ManWinWin**, **Fracttal One**
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
-![Version](https://img.shields.io/badge/Version-1.2.2-blue)
+![Version](https://img.shields.io/badge/Version-1.3.5--beta-blue)
+![Phase](https://img.shields.io/badge/Phase-3B%20Real--time-yellow)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.2-blue)
 ![React](https://img.shields.io/badge/React-18.2-blue)
@@ -97,7 +98,7 @@ chmod +x scripts/setup/setup-local.sh
 
 Veja [VERSIONING.md](./docs/ARCHITECTURE/VERSIONING.md) para detalhes.
 
-**Versão Atual:** v1.2.2 (Phase 2 completo + Phase 3 iniciado)
+**Versão Atual:** v1.3.5-beta (Phase 3B - Real-time Infrastructure - 55% complete)
 
 ---
 
@@ -113,9 +114,21 @@ Gestão de ativos, categorias, histórico de manutenção.
 **Status:** ✅ Production Ready  
 Planos de manutenção, ordens de trabalho, gestão de peças.
 
-### 🔄 Phase 3: Settings & Configuration (v1.3.0 - EM DESENVOLVIMENTO)
-**Status:** 🔄 40% completo (2-3 semanas)  
-Alertas configuráveis, avisos preditivos, documentação de ativos.
+### ✅ Phase 3A: Settings & UI Components (v1.3.0 - COMPLETO)
+**Status:** ✅ Complete  
+Alertas configuráveis, avisos preditivos, documentação de ativos, planos de manutenção.
+
+### 🔄 Phase 3B: Real-time Infrastructure (v1.3.5 - EM DESENVOLVIMENTO)
+**Status:** 🔄 55% completo (1 semana)  
+WebSocket real-time, Redis caching, Elasticsearch search, Bull job queue.
+- ✅ Socket.io integration (broadcast, tenant rooms, JWT auth)
+- ✅ Redis caching (5min TTL, cache invalidation)
+- ✅ Elasticsearch service (full-text search, aggregations)
+- ✅ Bull job queue (async jobs, retry logic)
+- 🔄 Extending caching to more services
+- ⏳ Elasticsearch indexing on mutations
+- ⏳ Bull job processors (email, reports, exports)
+- ⏳ Frontend real-time UI updates
 
 👉 **Roadmap Completo:** [ROADMAP_2026.md](./docs/ARCHITECTURE/ROADMAP_2026.md)
 
