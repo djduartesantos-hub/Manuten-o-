@@ -38,10 +38,17 @@ export class WorkOrderService {
     const [workOrder] = await db
       .insert(workOrders)
       .values({
-        ...data,
-        id: uuidv4(),
-        status: 'aberta',
-        priority,
+        tenant_id: data.tenant_id,
+        plant_id: data.plant_id,
+        asset_id: data.asset_id,
+        created_by: data.created_by,
+        title: data.title,
+        description: data.description,
+        assigned_to: data.assigned_to,
+        estimated_hours: data.estimated_hours,
+        status: 'aberta' as any,
+        priority: priority as any,
+        scheduled_date: data.scheduled_date ? new Date(data.scheduled_date) : null,
         sla_deadline: data.sla_deadline ? new Date(data.sla_deadline) : calculatedSla,
       })
       .returning();

@@ -1,5 +1,5 @@
 import { db } from '../config/database';
-import { users, tenants } from '../db/schema';
+import { users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { comparePasswords, hashPassword } from '../auth/jwt';
 

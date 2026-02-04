@@ -42,7 +42,7 @@ export class TenantService {
     ];
 
     if (status) {
-      whereConditions.push(eq(workOrders.status, status));
+      whereConditions.push(eq(workOrders.status, status as any));
     }
 
     return db.query.workOrders.findMany({
