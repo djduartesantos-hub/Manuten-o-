@@ -7,8 +7,9 @@ import sgMail from '@sendgrid/mail';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 export function initJobProcessors(): void {
-  // Email jobs
-  JobQueueService.processJob(QUEUES.EMAIL, 'send-email', async (job) => {
+  try {
+    // Email jobs
+    JobQueueService.processJob(QUEUES.EMAIL, 'send-email', async (job) => {
     job.progress(10);
     const { to, subject, text, html, from } = job.data || {};
 
@@ -141,4 +142,9 @@ export function initJobProcessors(): void {
       },
     };
   });
+  } catch (error) {
+    logger.debug('Job processors initialization - Redis may be unavailable', { 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 }
