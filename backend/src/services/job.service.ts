@@ -102,7 +102,7 @@ export class JobQueueService {
     jobName: string,
     data: T,
     delayMs: number,
-  ): Promise<Queue.Job<T>> {
+  ): Promise<Queue.Job<T> | null> {
     return this.addJob(queueName, jobName, data, {
       delay: delayMs,
     });
