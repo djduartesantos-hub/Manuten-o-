@@ -1,6 +1,7 @@
 import express, { Express } from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes';
+import tenantRoutes from './routes/tenant.routes';
 import workOrderRoutes from './routes/workorder.routes';
 import assetRoutes from './routes/asset.routes';
 import dashboardRoutes from './routes/dashboard.routes';
@@ -24,6 +25,7 @@ export function createApp(): Express {
 
   // Routes
   app.use('/api/auth', authRoutes);
+  app.use('/api/tenants', tenantRoutes);
   app.use('/api/tenants', workOrderRoutes);
   app.use('/api/tenants', assetRoutes);
   app.use('/api/dashboard', dashboardRoutes);

@@ -55,16 +55,25 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 }));
 
+interface Plant {
+  id: string;
+  name: string;
+  code: string;
+}
+
 interface AppState {
   selectedTenant: string | null;
   selectedPlant: string | null;
+  plants: Plant[];
   setSelectedTenant: (tenantId: string) => void;
   setSelectedPlant: (plantId: string) => void;
+  setPlants: (plants: Plant[]) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
   selectedTenant: localStorage.getItem('selectedTenant'),
   selectedPlant: localStorage.getItem('selectedPlant'),
+  plants: [],
 
   setSelectedTenant: (tenantId) => {
     localStorage.setItem('selectedTenant', tenantId);
@@ -75,4 +84,6 @@ export const useAppStore = create<AppState>((set) => ({
     localStorage.setItem('selectedPlant', plantId);
     set({ selectedPlant: plantId });
   },
+
+  setPlants: (plants) => set({ plants }),
 }));

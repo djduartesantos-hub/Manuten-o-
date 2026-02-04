@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { useAppStore } from './context/store';
+import { getUserPlants } from './services/api';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Pages
@@ -14,7 +15,13 @@ import './index.css';
 
 function App() {
   const { isAuthenticated, user } = useAuth();
-  const { selectedTenant, selectedPlant, setSelectedTenant, setSelectedPlant } = useAppStore();
+  const {
+    selectedTenant,
+    selectedPlant,
+    setSelectedTenant,
+    setSelectedPlant,
+    setPlants,
+  } = useAppStore();
 
   // Auto-select demo tenant if not set
   React.useEffect(() => {
@@ -23,13 +30,23 @@ function App() {
     }
   }, [isAuthenticated, user, selectedTenant, setSelectedTenant]);
 
-  // Auto-select first plant if not set (would need to fetch from API in real app)
+  // Fetch plants for authenticated user and auto-select first
   React.useEffect(() => {
-    if (isAuthenticated && !selectedPlant) {
-      // In a real app, fetch plants from API
-      setSelectedPlant('4c8e4c8d-1234-5678-1234-567812345678');
-    }
-  }, [isAuthenticated, selectedPlant, setSelectedPlant]);
+    const loadPlants = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const plants = await getUserPlants();
+        setPlants(plants || []);
+        if (!selectedPlant && plants && plants.length > 0) {
+          setSelectedPlant(plants[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to load plants', error);
+      }
+    };
+
+    loadPlants();
+  }, [isAuthenticated, selectedPlant, setPlants, setSelectedPlant]);
 
   return (
     <BrowserRouter>

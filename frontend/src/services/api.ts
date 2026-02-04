@@ -91,3 +91,15 @@ export async function getDashboardMetrics(plantId: string) {
 export async function getDashboardKPIs(plantId: string) {
   return apiCall(`/dashboard/${plantId}/kpis`);
 }
+
+export async function getUserPlants() {
+  return apiCall('/tenants/plants');
+}
+
+export async function getAssets(plantId: string, search?: string) {
+  const params = new URLSearchParams();
+  if (search) params.append('search', search);
+
+  const query = params.toString();
+  return apiCall(`/tenants/${plantId}/assets${query ? `?${query}` : ''}`);
+}

@@ -12,7 +12,7 @@ interface NavItem {
 
 export function Header() {
   const { user, logout } = useAuth();
-  const { selectedPlant } = useAppStore();
+  const { selectedPlant, plants, setSelectedPlant } = useAppStore();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const location = useLocation();
 
@@ -62,11 +62,19 @@ export function Header() {
           {/* Right Side */}
           <div className="flex items-center space-x-4">
             {/* Plant Selector */}
-            {selectedPlant && (
+            {plants.length > 0 && (
               <div className="hidden sm:flex items-center text-sm text-gray-600">
-                <span className="px-3 py-1 bg-gray-100 rounded-full">
-                  Fábrica: {selectedPlant.substring(0, 8)}...
-                </span>
+                <select
+                  className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-700"
+                  value={selectedPlant || ''}
+                  onChange={(event) => setSelectedPlant(event.target.value)}
+                >
+                  {plants.map((plant) => (
+                    <option key={plant.id} value={plant.id}>
+                      {plant.code} - {plant.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
 
