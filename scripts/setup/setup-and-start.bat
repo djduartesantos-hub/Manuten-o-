@@ -70,23 +70,38 @@ if not exist ".env" (
     if exist ".env.example" (
         copy ".env.example" ".env" >nul
         echo [OK] .env created from .env.example
-    ) else (
+        echo.
         color 0E
-        echo [WARNING] No .env.example found, creating minimal .env
+        echo [WARNING] IMPORTANT - Please verify your database credentials!
         color 07
-        (
-            echo DATABASE_URL=postgresql://postgres:postgres@localhost:5432/cmms_enterprise
-            echo REDIS_HOST=localhost
-            echo REDIS_PORT=6379
-            echo REDIS_PASSWORD=
-            echo REDIS_DB=0
-            echo PORT=3000
-            echo NODE_ENV=development
-            echo JWT_SECRET=dev-secret-key-change-in-prod
-        ) > .env
-        echo [OK] Minimal .env created
-        echo [ACTION] Edit backend\.env with your database credentials
+        echo.
+        echo The .env file uses default PostgreSQL credentials:
+        echo   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/cmms_enterprise
+        echo.
+        echo If your PostgreSQL credentials are different, edit:
+        echo   backend\.env
+        echo.
+        echo Replace 'postgres:postgres' with 'username:password'
+        echo.
+        set /p CONTINUE="Continue? (y/n): "
+        if /i not "!CONTINUE!"=="y" (
+            color 0C
+            echo [ERROR] Setup cancelled
+            color 07
+            cd ..
+            pause
+            exit /b 1
+        )
+    ) else (
+        color 0C
+        echo [ERROR] .env.example not found
+        color 07
+        cd ..
+        pause
+        exit /b 1
     )
+) else (
+    echo [OK] .env already exists
 )
 
 echo [INFO] Installing backend dependencies...
