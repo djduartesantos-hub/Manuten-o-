@@ -1,0 +1,195 @@
+import { Server as HTTPServer } from 'http';
+import { Server as SocketIOServer, Socket } from 'socket.io';
+import jwt from 'jsonwebtoken';
+import { logger } from '../config/logger';
+
+interface AuthenticatedSocket extends Socket {
+  user?: {
+    id: string;
+    tenantId: string;
+    role: string;
+  };
+}
+
+export class SocketManager {
+  private io: SocketIOServer;
+
+  constructor(httpServer: HTTPServer) {
+    this.io = new SocketIOServer(httpServer, {
+      cors: {
+        origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+        methods: ['GET', 'POST'],
+        credentials: true,
+      },
+      path: '/socket.io',
+      transports: ['websocket', 'polling'],
+    });
+
+    // Middleware
+    this.setupMiddleware();
+    // Connection handler
+    this.setupConnectionHandler();
+  }
+
+  private setupMiddleware(): void {
+    // Authentication middleware
+    this.io.use(async (socket: AuthenticatedSocket, next) => {
+      try {
+        const token = socket.handshake.auth.token;
+        if (!token) {
+          return next(new Error('Authentication error: no token'));
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as any;
+        socket.user = {
+          id: decoded.userId,
+          tenantId: decoded.tenantId,
+          role: decoded.role,
+        };
+
+        next();
+      } catch (error) {
+        logger.error('Socket auth error:', error);
+        next(new Error('Authentication error'));
+      }
+    });
+  }
+
+  private setupConnectionHandler(): void {
+    this.io.on('connection', (socket: AuthenticatedSocket) => {
+      if (!socket.user) {
+        socket.disconnect();
+        return;
+      }
+
+      const { id, tenantId, role } = socket.user;
+      const roomId = `tenant:${tenantId}`;
+
+      logger.info(`✅ Socket connected: ${socket.id} | User: ${id} | Tenant: ${tenantId}`);
+
+      // Join tenant room
+      socket.join(roomId);
+
+      // Join role room (for role-specific broadcasts)
+      socket.join(`tenant:${tenantId}:role:${role}`);
+
+      // Emit connection success
+      socket.emit('connected', {
+        socketId: socket.id,
+        userId: id,
+        tenantId,
+        role,
+        timestamp: new Date(),
+      });
+
+      // Handle events
+      this.setupEventHandlers(socket);
+
+      // Handle disconnect
+      socket.on('disconnect', () => {
+        logger.info(`❌ Socket disconnected: ${socket.id}`);
+      });
+    });
+  }
+
+  private setupEventHandlers(socket: AuthenticatedSocket): void {
+    if (!socket.user) return;
+
+    const { tenantId } = socket.user;
+
+    // Typing indicator
+    socket.on('typing', (data: { entityType: string; entityId: string }) => {
+      this.io
+        .to(`tenant:${tenantId}`)
+        .emit('user:typing', { user: socket.user!.id, ...data });
+    });
+
+    // Stop typing
+    socket.on('stop-typing', (data: { entityType: string; entityId: string }) => {
+      this.io
+        .to(`tenant:${tenantId}`)
+        .emit('user:stop-typing', { user: socket.user!.id, ...data });
+    });
+  }
+
+  // Broadcast events
+  broadcastToTenant(tenantId: string, eventName: string, data: any): void {
+    this.io.to(`tenant:${tenantId}`).emit(eventName, {
+      ...data,
+      timestamp: new Date(),
+    });
+  }
+
+  broadcastToRole(tenantId: string, role: string, eventName: string, data: any): void {
+    this.io.to(`tenant:${tenantId}:role:${role}`).emit(eventName, {
+      ...data,
+      timestamp: new Date(),
+    });
+  }
+
+  // Event emitters
+  emitOrderCreated(tenantId: string, order: any): void {
+    this.broadcastToTenant(tenantId, 'order:created', {
+      order,
+      message: `Nova ordem criada: ${order.title}`,
+    });
+  }
+
+  emitOrderUpdated(tenantId: string, order: any): void {
+    this.broadcastToTenant(tenantId, 'order:updated', {
+      order,
+      message: `Ordem atualizada: ${order.title}`,
+    });
+  }
+
+  emitOrderStatusChanged(tenantId: string, order: any, previousStatus: string): void {
+    this.broadcastToTenant(tenantId, 'order:status-changed', {
+      order,
+      previousStatus,
+      message: `Ordem ${order.title} passou para ${order.status}`,
+    });
+  }
+
+  emitAlertTriggered(tenantId: string, alert: any): void {
+    this.broadcastToRole(tenantId, 'admin', 'alert:triggered', {
+      alert,
+      severity: alert.severity,
+      message: alert.message,
+    });
+  }
+
+  emitDocumentUploaded(tenantId: string, document: any): void {
+    this.broadcastToTenant(tenantId, 'document:uploaded', {
+      document,
+      message: `Documento adicionado: ${document.title}`,
+    });
+  }
+
+  emitNotification(tenantId: string, notification: any): void {
+    this.broadcastToTenant(tenantId, 'notification', {
+      ...notification,
+      id: Math.random().toString(36).substr(2, 9),
+    });
+  }
+
+  // Get connected users count
+  getConnectedUsers(tenantId: string): number {
+    const room = this.io.sockets.adapter.rooms.get(`tenant:${tenantId}`);
+    return room?.size || 0;
+  }
+
+  // Get IO instance (for advanced usage)
+  getIO(): SocketIOServer {
+    return this.io;
+  }
+
+  // Graceful shutdown
+  async shutdown(): Promise<void> {
+    return new Promise((resolve) => {
+      this.io.close(() => {
+        logger.info('Socket.io server closed');
+        resolve();
+      });
+    });
+  }
+}

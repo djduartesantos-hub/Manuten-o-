@@ -40,6 +40,19 @@ export function createApp(): Express {
       success: true,
       message: 'CMMS Backend is running',
       timestamp: new Date().toISOString(),
+      services: {
+        api: 'running',
+      },
+    });
+  });
+
+  // Socket.io health check
+  app.get('/health/socket', (_req, res) => {
+    res.json({
+      success: true,
+      message: 'Socket.io is available',
+      timestamp: new Date().toISOString(),
+      endpoint: 'ws://localhost:' + (process.env.PORT || 3000),
     });
   });
 

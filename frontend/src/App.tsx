@@ -1,9 +1,13 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClientProvider } from 'react-query';
+import { Toaster } from 'react-hot-toast';
 import { useAuth } from './hooks/useAuth';
 import { useAppStore } from './context/store';
 import { getUserPlants } from './services/api';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { SocketProvider } from './context/SocketContext';
+import { queryClient } from './services/queryClient';
 
 // Pages
 import { LoginPage } from './pages/LoginPage';
@@ -53,80 +57,85 @@ function App() {
   }, [isAuthenticated, selectedPlant, setPlants, setSelectedPlant]);
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path="/login"
-          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />}
-        />
+    <QueryClientProvider client={queryClient}>
+      <SocketProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route
+              path="/login"
+              element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+            />
 
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
 
-        <Route
-          path="/work-orders"
-          element={
-            <ProtectedRoute>
-              <WorkOrdersPage />
-            </ProtectedRoute>
-          }
-        />
+            <Route
+              path="/work-orders"
+              element={
+                <ProtectedRoute>
+                  <WorkOrdersPage />
+                </ProtectedRoute>
+              }
+            />
 
-        <Route
-          path="/assets"
-          element={
-            <ProtectedRoute>
-              <AssetsPage />
-            </ProtectedRoute>
-          }
-        />
+            <Route
+              path="/assets"
+              element={
+                <ProtectedRoute>
+                  <AssetsPage />
+                </ProtectedRoute>
+              }
+            />
 
-        <Route
-          path="/maintenance-plans"
-          element={
-            <ProtectedRoute>
-              <MaintenancePlansPage />
-            </ProtectedRoute>
-          }
-        />
+            <Route
+              path="/maintenance-plans"
+              element={
+                <ProtectedRoute>
+                  <MaintenancePlansPage />
+                </ProtectedRoute>
+              }
+            />
 
-        <Route
-          path="/spare-parts"
-          element={
-            <ProtectedRoute>
-              <SparePartsPage />
-            </ProtectedRoute>
-          }
-        />
+            <Route
+              path="/spare-parts"
+              element={
+                <ProtectedRoute>
+                  <SparePartsPage />
+                </ProtectedRoute>
+              }
+            />
 
-        <Route
-          path="/reports"
-          element={
-            <ProtectedRoute>
-              <ReportsPage />
-            </ProtectedRoute>
-          }
-        />
+            <Route
+              path="/reports"
+              element={
+                <ProtectedRoute>
+                  <ReportsPage />
+                </ProtectedRoute>
+              }
+            />
 
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <SettingsPage />
-            </ProtectedRoute>
-          }
-        />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
 
-        <Route path="/unauthorized" element={<div>Unauthorized</div>} />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </BrowserRouter>
+            <Route path="/unauthorized" element={<div>Unauthorized</div>} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </BrowserRouter>
+        <Toaster position="top-right" />
+      </SocketProvider>
+    </QueryClientProvider>
   );
 }
 

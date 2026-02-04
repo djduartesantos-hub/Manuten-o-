@@ -20,8 +20,11 @@
     "react": "^18.2.0",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.6.0",
+    "react-query": "^3.39.3",
     "react-router-dom": "^6.20.1",
-    "zustand": "^4.4.1"
+    "socket.io-client": "^4.8.3",
+    "zustand": "^4.5.7"
   },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.6",

@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, LogOut } from 'lucide-react';
+import { Menu, X, LogOut, Wifi, WifiOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../context/store';
+import { useSocket } from '../context/SocketContext';
 
 interface NavItem {
   label: string;
@@ -13,6 +14,7 @@ interface NavItem {
 export function Header() {
   const { user, logout } = useAuth();
   const { selectedPlant, plants, setSelectedPlant } = useAppStore();
+  const { isConnected } = useSocket();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const location = useLocation();
 
@@ -84,6 +86,21 @@ export function Header() {
                 </select>
               </div>
             )}
+
+            {/* Socket Connection Status */}
+            <div className="hidden sm:flex items-center">
+              {isConnected ? (
+                <div className="flex items-center space-x-2 px-3 py-1 bg-green-50 rounded-full">
+                  <Wifi className="w-4 h-4 text-green-600" />
+                  <span className="text-xs text-green-600 font-medium">Conectado</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2 px-3 py-1 bg-red-50 rounded-full">
+                  <WifiOff className="w-4 h-4 text-red-600" />
+                  <span className="text-xs text-red-600 font-medium">Desconectado</span>
+                </div>
+              )}
+            </div>
 
             {/* User Menu */}
             <div className="flex items-center space-x-2">
