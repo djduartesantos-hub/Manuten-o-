@@ -104,7 +104,7 @@ export function DashboardPage() {
         <div className="space-y-6">
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="card p-6">
+            <div className="card-gradient p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-600 text-sm font-medium">Total de Ordens</p>
@@ -116,7 +116,7 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="card p-6">
+            <div className="card-gradient p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-600 text-sm font-medium">Em Progresso</p>
@@ -128,7 +128,7 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="card p-6">
+            <div className="card-gradient p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-600 text-sm font-medium">Concluídas</p>
@@ -140,7 +140,7 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="card p-6">
+            <div className="card-gradient p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-600 text-sm font-medium">Backlog</p>
