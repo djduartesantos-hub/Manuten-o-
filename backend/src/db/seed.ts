@@ -18,6 +18,27 @@ async function seed() {
   console.log('🌱 Starting database seed...');
 
   try {
+    // Test database connection
+    const testConnection = await db.execute('SELECT NOW()').catch((error) => {
+      console.error('');
+      console.error('❌ Cannot connect to PostgreSQL database');
+      console.error('');
+      console.error('📋 Fix:');
+      console.error('   1. Start PostgreSQL:');
+      console.error('      Windows: Services > PostgreSQL > Start');
+      console.error('      Linux/Mac: brew services start postgresql (or systemctl start postgresql)');
+      console.error('');
+      console.error('   2. Verify PostgreSQL is running on localhost:5432');
+      console.error('');
+      console.error('   3. Check DATABASE_URL in backend/.env:');
+      console.error('      ' + (process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/cmms_enterprise'));
+      console.error('');
+      console.error('   4. Run migrations first:');
+      console.error('      npm run db:push');
+      console.error('');
+      process.exit(1);
+    });
+
     // Create default tenant
     const tenantId = uuidv4();
     const adminId = uuidv4();
@@ -196,9 +217,41 @@ async function seed() {
     console.log('✅ Stock movements created');
 
     console.log('🎉 Database seed completed successfully!');
+    console.log('');
+    console.log('📊 Demo data loaded:');
+    console.log('   Tenant: CMMS Enterprise Demo');
+    console.log('   Plant: Fábrica Principal');
+    console.log('   Users: Admin + Technician');
+    console.log('   Assets: 5 items');
+    console.log('   Maintenance Plans: 3');
+    console.log('   Tasks: 10+');
+    console.log('   Spare Parts: 5');
+    console.log('');
+    console.log('🚀 You can now start the application:');
+    console.log('   npm run dev');
+    console.log('');
     process.exit(0);
   } catch (error) {
-    console.error('❌ Seed failed:', error);
+    if (error instanceof Error && error.message.includes('ECONNREFUSED')) {
+      console.error('');
+      console.error('❌ Cannot connect to PostgreSQL database');
+      console.error('');
+      console.error('📋 Fix:');
+      console.error('   1. Start PostgreSQL:');
+      console.error('      Windows: Services > PostgreSQL > Start');
+      console.error('      Linux/Mac: brew services start postgresql');
+      console.error('');
+      console.error('   2. Verify DATABASE_URL in backend/.env');
+      console.error('');
+      console.error('   3. Run db:push first (schema initialization):');
+      console.error('      npm run db:push');
+      console.error('');
+      console.error('   4. Then run seed again:');
+      console.error('      npm run db:seed');
+      console.error('');
+    } else {
+      console.error('❌ Seed failed:', error);
+    }
     process.exit(1);
   }
 }

@@ -39,14 +39,29 @@ Enterprise Computerized Maintenance Management System (CMMS) - Backend API
 
 4. Push schema and seed data:
    ```bash
+   # First, push the database schema
    npm run db:push
+   
+   # Then, load demo data (requires PostgreSQL running)
    npm run db:seed
    ```
+
+   **Important:** PostgreSQL must be running before running these commands.
+   - **Windows:** Start PostgreSQL service from Services panel
+   - **Linux/Mac:** `brew services start postgresql` or `systemctl start postgresql`
 
 5. Start development server:
    ```bash
    npm run dev
    ```
+
+   The API will be available at `http://localhost:3000`
+
+## Demo Credentials
+
+After running `npm run db:seed`, you can login with:
+- **Email:** admin@cmms.local
+- **Password:** admin123456
 
 ## API Endpoints
 
