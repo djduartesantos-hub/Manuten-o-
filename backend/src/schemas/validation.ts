@@ -4,8 +4,15 @@ import { z } from 'zod';
 export const LoginSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Password mínimo 6 caracteres'),
-  tenant_id: z.string().min(1, 'Tenant ID obrigatório'),
-});
+  tenant_id: z.string().min(1, 'Tenant ID obrigatório').optional(),
+  tenant_slug: z.string().min(1, 'Tenant slug obrigatório').optional(),
+}).refine(
+  (data) => data.tenant_id || data.tenant_slug,
+  {
+    message: 'Tenant ID ou tenant_slug são obrigatórios',
+    path: ['tenant_id'],
+  },
+);
 
 export const RefreshTokenSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token obrigatório'),
