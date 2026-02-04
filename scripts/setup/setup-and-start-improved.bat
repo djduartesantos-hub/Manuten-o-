@@ -200,18 +200,18 @@ echo ╚════════════════════════
 echo.
 
 REM Save current directory for use in child windows
-for /f "delims=" %%A in ('cd') do set ROOTDIR=%%A
+set "ROOTDIR=%CD%"
 
 REM Start Backend in new window (with better error handling)
 echo [1/2] Starting Backend (http://localhost:3000)...
-start "CMMS Backend" cmd /k "cd /d "!ROOTDIR!\backend" && cls && color 0A && echo ╔════════════════════════════════════════╗ && echo ║  CMMS Backend                          ║ && echo ║  Initializing...                       ║ && echo ╚════════════════════════════════════════╝ && echo. && timeout /t 2 /nobreak && npm run dev && (echo. && color 0A && echo ✅ Backend running successfully && echo. && pause) || (echo. && color 0C && echo ❌ Backend error occurred & echo Press any key to close this window... & pause)"
+start "CMMS Backend" cmd /k "cd /d ""%ROOTDIR%\backend"" && cls && color 0A && echo ╔════════════════════════════════════════╗ && echo ║  CMMS Backend                          ║ && echo ║  Initializing...                       ║ && echo ╚════════════════════════════════════════╝ && echo. && timeout /t 2 /nobreak && npm run dev && (echo. && color 0A && echo ✅ Backend running successfully && echo. && pause) || (echo. && color 0C && echo ❌ Backend error occurred & echo Press any key to close this window... & pause)"
 
 REM Wait for backend to start
 timeout /t 5 /nobreak
 
 REM Start Frontend in new window (with better error handling)
 echo [2/2] Starting Frontend (http://localhost:5173)...
-start "CMMS Frontend" cmd /k "cd /d "!ROOTDIR!\frontend" && cls && color 0A && echo ╔════════════════════════════════════════╗ && echo ║  CMMS Frontend                         ║ && echo ║  Initializing...                       ║ && echo ╚════════════════════════════════════════╝ && echo. && timeout /t 2 /nobreak && npm run dev && (echo. && color 0A && echo ✅ Frontend running successfully && echo. && pause) || (echo. && color 0C && echo ❌ Frontend error occurred & echo Press any key to close this window... & pause)"
+start "CMMS Frontend" cmd /k "cd /d ""%ROOTDIR%\frontend"" && cls && color 0A && echo ╔════════════════════════════════════════╗ && echo ║  CMMS Frontend                         ║ && echo ║  Initializing...                       ║ && echo ╚════════════════════════════════════════╝ && echo. && timeout /t 2 /nobreak && npm run dev && (echo. && color 0A && echo ✅ Frontend running successfully && echo. && pause) || (echo. && color 0C && echo ❌ Frontend error occurred & echo Press any key to close this window... & pause)"
 
 echo.
 echo ╔════════════════════════════════════════╗

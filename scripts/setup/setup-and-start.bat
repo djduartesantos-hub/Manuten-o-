@@ -200,15 +200,15 @@ echo.
 
 REM Start Backend
 echo [1/2] Starting Backend (http://localhost:3000)...
-for /f "delims=" %%A in ('cd') do set ROOTDIR=%%A
-start "CMMS Backend" cmd /k "cd /d "!ROOTDIR!\backend" && cls && color 0A && echo Starting Backend... && timeout /t 2 /nobreak && npm run dev || (color 0C && echo. && echo [ERROR] Backend failed to start && color 07 && echo Press any key to close this window... && pause)"
+set "ROOTDIR=%CD%"
+start "CMMS Backend" cmd /k "cd /d ""%ROOTDIR%\backend"" && cls && color 0A && echo Starting Backend... && timeout /t 2 /nobreak && npm run dev || (color 0C && echo. && echo [ERROR] Backend failed to start && color 07 && echo Press any key to close this window... && pause)"
 
 REM Wait for backend
 timeout /t 5 /nobreak
 
 REM Start Frontend
 echo [2/2] Starting Frontend (http://localhost:5173)...
-start "CMMS Frontend" cmd /k "cd /d "!ROOTDIR!\frontend" && cls && color 0A && echo Starting Frontend... && timeout /t 2 /nobreak && npm run dev || (color 0C && echo. && echo [ERROR] Frontend failed to start && color 07 && echo Press any key to close this window... && pause)"
+start "CMMS Frontend" cmd /k "cd /d ""%ROOTDIR%\frontend"" && cls && color 0A && echo Starting Frontend... && timeout /t 2 /nobreak && npm run dev || (color 0C && echo. && echo [ERROR] Frontend failed to start && color 07 && echo Press any key to close this window... && pause)"
 
 echo.
 echo ╔════════════════════════════════════════╗
