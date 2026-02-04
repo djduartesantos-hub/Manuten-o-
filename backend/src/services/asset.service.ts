@@ -2,13 +2,27 @@ import { db } from '../config/database';
 import { assets } from '../db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { CreateAssetInput, UpdateAssetInput } from '../schemas/validation';
+import { RedisService, CacheKeys, CacheTTL } from './redis.service';
+import { logger } from '../config/logger';
 
 export class AssetService {
   /**
    * Obter todos os equipamentos de uma planta
    */
   static async getPlantAssets(tenantId: string, plantId: string) {
-    return db.query.assets.findMany({
+    try {
+      // Try cache first
+      const cacheKey = CacheKeys.assetsList(tenantId);
+      const cached = await RedisService.getJSON(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for assets list: ${cacheKey}`);
+        return cached;
+      }
+    } catch (cacheError) {
+      logger.warn('Cache read error, continuing with DB query:', cacheError);
+    }
+
+    const assets = await db.query.assets.findMany({
       where: (fields: any, { eq, and }: any) =>
         and(
           eq(fields.tenant_id, tenantId),
@@ -24,13 +38,35 @@ export class AssetService {
       orderBy: (fields: any) => [desc(fields.created_at)],
       limit: 100,
     });
+
+    // Cache result
+    try {
+      const cacheKey = CacheKeys.assetsList(tenantId);
+      await RedisService.setJSON(cacheKey, assets, CacheTTL.ASSETS);
+    } catch (cacheError) {
+      logger.warn('Cache write error:', cacheError);
+    }
+
+    return assets;
   }
 
   /**
    * Obter equipamento por ID
    */
   static async getAssetById(tenantId: string, assetId: string) {
-    return db.query.assets.findFirst({
+    try {
+      // Try cache first
+      const cacheKey = CacheKeys.asset(tenantId, assetId);
+      const cached = await RedisService.getJSON(cacheKey);
+      if (cached) {
+        logger.debug(`Cache hit for asset: ${cacheKey}`);
+        return cached;
+      }
+    } catch (cacheError) {
+      logger.warn('Cache read error, continuing with DB query:', cacheError);
+    }
+
+    const asset = await db.query.assets.findFirst({
       where: (fields: any, { eq, and }: any) =>
         and(
           eq(fields.tenant_id, tenantId),
@@ -50,6 +86,18 @@ export class AssetService {
         },
       },
     });
+
+    // Cache result
+    if (asset) {
+      try {
+        const cacheKey = CacheKeys.asset(tenantId, assetId);
+        await RedisService.setJSON(cacheKey, asset, CacheTTL.ASSETS);
+      } catch (cacheError) {
+        logger.warn('Cache write error:', cacheError);
+      }
+    }
+
+    return asset;
   }
 
   /**
@@ -82,6 +130,14 @@ export class AssetService {
         acquisition_date: data.acquisition_date ? new Date(data.acquisition_date) : undefined,
       })
       .returning();
+
+    // Invalidate cache
+    try {
+      await RedisService.del(CacheKeys.assetsList(tenantId));
+      logger.debug(`Cache invalidated for assets list: ${tenantId}`);
+    } catch (cacheError) {
+      logger.warn('Cache invalidation error:', cacheError);
+    }
 
     return asset;
   }
@@ -136,6 +192,17 @@ export class AssetService {
         ),
       )
       .returning();
+
+    // Invalidate cache
+    try {
+      await RedisService.delMultiple([
+        CacheKeys.asset(tenantId, assetId),
+        CacheKeys.assetsList(tenantId),
+      ]);
+      logger.debug(`Cache invalidated for asset: ${assetId}`);
+    } catch (cacheError) {
+      logger.warn('Cache invalidation error:', cacheError);
+    }
 
     return updated;
   }

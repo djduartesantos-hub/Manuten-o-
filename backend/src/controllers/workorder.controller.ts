@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../types';
 import { WorkOrderService } from '../services/workorder.service';
 import { logger } from '../config/logger';
+import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance';
 
 export class WorkOrderController {
   static async list(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -98,6 +99,19 @@ export class WorkOrderController {
         estimated_hours,
       });
 
+      // Emit real-time notification
+      if (isSocketManagerReady()) {
+        const socketManager = getSocketManager();
+        socketManager.emitOrderCreated(tenantId, {
+          id: workOrder.id,
+          title: workOrder.title,
+          asset_id: workOrder.asset_id,
+          priority: workOrder.priority,
+          status: workOrder.status,
+          created_at: workOrder.created_at,
+        });
+      }
+
       res.status(201).json({
         success: true,
         data: workOrder,
@@ -130,6 +144,30 @@ export class WorkOrderController {
         workOrderId,
         updates,
       );
+
+      // Emit real-time notifications
+      if (isSocketManagerReady()) {
+        const socketManager = getSocketManager();
+        
+        // Check if status changed
+        if (updates.status) {
+          socketManager.emitOrderStatusChanged(tenantId, {
+            id: workOrder.id,
+            title: workOrder.title,
+            status: workOrder.status,
+            updated_at: workOrder.updated_at,
+          }, updates.previous_status || 'unknown');
+        } else {
+          // Emit generic update
+          socketManager.emitOrderUpdated(tenantId, {
+            id: workOrder.id,
+            title: workOrder.title,
+            priority: workOrder.priority,
+            status: workOrder.status,
+            updated_at: workOrder.updated_at,
+          });
+        }
+      }
 
       res.json({
         success: true,

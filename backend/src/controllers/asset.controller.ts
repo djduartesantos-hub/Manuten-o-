@@ -4,6 +4,7 @@ import { AssetService } from '../services/asset.service';
 import { CreateAssetSchema, UpdateAssetSchema } from '../schemas/validation';
 import { logger } from '../config/logger';
 import { ZodError } from 'zod';
+import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance';
 
 export class AssetController {
   /**
@@ -110,6 +111,20 @@ export class AssetController {
 
       const asset = await AssetService.createAsset(tenantId, plantId, validatedData);
 
+      // Emit real-time notification
+      if (isSocketManagerReady()) {
+        const socketManager = getSocketManager();
+        socketManager.emitNotification(tenantId, {
+          type: 'success',
+          message: `Equipamento "${asset.name}" criado com sucesso`,
+          data: {
+            id: asset.id,
+            name: asset.name,
+            code: asset.code,
+          },
+        });
+      }
+
       res.status(201).json({
         success: true,
         data: asset,
@@ -163,6 +178,20 @@ export class AssetController {
       const validatedData = UpdateAssetSchema.parse(req.body);
 
       const asset = await AssetService.updateAsset(tenantId, id, validatedData);
+
+      // Emit real-time notification
+      if (isSocketManagerReady()) {
+        const socketManager = getSocketManager();
+        socketManager.emitNotification(tenantId, {
+          type: 'info',
+          message: `Equipamento "${asset.name}" foi atualizado`,
+          data: {
+            id: asset.id,
+            name: asset.name,
+            updated_at: asset.updated_at,
+          },
+        });
+      }
 
       res.json({
         success: true,
