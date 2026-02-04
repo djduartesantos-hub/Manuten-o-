@@ -1,8 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { MainLayout } from '../layouts/MainLayout';
-import { AlertCircle, Download, LayoutGrid, List, Loader2, Plus, RefreshCcw, Save } from 'lucide-react';
+import {
+  AlertCircle,
+  AlertTriangle,
+  Download,
+  LayoutGrid,
+  List,
+  Loader2,
+  Pencil,
+  Plus,
+  RefreshCcw,
+  Save,
+} from 'lucide-react';
 import { useAppStore } from '../context/store';
-import { createWorkOrder, getAssets, getWorkOrders } from '../services/api';
+import { createWorkOrder, getAssets, getWorkOrders, updateWorkOrder } from '../services/api';
 
 interface AssetOption {
   id: string;
@@ -17,8 +28,12 @@ interface WorkOrder {
   status: string;
   priority?: string | null;
   estimated_hours?: string | null;
+  actual_hours?: string | null;
   created_at?: string;
   sla_deadline?: string | null;
+  scheduled_date?: string | null;
+  completed_at?: string | null;
+  notes?: string | null;
   asset?: {
     code: string;
     name: string;
@@ -35,6 +50,16 @@ interface WorkOrderFormState {
   description: string;
   priority: string;
   estimated_hours: string;
+  scheduled_date: string;
+}
+
+interface WorkOrderUpdateState {
+  status: string;
+  priority: string;
+  scheduled_date: string;
+  actual_hours: string;
+  notes: string;
+  completed_at: string;
 }
 
 export function WorkOrdersPage() {
@@ -48,12 +73,23 @@ export function WorkOrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<WorkOrder | null>(null);
+  const [updating, setUpdating] = useState(false);
   const [form, setForm] = useState<WorkOrderFormState>({
     asset_id: '',
     title: '',
     description: '',
     priority: 'media',
     estimated_hours: '',
+    scheduled_date: '',
+  });
+  const [updateForm, setUpdateForm] = useState<WorkOrderUpdateState>({
+    status: 'aberta',
+    priority: 'media',
+    scheduled_date: '',
+    actual_hours: '',
+    notes: '',
+    completed_at: '',
   });
   const [templates, setTemplates] = useState<
     Array<{ name: string; data: WorkOrderFormState }>
@@ -148,6 +184,7 @@ export function WorkOrdersPage() {
         description: form.description || undefined,
         priority: form.priority,
         estimated_hours: form.estimated_hours || undefined,
+        scheduled_date: form.scheduled_date || undefined,
       });
 
       setForm({
@@ -156,6 +193,7 @@ export function WorkOrdersPage() {
         description: '',
         priority: 'media',
         estimated_hours: '',
+        scheduled_date: '',
       });
       setShowCreate(false);
       await loadData();
@@ -163,6 +201,51 @@ export function WorkOrdersPage() {
       setError(err.message || 'Erro ao criar ordem');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const toDateTimeLocal = (value?: string | null) => {
+    if (!value) return '';
+    const date = new Date(value);
+    const pad = (n: number) => `${n}`.padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+      date.getHours(),
+    )}:${pad(date.getMinutes())}`;
+  };
+
+  const handleStartEdit = (order: WorkOrder) => {
+    setEditingOrder(order);
+    setUpdateForm({
+      status: order.status || 'aberta',
+      priority: order.priority || 'media',
+      scheduled_date: toDateTimeLocal(order.scheduled_date),
+      actual_hours: order.actual_hours || '',
+      notes: order.notes || '',
+      completed_at: toDateTimeLocal(order.completed_at),
+    });
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedPlant || !editingOrder) return;
+    setUpdating(true);
+    setError(null);
+
+    try {
+      await updateWorkOrder(selectedPlant, editingOrder.id, {
+        status: updateForm.status,
+        priority: updateForm.priority,
+        scheduled_date: updateForm.scheduled_date || undefined,
+        actual_hours: updateForm.actual_hours || undefined,
+        notes: updateForm.notes || undefined,
+        completed_at: updateForm.completed_at || undefined,
+      });
+
+      setEditingOrder(null);
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao atualizar ordem');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -219,6 +302,21 @@ export function WorkOrdersPage() {
       acc[key].push(order);
       return acc;
     }, {});
+  }, [workOrders]);
+  const alertSummary = useMemo(() => {
+    const now = Date.now();
+    const soon = now + 24 * 60 * 60 * 1000;
+    let overdue = 0;
+    let dueSoon = 0;
+
+    workOrders.forEach((order) => {
+      if (!order.sla_deadline) return;
+      const slaTime = new Date(order.sla_deadline).getTime();
+      if (slaTime < now) overdue += 1;
+      else if (slaTime <= soon) dueSoon += 1;
+    });
+
+    return { overdue, dueSoon };
   }, [workOrders]);
 
   const statusLabels: Record<string, string> = {
@@ -325,6 +423,18 @@ export function WorkOrdersPage() {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Data e hora planeada
+              </label>
+              <input
+                type="datetime-local"
+                className="input"
+                value={form.scheduled_date}
+                onChange={(event) => setForm({ ...form, scheduled_date: event.target.value })}
+              />
+            </div>
+
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
               <textarea
@@ -379,12 +489,129 @@ export function WorkOrdersPage() {
         </div>
       )}
 
+      {selectedPlant && editingOrder && (
+        <div className="card mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Atualizar ordem: {editingOrder.title}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select
+                className="input"
+                value={updateForm.status}
+                onChange={(event) => setUpdateForm({ ...updateForm, status: event.target.value })}
+              >
+                <option value="aberta">Aberta</option>
+                <option value="atribuida">Atribuída</option>
+                <option value="em_curso">Em curso</option>
+                <option value="concluida">Concluída</option>
+                <option value="cancelada">Cancelada</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Prioridade</label>
+              <select
+                className="input"
+                value={updateForm.priority}
+                onChange={(event) => setUpdateForm({ ...updateForm, priority: event.target.value })}
+              >
+                <option value="baixa">Baixa</option>
+                <option value="media">Média</option>
+                <option value="alta">Alta</option>
+                <option value="critica">Crítica</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Data e hora planeada
+              </label>
+              <input
+                type="datetime-local"
+                className="input"
+                value={updateForm.scheduled_date}
+                onChange={(event) =>
+                  setUpdateForm({ ...updateForm, scheduled_date: event.target.value })
+                }
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Horas reais
+              </label>
+              <input
+                className="input"
+                value={updateForm.actual_hours}
+                onChange={(event) =>
+                  setUpdateForm({ ...updateForm, actual_hours: event.target.value })
+                }
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Data e hora de conclusão
+              </label>
+              <input
+                type="datetime-local"
+                className="input"
+                value={updateForm.completed_at}
+                onChange={(event) =>
+                  setUpdateForm({ ...updateForm, completed_at: event.target.value })
+                }
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+              <textarea
+                className="input min-h-[96px]"
+                value={updateForm.notes}
+                onChange={(event) => setUpdateForm({ ...updateForm, notes: event.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-3">
+            <button onClick={handleUpdate} className="btn-primary" disabled={updating}>
+              {updating ? 'A atualizar...' : 'Guardar alterações'}
+            </button>
+            <button
+              onClick={() => setEditingOrder(null)}
+              className="btn-secondary"
+              disabled={updating}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
       {selectedPlant && (
         <div className="card">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 border-b">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Ordens</h2>
               <p className="text-sm text-gray-500">{workOrders.length} registros</p>
+              {(alertSummary.overdue > 0 || alertSummary.dueSoon > 0) && (
+                <div className="mt-2 flex items-center gap-3 text-sm">
+                  {alertSummary.overdue > 0 && (
+                    <span className="inline-flex items-center gap-1 text-red-600">
+                      <AlertTriangle className="w-4 h-4" />
+                      {alertSummary.overdue} em atraso
+                    </span>
+                  )}
+                  {alertSummary.dueSoon > 0 && (
+                    <span className="inline-flex items-center gap-1 text-yellow-600">
+                      <AlertTriangle className="w-4 h-4" />
+                      {alertSummary.dueSoon} a vencer
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -452,6 +679,9 @@ export function WorkOrdersPage() {
                       Responsável
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Registo
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       SLA
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -460,12 +690,15 @@ export function WorkOrdersPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       Status
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Ações
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {workOrders.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-6 py-6 text-center text-gray-500">
+                      <td colSpan={8} className="px-6 py-6 text-center text-gray-500">
                         Nenhuma ordem encontrada
                       </td>
                     </tr>
@@ -473,6 +706,11 @@ export function WorkOrdersPage() {
                   {workOrders.map((order) => {
                     const slaDate = order.sla_deadline ? new Date(order.sla_deadline) : null;
                     const isOverdue = slaDate ? slaDate.getTime() < Date.now() : false;
+                    const dueSoon = slaDate
+                      ? slaDate.getTime() >= Date.now() &&
+                        slaDate.getTime() <= Date.now() + 24 * 60 * 60 * 1000
+                      : false;
+                    const createdDate = order.created_at ? new Date(order.created_at) : null;
 
                     return (
                       <tr key={order.id}>
@@ -491,10 +729,17 @@ export function WorkOrdersPage() {
                             : 'Não atribuído'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {createdDate ? createdDate.toLocaleString() : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                           {slaDate ? (
                             <span
                               className={`px-2 py-1 rounded-full text-xs ${
-                                isOverdue ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                                isOverdue
+                                  ? 'bg-red-100 text-red-700'
+                                  : dueSoon
+                                  ? 'bg-yellow-100 text-yellow-700'
+                                  : 'bg-green-100 text-green-700'
                               }`}
                             >
                               {slaDate.toLocaleDateString()}
@@ -510,6 +755,15 @@ export function WorkOrdersPage() {
                           <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
                             {statusLabels[order.status] || order.status}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            className="btn-secondary inline-flex items-center gap-2"
+                            onClick={() => handleStartEdit(order)}
+                          >
+                            <Pencil className="w-4 h-4" />
+                            Atualizar
+                          </button>
                         </td>
                       </tr>
                     );
@@ -535,12 +789,20 @@ export function WorkOrdersPage() {
                     {(groupedByStatus[statusKey] || []).map((order) => {
                       const slaDate = order.sla_deadline ? new Date(order.sla_deadline) : null;
                       const isOverdue = slaDate ? slaDate.getTime() < Date.now() : false;
+                      const dueSoon = slaDate
+                        ? slaDate.getTime() >= Date.now() &&
+                          slaDate.getTime() <= Date.now() + 24 * 60 * 60 * 1000
+                        : false;
+                      const createdDate = order.created_at ? new Date(order.created_at) : null;
 
                       return (
                         <div key={order.id} className="bg-white rounded-lg p-3 shadow-sm">
                           <p className="text-sm font-semibold text-gray-900">{order.title}</p>
                           <p className="text-xs text-gray-500">
                             {order.asset ? `${order.asset.code} - ${order.asset.name}` : 'Sem ativo'}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {createdDate ? createdDate.toLocaleString() : '-'}
                           </p>
                           <div className="mt-2 flex items-center gap-2 flex-wrap">
                             <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
@@ -549,13 +811,24 @@ export function WorkOrdersPage() {
                             {slaDate && (
                               <span
                                 className={`px-2 py-1 rounded-full text-xs ${
-                                  isOverdue ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                                  isOverdue
+                                    ? 'bg-red-100 text-red-700'
+                                    : dueSoon
+                                    ? 'bg-yellow-100 text-yellow-700'
+                                    : 'bg-green-100 text-green-700'
                                 }`}
                               >
                                 SLA {slaDate.toLocaleDateString()}
                               </span>
                             )}
                           </div>
+                          <button
+                            className="btn-secondary mt-3 inline-flex items-center gap-2"
+                            onClick={() => handleStartEdit(order)}
+                          >
+                            <Pencil className="w-4 h-4" />
+                            Atualizar
+                          </button>
                         </div>
                       );
                     })}
