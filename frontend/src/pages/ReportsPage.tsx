@@ -115,7 +115,7 @@ export function ReportsPage() {
     const mttr = repairCount > 0 ? (totalRepairTime / repairCount).toFixed(2) : '0';
     
     // MTBF: Average time between failures (days between completed orders)
-    let mtbf = 0;
+    let mtbf: string | number = 0;
     if (completed.length > 1) {
       const sortedByDate = [...completed].sort(
         (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
@@ -127,6 +127,8 @@ export function ReportsPage() {
         totalDaysBetween += (curr - prev) / (1000 * 60 * 60 * 24);
       }
       mtbf = (totalDaysBetween / (sortedByDate.length - 1)).toFixed(2);
+    } else {
+      mtbf = '0';
     }
 
     const completionRate =

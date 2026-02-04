@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { db } from '../src/config/database';
+import { eq } from 'drizzle-orm';
 import { tenants, plants, users, spareParts, stockMovements } from '../src/db/schema';
 import { SparePartService } from '../src/services/sparepart.service';
 import { v4 as uuidv4 } from 'uuid';
@@ -50,14 +51,20 @@ describe('SparePartService', () => {
     if (movementId) {
       await db
         .delete(stockMovements)
-        .where((fields: any, { eq }: any) => eq(fields.id, movementId));
+        .where(eq(stockMovements.id, movementId));
     }
     if (partId) {
-      await db.delete(spareParts).where((fields: any, { eq }: any) => eq(fields.id, partId));
+      await db.delete(spareParts).where(eq(spareParts.id, partId));
     }
-    await db.delete(users).where((fields: any, { eq }: any) => eq(fields.id, userId));
-    await db.delete(plants).where((fields: any, { eq }: any) => eq(fields.id, plantId));
-    await db.delete(tenants).where((fields: any, { eq }: any) => eq(fields.id, tenantId));
+    if (userId) {
+      await db.delete(users).where(eq(users.id, userId));
+    }
+    if (plantId) {
+      await db.delete(plants).where(eq(plants.id, plantId));
+    }
+    if (tenantId) {
+      await db.delete(tenants).where(eq(tenants.id, tenantId));
+    }
   });
 
   it('creates spare part and stock movement', async () => {

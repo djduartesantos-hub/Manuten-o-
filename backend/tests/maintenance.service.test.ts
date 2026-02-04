@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { db } from '../src/config/database';
+import { eq } from 'drizzle-orm';
 import {
   tenants,
   plants,
@@ -62,12 +63,20 @@ describe('MaintenanceService', () => {
 
   afterAll(async () => {
     if (planId) {
-      await db.delete(maintenancePlans).where((fields: any, { eq }: any) => eq(fields.id, planId));
+      await db.delete(maintenancePlans).where(eq(maintenancePlans.id, planId));
     }
-    await db.delete(assets).where((fields: any, { eq }: any) => eq(fields.id, assetId));
-    await db.delete(assetCategories).where((fields: any, { eq }: any) => eq(fields.id, categoryId));
-    await db.delete(plants).where((fields: any, { eq }: any) => eq(fields.id, plantId));
-    await db.delete(tenants).where((fields: any, { eq }: any) => eq(fields.id, tenantId));
+    if (assetId) {
+      await db.delete(assets).where(eq(assets.id, assetId));
+    }
+    if (categoryId) {
+      await db.delete(assetCategories).where(eq(assetCategories.id, categoryId));
+    }
+    if (plantId) {
+      await db.delete(plants).where(eq(plants.id, plantId));
+    }
+    if (tenantId) {
+      await db.delete(tenants).where(eq(tenants.id, tenantId));
+    }
   });
 
   it('creates and fetches maintenance plan', async () => {
