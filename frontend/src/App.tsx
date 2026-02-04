@@ -10,6 +10,8 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { WorkOrdersPage } from './pages/WorkOrdersPage';
 import { AssetsPage } from './pages/AssetsPage';
+import { MaintenancePlansPage } from './pages/MaintenancePlansPage';
+import { SparePartsPage } from './pages/SparePartsPage';
 
 import './index.css';
 
@@ -79,6 +81,24 @@ function App() {
           element={
             <ProtectedRoute>
               <AssetsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/maintenance-plans"
+          element={
+            <ProtectedRoute>
+              <MaintenancePlansPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/spare-parts"
+          element={
+            <ProtectedRoute>
+              <SparePartsPage />
             </ProtectedRoute>
           }
         />

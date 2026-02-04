@@ -103,3 +103,36 @@ export async function getAssets(plantId: string, search?: string) {
   const query = params.toString();
   return apiCall(`/tenants/${plantId}/assets${query ? `?${query}` : ''}`);
 }
+
+export async function getMaintenancePlans() {
+  return apiCall('/maintenance/plans');
+}
+
+export async function createMaintenancePlan(data: any) {
+  return apiCall('/maintenance/plans', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getSpareParts() {
+  return apiCall('/spareparts');
+}
+
+export async function createSparePart(data: any) {
+  return apiCall('/spareparts', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getStockMovementsByPlant(plantId: string) {
+  return apiCall(`/spareparts/movements/plant/${plantId}`);
+}
+
+export async function createStockMovement(data: any) {
+  return apiCall('/spareparts/movements', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
