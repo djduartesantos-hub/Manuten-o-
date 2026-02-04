@@ -1,6 +1,6 @@
 # Phase 3B Integration Checklist
 
-## ✅ Completed (Committed in 9cbc574)
+## ✅ Completed (Committed in 2220b52)
 - [x] Dependencies installed (160 packages)
 - [x] Redis service created (22 methods, cache keys, TTL constants)
 - [x] Elasticsearch service created (search, indexing, bulk operations)
@@ -11,130 +11,37 @@
 - [x] App.tsx updated (QueryClientProvider, SocketProvider, Toaster)
 - [x] Header updated with socket status indicator
 - [x] Server.ts updated (HTTP server, Socket.io initialization)
+- [x] Socket emit calls in work order routes (create, update, status-change)
+- [x] Socket emit calls in asset routes (create, update)
+- [x] Redis caching in asset queries (getPlantAssets, getAssetById)
+- [x] Cache invalidation on mutations (create, update)
 - [x] All TypeScript errors fixed, both builds pass (0 errors)
 
-## 🔄 In Progress - Next Steps
+## 🔄 Next Steps (In Progress - 55% Complete)
 
-### 1. Add Socket.io Emit Calls to Routes (2-3 hours)
-**Purpose:** Real-time notifications when data changes
-**Files to modify:**
-- `/backend/src/routes/workorder.routes.ts` - emit order:created, order:updated, order:status-changed
-- `/backend/src/routes/asset.routes.ts` - emit asset:created, asset:updated
-- `/backend/src/routes/alert.routes.ts` - emit alert:triggered
-- `/backend/src/routes/maintenance.routes.ts` - emit plan:created, plan:updated
+### ✅ Completed
+1. ✅ Socket.io emit calls added to work order routes
+2. ✅ Socket.io emit calls added to asset routes
+3. ✅ Redis caching implemented for asset queries
+4. ✅ Cache invalidation on mutations
 
-**Example pattern:**
-```typescript
-// At top of route file
-import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance';
+### 🔄 Next: Extend to More Services
+1. [ ] Add socket emit to maintenance routes (plan create/update)
+2. [ ] Add socket emit to alert routes (alert triggered)
+3. [ ] Add Redis caching to work order queries
+4. [ ] Add Redis caching to alert queries
+5. [ ] Add Redis caching to maintenance plan queries
 
-// In create endpoint
-if (isSocketManagerReady()) {
-  const socket = getSocketManager();
-  socket.emitOrderCreated(tenantId, newOrder);
-}
-```
+### ⏳ Later: Background Processing
+1. [ ] Implement Bull job processors (email, reports, exports)
+2. [ ] Add Elasticsearch indexing to work order/asset mutations
+3. [ ] Create admin dashboard for job queue monitoring
 
-### 2. Add Redis Caching to Queries (2-3 hours)
-**Purpose:** Speed up repeated queries by caching
-**Files to modify:**
-- `/backend/src/services/asset.service.ts` - Cache getAssets, getAssetById
-- `/backend/src/services/alert.service.ts` - Cache getAlertConfigurations
-- `/backend/src/services/maintenance.service.ts` - Cache getMaintenancePlans
-- `/backend/src/services/document.service.ts` - Cache getDocuments
-
-**Example pattern:**
-```typescript
-static async getAssets(tenantId: string): Promise<Asset[]> {
-  // Try cache first
-  const cached = await RedisService.getJSON<Asset[]>(CacheKeys.assetsList(tenantId));
-  if (cached) return cached;
-  
-  // Query database
-  const assets = await db.select().from(assetsTable).where(eq(assetsTable.tenantId, tenantId));
-  
-  // Cache result
-  await RedisService.setJSON(CacheKeys.assetsList(tenantId), assets, CacheTTL.ASSETS);
-  return assets;
-}
-```
-
-### 3. Add Cache Invalidation on Mutations (1-2 hours)
-**Purpose:** Keep cache fresh when data changes
-**Pattern:**
-```typescript
-// After update/delete, clear cache
-await RedisService.del(CacheKeys.assetsList(tenantId));
-await RedisService.del(CacheKeys.asset(tenantId, assetId));
-```
-
-### 4. Add Elasticsearch Indexing (2-3 hours)
-**Purpose:** Enable full-text search and analytics
-**Files to modify:**
-- `/backend/src/controllers/workorder.controller.ts` - Index on create/update
-- `/backend/src/controllers/asset.controller.ts` - Index on create/update
-- `/backend/src/controllers/maintenance.controller.ts` - Index plans on create/update
-
-**Example pattern:**
-```typescript
-// After creating order
-await ElasticsearchService.index('orders_v1', order.id, {
-  tenant_id: order.tenantId,
-  asset_id: order.assetId,
-  title: order.title,
-  description: order.description,
-  status: order.status,
-  priority: order.priority,
-  type: order.type,
-  sla: order.sla,
-  created_at: order.createdAt,
-  updated_at: order.updatedAt,
-});
-```
-
-### 5. Implement Bull Job Processors (2-3 hours)
-**Purpose:** Process long-running tasks asynchronously
-**Queues to implement:**
-- EMAIL: Send alert/maintenance emails
-- REPORTS: Generate PDF reports
-- EXPORTS: Export data to CSV/Excel
-- MAINTENANCE: Recalculate maintenance schedules
-
-**Example pattern:**
-```typescript
-JobQueueService.processJob(QUEUES.EMAIL, async (job) => {
-  const { alertId, userId } = job.data;
-  // Send email
-  await sendAlertEmail(userId, alertId);
-  return { success: true };
-});
-```
-
-### 6. Add Frontend Real-time Updates (2-3 hours)
-**Purpose:** Auto-update UI when data changes in real-time
-**Components to update:**
-- `/frontend/src/pages/WorkOrdersPage.tsx` - Listen to order events
-- `/frontend/src/pages/AssetsPage.tsx` - Listen to asset events
-- `/frontend/src/pages/AlertsPage.tsx` - Listen to alert events
-- `/frontend/src/pages/MaintenancePlansPage.tsx` - Listen to plan events
-
-**Example pattern:**
-```typescript
-// Use the socket hook
-const { socket } = useSocket();
-const queryClient = useQueryClient();
-
-useEffect(() => {
-  if (!socket) return;
-  
-  const handleOrderCreated = (data: any) => {
-    queryClient.invalidateQueries({ queryKey: ['work-orders'] });
-  };
-  
-  socket.on('order:created', handleOrderCreated);
-  return () => socket.off('order:created', handleOrderCreated);
-}, [socket, queryClient]);
-```
+### ⏳ Final: Frontend Enhancements
+1. [ ] Use React Query hooks in pages
+2. [ ] Implement real-time list updates on socket events
+3. [ ] Add job progress tracking UI
+4. [ ] Add Elasticsearch search UI
 
 ## 📊 Impact Metrics
 - **Latency:** Expected ↓50-70% (caching + optimization)
