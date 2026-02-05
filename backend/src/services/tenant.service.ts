@@ -4,21 +4,30 @@ import { eq, and } from 'drizzle-orm';
 
 export class TenantService {
   static async getUserPlants(userId: string, tenantId: string) {
-    const userPlants = await db.query.userPlants.findMany({
-      where: (fields: any, { eq }: any) => eq(fields.user_id, userId),
-      with: {
-        plant: true,
+    try {
+      const userPlants = await db.query.userPlants.findMany({
+        where: (fields: any, { eq }: any) => eq(fields.user_id, userId),
+        with: {
+          plant: true,
+        }
+      });
+
+      if (userPlants.length === 0) {
+        console.log(`No plants found for user ${userId}`);
+        return [];
       }
-    });
 
-    if (userPlants.length === 0) return [];
+      // Extract plant IDs and filter by tenant
+      const filteredPlants = userPlants
+        .map((up: any) => up.plant)
+        .filter((plant: any) => plant && plant.tenant_id === tenantId);
 
-    // Extract plant IDs and filter by tenant
-    const plants = userPlants
-      .map((up: any) => up.plant)
-      .filter((plant: any) => plant && plant.tenant_id === tenantId);
-
-    return plants;
+      console.log(`Found ${filteredPlants.length} plants for user ${userId} in tenant ${tenantId}`);
+      return filteredPlants;
+    } catch (error) {
+      console.error('Error getting user plants:', error);
+      throw error;
+    }
   }
 
   static async getPlantById(tenantId: string, plantId: string) {

@@ -49,9 +49,15 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       console.log('❌ Socket disconnected');
     });
 
+    // Connection error - this is non-critical
     newSocket.on('connect_error', (error) => {
       console.warn('Socket connection error (non-critical):', error.message);
-      // Don't show error toast - connection errors are expected in some environments
+      // Don't show error toast - socket is optional, rest of app works fine
+    });
+
+    newSocket.on('error', (error) => {
+      console.warn('Socket error (non-critical):', error);
+      // Don't block app if socket has issues
     });
 
     newSocket.on('connected', (data) => {
@@ -164,8 +170,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
 export function useSocket() {
   const context = useContext(SocketContext);
+  // Socket is optional - return a safe default if not available
   if (context === undefined) {
-    throw new Error('useSocket must be used within SocketProvider');
+    console.warn('SocketContext not available - using fallback');
+    return { socket: null, isConnected: false, connectedUsers: 0 };
   }
   return context;
 }

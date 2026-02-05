@@ -3,6 +3,8 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { logger } from '../config/logger.js';
 
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key';
+
 interface AuthenticatedSocket extends Socket {
   user?: {
     id: string;
@@ -20,9 +22,13 @@ export class SocketManager {
         origin: process.env.FRONTEND_URL || 'http://localhost:5173',
         methods: ['GET', 'POST'],
         credentials: true,
+        allowEIO3: true,
       },
       path: '/socket.io',
       transports: ['websocket', 'polling'],
+      allowUpgrades: true,
+      pingInterval: 25000,
+      pingTimeout: 60000,
     });
 
     // Middleware
@@ -37,19 +43,21 @@ export class SocketManager {
       try {
         const token = socket.handshake.auth.token;
         if (!token) {
+          logger.warn('Socket connection rejected: no token');
           return next(new Error('Authentication error: no token'));
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as any;
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
         socket.user = {
           id: decoded.userId,
           tenantId: decoded.tenantId,
           role: decoded.role,
         };
 
+        logger.info(`Socket authenticated: ${socket.id} | User: ${decoded.userId}`);
         next();
       } catch (error) {
-        logger.error('Socket auth error:', error);
+        logger.warn('Socket auth error:', error instanceof Error ? error.message : error);
         next(new Error('Authentication error'));
       }
     });
@@ -58,7 +66,8 @@ export class SocketManager {
   private setupConnectionHandler(): void {
     this.io.on('connection', (socket: AuthenticatedSocket) => {
       if (!socket.user) {
-        socket.disconnect();
+        logger.warn(`Socket not authenticated: ${socket.id}`);
+        socket.disconnect(true);
         return;
       }
 
@@ -86,8 +95,13 @@ export class SocketManager {
       this.setupEventHandlers(socket);
 
       // Handle disconnect
-      socket.on('disconnect', () => {
-        logger.info(`❌ Socket disconnected: ${socket.id}`);
+      socket.on('disconnect', (reason) => {
+        logger.info(`❌ Socket disconnected: ${socket.id} | Reason: ${reason}`);
+      });
+
+      // Handle errors
+      socket.on('error', (error) => {
+        logger.warn(`Socket error: ${socket.id} | Error: ${error}`);
       });
     });
   }
