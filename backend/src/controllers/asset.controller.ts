@@ -17,7 +17,16 @@ export class AssetController {
       const tenantId = req.tenantId as string;
       const { search, category } = req.query;
 
+      logger.info('AssetController.list:', {
+        plantId,
+        tenantId,
+        paramsPlantId: req.params.plantId,
+        userTenantId: req.user?.tenantId,
+        userRole: req.user?.role,
+      });
+
       if (!tenantId || !plantId) {
+        logger.warn('Missing tenantId or plantId:', { tenantId, plantId });
         res.status(400).json({
           success: false,
           error: 'Plant ID is required',
