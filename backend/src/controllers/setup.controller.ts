@@ -161,7 +161,7 @@ export class SetupController {
       // Use fixed demo IDs so we can check if they exist
       const demoPlantId = '0fab0000-0000-0000-0000-000000000001';
       const demoAdminId = '00000001-0000-0000-0000-000000000001';
-      const demoTechId = 'DEMO0000-0000-0000-0000-000000000002';
+      const demoTechId = '00000000-0000-0000-0000-000000000002';
       const demoCategoryId = '10000000-0000-0000-0000-000000000001';
       
       let usersAdded = 0;
