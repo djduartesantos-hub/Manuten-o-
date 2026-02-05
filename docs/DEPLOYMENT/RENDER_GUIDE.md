@@ -118,25 +118,55 @@ These are automatically set by Render from the PostgreSQL service:
    }
    ```
 
-### Step 7: Initial Application Setup
+### Step 7: Initialize Database with Admin User
+
+⚠️ **IMPORTANTE**: Este passo é obrigatório para criar o usuário admin inicial.
+
+Execute o endpoint de inicialização:
+
+```bash
+curl -X POST https://your-app.onrender.com/api/setup/initialize
+```
+
+Resposta esperada:
+```json
+{
+  "success": true,
+  "message": "Database initialized successfully with admin user",
+  "data": {
+    "adminEmail": "admin@cmms.com",
+    "plantId": "xxx-xxx-xxx",
+    "note": "You can now login with the admin credentials"
+  }
+}
+```
+
+**Credenciais padrão criadas:**
+- Email: `admin@cmms.com`
+- Senha: `Admin@123456` (ou valor definido em `ADMIN_PASSWORD`)
+
+📖 **Ver guia completo:** [Render Initialization Guide](./RENDER_INITIALIZATION.md)
+
+### Step 8: Initial Application Setup
 
 1. **Access Your Application**:
    - Open: `https://your-app.onrender.com`
 
 2. **Login as Superadmin**:
    - Email: `admin@cmms.com`
-   - Password: Value set in `ADMIN_PASSWORD` env variable
+   - Password: `Admin@123456` (or value set in `ADMIN_PASSWORD` env variable)
+   - ⚠️ Change password after first login!
 
-3. **Seed Demo Data**:
+3. **Optional: Seed Additional Demo Data**:
    - Navigate to **🔧 Setup BD** page (visible only to superadmin)
    - Click **"Adicionar Dados de Demonstração"**
+   - This will add sample assets, maintenance plans, etc.
    - Wait for confirmation message
 
 4. **Verify Installation**:
-   - Check dashboard for demo data
-   - Test login with demo users:
-     - Manager: `carlos.silva@example.com` / `Manager@123`
-     - Technician: `ana.santos@example.com` / `Tech@123`
+   - Check dashboard for data
+   - Test navigation through all pages
+   - Verify all features work correctly
 
 ---
 

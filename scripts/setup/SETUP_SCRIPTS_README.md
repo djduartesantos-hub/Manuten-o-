@@ -4,6 +4,40 @@ Scripts para setup completo do projeto com instalação de dependências e inici
 
 ## 📋 Scripts Disponíveis
 
+### 🌐 **init-render.sh** (RENDER DEPLOYMENT)
+
+Script para inicializar o banco de dados após deploy no Render.
+
+```bash
+./scripts/setup/init-render.sh https://seu-app.onrender.com
+```
+
+**O que faz:**
+1. ✅ Verifica se a aplicação está online
+2. ✅ Executa endpoint de inicialização
+3. ✅ Cria usuário admin inicial
+4. ✅ Mostra credenciais de login
+
+**Quando usar:**
+- Após primeiro deploy no Render
+- Quando receber erro "Invalid credentials" no login
+- Para resetar banco de dados vazio
+
+**Saída esperada:**
+```
+🚀 Inicializando banco de dados no Render...
+✅ Aplicação está online!
+✅ Banco de dados inicializado com sucesso!
+
+🎉 Pode agora fazer login com:
+   Email: admin@cmms.com
+   Senha: Admin@123456
+```
+
+📖 **Ver também:** [RENDER_INITIALIZATION.md](../../docs/DEPLOYMENT/RENDER_INITIALIZATION.md)
+
+---
+
 ### ⭐ **setup-and-start.bat** (RECOMENDADO)
 
 Script completo all-in-one que faz tudo:

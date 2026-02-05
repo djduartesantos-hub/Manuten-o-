@@ -19,6 +19,83 @@ import { v4 as uuidv4 } from 'uuid';
 
 export class SetupController {
   /**
+   * Initialize database with admin user (only works if DB is empty)
+   * This endpoint does NOT require authentication
+   */
+  static async initialize(_req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      // Check if there are any users in the database
+      const userCount = await db.execute(sql`SELECT COUNT(*) FROM users;`);
+      const count = Number(userCount.rows[0].count);
+
+      if (count > 0) {
+        res.status(400).json({
+          success: false,
+          error: 'Database already initialized. Users exist.',
+          userCount: count,
+        });
+        return;
+      }
+
+      // Database is empty, create initial admin user
+      const tenantId = DEFAULT_TENANT_ID;
+      const adminId = uuidv4();
+      const plantId = uuidv4();
+
+      // Get admin credentials from environment or use defaults
+      const adminEmail = process.env.ADMIN_EMAIL || 'admin@cmms.com';
+      const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123456';
+
+      // Insert default plant
+      await db.insert(plants).values({
+        id: plantId,
+        tenant_id: tenantId,
+        name: 'Fábrica Principal',
+        code: 'PLANT-001',
+        address: 'Rua Industrial, 123',
+        city: 'Lisboa',
+        country: 'Portugal',
+        is_active: true,
+      });
+
+      // Insert admin user
+      const passwordHash = await bcrypt.hash(adminPassword, 10);
+      await db.insert(users).values({
+        id: adminId,
+        tenant_id: tenantId,
+        email: adminEmail,
+        password_hash: passwordHash,
+        first_name: 'Admin',
+        last_name: 'CMMS',
+        role: 'superadmin',
+        is_active: true,
+      });
+
+      // Link admin to plant
+      await db.insert(userPlants).values({
+        id: uuidv4(),
+        user_id: adminId,
+        plant_id: plantId,
+      });
+
+      res.json({
+        success: true,
+        message: 'Database initialized successfully with admin user',
+        data: {
+          adminEmail,
+          plantId,
+          note: 'You can now login with the admin credentials',
+        },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to initialize database',
+      });
+    }
+  }
+
+  /**
    * Check database connection and tables status
    */
   static async checkStatus(_req: AuthenticatedRequest, res: Response): Promise<void> {

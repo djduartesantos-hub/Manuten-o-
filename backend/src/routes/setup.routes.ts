@@ -4,7 +4,11 @@ import { SetupController } from '../controllers/setup.controller.js';
 
 const router = Router();
 
-// All setup routes require authentication and superadmin role
+// POST /api/setup/initialize - Initialize DB with admin user (NO AUTH REQUIRED)
+// This endpoint is only accessible when the database is empty
+router.post('/initialize', SetupController.initialize);
+
+// All other setup routes require authentication and superadmin role
 router.use(authMiddleware);
 router.use(requireRole('superadmin'));
 

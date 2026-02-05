@@ -684,6 +684,16 @@ sla_rules            Regras de SLA
 
 ## 🚀 Deployment em Render
 
+### ⚠️ Erro de Login no Render?
+
+Se receber **"Invalid credentials"** após o deploy, execute:
+
+```bash
+curl -X POST https://seu-app.onrender.com/api/setup/initialize
+```
+
+Isso cria o usuário admin inicial. Ver: [Guia de Inicialização](./docs/DEPLOYMENT/RENDER_INITIALIZATION.md)
+
 ### Backend Service
 
 ```
@@ -708,8 +718,11 @@ Start: npm preview
 4. Configurar VITE_API_URL apontando para Backend
 5. Conectar PostgreSQL (Render ou externo)
 6. Deploy!
+7. **⚠️ IMPORTANTE:** Executar endpoint de inicialização (ver acima)
 
-**Guia Detalhado:** Ver [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md)
+**Guias Detalhados:** 
+- [RENDER_GUIDE.md](./docs/DEPLOYMENT/RENDER_GUIDE.md) - Guia completo
+- [RENDER_INITIALIZATION.md](./docs/DEPLOYMENT/RENDER_INITIALIZATION.md) - Inicialização do BD
 
 ---
 
