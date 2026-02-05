@@ -1,11 +1,11 @@
 import { Router, Response } from 'express';
-import { validateRequest } from '../middlewares/validation';
-import { authMiddleware } from '../middlewares/auth';
-import { AlertService } from '../services/alert.service';
-import { DocumentService } from '../services/document.service';
-import { AuthenticatedRequest } from '../types';
+import { validateRequest } from '../middlewares/validation.js';
+import { authMiddleware } from '../middlewares/auth.js';
+import { AlertService } from '../services/alert.service.js';
+import { DocumentService } from '../services/document.service.js';
+import { AuthenticatedRequest } from '../types/index.js';
 import { z } from 'zod';
-import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance';
+import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 
 const router = Router();
 

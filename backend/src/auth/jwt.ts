@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { JWTPayload } from '../types';
+import { JWTPayload } from '../types/index.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-key';

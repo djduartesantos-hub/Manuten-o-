@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
-import { authMiddleware, requireRole } from '../middlewares/auth';
-import { AuthenticatedRequest } from '../types';
-import { JobQueueService, QUEUES } from '../services/job.service';
+import { authMiddleware, requireRole } from '../middlewares/auth.js';
+import { AuthenticatedRequest } from '../types/index.js';
+import { JobQueueService, QUEUES } from '../services/job.service.js';
 
 const router = Router();
 

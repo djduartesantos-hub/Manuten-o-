@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { WorkOrderController } from '../controllers/workorder.controller';
-import { authMiddleware, tenantMiddleware, plantMiddleware } from '../middlewares/auth';
+import { WorkOrderController } from '../controllers/workorder.controller.js';
+import { authMiddleware, tenantMiddleware, plantMiddleware } from '../middlewares/auth.js';
 
 const router = Router({ mergeParams: true });
 

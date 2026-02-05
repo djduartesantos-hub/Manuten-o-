@@ -1,5 +1,5 @@
 import Queue from 'bull';
-import { logger } from '../config/logger';
+import { logger } from '../config/logger.js';
 
 export interface JobResult {
   success: boolean;

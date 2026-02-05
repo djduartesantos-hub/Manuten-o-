@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import * as MaintenanceController from '../controllers/maintenance.controller';
-import { authMiddleware, tenantMiddleware, requireRole } from '../middlewares/auth';
+import * as MaintenanceController from '../controllers/maintenance.controller.js';
+import { authMiddleware, tenantMiddleware, requireRole } from '../middlewares/auth.js';
 
 const router = Router({ mergeParams: true });
 

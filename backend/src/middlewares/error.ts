@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import morgan from 'morgan';
-import { logger } from '../config/logger';
+import { logger } from '../config/logger.js';
 
 export function errorHandler(
   err: any,

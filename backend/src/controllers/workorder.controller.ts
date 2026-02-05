@@ -1,8 +1,8 @@
 import { Response } from 'express';
-import { AuthenticatedRequest } from '../types';
-import { WorkOrderService } from '../services/workorder.service';
-import { logger } from '../config/logger';
-import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance';
+import { AuthenticatedRequest } from '../types/index.js';
+import { WorkOrderService } from '../services/workorder.service.js';
+import { logger } from '../config/logger.js';
+import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 
 export class WorkOrderController {
   static async list(req: AuthenticatedRequest, res: Response): Promise<void> {

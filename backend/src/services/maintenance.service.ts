@@ -1,9 +1,9 @@
 // @ts-nocheck
-import { db } from '../config/database';
-import { maintenancePlans, maintenanceTasks, workOrders, assets } from '../db/schema';
+import { db } from '../config/database.js';
+import { maintenancePlans, maintenanceTasks, workOrders, assets } from '../db/schema.js';
 import { eq, and, desc, like } from 'drizzle-orm';
-import { CacheKeys, CacheTTL, RedisService } from './redis.service';
-import { logger } from '../config/logger';
+import { CacheKeys, CacheTTL, RedisService } from './redis.service.js';
+import { logger } from '../config/logger.js';
 
 export interface CreateMaintenancePlanInput {
   asset_id: string;

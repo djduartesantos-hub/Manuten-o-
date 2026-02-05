@@ -1,4 +1,4 @@
-import { SocketManager } from '../services/socket.manager';
+import { SocketManager } from '../services/socket.manager.js';
 
 let socketManager: SocketManager | null = null;
 

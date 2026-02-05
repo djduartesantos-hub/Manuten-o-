@@ -1,5 +1,5 @@
 import { Client } from '@elastic/elasticsearch';
-import { logger } from '../config/logger';
+import { logger } from '../config/logger.js';
 
 let elasticsearchClient: Client | null = null;
 

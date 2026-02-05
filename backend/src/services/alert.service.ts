@@ -1,14 +1,14 @@
-import { db } from '../config/database';
+import { db } from '../config/database.js';
 import {
   alertConfigurations,
   alertsHistory,
   workOrders,
-} from '../db/schema';
+} from '../db/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import { CacheKeys, CacheTTL, RedisService } from './redis.service';
-import { logger } from '../config/logger';
-import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance';
+import { CacheKeys, CacheTTL, RedisService } from './redis.service.js';
+import { logger } from '../config/logger.js';
+import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 
 export class AlertService {
   // ========== ALERT CONFIGURATIONS ==========

@@ -1,12 +1,12 @@
 // @ts-nocheck
 import { Response } from 'express';
-import { SparePartService } from '../services/sparepart.service';
-import { AuthenticatedRequest } from '../types';
+import { SparePartService } from '../services/sparepart.service.js';
+import { AuthenticatedRequest } from '../types/index.js';
 import {
   createSparePartSchema,
   updateSparePartSchema,
   createStockMovementSchema,
-} from '../schemas/sparepart.validation';
+} from '../schemas/sparepart.validation.js';
 
 const sparePartService = new SparePartService();
 

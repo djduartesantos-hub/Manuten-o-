@@ -1,13 +1,13 @@
-import { db } from '../config/database';
+import { db } from '../config/database.js';
 import {
   workOrders,
   workOrderTasks,
-} from '../db/schema';
+} from '../db/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import { CacheKeys, CacheTTL, RedisService } from './redis.service';
-import { logger } from '../config/logger';
-import { ElasticsearchService } from './elasticsearch.service';
+import { CacheKeys, CacheTTL, RedisService } from './redis.service.js';
+import { logger } from '../config/logger.js';
+import { ElasticsearchService } from './elasticsearch.service.js';
 
 export class WorkOrderService {
   private static getStatusCacheKeys(tenantId: string, plantId: string) {

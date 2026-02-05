@@ -1,7 +1,7 @@
 import { Response } from 'express';
-import { AuthenticatedRequest } from '../types';
-import { TenantService } from '../services/tenant.service';
-import { logger } from '../config/logger';
+import { AuthenticatedRequest } from '../types/index.js';
+import { TenantService } from '../services/tenant.service.js';
+import { logger } from '../config/logger.js';
 
 export class DashboardController {
   static async getMetrics(req: AuthenticatedRequest, res: Response): Promise<void> {

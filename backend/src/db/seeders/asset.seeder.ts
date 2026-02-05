@@ -1,5 +1,5 @@
-import { db } from '../../config/database';
-import { assets, assetCategories } from '../schema';
+import { db } from '../../config/database.js';
+import { assets, assetCategories } from '../schema.js';
 
 const ASSET_CATEGORIES_DATA = [
   { name: 'Bomba', description: 'Equipamentos de bombeamento' },

@@ -1,13 +1,13 @@
 // @ts-nocheck
 import { Response } from 'express';
-import { MaintenanceService } from '../services/maintenance.service';
-import { AuthenticatedRequest } from '../types';
+import { MaintenanceService } from '../services/maintenance.service.js';
+import { AuthenticatedRequest } from '../types/index.js';
 import {
   createMaintenancePlanSchema,
   updateMaintenancePlanSchema,
   createMaintenanceTaskSchema,
-} from '../schemas/maintenance.validation';
-import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance';
+} from '../schemas/maintenance.validation.js';
+import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 
 const maintenanceService = new MaintenanceService();
 

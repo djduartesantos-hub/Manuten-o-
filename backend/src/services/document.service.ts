@@ -1,5 +1,5 @@
-import { db } from '../config/database';
-import { assetDocuments, assetDocumentVersions } from '../db/schema';
+import { db } from '../config/database.js';
+import { assetDocuments, assetDocumentVersions } from '../db/schema.js';
 import { eq, and, desc, asc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 

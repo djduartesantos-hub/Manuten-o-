@@ -1,18 +1,18 @@
 import express, { Express } from 'express';
 import cors from 'cors';
 import path from 'path';
-import authRoutes from './routes/auth.routes';
-import tenantRoutes from './routes/tenant.routes';
-import workOrderRoutes from './routes/workorder.routes';
-import assetRoutes from './routes/asset.routes';
-import dashboardRoutes from './routes/dashboard.routes';
-import maintenanceRoutes from './routes/maintenance.routes';
-import sparePartRoutes from './routes/sparepart.routes';
-import alertRoutes from './routes/alert.routes';
-import searchRoutes from './routes/search.routes';
-import jobsRoutes from './routes/jobs.routes';
-import setupRoutes from './routes/setup.routes';
-import { errorHandler, notFoundHandler, requestLogger } from './middlewares/error';
+import authRoutes from './routes/auth.routes.js';
+import tenantRoutes from './routes/tenant.routes.js';
+import workOrderRoutes from './routes/workorder.routes.js';
+import assetRoutes from './routes/asset.routes.js';
+import dashboardRoutes from './routes/dashboard.routes.js';
+import maintenanceRoutes from './routes/maintenance.routes.js';
+import sparePartRoutes from './routes/sparepart.routes.js';
+import alertRoutes from './routes/alert.routes.js';
+import searchRoutes from './routes/search.routes.js';
+import jobsRoutes from './routes/jobs.routes.js';
+import setupRoutes from './routes/setup.routes.js';
+import { errorHandler, notFoundHandler, requestLogger } from './middlewares/error.js';
 
 export function createApp(): Express {
   const app = express();

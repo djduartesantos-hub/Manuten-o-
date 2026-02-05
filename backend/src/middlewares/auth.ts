@@ -1,7 +1,7 @@
 import { Response, NextFunction } from 'express';
-import { extractTokenFromHeader, verifyToken } from '../auth/jwt';
-import { AuthenticatedRequest } from '../types';
-import { logger } from '../config/logger';
+import { extractTokenFromHeader, verifyToken } from '../auth/jwt.js';
+import { AuthenticatedRequest } from '../types/index.js';
+import { logger } from '../config/logger.js';
 
 export function authMiddleware(
   req: AuthenticatedRequest & { headers?: any },

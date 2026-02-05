@@ -1,9 +1,9 @@
 // @ts-nocheck
-import { JobQueueService, QUEUES } from '../services/job.service';
-import { logger } from '../config/logger';
-import { db } from '../config/database';
-import { assets, workOrders } from '../db/schema';
-import { ElasticsearchService } from '../services/elasticsearch.service';
+import { JobQueueService, QUEUES } from '../services/job.service.js';
+import { logger } from '../config/logger.js';
+import { db } from '../config/database.js';
+import { assets, workOrders } from '../db/schema.js';
+import { ElasticsearchService } from '../services/elasticsearch.service.js';
 import sgMail from '@sendgrid/mail';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 

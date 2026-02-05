@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import * as SparePartController from '../controllers/sparepart.controller';
-import { authMiddleware, tenantMiddleware, requireRole } from '../middlewares/auth';
+import * as SparePartController from '../controllers/sparepart.controller.js';
+import { authMiddleware, tenantMiddleware, requireRole } from '../middlewares/auth.js';
 
 const router = Router({ mergeParams: true });
 

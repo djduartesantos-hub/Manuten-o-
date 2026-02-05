@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import { logger } from '../config/logger';
+import { logger } from '../config/logger.js';
 
 // Redis singleton
 let redisClient: Redis | null = null;

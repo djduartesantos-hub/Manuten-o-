@@ -1,4 +1,4 @@
-import { db } from '../config/database';
+import { db } from '../config/database.js';
 import bcrypt from 'bcrypt';
 import {
   plants,
@@ -10,8 +10,8 @@ import {
   maintenanceTasks,
   spareParts,
   stockMovements,
-} from './schema';
-import { DEFAULT_TENANT_ID } from '../config/constants';
+} from './schema.js';
+import { DEFAULT_TENANT_ID } from '../config/constants.js';
 import { v4 as uuidv4 } from 'uuid';
 
 async function seed() {

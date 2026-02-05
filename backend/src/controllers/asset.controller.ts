@@ -1,10 +1,10 @@
 import { Response } from 'express';
-import { AuthenticatedRequest } from '../types';
-import { AssetService } from '../services/asset.service';
-import { CreateAssetSchema, UpdateAssetSchema } from '../schemas/validation';
-import { logger } from '../config/logger';
+import { AuthenticatedRequest } from '../types/index.js';
+import { AssetService } from '../services/asset.service.js';
+import { CreateAssetSchema, UpdateAssetSchema } from '../schemas/validation.js';
+import { logger } from '../config/logger.js';
 import { ZodError } from 'zod';
-import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance';
+import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 
 export class AssetController {
   /**

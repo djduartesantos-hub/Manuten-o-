@@ -1,5 +1,5 @@
-import { db } from '../config/database';
-import { plants, workOrders } from '../db/schema';
+import { db } from '../config/database.js';
+import { plants, workOrders } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 
 export class TenantService {

@@ -1,9 +1,9 @@
 import { Response } from 'express';
-import { AuthenticatedRequest } from '../types';
-import { AuthService } from '../services/auth.service';
-import { generateToken, generateRefreshToken } from '../auth/jwt';
-import { logger } from '../config/logger';
-import { DEFAULT_TENANT_ID } from '../config/constants';
+import { AuthenticatedRequest } from '../types/index.js';
+import { AuthService } from '../services/auth.service.js';
+import { generateToken, generateRefreshToken } from '../auth/jwt.js';
+import { logger } from '../config/logger.js';
+import { DEFAULT_TENANT_ID } from '../config/constants.js';
 
 export class AuthController {
   static async login(req: AuthenticatedRequest, res: Response): Promise<void> {

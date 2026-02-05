@@ -1,11 +1,11 @@
 // @ts-nocheck
-import { db } from '../config/database';
-import { assets } from '../db/schema';
+import { db } from '../config/database.js';
+import { assets } from '../db/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
-import { CreateAssetInput, UpdateAssetInput } from '../schemas/validation';
-import { RedisService, CacheKeys, CacheTTL } from './redis.service';
-import { logger } from '../config/logger';
-import { ElasticsearchService } from './elasticsearch.service';
+import { CreateAssetInput, UpdateAssetInput } from '../schemas/validation.js';
+import { RedisService, CacheKeys, CacheTTL } from './redis.service.js';
+import { logger } from '../config/logger.js';
+import { ElasticsearchService } from './elasticsearch.service.js';
 
 export class AssetService {
   /**

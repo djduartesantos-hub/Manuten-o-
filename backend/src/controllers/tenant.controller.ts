@@ -1,6 +1,6 @@
 import { Response } from 'express';
-import { AuthenticatedRequest } from '../types';
-import { TenantService } from '../services/tenant.service';
+import { AuthenticatedRequest } from '../types/index.js';
+import { TenantService } from '../services/tenant.service.js';
 
 export async function getUserPlants(req: AuthenticatedRequest, res: Response) {
   try {

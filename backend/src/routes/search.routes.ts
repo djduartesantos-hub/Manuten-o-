@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
-import { authMiddleware } from '../middlewares/auth';
-import { AuthenticatedRequest } from '../types';
-import { ElasticsearchService } from '../services/elasticsearch.service';
+import { authMiddleware } from '../middlewares/auth.js';
+import { AuthenticatedRequest } from '../types/index.js';
+import { ElasticsearchService } from '../services/elasticsearch.service.js';
 
 const router = Router();
 

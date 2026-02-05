@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { CustomizationService } from '../services/customization.service';
-import { createDashboardLayoutSchema, updateDashboardLayoutSchema, createScheduledReportSchema, updateScheduledReportSchema, themeSettingsSchema, createPredictiveAnalysisSchema } from '../schemas/customization.validation';
+import { CustomizationService } from '../services/customization.service.js';
+import { createDashboardLayoutSchema, updateDashboardLayoutSchema, createScheduledReportSchema, updateScheduledReportSchema, themeSettingsSchema, createPredictiveAnalysisSchema } from '../schemas/customization.validation.js';
 
 const customizationService = new CustomizationService();
 

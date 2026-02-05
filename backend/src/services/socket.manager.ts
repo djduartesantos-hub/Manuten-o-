@@ -1,7 +1,7 @@
 import { Server as HTTPServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import { logger } from '../config/logger';
+import { logger } from '../config/logger.js';
 
 interface AuthenticatedSocket extends Socket {
   user?: {

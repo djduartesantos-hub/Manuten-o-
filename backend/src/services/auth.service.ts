@@ -1,7 +1,7 @@
-import { db } from '../config/database';
-import { users } from '../db/schema';
+import { db } from '../config/database.js';
+import { users } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
-import { comparePasswords, hashPassword } from '../auth/jwt';
+import { comparePasswords, hashPassword } from '../auth/jwt.js';
 
 export class AuthService {
   static async findUserByEmail(tenantId: string, email: string) {

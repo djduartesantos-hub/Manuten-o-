@@ -1,9 +1,9 @@
-import { db } from '../config/database';
+import { db } from '../config/database.js';
 import {
   spareParts,
   stockMovements,
   suppliers,
-} from '../db/schema';
+} from '../db/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 

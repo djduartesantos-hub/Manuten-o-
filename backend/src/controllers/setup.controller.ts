@@ -1,6 +1,6 @@
 import { Response } from 'express';
-import { AuthenticatedRequest } from '../types';
-import { db } from '../config/database';
+import { AuthenticatedRequest } from '../types/index.js';
+import { db } from '../config/database.js';
 import { sql } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import {
@@ -13,8 +13,8 @@ import {
   maintenanceTasks,
   spareParts,
   stockMovements,
-} from '../db/schema';
-import { DEFAULT_TENANT_ID } from '../config/constants';
+} from '../db/schema.js';
+import { DEFAULT_TENANT_ID } from '../config/constants.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export class SetupController {

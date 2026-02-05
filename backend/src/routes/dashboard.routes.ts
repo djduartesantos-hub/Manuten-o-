@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { DashboardController } from '../controllers/dashboard.controller';
-import { authMiddleware, tenantMiddleware, plantMiddleware } from '../middlewares/auth';
+import { DashboardController } from '../controllers/dashboard.controller.js';
+import { authMiddleware, tenantMiddleware, plantMiddleware } from '../middlewares/auth.js';
 
 const router = Router({ mergeParams: true });
 
