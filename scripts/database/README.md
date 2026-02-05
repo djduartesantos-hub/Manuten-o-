@@ -20,7 +20,14 @@ Files e documentação para setup e management de database.
   - 8 categorias de equipamentos
   - 12 equipamentos (assets) com informações realistas
   - 15 planos de manutenção
+  - Idempotente (pode executar múltiplas vezes)
   - Requer: create-admin-user.sql já executado
+
+- **reset-demo-data.sql** - Reset de dados de demonstração 🆕
+  - Limpa dados demo anteriors (IDs como 20000000-*, 10000000-*, etc.)
+  - Preserva dados de admin e plantas
+  - Use antes de recarregar demo-data.sql
+  - Safe to run (deleta apenas demo data demo)
 
 - **diagnose.sql** - Script de diagnóstico
   - Verifica estado da database
@@ -54,13 +61,17 @@ psql -U cmms_user -d cmms_enterprise -h localhost
 
 # 3. Carregar dados de demonstração
 psql -U cmms_user -d cmms_enterprise -h localhost -f demo-data.sql
+
+# 4. (Opcional) Se precisa limpar dados demo antes:
+psql -U cmms_user -d cmms_enterprise -h localhost -f reset-demo-data.sql
 ```
 
 #### Para DBeaver ou GUI SQL:
 ```
 1. Executar: create-admin-user.sql (cria schema + admin user)
 2. Executar: demo-data.sql (carrega dados de teste)
-3. Verificar: diagnose.sql (confirma dados)
+3. (Opcional) Executar: reset-demo-data.sql (limpa dados anteriors)
+4. Verificar: diagnose.sql (confirma dados)
 ```
 
 #### Para Render ou produção:
@@ -109,23 +120,29 @@ psql -U cmms_user -d cmms_enterprise -h localhost -f diagnose.sql
 
 Se encontrar erros:
 
-1. **"Plant ID is required"**
+1. **"duplicate key violates unique constraint 'plants_tenant_code_idx'"**
+   - Causa: Tentativa de reinserção de dados demo quando já existem
+   - Solução 1: Executar reset-demo-data.sql e depois demo-data.sql novamente
+   - Solução 2: Comentar/descomentar as linhas de DELETE no início do demo-data.sql
+   - Verificar também: Todos os tenant_ids sejam iguais (`550e8400-e29b-41d4-a716-446655440000`)
+
+2. **"Plant ID is required"**
    - Executar: demo-data.sql para garantir que os dados estão carregados
    - Verificar: plantIds no JWT token (deve incluir plant IDs)
 
-2. **Assets não aparecem**
+3. **Assets não aparecem**
    - Confirmar que demo-data.sql foi executado
    - Verificar tenant_id: `550e8400-e29b-41d4-a716-446655440000`
    - Verificar plant_id: `0fab0000-0000-0000-0000-000000000001`
 
-3. **User não vinculado à planta**
+4. **User não vinculado à planta**
    - Executar: fix-admin-plants.sql
    - Ou verificar user_plants table: 
    ```sql
    SELECT * FROM user_plants WHERE user_id = '00000001-0000-0000-0000-000000000001';
    ```
 
-4. Vê [`/docs/GUIDES/TROUBLESHOOTING.md`](../../docs/GUIDES/TROUBLESHOOTING.md)
+5. Vê [`/docs/GUIDES/TROUBLESHOOTING.md`](../../docs/GUIDES/TROUBLESHOOTING.md)
 
 ---
 

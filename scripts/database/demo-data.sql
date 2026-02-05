@@ -6,6 +6,11 @@
 --
 -- IMPORTANTE: Execute primeiro o create-admin-user.sql
 -- Depois execute este script
+--
+-- NOTAS IMPORTANTES:
+-- - Este script pode ser executado múltiplas vezes (é idempotente)
+-- - Usa ON CONFLICT DO NOTHING para evitar erros de duplicatas
+-- - Se precisar limpar dados, descomente as linhas de DELETE/TRUNCATE abaixo
 -- ============================================================================
 
 -- ============================================================================
@@ -14,6 +19,16 @@
 -- Tenant ID: 550e8400-e29b-41d4-a716-446655440000
 -- Plant ID: 0fab0000-0000-0000-0000-000000000001
 -- Admin User ID: 00000001-0000-0000-0000-000000000001
+
+-- ============================================================================
+-- LIMPEZA OPCIONAL: Descomente as linhas abaixo se precisar resetar dados demo
+-- ============================================================================
+-- TRUNCATE TABLE maintenance_plans CASCADE;
+-- TRUNCATE TABLE assets CASCADE;
+-- TRUNCATE TABLE asset_categories CASCADE;
+-- DELETE FROM maintenance_plans WHERE tenant_id = '550e8400-e29b-41d4-a716-446655440000';
+-- DELETE FROM assets WHERE tenant_id = '550e8400-e29b-41d4-a716-446655440000';
+-- DELETE FROM asset_categories WHERE tenant_id = '550e8400-e29b-41d4-a716-446655440000';
 
 -- ============================================================================
 -- STEP 1: INSERIR CATEGORIAS DE EQUIPAMENTOS
@@ -75,7 +90,7 @@ VALUES
   ('20000000-0000-0000-0000-000000000007', '550e8400-e29b-41d4-a716-446655440000', '0fab0000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', 'Conversor de Frequência 1', 'VFD-001', 'SINAMICS G120', 'Siemens', 'SN-202201-301', 'Quadro de Controlo', 'operacional', '2023-01-20', 4500.00, 'hours', 2100, true),
 
   -- Válvulas
-  ('20000000-0000-0000-0000-000000000008', '550e8400-0000-0000-0000-000000000001', '0fab0000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000005', 'Válvula de Controlo Principal', 'VALVE-001', 'NG6', 'Eaton', 'SN-202201-401', 'Sistema Hidráulico', 'operacional', '2022-07-15', 2200.00, NULL, NULL, false),
+  ('20000000-0000-0000-0000-000000000008', '550e8400-e29b-41d4-a716-446655440000', '0fab0000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000005', 'Válvula de Controlo Principal', 'VALVE-001', 'NG6', 'Eaton', 'SN-202201-401', 'Sistema Hidráulico', 'operacional', '2022-07-15', 2200.00, NULL, NULL, false),
 
   -- Sensores
   ('20000000-0000-0000-0000-000000000009', '550e8400-e29b-41d4-a716-446655440000', '0fab0000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000006', 'Sensor de Temperatura T1', 'TEMP-001', 'PT100', 'Siemens', 'SN-202206-501', 'Zona de Aquecimento', 'operacional', '2023-05-02', 350.00, NULL, NULL, false),
