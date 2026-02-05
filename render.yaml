@@ -1,0 +1,93 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: cmms-database
+    env: docker
+    plan: starter
+    region: frankfurt
+    ipAllowList: []
+    databaseName: cmms_enterprise
+    databaseUser: cmms_user
+
+  # Web Service (Backend + Frontend)
+  - type: web
+    name: cmms-enterprise
+    env: docker
+    region: frankfurt
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    
+    # Auto-deploy on push to main
+    autoDeploy: true
+    
+    envVars:
+      # Node Environment
+      - key: NODE_ENV
+        value: production
+      
+      # Server Configuration
+      - key: PORT
+        value: 3000
+      
+      # Database (auto-populated by Render)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cmms-database
+          property: connectionString
+      
+      # JWT Secrets (MUST be set in Render Dashboard)
+      - key: JWT_SECRET
+        generateValue: true
+      
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      
+      - key: JWT_EXPIRY
+        value: 1h
+      
+      - key: JWT_REFRESH_EXPIRY
+        value: 7d
+      
+      # CORS Configuration
+      - key: CORS_ORIGIN
+        value: https://cmms-enterprise.onrender.com
+      
+      # Redis Configuration (Optional - can use Redis from Render)
+      - key: REDIS_HOST
+        value: localhost
+      
+      - key: REDIS_PORT
+        value: 6379
+      
+      - key: REDIS_PASSWORD
+        value: ""
+      
+      - key: REDIS_DB
+        value: 0
+      
+      # Admin Credentials (for initial setup)
+      - key: ADMIN_EMAIL
+        value: admin@cmms.com
+      
+      - key: ADMIN_PASSWORD
+        sync: false
+      
+      # Logging
+      - key: LOG_LEVEL
+        value: info
+      
+      # Default Tenant ID
+      - key: DEFAULT_TENANT_ID
+        value: 550e8400-e29b-41d4-a716-446655440000
+    
+    # Build configuration
+    buildFilter:
+      paths:
+        - backend/**
+        - frontend/**
+        - Dockerfile
+    
+    # Post-deploy: Run database migrations
+    postDeploy: cd backend && npm run db:migrate
+

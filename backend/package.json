@@ -10,6 +10,7 @@
     "start": "node dist/server.js",
     "db:generate": "drizzle-kit generate:pg --config=drizzle.config.mjs",
     "db:push": "drizzle-kit push:pg --config=drizzle.config.mjs",
+    "db:migrate": "drizzle-kit push:pg --config=drizzle.config.mjs",
     "db:studio": "drizzle-kit studio --config=drizzle.config.mjs",
     "db:seed": "tsx src/db/seed.ts",
     "lint": "eslint src",

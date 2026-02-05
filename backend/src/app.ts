@@ -1,5 +1,6 @@
 import express, { Express } from 'express';
 import cors from 'cors';
+import path from 'path';
 import authRoutes from './routes/auth.routes';
 import tenantRoutes from './routes/tenant.routes';
 import workOrderRoutes from './routes/workorder.routes';
@@ -61,6 +62,19 @@ export function createApp(): Express {
       endpoint: 'ws://localhost:' + (process.env.PORT || 3000),
     });
   });
+
+  // Serve static frontend files in production
+  if (process.env.NODE_ENV === 'production') {
+    const frontendPath = path.join(__dirname, '../../frontend');
+    app.use(express.static(frontendPath));
+    
+    // Serve index.html for all non-API routes (SPA fallback)
+    app.get('*', (req, res) => {
+      if (!req.path.startsWith('/api')) {
+        res.sendFile(path.join(frontendPath, 'index.html'));
+      }
+    });
+  }
 
   // Error handling
   app.use(notFoundHandler);
