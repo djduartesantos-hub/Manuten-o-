@@ -6,16 +6,19 @@ export class TenantService {
   static async getUserPlants(userId: string, tenantId: string) {
     const userPlants = await db.query.userPlants.findMany({
       where: (fields: any, { eq }: any) => eq(fields.user_id, userId),
+      with: {
+        plant: true,
+      }
     });
 
-    const plantIds = userPlants.map((up: any) => up.plant_id);
+    if (userPlants.length === 0) return [];
 
-    if (plantIds.length === 0) return [];
+    // Extract plant IDs and filter by tenant
+    const plants = userPlants
+      .map((up: any) => up.plant)
+      .filter((plant: any) => plant && plant.tenant_id === tenantId);
 
-    return db.query.plants.findMany({
-      where: (fields: any, { inArray, eq }: any) =>
-        and(eq(fields.tenant_id, tenantId), inArray(fields.id, plantIds)),
-    });
+    return plants;
   }
 
   static async getPlantById(tenantId: string, plantId: string) {

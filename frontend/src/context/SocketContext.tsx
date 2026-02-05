@@ -22,7 +22,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const newSocket = io(process.env.VITE_API_URL || 'http://localhost:3001', {
+    // Use same origin for socket connection (works in dev and production)
+    const socketUrl = window.location.origin;
+    
+    const newSocket = io(socketUrl, {
       auth: {
         token,
       },
@@ -31,6 +34,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       reconnectionDelayMax: 5000,
       reconnectionAttempts: 5,
       transports: ['websocket', 'polling'],
+      // Add timeout to prevent hanging connections
+      timeout: 10000,
     });
 
     // Connection events
@@ -42,6 +47,11 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     newSocket.on('disconnect', () => {
       setIsConnected(false);
       console.log('❌ Socket disconnected');
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.warn('Socket connection error (non-critical):', error.message);
+      // Don't show error toast - connection errors are expected in some environments
     });
 
     newSocket.on('connected', (data) => {
