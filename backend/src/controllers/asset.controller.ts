@@ -23,10 +23,11 @@ export class AssetController {
         paramsPlantId: req.params.plantId,
         userTenantId: req.user?.tenantId,
         userRole: req.user?.role,
+        userPlantIds: req.user?.plantIds,
       });
 
       if (!tenantId || !plantId) {
-        logger.warn('Missing tenantId or plantId:', {
+        logger.error('Missing tenantId or plantId:', {
           tenantId,
           plantId,
           params: req.params,
@@ -40,9 +41,11 @@ export class AssetController {
           success: false,
           error: 'Plant ID is required',
           details: {
-            tenantId: !!tenantId,
-            plantId: !!plantId,
+            tenantIdPresent: !!tenantId,
+            plantIdPresent: !!plantId,
             paramPlantId: req.params.plantId,
+            userRole: req.user?.role,
+            userPlantIds: req.user?.plantIds,
           },
         });
         return;

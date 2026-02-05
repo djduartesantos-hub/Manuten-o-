@@ -40,6 +40,7 @@ export class AuthController {
         tenantId: user.tenant_id,
         email: user.email,
         role: user.role,
+        plantIds: (user as any).plantIds || [], // Include plant IDs in JWT
       };
 
       const token = generateToken(payload);
@@ -91,11 +92,19 @@ export class AuthController {
         return;
       }
 
+      // Load plant IDs for the user
+      const plantIds = await AuthService.getUserPlantIds(
+        user.id,
+        user.tenant_id,
+        user.role
+      );
+
       const payload: any = {
         userId: user.id,
         tenantId: user.tenant_id,
         email: user.email,
         role: user.role,
+        plantIds: plantIds || [],
       };
 
       const newToken = generateToken(payload);

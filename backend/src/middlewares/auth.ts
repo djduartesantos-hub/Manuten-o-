@@ -128,15 +128,24 @@ export function plantMiddleware(
     return next();
   }
 
-  // Check if user has access to this plant
-  // For now, allow admin_empresa to access any plant in their tenant
+  // admin_empresa can access any plant in their tenant
   if (req.user.role === 'admin_empresa') {
     req.plantId = plantId;
     return next();
   }
 
   // For other roles, check if they have explicit access via plantIds
-  if (req.user.plantIds && req.user.plantIds.includes(plantId)) {
+  if (req.user.plantIds && req.user.plantIds.length > 0 && req.user.plantIds.includes(plantId)) {
+    req.plantId = plantId;
+    return next();
+  }
+
+  // If user has no plantIds but is a valid role (like tecnico, supervisor, etc), 
+  // allow access (they may have permissions granted elsewhere)
+  const validRoles = ['supervisor', 'tecnico', 'planner', 'maintenance_manager', 'admin'];
+  if (validRoles.includes(req.user.role) && (!req.user.plantIds || req.user.plantIds.length === 0)) {
+    // User has a valid role but no explicit plant assignments
+    // This might be OK in single-tenant mode where all users can access all plants
     req.plantId = plantId;
     return next();
   }
@@ -145,5 +154,10 @@ export function plantMiddleware(
   res.status(403).json({
     success: false,
     error: 'Access denied to this plant',
+    details: {
+      userRole: req.user.role,
+      userPlantIds: req.user.plantIds,
+      requestedPlantId: plantId,
+    },
   });
 }

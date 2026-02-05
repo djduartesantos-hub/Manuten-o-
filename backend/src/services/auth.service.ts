@@ -1,5 +1,5 @@
 import { db } from '../config/database.js';
-import { users } from '../db/schema.js';
+import { users, userPlants, plants } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { comparePasswords, hashPassword } from '../auth/jwt.js';
 
@@ -24,6 +24,31 @@ export class AuthService {
     return user;
   }
 
+  /**
+   * Get user's plant IDs - loads from user_plants relationship or all plants for admin roles
+   */
+  static async getUserPlantIds(userId: string, tenantId: string, role: string): Promise<string[]> {
+    try {
+      // Admin empresa and super admin can access all plants in their tenant
+      if (role === 'admin_empresa' || role === 'superadmin') {
+        const allPlants = await db.query.plants.findMany({
+          where: (fields: any, { eq }: any) => eq(fields.tenant_id, tenantId),
+        });
+        return allPlants.map(p => p.id);
+      }
+
+      // Other roles: get plants from user_plants relationship
+      const userPlantsData = await db.query.userPlants.findMany({
+        where: (fields: any, { eq }: any) => eq(fields.user_id, userId),
+      });
+
+      return userPlantsData.map(up => up.plant_id);
+    } catch (error) {
+      console.error('Error loading user plant IDs:', error);
+      return [];
+    }
+  }
+
   static async validateCredentials(
     tenantId: string,
     email: string,
@@ -41,7 +66,14 @@ export class AuthService {
       return null;
     }
 
-    return user;
+    // Load plant IDs for this user
+    const plantIds = await this.getUserPlantIds(user.id, tenantId, user.role);
+
+    // Add plantIds to the user object
+    return {
+      ...user,
+      plantIds,
+    };
   }
 
   static async createUser(data: {
