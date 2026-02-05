@@ -3,7 +3,6 @@ services:
   - type: pserv
     name: cmms-database
     plan: starter
-    region: frankfurt
 
   # Web Service (Backend + Frontend)
   - type: web
