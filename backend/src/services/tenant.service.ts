@@ -5,6 +5,8 @@ import { eq, and } from 'drizzle-orm';
 export class TenantService {
   static async getUserPlants(userId: string, tenantId: string) {
     try {
+      console.log(`[getUserPlants] Fetching plants for user: ${userId}, tenant: ${tenantId}`);
+      
       const userPlants = await db.query.userPlants.findMany({
         where: (fields: any, { eq }: any) => eq(fields.user_id, userId),
         with: {
@@ -12,20 +14,33 @@ export class TenantService {
         }
       });
 
+      console.log(`[getUserPlants] Found ${userPlants.length} user_plant records for user ${userId}`);
+      
       if (userPlants.length === 0) {
-        console.log(`No plants found for user ${userId}`);
+        console.warn(`[getUserPlants] No user_plant records found for user ${userId}`);
         return [];
       }
+
+      // Log each plant relationship
+      userPlants.forEach((up: any, idx: number) => {
+        console.log(`  [${idx}] user_plants.id=${up.id}, plant_id=${up.plant_id}, plant.id=${up.plant?.id}, plant.name=${up.plant?.name}, plant.tenant_id=${up.plant?.tenant_id}`);
+      });
 
       // Extract plant IDs and filter by tenant
       const filteredPlants = userPlants
         .map((up: any) => up.plant)
-        .filter((plant: any) => plant && plant.tenant_id === tenantId);
+        .filter((plant: any) => {
+          const matches = plant && plant.tenant_id === tenantId;
+          if (!matches) {
+            console.warn(`[getUserPlants] Plant ${plant?.id} filtered out - tenant mismatch (expected: ${tenantId}, got: ${plant?.tenant_id})`);
+          }
+          return matches;
+        });
 
-      console.log(`Found ${filteredPlants.length} plants for user ${userId} in tenant ${tenantId}`);
+      console.log(`[getUserPlants] Returning ${filteredPlants.length} plants for user ${userId} in tenant ${tenantId}`);
       return filteredPlants;
     } catch (error) {
-      console.error('Error getting user plants:', error);
+      console.error('[getUserPlants] Error:', error);
       throw error;
     }
   }

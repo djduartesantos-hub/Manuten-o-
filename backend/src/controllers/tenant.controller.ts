@@ -4,10 +4,16 @@ import { TenantService } from '../services/tenant.service.js';
 
 export async function getUserPlants(req: AuthenticatedRequest, res: Response) {
   try {
+    console.log('[getUserPlants] Request received');
+    console.log(`  req.user: ${JSON.stringify(req.user)}`);
+    console.log(`  req.tenantId: ${req.tenantId}`);
+    
     if (!req.user || !req.tenantId) {
       console.warn('getUserPlants: Missing user or tenantId', {
         hasUser: !!req.user,
         hasTenantId: !!req.tenantId,
+        userId: req.user?.userId,
+        tenantId: req.tenantId,
       });
       res.status(401).json({
         success: false,
@@ -16,14 +22,14 @@ export async function getUserPlants(req: AuthenticatedRequest, res: Response) {
       return;
     }
 
-    console.log(`getUserPlants: Fetching plants for user ${req.user.userId} in tenant ${req.tenantId}`);
+    console.log(`[getUserPlants] Fetching plants for user ${req.user.userId} in tenant ${req.tenantId}`);
 
     const plants = await TenantService.getUserPlants(req.user.userId, req.tenantId);
 
-    console.log(`getUserPlants: Found ${plants.length} plants for user ${req.user.userId}`);
-
+    console.log(`[getUserPlants] API returning ${plants.length} plants`);
+    
     if (!plants || plants.length === 0) {
-      console.warn(`getUserPlants: No plants found for user ${req.user.userId} in tenant ${req.tenantId}`);
+      console.warn(`[getUserPlants] Warning: No plants found for user ${req.user.userId} in tenant ${req.tenantId}`);
     }
 
     res.json({
