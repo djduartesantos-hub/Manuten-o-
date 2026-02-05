@@ -1,13 +1,13 @@
 databases:
   - name: cmms-database
-    plan: starter
+    plan: free
 
 services:
   # Web Service (Backend + Frontend)
   - type: web
     name: cmms-enterprise
     env: docker
-    plan: starter
+    plan: free
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
     
