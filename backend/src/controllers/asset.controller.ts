@@ -26,10 +26,24 @@ export class AssetController {
       });
 
       if (!tenantId || !plantId) {
-        logger.warn('Missing tenantId or plantId:', { tenantId, plantId });
+        logger.warn('Missing tenantId or plantId:', {
+          tenantId,
+          plantId,
+          params: req.params,
+          user: {
+            tenantId: req.user?.tenantId,
+            role: req.user?.role,
+            plantIds: req.user?.plantIds,
+          },
+        });
         res.status(400).json({
           success: false,
           error: 'Plant ID is required',
+          details: {
+            tenantId: !!tenantId,
+            plantId: !!plantId,
+            paramPlantId: req.params.plantId,
+          },
         });
         return;
       }

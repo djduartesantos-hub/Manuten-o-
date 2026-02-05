@@ -23,7 +23,10 @@ export function AssetsPage() {
 
   useEffect(() => {
     const loadAssets = async () => {
-      if (!selectedPlant) return;
+      if (!selectedPlant || !selectedPlant.trim()) {
+        setAssets([]);
+        return;
+      }
       setLoading(true);
       setError(null);
       try {

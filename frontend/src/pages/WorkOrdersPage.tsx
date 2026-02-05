@@ -139,7 +139,7 @@ export function WorkOrdersPage() {
   );
 
   const loadData = async () => {
-    if (!selectedPlant) return;
+    if (!selectedPlant || !selectedPlant.trim()) return;
     setLoading(true);
     setError(null);
     try {

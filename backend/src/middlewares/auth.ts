@@ -109,8 +109,8 @@ export function plantMiddleware(
 ): void {
   const { plantId } = req.params;
 
-  if (!plantId) {
-    // No plantId in params, continue without restriction
+  // If no plantId in params, this is fine - some routes don't need it
+  if (!plantId || plantId.trim() === '') {
     return next();
   }
 

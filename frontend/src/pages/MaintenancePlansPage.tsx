@@ -47,9 +47,14 @@ export function MaintenancePlansPage() {
     setLoading(true);
     setError(null);
     try {
+      // Only load assets if selectedPlant is valid
+      const assetsPromise = selectedPlant && selectedPlant.trim() 
+        ? getAssets(selectedPlant)
+        : Promise.resolve([]);
+      
       const [plansData, assetsData] = await Promise.all([
         getMaintenancePlans(),
-        selectedPlant ? getAssets(selectedPlant) : Promise.resolve([]),
+        assetsPromise,
       ]);
       setPlans(plansData || []);
       setAssets(assetsData || []);

@@ -70,20 +70,30 @@ interface AppState {
   setPlants: (plants: Plant[]) => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
-  selectedTenant: localStorage.getItem('selectedTenant'),
-  selectedPlant: localStorage.getItem('selectedPlant'),
-  plants: [],
+export const useAppStore = create<AppState>((set) => {
+  // Safely retrieve and validate stored values
+  const storedTenant = localStorage.getItem('selectedTenant');
+  const storedPlant = localStorage.getItem('selectedPlant');
+  
+  // Filter out null-like strings and empty values
+  const selectedTenant = storedTenant && storedTenant !== 'null' && storedTenant !== 'undefined' ? storedTenant : null;
+  const selectedPlant = storedPlant && storedPlant !== 'null' && storedPlant !== 'undefined' ? storedPlant : null;
+  
+  return {
+    selectedTenant,
+    selectedPlant,
+    plants: [],
 
-  setSelectedTenant: (tenantId) => {
-    localStorage.setItem('selectedTenant', tenantId);
-    set({ selectedTenant: tenantId });
-  },
+    setSelectedTenant: (tenantId) => {
+      localStorage.setItem('selectedTenant', tenantId);
+      set({ selectedTenant: tenantId });
+    },
 
-  setSelectedPlant: (plantId) => {
-    localStorage.setItem('selectedPlant', plantId);
-    set({ selectedPlant: plantId });
-  },
+    setSelectedPlant: (plantId) => {
+      localStorage.setItem('selectedPlant', plantId);
+      set({ selectedPlant: plantId });
+    },
 
-  setPlants: (plants) => set({ plants }),
-}));
+    setPlants: (plants) => set({ plants }),
+  };
+});
