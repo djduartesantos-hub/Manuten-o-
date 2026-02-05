@@ -44,7 +44,9 @@ CREATE TYPE stock_movement_type AS ENUM ('entrada', 'saida', 'ajuste');
 -- 4. CORE TABLES
 -- ========================================
 
--- Tenants (Empresas)
+-- Tenants (Empresas) - DISABLED FOR SINGLE-TENANT MODE
+-- Uncomment this table to enable multi-tenant support
+/*
 CREATE TABLE tenants (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
@@ -59,11 +61,12 @@ CREATE TABLE tenants (
 );
 
 CREATE INDEX tenants_slug_idx ON tenants(slug);
+*/
 
 -- Plants (Fábricas)
 CREATE TABLE plants (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
   name TEXT NOT NULL,
   code TEXT NOT NULL,
   address TEXT,
@@ -84,7 +87,7 @@ CREATE INDEX plants_tenant_code_idx ON plants(tenant_id, code);
 -- Users
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
   email TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   first_name TEXT NOT NULL,
@@ -116,7 +119,7 @@ CREATE INDEX user_plants_user_plant_idx ON user_plants(user_id, plant_id);
 -- Asset Categories
 CREATE TABLE asset_categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
   name TEXT NOT NULL,
   description TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
@@ -128,7 +131,7 @@ CREATE INDEX asset_categories_tenant_id_idx ON asset_categories(tenant_id);
 -- Assets (Equipamentos)
 CREATE TABLE assets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
   plant_id UUID NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
   category_id UUID NOT NULL REFERENCES asset_categories(id) ON DELETE RESTRICT,
   name TEXT NOT NULL,
@@ -161,7 +164,7 @@ CREATE INDEX assets_plant_code_idx ON assets(plant_id, code);
 -- Maintenance Plans
 CREATE TABLE maintenance_plans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
   asset_id UUID NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT,
@@ -180,7 +183,7 @@ CREATE INDEX maintenance_plans_tenant_id_idx ON maintenance_plans(tenant_id);
 -- Maintenance Tasks (Checklists)
 CREATE TABLE maintenance_tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
   plan_id UUID NOT NULL REFERENCES maintenance_plans(id) ON DELETE CASCADE,
   description TEXT NOT NULL,
   sequence INTEGER DEFAULT 0,
@@ -192,7 +195,7 @@ CREATE INDEX maintenance_tasks_plan_id_idx ON maintenance_tasks(plan_id);
 -- Work Orders
 CREATE TABLE work_orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
   plant_id UUID NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
   asset_id UUID NOT NULL REFERENCES assets(id) ON DELETE RESTRICT,
   plan_id UUID REFERENCES maintenance_plans(id) ON DELETE SET NULL,
@@ -239,7 +242,7 @@ CREATE INDEX work_order_tasks_work_order_id_idx ON work_order_tasks(work_order_i
 -- Suppliers
 CREATE TABLE suppliers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
   name TEXT NOT NULL,
   email TEXT,
   phone TEXT,
@@ -255,7 +258,7 @@ CREATE INDEX suppliers_tenant_id_idx ON suppliers(tenant_id);
 -- Spare Parts
 CREATE TABLE spare_parts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
   code TEXT NOT NULL,
   name TEXT NOT NULL,
   description TEXT,
@@ -272,7 +275,7 @@ CREATE INDEX spare_parts_tenant_code_idx ON spare_parts(tenant_id, code);
 -- Stock Movements
 CREATE TABLE stock_movements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
   plant_id UUID NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
   spare_part_id UUID NOT NULL REFERENCES spare_parts(id) ON DELETE RESTRICT,
   work_order_id UUID REFERENCES work_orders(id) ON DELETE SET NULL,
@@ -294,7 +297,7 @@ CREATE INDEX stock_movements_plant_id_idx ON stock_movements(plant_id);
 
 CREATE TABLE meter_readings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
   asset_id UUID NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
   reading_value DECIMAL(15, 2) NOT NULL,
   reading_date TIMESTAMPTZ DEFAULT NOW() NOT NULL,
@@ -312,7 +315,7 @@ CREATE INDEX meter_readings_tenant_id_idx ON meter_readings(tenant_id);
 
 CREATE TABLE attachments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
   work_order_id UUID NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
   file_url TEXT NOT NULL,
   file_name TEXT NOT NULL,
@@ -331,7 +334,7 @@ CREATE INDEX attachments_tenant_id_idx ON attachments(tenant_id);
 
 CREATE TABLE audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
   user_id UUID NOT NULL REFERENCES users(id),
   action TEXT NOT NULL,
   entity_type TEXT NOT NULL,
@@ -351,7 +354,7 @@ CREATE INDEX audit_logs_user_id_idx ON audit_logs(user_id);
 
 CREATE TABLE sla_rules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
   priority priority NOT NULL,
   response_time_hours INTEGER NOT NULL,
   resolution_time_hours INTEGER NOT NULL,
@@ -363,21 +366,15 @@ CREATE TABLE sla_rules (
 CREATE INDEX sla_rules_tenant_id_idx ON sla_rules(tenant_id);
 
 -- ========================================
--- 11. SEED DATA (Demo)
+-- 11. INITIAL SETUP DATA
 -- ========================================
+-- Creates minimum required data to login and access the application
+-- Use the Setup page in the app to add demo data later
 
--- Insert demo tenant
-INSERT INTO tenants (id, name, slug, description, subscription_plan, is_active)
-VALUES (
-  '550e8400-e29b-41d4-a716-446655440000',
-  'CMMS Enterprise Demo',
-  'cmms-demo',
-  'Demo tenant for CMMS Enterprise',
-  'enterprise',
-  TRUE
-) ON CONFLICT DO NOTHING;
+-- Note: In single-tenant mode, no tenants table exists
+-- The tenant_id '550e8400-e29b-41d4-a716-446655440000' is used as default
 
--- Insert demo plant
+-- Insert initial plant (required for app to function)
 INSERT INTO plants (id, tenant_id, name, code, address, city, country, is_active)
 VALUES (
   '550e8400-e29b-41d4-a716-446655440001',
@@ -390,16 +387,9 @@ VALUES (
   TRUE
 ) ON CONFLICT DO NOTHING;
 
--- Insert demo asset category
-INSERT INTO asset_categories (id, tenant_id, name, description)
-VALUES (
-  '550e8400-e29b-41d4-a716-446655440002',
-  '550e8400-e29b-41d4-a716-446655440000',
-  'Equipamento Pesado',
-  'Equipamentos de grande porte'
-) ON CONFLICT DO NOTHING;
-
--- Insert demo admin user (password: Admin@123456 hashed)
+-- Insert superadmin user (REQUIRED FOR INITIAL LOGIN)
+-- Email: admin@cmms.com
+-- Password: Admin@123456
 INSERT INTO users (
   id, tenant_id, email, password_hash, first_name, last_name, role, is_active
 ) VALUES (
@@ -408,79 +398,39 @@ INSERT INTO users (
   'admin@cmms.com',
   '$2b$10$n9J3.iMXsL/TtdN1eUyEqu3DKXWXVh/D.5hRKKf1qf8uKKJgfOJly',
   'Admin',
-  'CMMS',
+  'Sistema',
   'superadmin',
   TRUE
 ) ON CONFLICT DO NOTHING;
 
--- Insert demo assets
-INSERT INTO assets (
-  id, tenant_id, plant_id, category_id, name, code, model, manufacturer, 
-  serial_number, location, status, meter_type, is_critical
-) VALUES
-  (
-    '550e8400-e29b-41d4-a716-446655440004',
-    '550e8400-e29b-41d4-a716-446655440000',
-    '550e8400-e29b-41d4-a716-446655440001',
-    '550e8400-e29b-41d4-a716-446655440002',
-    'Equipamento 1',
-    'ASSET-001',
-    'Model-X1',
-    'TechMakers Inc',
-    'SN-00001',
-    'Seção 1',
-    'operacional',
-    'hours',
-    TRUE
-  ),
-  (
-    '550e8400-e29b-41d4-a716-446655440005',
-    '550e8400-e29b-41d4-a716-446655440000',
-    '550e8400-e29b-41d4-a716-446655440001',
-    '550e8400-e29b-41d4-a716-446655440002',
-    'Equipamento 2',
-    'ASSET-002',
-    'Model-X2',
-    'TechMakers Inc',
-    'SN-00002',
-    'Seção 2',
-    'operacional',
-    'hours',
-    FALSE
-  ),
-  (
-    '550e8400-e29b-41d4-a716-446655440006',
-    '550e8400-e29b-41d4-a716-446655440000',
-    '550e8400-e29b-41d4-a716-446655440001',
-    '550e8400-e29b-41d4-a716-446655440002',
-    'Equipamento 3',
-    'ASSET-003',
-    'Model-X3',
-    'TechMakers Inc',
-    'SN-00003',
-    'Seção 3',
-    'operacional',
-    'hours',
-    FALSE
-  )
-ON CONFLICT DO NOTHING;
+-- Link superadmin to plant
+INSERT INTO user_plants (id, user_id, plant_id)
+VALUES (
+  '550e8400-e29b-41d4-a716-446655440100',
+  '550e8400-e29b-41d4-a716-446655440003',
+  '550e8400-e29b-41d4-a716-446655440001'
+) ON CONFLICT DO NOTHING;
 
 -- ========================================
 -- 12. VERIFY SETUP
 -- ========================================
 
-SELECT 'Tenants' AS table_name, COUNT(*) AS row_count FROM tenants
+SELECT 'Plants' AS table_name, COUNT(*) AS row_count FROM plants
 UNION ALL
-SELECT 'Plants', COUNT(*) FROM plants
-UNION ALL
-SELECT 'Users', COUNT(*) FROM users
-UNION ALL
-SELECT 'Assets', COUNT(*) FROM assets
-UNION ALL
-SELECT 'Asset Categories', COUNT(*) FROM asset_categories;
+SELECT 'Users', COUNT(*) FROM users;
 
 -- ========================================
 -- SUCCESS MESSAGE
 -- ========================================
--- If you see the above results without errors, the database setup is complete!
--- Admin user credentials: admin@cmms.com / Admin@123456
+-- Database setup complete!
+-- 
+-- ✅ You can now login with:
+--    Email:    admin@cmms.com
+--    Password: Admin@123456
+--
+-- 📋 Next steps:
+--    1. Start the backend:  cd backend && npm run dev
+--    2. Start the frontend: cd frontend && npm run dev
+--    3. Login at: http://localhost:5173
+--    4. Go to: 🔧 Setup BD (in menu) to add demo data
+--

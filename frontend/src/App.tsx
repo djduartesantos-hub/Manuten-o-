@@ -19,6 +19,7 @@ import { SparePartsPage } from './pages/SparePartsPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SearchPage } from './pages/SearchPage';
+import { AdminSetupPage } from './pages/AdminSetupPage';
 
 import './index.css';
 
@@ -135,6 +136,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <SearchPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin/setup"
+              element={
+                <ProtectedRoute>
+                  <AdminSetupPage />
                 </ProtectedRoute>
               }
             />

@@ -3,36 +3,26 @@ import { AuthenticatedRequest } from '../types';
 import { AuthService } from '../services/auth.service';
 import { generateToken, generateRefreshToken } from '../auth/jwt';
 import { logger } from '../config/logger';
+import { DEFAULT_TENANT_ID } from '../config/constants';
 
 export class AuthController {
   static async login(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const { email, password, tenant_id, tenant_slug } = req.body;
+      const { email, password } = req.body;
 
-      if (!email || !password || (!tenant_id && !tenant_slug)) {
+      if (!email || !password) {
         res.status(400).json({
           success: false,
-          error: 'Email, password and tenant_id or tenant_slug are required',
+          error: 'Email and password are required',
         });
         return;
       }
 
-      let resolvedTenantId = tenant_id;
-
-      if (!resolvedTenantId && tenant_slug) {
-        const tenant = await AuthService.findTenantBySlug(tenant_slug);
-        if (!tenant) {
-          res.status(400).json({
-            success: false,
-            error: 'Tenant not found for provided tenant_slug',
-          });
-          return;
-        }
-        resolvedTenantId = tenant.id;
-      }
+      // Use default tenant ID for demo
+      const defaultTenantId = DEFAULT_TENANT_ID;
 
       const user = await AuthService.validateCredentials(
-        resolvedTenantId as string,
+        defaultTenantId,
         email,
         password,
       );

@@ -1,7 +1,6 @@
 import { db } from '../config/database';
 import bcrypt from 'bcrypt';
 import {
-  tenants,
   plants,
   users,
   assetCategories,
@@ -12,30 +11,21 @@ import {
   spareParts,
   stockMovements,
 } from './schema';
+import { DEFAULT_TENANT_ID } from '../config/constants';
 import { v4 as uuidv4 } from 'uuid';
 
 async function seed() {
   console.log('🌱 Starting database seed...');
 
   try {
-    // Create default tenant
-    const tenantId = uuidv4();
+    // Use default tenant ID (single-tenant mode)
+    const tenantId = DEFAULT_TENANT_ID;
     const adminId = uuidv4();
     const technicianId = uuidv4();
     const plantId = uuidv4();
     const categoryId = uuidv4();
 
-    // Insert tenant
-    await db.insert(tenants).values({
-      id: tenantId,
-      name: 'CMMS Enterprise Demo',
-      slug: 'cmms-demo',
-      description: 'Demo tenant for CMMS Enterprise',
-      subscription_plan: 'enterprise',
-      is_active: true,
-    });
-
-    console.log('✅ Tenant created');
+    console.log('ℹ️  Using default tenant ID:', tenantId);
 
     // Insert plant
     await db.insert(plants).values({
@@ -198,7 +188,6 @@ async function seed() {
     console.log('🎉 Database seed completed successfully!');
     console.log('');
     console.log('📊 Demo data loaded:');
-    console.log('   Tenant: CMMS Enterprise Demo');
     console.log('   Plant: Fábrica Principal');
     console.log('   Users: Admin + Technician');
     console.log('   Assets: 5 items');

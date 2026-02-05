@@ -13,10 +13,8 @@ export class AuthService {
   }
 
   static async findTenantBySlug(slug: string) {
-    const tenant = await db.query.tenants.findFirst({
-      where: (fields: any) => eq(fields.slug, slug),
-    });
-    return tenant;
+    // Removed tenant lookup - using default tenant
+    return null;
   }
 
   static async findUserById(userId: string) {

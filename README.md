@@ -29,6 +29,27 @@ Ao nível de: **Infraspeak**, **ManWinWin**, **Fracttal One**
 
 ---
 
+## 🐧 Setup Rápido Linux/macOS
+
+**Instalação em 3 comandos:**
+
+```bash
+# 1. Setup automático da base de dados (cria superadmin)
+./scripts/setup/quick-setup.sh
+
+# 2. Iniciar backend
+cd backend && npm install && npm run dev
+
+# 3. Iniciar frontend
+cd frontend && npm install && npm run dev
+```
+
+✅ **Login:** `admin@cmms.com` / `Admin@123456`  
+📋 **Adicionar dados demo:** Menu `🔧 Setup BD` após login  
+📖 [**QUICK_START.md**](./QUICK_START.md) - Guia detalhado
+
+---
+
 ## 📋 Índice Rápido
 
 - [Visão Geral](#visão-geral)

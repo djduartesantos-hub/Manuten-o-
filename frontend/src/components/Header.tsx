@@ -31,6 +31,9 @@ export function Header() {
     { label: 'Peças', href: '/spare-parts', active: location.pathname === '/spare-parts' },
     { label: 'Relatórios', href: '/reports', active: location.pathname === '/reports' },
     { label: 'Configurações', href: '/settings', active: location.pathname === '/settings' },
+    ...(user?.role === 'superadmin'
+      ? [{ label: '🔧 Setup BD', href: '/admin/setup', active: location.pathname === '/admin/setup' }]
+      : []),
   ];
 
   const handleLogout = () => {

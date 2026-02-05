@@ -10,6 +10,7 @@ import sparePartRoutes from './routes/sparepart.routes';
 import alertRoutes from './routes/alert.routes';
 import searchRoutes from './routes/search.routes';
 import jobsRoutes from './routes/jobs.routes';
+import setupRoutes from './routes/setup.routes';
 import { errorHandler, notFoundHandler, requestLogger } from './middlewares/error';
 
 export function createApp(): Express {
@@ -37,6 +38,7 @@ export function createApp(): Express {
   app.use('/api/alerts', alertRoutes);
   app.use('/api/search', searchRoutes);
   app.use('/api/jobs', jobsRoutes);
+  app.use('/api/setup', setupRoutes);
 
   // Health check
   app.get('/health', (_req, res) => {

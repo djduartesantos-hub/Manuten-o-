@@ -35,7 +35,9 @@ export const stockMovementTypeEnum = pgEnum('stock_movement_type', [
   'ajuste',
 ]);
 
-// Tenants (Empresas)
+// Tenants (Empresas) - DISABLED FOR DEMO
+// To enable multi-tenant support, uncomment this table definition
+/*
 export const tenants = pgTable(
   'tenants',
   {
@@ -54,6 +56,12 @@ export const tenants = pgTable(
     slugIdx: uniqueIndex('tenants_slug_idx').on(table.slug),
   }),
 );
+*/
+
+// Placeholder for tenants table - allows foreign keys to exist
+const tenants = {
+  id: null,
+};
 
 // Plants (Fábricas)
 export const plants = pgTable(
@@ -482,7 +490,8 @@ export const slaRules = pgTable(
   }),
 );
 
-// Relations
+// Relations - COMMENTED OUT: tenant references disabled
+/*
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   plants: many(plants),
   users: many(users),
@@ -537,6 +546,62 @@ export const workOrdersRelations = relations(workOrders, ({ one, many }) => ({
     fields: [workOrders.tenant_id],
     references: [tenants.id],
   }),
+  plant: one(plants, {
+    fields: [workOrders.plant_id],
+    references: [plants.id],
+  }),
+  asset: one(assets, {
+    fields: [workOrders.asset_id],
+    references: [assets.id],
+  }),
+  assignedUser: one(users, {
+    fields: [workOrders.assigned_to],
+    references: [users.id],
+    relationName: 'assignedTo',
+  }),
+  createdByUser: one(users, {
+    fields: [workOrders.created_by],
+    references: [users.id],
+    relationName: 'createdBy',
+  }),
+  tasks: many(workOrderTasks),
+  attachments: many(attachments),
+  stockMovements: many(stockMovements),
+}));
+*/
+
+// Basic relations without tenant references
+export const plantsRelations = relations(plants, ({ one, many }) => ({
+  assets: many(assets),
+  userPlants: many(userPlants),
+  workOrders: many(workOrders),
+}));
+
+export const usersRelations = relations(users, ({ one, many }) => ({
+  userPlants: many(userPlants),
+  createdWorkOrders: many(workOrders, {
+    relationName: 'createdBy',
+  }),
+  assignedWorkOrders: many(workOrders, {
+    relationName: 'assignedTo',
+  }),
+}));
+
+export const assetsRelations = relations(assets, ({ one, many }) => ({
+  plant: one(plants, {
+    fields: [assets.plant_id],
+    references: [plants.id],
+  }),
+  category: one(assetCategories, {
+    fields: [assets.category_id],
+    references: [assetCategories.id],
+  }),
+  maintenancePlans: many(maintenancePlans),
+  workOrders: many(workOrders),
+  meterReadings: many(meterReadings),
+}));
+
+export const workOrdersRelations = relations(workOrders, ({ one, many }) => ({
   plant: one(plants, {
     fields: [workOrders.plant_id],
     references: [plants.id],
@@ -670,7 +735,8 @@ export const assetDocumentVersions = pgTable(
   }),
 );
 
-// Relations for Alert Configurations
+// Relations for Alert Configurations - COMMENTED OUT: tenant references disabled
+/*
 export const alertConfigurationsRelations = relations(alertConfigurations, ({ one, many }) => ({
   tenant: one(tenants, {
     fields: [alertConfigurations.tenant_id],
@@ -709,6 +775,45 @@ export const assetDocumentsRelations = relations(assetDocuments, ({ one, many })
     fields: [assetDocuments.tenant_id],
     references: [tenants.id],
   }),
+  asset: one(assets, {
+    fields: [assetDocuments.asset_id],
+    references: [assets.id],
+  }),
+  uploadedByUser: one(users, {
+    fields: [assetDocuments.uploaded_by],
+    references: [users.id],
+  }),
+  versions: many(assetDocumentVersions),
+}));
+*/
+
+// Basic Alert Relations
+export const alertConfigurationsRelations = relations(alertConfigurations, ({ one, many }) => ({
+  asset: one(assets, {
+    fields: [alertConfigurations.asset_id],
+    references: [assets.id],
+  }),
+  alerts: many(alertsHistory),
+}));
+
+// Basic Alert History Relations
+export const alertsHistoryRelations = relations(alertsHistory, ({ one }) => ({
+  asset: one(assets, {
+    fields: [alertsHistory.asset_id],
+    references: [assets.id],
+  }),
+  alertConfig: one(alertConfigurations, {
+    fields: [alertsHistory.alert_config_id],
+    references: [alertConfigurations.id],
+  }),
+  resolvedBy: one(users, {
+    fields: [alertsHistory.resolved_by],
+    references: [users.id],
+  }),
+}));
+
+// Basic Asset Documents Relations
+export const assetDocumentsRelations = relations(assetDocuments, ({ one, many }) => ({
   asset: one(assets, {
     fields: [assetDocuments.asset_id],
     references: [assets.id],

@@ -46,16 +46,16 @@ export async function apiCall<T = any>(
 export async function login(
   email: string,
   password: string,
-  tenant: string,
+  tenant?: string, // Optional now, ignored since we use default tenant
 ): Promise<{
   token: string;
   refreshToken: string;
   user: any;
 }> {
-  // Sends tenant as tenant_slug for convenience (backend also accepts tenant_id)
+  // Sends only email and password - backend uses default tenant
   return apiCall('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password, tenant_slug: tenant }),
+    body: JSON.stringify({ email, password }),
   });
 }
 

@@ -9,10 +9,6 @@ export function LoginPage() {
   const { setAuth } = useAuth();
   const [email, setEmail] = React.useState('admin@cmms.com');
   const [password, setPassword] = React.useState('Admin@123456');
-  const [tenantSlug, setTenantSlug] = React.useState(() => {
-    // Load saved tenant_slug from localStorage, default to cmms-demo
-    return localStorage.getItem('lastTenantSlug') || 'cmms-demo';
-  });
   const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
@@ -23,9 +19,7 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await apiLogin(email, password, tenantSlug);
-      // Save tenant_slug for next login
-      localStorage.setItem('lastTenantSlug', tenantSlug);
+      const result = await apiLogin(email, password);
       setAuth(result.user, result.token, result.refreshToken);
       navigate('/dashboard');
     } catch (err) {
@@ -59,23 +53,6 @@ export function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Tenant (slug) */}
-            <div>
-              <label htmlFor="tenantSlug" className="block text-sm font-medium text-gray-700 mb-1">
-                Empresa (slug)
-              </label>
-              <input
-                id="tenantSlug"
-                type="text"
-                value={tenantSlug}
-                onChange={(e) => setTenantSlug(e.target.value)}
-                placeholder="cmms-demo"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent"
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">Use: <code className="bg-white px-1 rounded">cmms-demo</code> (para demo)</p>
-            </div>
-
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -129,7 +106,6 @@ export function LoginPage() {
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-900 font-medium mb-2">Credenciais de Demo:</p>
             <ul className="text-xs text-blue-800 space-y-1">
-              <li>• Empresa (ID): <code className="bg-white px-1 rounded">cmms-demo</code></li>
               <li>• Email: <code className="bg-white px-1 rounded">admin@cmms.com</code></li>
               <li>• Senha: <code className="bg-white px-1 rounded">Admin@123456</code></li>
             </ul>
