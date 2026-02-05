@@ -56,9 +56,11 @@ function App() {
         }
         
         setPlants(plants);
-        
-        // Only auto-select if no plant is currently selected
-        if (!selectedPlant) {
+
+        const hasSelectedPlant = !!selectedPlant && plants.some((plant) => plant.id === selectedPlant);
+
+        // Auto-select first plant if none selected or stored selection is invalid
+        if (!hasSelectedPlant) {
           console.log('Auto-selecting first plant:', plants[0].id);
           setSelectedPlant(plants[0].id);
         }
