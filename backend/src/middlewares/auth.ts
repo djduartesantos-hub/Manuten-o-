@@ -109,12 +109,18 @@ export function plantMiddleware(
 ): void {
   const { plantId } = req.params;
 
+  console.log('[plantMiddleware] Request received');
+  console.log(`  plantId from params: ${plantId}`);
+  console.log(`  req.user: ${JSON.stringify(req.user)}`);
+
   // If no plantId in params, this is fine - some routes don't need it
   if (!plantId || plantId.trim() === '') {
+    console.log('[plantMiddleware] No plantId in params, skipping');
     return next();
   }
 
   if (!req.user) {
+    console.error('[plantMiddleware] No user in request');
     res.status(401).json({
       success: false,
       error: 'Not authenticated',
@@ -124,18 +130,21 @@ export function plantMiddleware(
 
   // SuperAdmin can access any plant
   if (req.user.role === 'superadmin') {
+    console.log('[plantMiddleware] User is superadmin, granting access');
     req.plantId = plantId;
     return next();
   }
 
   // admin_empresa can access any plant in their tenant
   if (req.user.role === 'admin_empresa') {
+    console.log('[plantMiddleware] User is admin_empresa, granting access');
     req.plantId = plantId;
     return next();
   }
 
   // For other roles, check if they have explicit access via plantIds
   if (req.user.plantIds && req.user.plantIds.length > 0 && req.user.plantIds.includes(plantId)) {
+    console.log('[plantMiddleware] User has explicit access to plantId');
     req.plantId = plantId;
     return next();
   }
@@ -146,11 +155,17 @@ export function plantMiddleware(
   if (validRoles.includes(req.user.role) && (!req.user.plantIds || req.user.plantIds.length === 0)) {
     // User has a valid role but no explicit plant assignments
     // This might be OK in single-tenant mode where all users can access all plants
+    console.log('[plantMiddleware] User has valid role without plantIds - granting access (single-tenant mode)');
     req.plantId = plantId;
     return next();
   }
 
   // Deny access if no specific permission found
+  console.error('[plantMiddleware] Access denied', {
+    userRole: req.user.role,
+    userPlantIds: req.user.plantIds,
+    requestedPlantId: plantId,
+  });
   res.status(403).json({
     success: false,
     error: 'Access denied to this plant',
