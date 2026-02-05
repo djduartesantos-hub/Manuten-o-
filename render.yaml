@@ -4,7 +4,6 @@ services:
     name: cmms-database
     plan: starter
     region: frankfurt
-    ipAllowList: []
 
   # Web Service (Backend + Frontend)
   - type: web
