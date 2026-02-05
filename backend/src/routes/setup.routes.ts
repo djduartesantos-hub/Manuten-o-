@@ -6,19 +6,16 @@ const router = Router();
 
 // POST /api/setup/initialize - Initialize DB with admin user (NO AUTH REQUIRED)
 // This endpoint is only accessible when the database is empty
+// Must be defined BEFORE authMiddleware
 router.post('/initialize', SetupController.initialize);
 
-// All other setup routes require authentication and superadmin role
-router.use(authMiddleware);
-router.use(requireRole('superadmin'));
+// GET /api/setup/status - Check database status (requires auth)
+router.get('/status', authMiddleware, requireRole('superadmin'), SetupController.checkStatus);
 
-// GET /api/setup/status - Check database status
-router.get('/status', SetupController.checkStatus);
+// POST /api/setup/seed - Seed demo data (requires auth)
+router.post('/seed', authMiddleware, requireRole('superadmin'), SetupController.seedDemoData);
 
-// POST /api/setup/seed - Seed demo data
-router.post('/seed', SetupController.seedDemoData);
-
-// POST /api/setup/clear - Clear all data (dangerous!)
-router.post('/clear', SetupController.clearData);
+// POST /api/setup/clear - Clear all data (dangerous!) (requires auth)
+router.post('/clear', authMiddleware, requireRole('superadmin'), SetupController.clearData);
 
 export default router;
