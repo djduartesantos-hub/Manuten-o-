@@ -204,3 +204,23 @@ export async function searchAll(
 
   return apiCall(`/search?${params.toString()}`);
 }
+
+// ============================================================================
+// SETUP ENDPOINTS (for database initialization)
+// ============================================================================
+
+export async function getSetupStatus() {
+  return apiCall('/setup/status');
+}
+
+export async function seedDemoData() {
+  return apiCall('/setup/seed', {
+    method: 'POST',
+  });
+}
+
+export async function clearAllData() {
+  return apiCall('/setup/clear', {
+    method: 'POST',
+  });
+}

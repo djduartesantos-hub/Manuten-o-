@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Database, AlertCircle, CheckCircle, Trash2, RefreshCw, Server } from 'lucide-react';
+import { getSetupStatus, seedDemoData, clearAllData } from '../services/api';
 
 interface DatabaseStatus {
   connected: boolean;
@@ -21,23 +22,13 @@ export function AdminSetupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const token = localStorage.getItem('token');
 
   const fetchStatus = async () => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('http://localhost:3000/api/setup/status', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setStatus(data.data);
-      } else {
-        setError(data.error || 'Failed to fetch database status');
-      }
+      const data = await getSetupStatus();
+      setStatus(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Connection failed');
     } finally {
@@ -55,20 +46,9 @@ export function AdminSetupPage() {
     setSuccess('');
     
     try {
-      const response = await fetch('http://localhost:3000/api/setup/seed', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        setSuccess('Dados demonstrativos adicionados com sucesso!');
-        await fetchStatus();
-      } else {
-        setError(data.error || 'Failed to seed data');
-      }
+      await seedDemoData();
+      setSuccess('Dados demonstrativos adicionados com sucesso!');
+      await fetchStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to seed data');
     } finally {
@@ -90,20 +70,9 @@ export function AdminSetupPage() {
     setSuccess('');
     
     try {
-      const response = await fetch('http://localhost:3000/api/setup/clear', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        setSuccess('Todos os dados foram apagados com sucesso!');
-        await fetchStatus();
-      } else {
-        setError(data.error || 'Failed to clear data');
-      }
+      await clearAllData();
+      setSuccess('Todos os dados foram apagados com sucesso!');
+      await fetchStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to clear data');
     } finally {
