@@ -1,12 +1,12 @@
 import 'dotenv/config';
 import http from 'http';
-import { createApp } from './app';
-import { initDatabase } from './config/database';
-import { logger } from './config/logger';
-import { SocketManager } from './services/socket.manager';
-import { setSocketManager } from './utils/socket-instance';
-import { initJobProcessors } from './jobs/processors';
-import { ElasticsearchService } from './services/elasticsearch.service';
+import { createApp } from './app.js';
+import { initDatabase } from './config/database.js';
+import { logger } from './config/logger.js';
+import { SocketManager } from './services/socket.manager.js';
+import { setSocketManager } from './utils/socket-instance.js';
+import { initJobProcessors } from './jobs/processors.js';
+import { ElasticsearchService } from './services/elasticsearch.service.js';
 
 const PORT = process.env.PORT || 3000;
 
