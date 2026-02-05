@@ -12,7 +12,7 @@ export class AuthService {
     return user;
   }
 
-  static async findTenantBySlug(slug: string) {
+  static async findTenantBySlug(_slug: string) {
     // Removed tenant lookup - using default tenant
     return null;
   }

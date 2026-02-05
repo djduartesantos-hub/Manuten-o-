@@ -58,10 +58,9 @@ export const tenants = pgTable(
 );
 */
 
-// Placeholder for tenants table - allows foreign keys to exist
-const tenants = {
-  id: null,
-};
+// Tenants table commented out for single-tenant mode
+// Uncomment below to enable multi-tenant functionality:
+// export const tenants = pgTable('tenants', { ... });
 
 // Plants (Fábricas)
 export const plants = pgTable(
@@ -69,8 +68,7 @@ export const plants = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id, { onDelete: 'cascade' }),
+      .notNull(),
     name: text('name').notNull(),
     code: text('code').notNull(),
     address: text('address'),
@@ -95,8 +93,7 @@ export const users = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id, { onDelete: 'cascade' }),
+      .notNull(),
     email: text('email').notNull(),
     password_hash: text('password_hash').notNull(),
     first_name: text('first_name').notNull(),
@@ -139,14 +136,13 @@ export const assetCategories = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id, { onDelete: 'cascade' }),
+      .notNull(),
     name: text('name').notNull(),
     description: text('description'),
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
-      .notNull()
+      .notNull(),
   },
   (table) => ({
     tenantIdIdx: index('asset_categories_tenant_id_idx').on(table.tenant_id),
@@ -159,8 +155,7 @@ export const assets = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id, { onDelete: 'cascade' }),
+      .notNull(),
     plant_id: uuid('plant_id')
       .notNull()
       .references(() => plants.id, { onDelete: 'cascade' }),
@@ -197,8 +192,7 @@ export const maintenancePlans = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id, { onDelete: 'cascade' }),
+      .notNull(),
     asset_id: uuid('asset_id')
       .notNull()
       .references(() => assets.id, { onDelete: 'cascade' }),
@@ -212,7 +206,7 @@ export const maintenancePlans = pgTable(
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
-      .notNull()
+      .notNull(),
   },
   (table) => ({
     assetIdIdx: index('maintenance_plans_asset_id_idx').on(table.asset_id),
@@ -226,8 +220,7 @@ export const maintenanceTasks = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id, { onDelete: 'cascade' }),
+      .notNull(),
     plan_id: uuid('plan_id')
       .notNull()
       .references(() => maintenancePlans.id, { onDelete: 'cascade' }),
@@ -246,8 +239,7 @@ export const workOrders = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id, { onDelete: 'cascade' }),
+      .notNull(),
     plant_id: uuid('plant_id')
       .notNull()
       .references(() => plants.id, { onDelete: 'cascade' }),
@@ -277,7 +269,7 @@ export const workOrders = pgTable(
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
-      .notNull()
+      .notNull(),
   },
   (table) => ({
     tenantIdIdx: index('work_orders_tenant_id_idx').on(table.tenant_id),
@@ -315,8 +307,7 @@ export const spareParts = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id, { onDelete: 'cascade' }),
+      .notNull(),
     code: text('code').notNull(),
     name: text('name').notNull(),
     description: text('description'),
@@ -327,7 +318,7 @@ export const spareParts = pgTable(
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
-      .notNull()
+      .notNull(),
   },
   (table) => ({
     tenantIdIdx: index('spare_parts_tenant_id_idx').on(table.tenant_id),
@@ -341,8 +332,7 @@ export const stockMovements = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id, { onDelete: 'cascade' }),
+      .notNull(),
     plant_id: uuid('plant_id')
       .notNull()
       .references(() => plants.id, { onDelete: 'cascade' }),
@@ -374,8 +364,7 @@ export const suppliers = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id, { onDelete: 'cascade' }),
+      .notNull(),
     name: text('name').notNull(),
     email: text('email'),
     phone: text('phone'),
@@ -385,7 +374,7 @@ export const suppliers = pgTable(
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
-      .notNull()
+      .notNull(),
   },
   (table) => ({
     tenantIdIdx: index('suppliers_tenant_id_idx').on(table.tenant_id),
@@ -398,8 +387,7 @@ export const meterReadings = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id, { onDelete: 'cascade' }),
+      .notNull(),
     asset_id: uuid('asset_id')
       .notNull()
       .references(() => assets.id, { onDelete: 'cascade' }),
@@ -423,8 +411,7 @@ export const attachments = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id, { onDelete: 'cascade' }),
+      .notNull(),
     work_order_id: uuid('work_order_id')
       .notNull()
       .references(() => workOrders.id, { onDelete: 'cascade' }),
@@ -449,8 +436,7 @@ export const auditLogs = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id, { onDelete: 'cascade' }),
+      .notNull(),
     user_id: uuid('user_id')
       .notNull()
       .references(() => users.id),
@@ -474,8 +460,7 @@ export const slaRules = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id, { onDelete: 'cascade' }),
+      .notNull(),
     priority: priorityEnum('priority').notNull(),
     response_time_hours: integer('response_time_hours').notNull(),
     resolution_time_hours: integer('resolution_time_hours').notNull(),
@@ -483,7 +468,7 @@ export const slaRules = pgTable(
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
-      .notNull()
+      .notNull(),
   },
   (table) => ({
     tenantIdIdx: index('sla_rules_tenant_id_idx').on(table.tenant_id),
@@ -571,13 +556,13 @@ export const workOrdersRelations = relations(workOrders, ({ one, many }) => ({
 */
 
 // Basic relations without tenant references
-export const plantsRelations = relations(plants, ({ one, many }) => ({
+export const plantsRelations = relations(plants, ({ many }) => ({
   assets: many(assets),
   userPlants: many(userPlants),
   workOrders: many(workOrders),
 }));
 
-export const usersRelations = relations(users, ({ one, many }) => ({
+export const usersRelations = relations(users, ({ many }) => ({
   userPlants: many(userPlants),
   createdWorkOrders: many(workOrders, {
     relationName: 'createdBy',
@@ -630,8 +615,7 @@ export const alertConfigurations = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id, { onDelete: 'cascade' }),
+      .notNull(),
     asset_id: uuid('asset_id')
       .notNull()
       .references(() => assets.id, { onDelete: 'cascade' }),
@@ -659,8 +643,7 @@ export const alertsHistory = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id, { onDelete: 'cascade' }),
+      .notNull(),
     alert_config_id: uuid('alert_config_id')
       .notNull()
       .references(() => alertConfigurations.id, { onDelete: 'cascade' }),
@@ -688,8 +671,7 @@ export const assetDocuments = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
-      .notNull()
-      .references(() => tenants.id, { onDelete: 'cascade' }),
+      .notNull(),
     asset_id: uuid('asset_id')
       .notNull()
       .references(() => assets.id, { onDelete: 'cascade' }),
