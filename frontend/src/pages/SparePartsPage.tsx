@@ -58,7 +58,7 @@ export function SparePartsPage() {
     setError(null);
     try {
       const [partsData, movementsData] = await Promise.all([
-        getSpareParts(),
+        selectedPlant ? getSpareParts(selectedPlant) : Promise.resolve([]),
         selectedPlant ? getStockMovementsByPlant(selectedPlant) : Promise.resolve([]),
       ]);
       setParts(partsData || []);
@@ -84,7 +84,12 @@ export function SparePartsPage() {
     setCreating(true);
     setError(null);
     try {
-      await createSparePart({
+      if (!selectedPlant) {
+        setError('Selecione uma fábrica');
+        setCreating(false);
+        return;
+      }
+      await createSparePart(selectedPlant, {
         code: partForm.code,
         name: partForm.name,
         description: partForm.description || undefined,
@@ -114,9 +119,8 @@ export function SparePartsPage() {
     setCreating(true);
     setError(null);
     try {
-      await createStockMovement({
+      await createStockMovement(selectedPlant, {
         spare_part_id: movementForm.spare_part_id,
-        plant_id: selectedPlant,
         type: movementForm.type as any,
         quantity: Number(movementForm.quantity),
         unit_cost: movementForm.unit_cost || undefined,
