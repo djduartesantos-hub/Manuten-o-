@@ -1,5 +1,7 @@
 // API Configuration
-const API_BASE_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3000/api';
+// Use relative path for API calls - always works whether in dev or production
+// This ensures frontend requests go to the same origin
+const API_BASE_URL = '/api';
 
 interface ApiResponse<T = any> {
   success: boolean;
