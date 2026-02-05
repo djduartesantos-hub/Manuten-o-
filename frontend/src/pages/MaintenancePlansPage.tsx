@@ -46,15 +46,17 @@ export function MaintenancePlansPage() {
   const loadData = async () => {
     setLoading(true);
     setError(null);
+    
+    if (!selectedPlant || !selectedPlant.trim()) {
+      setError('Selecione uma fábrica para carregar os planos');
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Only load assets if selectedPlant is valid
-      const assetsPromise = selectedPlant && selectedPlant.trim() 
-        ? getAssets(selectedPlant)
-        : Promise.resolve([]);
-      
       const [plansData, assetsData] = await Promise.all([
-        getMaintenancePlans(),
-        assetsPromise,
+        getMaintenancePlans(selectedPlant),
+        getAssets(selectedPlant),
       ]);
       setPlans(plansData || []);
       setAssets(assetsData || []);
@@ -88,11 +90,16 @@ export function MaintenancePlansPage() {
       return;
     }
 
+    if (!selectedPlant) {
+      setError('Selecione uma fábrica primeiro');
+      return;
+    }
+
     setCreating(true);
     setError(null);
 
     try {
-      await createMaintenancePlan({
+      await createMaintenancePlan(selectedPlant, {
         ...form,
         frequency_value: Number(form.frequency_value),
         meter_threshold: form.meter_threshold || undefined,

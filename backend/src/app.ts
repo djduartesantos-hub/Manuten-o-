@@ -39,9 +39,9 @@ export function createApp(): Express {
   app.use('/api/tenants', tenantRoutes);
   app.use('/api/tenants', workOrderRoutes);
   app.use('/api/tenants', assetRoutes);
-  app.use('/api/dashboard', dashboardRoutes);
-  app.use('/api/maintenance', maintenanceRoutes);
-  app.use('/api/spareparts', sparePartRoutes);
+  app.use('/api/tenants', maintenanceRoutes);
+  app.use('/api/tenants', sparePartRoutes);
+  app.use('/api/tenants', dashboardRoutes);
   app.use('/api/alerts', alertRoutes);
   app.use('/api/search', searchRoutes);
   app.use('/api/jobs', jobsRoutes);

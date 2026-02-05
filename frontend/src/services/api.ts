@@ -121,34 +121,34 @@ export async function getAssets(plantId: string, search?: string) {
   return apiCall(`/tenants/${plantId}/assets${query ? `?${query}` : ''}`);
 }
 
-export async function getMaintenancePlans() {
-  return apiCall('/maintenance/plans');
+export async function getMaintenancePlans(plantId: string) {
+  return apiCall(`/tenants/${plantId}/plans`);
 }
 
-export async function createMaintenancePlan(data: any) {
-  return apiCall('/maintenance/plans', {
+export async function createMaintenancePlan(plantId: string, data: any) {
+  return apiCall(`/tenants/${plantId}/plans`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
-export async function getSpareParts() {
-  return apiCall('/spareparts');
+export async function getSpareParts(plantId: string) {
+  return apiCall(`/tenants/${plantId}/spareparts`);
 }
 
-export async function createSparePart(data: any) {
-  return apiCall('/spareparts', {
+export async function createSparePart(plantId: string, data: any) {
+  return apiCall(`/tenants/${plantId}/spareparts`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
 export async function getStockMovementsByPlant(plantId: string) {
-  return apiCall(`/spareparts/movements/plant/${plantId}`);
+  return apiCall(`/tenants/${plantId}/stock-movements/plant/${plantId}`);
 }
 
-export async function createStockMovement(data: any) {
-  return apiCall('/spareparts/movements', {
+export async function createStockMovement(plantId: string, data: any) {
+  return apiCall(`/tenants/${plantId}/stock-movements`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
