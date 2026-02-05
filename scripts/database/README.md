@@ -34,7 +34,14 @@ Files e documentação para setup e management de database.
   - Lista users, plants, assets, etc.
 
 - **fix-admin-plants.sql** - Script de correção
-  - Repara relações de plants para admin
+   - Repara relações de plants para admin
+ 
+ - **fix-user-plants.sql** - Correção de acesso às plantas 🆕
+   - Garante que todos os usuários ativos tenham acesso a plantas
+   - Corrige erro "Plant ID is required"
+   - Vincula usuários sem plantas à planta principal
+   - Idempotente (pode executar múltiplas vezes)
+   - Scripts automatizados: fix-user-plants.sh (Linux/Mac) e fix-user-plants.bat (Windows)
 
 ---
 
@@ -127,8 +134,20 @@ Se encontrar erros:
    - Verificar também: Todos os tenant_ids sejam iguais (`550e8400-e29b-41d4-a716-446655440000`)
 
 2. **"Plant ID is required"**
-   - Executar: demo-data.sql para garantir que os dados estão carregados
+   - **Solução principal:** Executar fix-user-plants.sql
+     ```bash
+     # Linux/Mac
+     ./fix-user-plants.sh
+     
+     # Windows  
+     fix-user-plants.bat
+     
+     # Ou manualmente
+     psql -U cmms_user -d cmms_enterprise -h localhost -f fix-user-plants.sql
+     ```
+   - **IMPORTANTE:** Após executar, fazer LOGOUT e LOGIN novamente para gerar novo token JWT
    - Verificar: plantIds no JWT token (deve incluir plant IDs)
+   - Confirmar: demo-data.sql foi executado
 
 3. **Assets não aparecem**
    - Confirmar que demo-data.sql foi executado
@@ -136,11 +155,12 @@ Se encontrar erros:
    - Verificar plant_id: `0fab0000-0000-0000-0000-000000000001`
 
 4. **User não vinculado à planta**
-   - Executar: fix-admin-plants.sql
-   - Ou verificar user_plants table: 
-   ```sql
-   SELECT * FROM user_plants WHERE user_id = '00000001-0000-0000-0000-000000000001';
-   ```
+  - **Solução moderna:** Executar fix-user-plants.sql (vincula todos os usuários)
+  - **Solução antiga:** Executar fix-admin-plants.sql (apenas admin)
+  - Verificar user_plants table: 
+  ```sql
+  SELECT * FROM user_plants WHERE user_id = '00000001-0000-0000-0000-000000000001';
+  ```
 
 5. Vê [`/docs/GUIDES/TROUBLESHOOTING.md`](../../docs/GUIDES/TROUBLESHOOTING.md)
 
