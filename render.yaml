@@ -1,14 +1,12 @@
-services:
-  # PostgreSQL Database
-  - type: pserv
-    name: cmms-database
+databases:
+  - name: cmms-database
     plan: starter
 
+services:
   # Web Service (Backend + Frontend)
   - type: web
     name: cmms-enterprise
     env: docker
-    region: frankfurt
     plan: starter
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
