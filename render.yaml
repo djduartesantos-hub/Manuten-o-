@@ -2,12 +2,9 @@ services:
   # PostgreSQL Database
   - type: pserv
     name: cmms-database
-    env: docker
     plan: starter
     region: frankfurt
     ipAllowList: []
-    databaseName: cmms_enterprise
-    databaseUser: cmms_user
 
   # Web Service (Backend + Frontend)
   - type: web
