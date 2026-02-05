@@ -37,7 +37,7 @@ export function AdminSetupPage() {
   };
 
   const handleSeedData = async () => {
-    if (!confirm('Deseja adicionar dados demonstrativos? Isto irá adicionar utilizadores, equipamentos e outros dados de exemplo.')) {
+    if (!confirm('Deseja adicionar dados demonstrativos? Isto pode adicionar novos dados de exemplo ou informar se já existem.')) {
       return;
     }
 
@@ -46,8 +46,29 @@ export function AdminSetupPage() {
     setSuccess('');
     
     try {
-      await seedDemoData();
-      setSuccess('Dados demonstrativos adicionados com sucesso!');
+      const result: any = await seedDemoData();
+      
+      // Check if data was added or already existed
+      if (result?.added) {
+        const { users, plants, assets, maintenancePlans, spareParts } = result.added;
+        const totalAdded = users + plants + assets + maintenancePlans + spareParts;
+        
+        if (totalAdded > 0) {
+          setSuccess(
+            `✅ Dados adicionados com sucesso!\n` +
+            `• ${users} utilizador(es)\n` +
+            `• ${plants} fábrica(s)\n` +
+            `• ${assets} equipamento(s)\n` +
+            `• ${maintenancePlans} plano(s) de manutenção\n` +
+            `• ${spareParts} peça(s) sobressalente(s)`
+          );
+        } else {
+          setSuccess('ℹ️ Dados demonstrativos já existem. Nenhuma alteração foi feita.');
+        }
+      } else {
+        setSuccess('Dados demonstrativos processados com sucesso!');
+      }
+      
       await fetchStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to seed data');
@@ -123,7 +144,7 @@ export function AdminSetupPage() {
         {success && (
           <div className="mb-4 flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
             <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-green-800">{success}</div>
+            <div className="text-sm text-green-800 whitespace-pre-line">{success}</div>
           </div>
         )}
 
@@ -208,13 +229,16 @@ export function AdminSetupPage() {
                 <h3 className="font-semibold text-gray-900 mb-2">Adicionar Dados Demonstrativos</h3>
                 <p className="text-sm text-gray-600 mb-3">
                   Preenche a base de dados com dados de exemplo: utilizadores, fábricas, equipamentos, planos de manutenção e peças sobressalentes.
+                  <span className="block mt-1 text-xs text-blue-700 font-medium">
+                    ✓ Seguro: Pode executar múltiplas vezes (não cria duplicatas)
+                  </span>
                 </p>
                 <ul className="text-xs text-gray-600 space-y-1">
                   <li>• 2 utilizadores (Admin e Técnico)</li>
                   <li>• 1 fábrica (Fábrica Principal)</li>
                   <li>• 5 equipamentos de exemplo</li>
                   <li>• 3 planos de manutenção preventiva</li>
-                  <li>• 5 peças sobressalentes</li>
+                  <li>• 5 peças sobressalentes com stock inicial</li>
                 </ul>
               </div>
               <button
