@@ -15,6 +15,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectedUsers, setConnectedUsers] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
   const { token, user } = useAuthStore();
 
   useEffect(() => {
@@ -32,21 +33,37 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 10,
       transports: ['websocket', 'polling'],
       // Add timeout to prevent hanging connections
-      timeout: 10000,
+      timeout: 15000,
+      // Allow multiple connections
+      multiplex: true,
+      forceNew: false,
     });
 
     // Connection events
     newSocket.on('connect', () => {
       setIsConnected(true);
+      setRetryCount(0);
       console.log('✅ Socket connected:', newSocket.id);
     });
 
-    newSocket.on('disconnect', () => {
+    newSocket.on('disconnect', (reason) => {
       setIsConnected(false);
-      console.log('❌ Socket disconnected');
+      console.log('⚠️  Socket disconnected. Reason:', reason);
+      // Socket will auto-reconnect if reason is not 'io client namespace disconnect'
+    });
+
+    newSocket.on('reconnect', () => {
+      console.log('🔄 Socket reconnected after disconnect');
+      setIsConnected(true);
+      setRetryCount(0);
+    });
+
+    newSocket.on('reconnect_attempt', () => {
+      setRetryCount(prev => prev + 1);
+      console.log('🔄 Attempting to reconnect... (attempt ' + (retryCount + 1) + ')');
     });
 
     // Connection error - this is non-critical

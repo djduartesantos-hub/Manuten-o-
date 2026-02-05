@@ -94,7 +94,23 @@ export async function getDashboardKPIs(plantId: string) {
 }
 
 export async function getUserPlants() {
-  return apiCall('/tenants/plants');
+  try {
+    const data = await apiCall('/tenants/plants');
+    console.log('API getUserPlants response:', data);
+    
+    // Handle both array and object responses
+    const plants = Array.isArray(data) ? data : (data?.data || []);
+    
+    if (!plants || plants.length === 0) {
+      console.warn('No plants returned from API');
+      return [];
+    }
+    
+    return plants;
+  } catch (error) {
+    console.error('Error fetching user plants:', error);
+    throw error;
+  }
 }
 
 export async function getAssets(plantId: string, search?: string) {

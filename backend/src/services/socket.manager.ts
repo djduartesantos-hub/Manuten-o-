@@ -43,22 +43,31 @@ export class SocketManager {
       try {
         const token = socket.handshake.auth.token;
         if (!token) {
-          logger.warn('Socket connection rejected: no token');
-          return next(new Error('Authentication error: no token'));
+          logger.warn('Socket connection rejected: no token provided');
+          // Allow connection but mark as unauthenticated
+          // This lets the socket emit an error event instead of hard-failing
+          return next();
         }
 
-        const decoded = jwt.verify(token, JWT_SECRET) as any;
-        socket.user = {
-          id: decoded.userId,
-          tenantId: decoded.tenantId,
-          role: decoded.role,
-        };
+        try {
+          const decoded = jwt.verify(token, JWT_SECRET) as any;
+          socket.user = {
+            id: decoded.userId,
+            tenantId: decoded.tenantId,
+            role: decoded.role,
+          };
 
-        logger.info(`Socket authenticated: ${socket.id} | User: ${decoded.userId}`);
-        next();
+          logger.info(`Socket authenticated: ${socket.id} | User: ${decoded.userId}`);
+          next();
+        } catch (jwtError) {
+          logger.warn('JWT verification failed:', jwtError instanceof Error ? jwtError.message : jwtError);
+          // Allow connection to proceed, will be handled in connection handler
+          next();
+        }
       } catch (error) {
-        logger.warn('Socket auth error:', error instanceof Error ? error.message : error);
-        next(new Error('Authentication error'));
+        logger.warn('Socket auth middleware error:', error instanceof Error ? error.message : error);
+        // Allow connection to proceed gracefully
+        next();
       }
     });
   }

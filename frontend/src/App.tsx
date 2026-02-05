@@ -44,19 +44,32 @@ function App() {
   React.useEffect(() => {
     const loadPlants = async () => {
       if (!isAuthenticated) return;
+      
       try {
         const plants = await getUserPlants();
-        setPlants(plants || []);
-        if (!selectedPlant && plants && plants.length > 0) {
+        console.log('Loaded plants:', plants);
+        
+        if (!plants || plants.length === 0) {
+          console.warn('No plants found for user');
+          setPlants([]);
+          return;
+        }
+        
+        setPlants(plants);
+        
+        // Only auto-select if no plant is currently selected
+        if (!selectedPlant) {
+          console.log('Auto-selecting first plant:', plants[0].id);
           setSelectedPlant(plants[0].id);
         }
       } catch (error) {
         console.error('Failed to load plants', error);
+        setPlants([]);
       }
     };
 
     loadPlants();
-  }, [isAuthenticated, selectedPlant, setPlants, setSelectedPlant]);
+  }, [isAuthenticated, setPlants, setSelectedPlant]); // Removed selectedPlant from deps to prevent loops
 
   return (
     <QueryClientProvider client={queryClient}>
