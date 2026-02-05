@@ -41,7 +41,7 @@ export function createApp(): Express {
   app.use('/api/tenants', assetRoutes);
   app.use('/api/tenants', maintenanceRoutes);
   app.use('/api/tenants', sparePartRoutes);
-  app.use('/api/tenants', dashboardRoutes);
+  app.use('/api/dashboard', dashboardRoutes);  // Dashboard has its own prefix
   app.use('/api/alerts', alertRoutes);
   app.use('/api/search', searchRoutes);
   app.use('/api/jobs', jobsRoutes);

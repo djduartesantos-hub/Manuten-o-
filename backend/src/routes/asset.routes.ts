@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import { AssetController } from '../controllers/asset.controller.js';
-import { authMiddleware, tenantMiddleware, plantMiddleware, requireRole } from '../middlewares/auth.js';
+import { authMiddleware, plantMiddleware, requireRole } from '../middlewares/auth.js';
 
 const router = Router({ mergeParams: true });
 
 // Apply middlewares
+// Note: tenantMiddleware NOT used here because route uses :plantId not :tenantId
+// plantMiddleware handles authorization checking
 router.use(authMiddleware);
-router.use(tenantMiddleware);
 router.use(plantMiddleware);
 
 // GET /api/tenants/:plantId/assets - listar

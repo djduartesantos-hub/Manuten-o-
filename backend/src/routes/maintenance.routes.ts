@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import * as MaintenanceController from '../controllers/maintenance.controller.js';
-import { authMiddleware, tenantMiddleware, plantMiddleware, requireRole } from '../middlewares/auth.js';
+import { authMiddleware, plantMiddleware, requireRole } from '../middlewares/auth.js';
 
 const router = Router({ mergeParams: true });
 
 // Apply middlewares
+// Note: tenantMiddleware NOT used here because route uses :plantId not :tenantId
 router.use(authMiddleware);
-router.use(tenantMiddleware);
 router.use(plantMiddleware);
 
 // Maintenance Plans

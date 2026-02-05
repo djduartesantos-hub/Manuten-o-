@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { WorkOrderController } from '../controllers/workorder.controller.js';
-import { authMiddleware, tenantMiddleware, plantMiddleware } from '../middlewares/auth.js';
+import { authMiddleware, plantMiddleware } from '../middlewares/auth.js';
 
 const router = Router({ mergeParams: true });
 
 // Apply middlewares
+// Note: tenantMiddleware NOT used here because route uses :plantId not :tenantId
 router.use(authMiddleware);
-router.use(tenantMiddleware);
 router.use(plantMiddleware);
 
 // Routes
