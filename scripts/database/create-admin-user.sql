@@ -465,7 +465,7 @@ VALUES (
   '00000001-0000-0000-0000-000000000001',
   '550e8400-e29b-41d4-a716-446655440000',
   'admin@cmms.com',
-  '$2b$10$Nb1.BH1w2X0qTBD9GDdfBOhDKVaYM3XvdVLpNaY7Zo.aDIQdRvVra',
+  '$2b$10$c57Lm28L2e39MhBqtvoFze.NpWUAA5epwrtlgp7xMZ.jmcpqoBCay',
   'Admin',
   'CMMS',
   'superadmin',
