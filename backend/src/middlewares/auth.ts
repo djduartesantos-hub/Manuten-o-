@@ -100,6 +100,7 @@ export function tenantMiddleware(
   }
 
   next();
+}
 
 export function plantMiddleware(
   req: AuthenticatedRequest,
