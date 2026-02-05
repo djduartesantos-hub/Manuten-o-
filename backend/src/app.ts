@@ -1,6 +1,8 @@
 import express, { Express } from 'express';
 import cors from 'cors';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import authRoutes from './routes/auth.routes.js';
 import tenantRoutes from './routes/tenant.routes.js';
 import workOrderRoutes from './routes/workorder.routes.js';
@@ -13,6 +15,10 @@ import searchRoutes from './routes/search.routes.js';
 import jobsRoutes from './routes/jobs.routes.js';
 import setupRoutes from './routes/setup.routes.js';
 import { errorHandler, notFoundHandler, requestLogger } from './middlewares/error.js';
+
+// ESM __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export function createApp(): Express {
   const app = express();
@@ -65,7 +71,7 @@ export function createApp(): Express {
 
   // Serve static frontend files in production
   if (process.env.NODE_ENV === 'production') {
-    const frontendPath = path.join(__dirname, '../../frontend');
+    const frontendPath = path.join(__dirname, '../public');
     app.use(express.static(frontendPath));
     
     // Serve index.html for all non-API routes (SPA fallback)
