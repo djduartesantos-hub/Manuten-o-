@@ -1,0 +1,32 @@
+DevTools commands (run in browser console)
+
+1) Check plants response
+
+const token = localStorage.getItem('token');
+fetch('/api/tenants/plants', {
+  headers: { 'Authorization': 'Bearer ' + token }
+})
+  .then(r => r.json())
+  .then(data => console.log('Plants response:', data))
+  .catch(err => console.error('Plants error:', err));
+
+2) Check assets response
+
+const token = localStorage.getItem('token');
+const selectedPlant = localStorage.getItem('selectedPlant');
+
+console.log('selectedPlant:', selectedPlant);
+
+if (!selectedPlant) {
+  console.error('selectedPlant is empty/null');
+} else {
+  fetch(`/api/tenants/${selectedPlant}/assets`, {
+    headers: { 'Authorization': 'Bearer ' + token }
+  })
+    .then(r => {
+      console.log('Status:', r.status, r.statusText);
+      return r.json();
+    })
+    .then(data => console.log('Assets response:', data))
+    .catch(err => console.error('Assets error:', err));
+}
