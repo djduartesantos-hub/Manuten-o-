@@ -26,6 +26,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     // Use same origin for socket connection (works in dev and production)
     const socketUrl = window.location.origin;
     
+    console.log('Initializing Socket.IO connection to:', socketUrl);
+    
     const newSocket = io(socketUrl, {
       auth: {
         token,
@@ -33,13 +35,15 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      reconnectionAttempts: 10,
-      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+      transports: ['polling', 'websocket'], // Try polling first (more reliable)
       // Add timeout to prevent hanging connections
-      timeout: 15000,
+      timeout: 20000,
       // Allow multiple connections
       multiplex: true,
       forceNew: false,
+      // Upgrade after establishing connection
+      upgrade: true,
     });
 
     // Connection events
@@ -68,8 +72,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     // Connection error - this is non-critical
     newSocket.on('connect_error', (error) => {
-      console.warn('Socket connection error (non-critical):', error.message);
-      // Don't show error toast - socket is optional, rest of app works fine
+      console.warn('Socket connection error (non-critical, will retry):', error.message);
+      // Socket is optional feature - app works without it
+      setIsConnected(false);
     });
 
     newSocket.on('error', (error) => {

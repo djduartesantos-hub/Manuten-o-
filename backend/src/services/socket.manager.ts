@@ -17,9 +17,14 @@ export class SocketManager {
   private io: SocketIOServer;
 
   constructor(httpServer: HTTPServer) {
+    // Configure CORS origin - in production, accept same origin
+    const corsOrigin = process.env.NODE_ENV === 'production' 
+      ? true  // Accept same origin in production (Render)
+      : (process.env.FRONTEND_URL || 'http://localhost:5173');
+
     this.io = new SocketIOServer(httpServer, {
       cors: {
-        origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+        origin: corsOrigin,
         methods: ['GET', 'POST'],
         credentials: true,
         allowEIO3: true,
