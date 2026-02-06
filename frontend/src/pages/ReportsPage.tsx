@@ -615,7 +615,6 @@ export function ReportsPage() {
             </div>
           </div>
         </>
-          </>
         )}
       </div>
     </MainLayout>
