@@ -40,7 +40,8 @@ export class AuthController {
         tenantId: user.tenant_id,
         email: user.email,
         role: user.role,
-        plantIds: (user as any).plantIds || [], // Include plant IDs in JWT
+        // In single-tenant mode, skip complex plantIds loading
+        // All authenticated users can access all plants
       };
 
       const token = generateToken(payload);

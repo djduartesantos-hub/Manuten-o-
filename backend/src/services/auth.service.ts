@@ -66,14 +66,9 @@ export class AuthService {
       return null;
     }
 
-    // Load plant IDs for this user
-    const plantIds = await this.getUserPlantIds(user.id, tenantId, user.role);
-
-    // Add plantIds to the user object
-    return {
-      ...user,
-      plantIds,
-    };
+    // In single-tenant mode, skip plantIds loading
+    // All authenticated users can access all plants
+    return user;
   }
 
   static async createUser(data: {
