@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { extractTokenFromHeader, verifyToken } from '../auth/jwt.js';
 import { AuthService } from '../services/auth.service.js';
+import { DEFAULT_TENANT_ID } from '../config/constants.js';
 import { AuthenticatedRequest, UserRole } from '../types/index.js';
 import { logger } from '../config/logger.js';
 
@@ -157,6 +158,12 @@ export async function plantMiddleware(
       success: false,
       error: 'Tenant ID is required',
     });
+    return;
+  }
+
+  if (tenantId === DEFAULT_TENANT_ID) {
+    req.plantId = plantId;
+    next();
     return;
   }
 
