@@ -1,7 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { extractTokenFromHeader, verifyToken } from '../auth/jwt.js';
 import { AuthService } from '../services/auth.service.js';
-import { DEFAULT_TENANT_ID } from '../config/constants.js';
 import { AuthenticatedRequest, UserRole } from '../types/index.js';
 import { logger } from '../config/logger.js';
 
@@ -52,8 +51,16 @@ export function authMiddleware(
       payload.role = normalizedRole;
     }
 
+    if (req.tenantId && req.tenantId !== payload.tenantId) {
+      res.status(403).json({
+        success: false,
+        error: 'Access denied to this tenant',
+      });
+      return;
+    }
+
     req.user = payload;
-    req.tenantId = payload.tenantId;
+    req.tenantId = req.tenantId || payload.tenantId;
     next();
   } catch (error) {
     logger.error('Auth middleware error:', error);
@@ -158,12 +165,6 @@ export async function plantMiddleware(
       success: false,
       error: 'Tenant ID is required',
     });
-    return;
-  }
-
-  if (tenantId === DEFAULT_TENANT_ID) {
-    req.plantId = plantId;
-    next();
     return;
   }
 

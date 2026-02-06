@@ -5,6 +5,7 @@ import { sql } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import {
   plants,
+  tenants,
   users,
   assetCategories,
   assets,
@@ -14,7 +15,7 @@ import {
   spareParts,
   stockMovements,
 } from '../db/schema.js';
-import { DEFAULT_TENANT_ID } from '../config/constants.js';
+import { DEFAULT_TENANT_ID, DEFAULT_TENANT_SLUG } from '../config/constants.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export class SetupController {
@@ -22,7 +23,7 @@ export class SetupController {
    * Initialize database with admin user (only works if DB is empty)
    * This endpoint does NOT require authentication
    */
-  static async initialize(_req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async initialize(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       // Check if there are any users in the database
       const userCount = await db.execute(sql`SELECT COUNT(*) FROM users;`);
@@ -38,13 +39,28 @@ export class SetupController {
       }
 
       // Database is empty, create initial admin user
-      const tenantId = DEFAULT_TENANT_ID;
+      let tenantId = req.tenantId || '';
+      const tenantSlug = req.tenantSlug || DEFAULT_TENANT_SLUG;
       const adminId = uuidv4();
       const plantId = uuidv4();
 
       // Get admin credentials from environment or use defaults
       const adminEmail = process.env.ADMIN_EMAIL || 'admin@cmms.com';
       const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123456';
+
+      if (!tenantId) {
+        const tenantIdToUse = tenantSlug === DEFAULT_TENANT_SLUG ? DEFAULT_TENANT_ID : uuidv4();
+        const [tenant] = await db
+          .insert(tenants)
+          .values({
+            id: tenantIdToUse,
+            name: tenantSlug === DEFAULT_TENANT_SLUG ? 'Demo Company' : `Tenant ${tenantSlug}`,
+            slug: tenantSlug,
+            is_active: true,
+          })
+          .returning();
+        tenantId = tenant.id;
+      }
 
       // Insert default plant
       await db.insert(plants).values({
@@ -112,6 +128,7 @@ export class SetupController {
 
       // Check if there's data
       const userCount = await db.execute(sql`SELECT COUNT(*) FROM users;`);
+      const tenantCount = await db.execute(sql`SELECT COUNT(*) FROM tenants;`);
       const plantCount = await db.execute(sql`SELECT COUNT(*) FROM plants;`);
       const assetCount = await db.execute(sql`SELECT COUNT(*) FROM assets;`);
       const planCount = await db.execute(sql`SELECT COUNT(*) FROM maintenance_plans;`);
@@ -129,6 +146,7 @@ export class SetupController {
           tablesCount: tableCount,
           tables: result.rows.map((r: any) => r.table_name),
           hasData: {
+            tenants: Number(tenantCount.rows[0].count) > 0,
             users: Number(userCount.rows[0].count) > 0,
             plants: Number(plantCount.rows[0].count) > 0,
             assets: Number(assetCount.rows[0].count) > 0,
@@ -141,6 +159,7 @@ export class SetupController {
             suppliers: Number(supplierCount.rows[0].count) > 0,
           },
           counts: {
+            tenants: Number(tenantCount.rows[0].count),
             users: Number(userCount.rows[0].count),
             plants: Number(plantCount.rows[0].count),
             assets: Number(assetCount.rows[0].count),
@@ -177,7 +196,15 @@ export class SetupController {
         return;
       }
 
-      const tenantId = DEFAULT_TENANT_ID;
+      const tenantId = req.tenantId || DEFAULT_TENANT_ID;
+      const tenantSlug = req.tenantSlug || DEFAULT_TENANT_SLUG;
+
+      await db.insert(tenants).values({
+        id: tenantId,
+        name: 'Demo Company',
+        slug: tenantSlug,
+        is_active: true,
+      }).onConflictDoNothing();
       
       // Use fixed demo IDs so we can check if they exist
       const demoPlantId = '0fab0000-0000-0000-0000-000000000001';

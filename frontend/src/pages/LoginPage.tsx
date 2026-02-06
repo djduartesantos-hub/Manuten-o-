@@ -1,11 +1,12 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { login as apiLogin } from '../services/api';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const { tenantSlug } = useParams();
   const { setAuth } = useAuth();
   const [email, setEmail] = React.useState('admin@cmms.com');
   const [password, setPassword] = React.useState('Admin@123456');
@@ -19,9 +20,15 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await apiLogin(email, password);
+      if (!tenantSlug) {
+        setError('Tenant inválido');
+        setLoading(false);
+        return;
+      }
+
+      const result = await apiLogin(tenantSlug, email, password);
       setAuth(result.user, result.token, result.refreshToken);
-      navigate('/dashboard');
+      navigate(`/t/${tenantSlug}/dashboard`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {

@@ -4,6 +4,11 @@
 -- Script SQL para carregar dados demo realistas
 -- Inclui: Categorias, Equipamentos, Planos de Manutenção, etc.
 --
+
+-- Garantir tenant demo
+INSERT INTO tenants (id, name, slug, is_active)
+VALUES ('550e8400-e29b-41d4-a716-446655440000', 'Demo Company', 'demo', true)
+ON CONFLICT DO NOTHING;
 -- IMPORTANTE: Execute primeiro o create-admin-user.sql
 -- Depois execute este script
 --

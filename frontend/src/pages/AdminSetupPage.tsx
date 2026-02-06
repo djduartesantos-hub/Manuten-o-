@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Database, AlertCircle, CheckCircle, Trash2, RefreshCw, Server } from 'lucide-react';
-import { getSetupStatus, seedDemoData, clearAllData } from '../services/api';
+import { getSetupStatus, seedDemoData, clearAllData, initializeDatabase } from '../services/api';
+import { useAppStore } from '../context/store';
 
 interface DatabaseStatus {
   connected: boolean;
   tablesCount: number;
   tables?: string[];
   hasData: {
+    tenants: boolean;
     users: boolean;
     plants: boolean;
     assets: boolean;
@@ -19,6 +21,7 @@ interface DatabaseStatus {
     suppliers: boolean;
   };
   counts: {
+    tenants: number;
     users: number;
     plants: number;
     assets: number;
@@ -33,6 +36,7 @@ interface DatabaseStatus {
 }
 
 export function AdminSetupPage() {
+  const { tenantSlug } = useAppStore();
   const [status, setStatus] = useState<DatabaseStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -92,6 +96,26 @@ export function AdminSetupPage() {
     }
   };
 
+  const handleInitialize = async () => {
+    if (!confirm('Deseja inicializar a base de dados para este tenant?')) {
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await initializeDatabase();
+      setSuccess('Base de dados inicializada com sucesso.');
+      await fetchStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao inicializar');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleClearData = async () => {
     if (!confirm('⚠️ ATENÇÃO: Isto irá APAGAR TODOS os dados da base de dados! Esta ação não pode ser revertida. Tem certeza?')) {
       return;
@@ -130,6 +154,9 @@ export function AdminSetupPage() {
         <p className="text-gray-600 mt-2">
           Gerir a base de dados e dados demonstrativos do sistema
         </p>
+        <p className="text-xs text-gray-500 mt-2">
+          Tenant atual: <span className="font-semibold">{tenantSlug || 'indefinido'}</span>
+        </p>
       </div>
 
       {/* Status Card */}
@@ -139,14 +166,24 @@ export function AdminSetupPage() {
             <Database className="w-6 h-6 text-blue-600" />
             Estado da Base de Dados
           </h2>
-          <button
-            onClick={fetchStatus}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleInitialize}
+              disabled={loading || !tenantSlug}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-400 transition"
+            >
+              <Server className="w-4 h-4" />
+              Inicializar
+            </button>
+            <button
+              onClick={fetchStatus}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -260,6 +297,12 @@ export function AdminSetupPage() {
             <div className="border-t pt-4">
               <h3 className="text-sm font-semibold text-gray-700 mb-2">Estado dos Dados:</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="text-sm text-gray-600 mb-1">Tenants</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {status.counts.tenants}
+                  </div>
+                </div>
                 <div className="flex items-center gap-2">
                   {status.hasData.users ? (
                     <CheckCircle className="w-4 h-4 text-green-600" />

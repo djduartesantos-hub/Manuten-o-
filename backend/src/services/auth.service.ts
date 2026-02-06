@@ -1,5 +1,5 @@
 import { db } from '../config/database.js';
-import { users, userPlants, plants } from '../db/schema.js';
+import { users, userPlants, plants, tenants } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { comparePasswords, hashPassword } from '../auth/jwt.js';
 
@@ -22,9 +22,19 @@ export class AuthService {
     return user;
   }
 
-  static async findTenantBySlug(_slug: string) {
-    // Removed tenant lookup - using default tenant
-    return null;
+  static async findTenantBySlug(slug: string) {
+    const normalizedSlug = slug.trim().toLowerCase();
+    if (!normalizedSlug) return null;
+
+    const tenant = await db.query.tenants.findFirst({
+      where: (fields: any, { eq }: any) => eq(fields.slug, normalizedSlug),
+    });
+
+    if (!tenant || tenant.deleted_at || tenant.is_active === false) {
+      return null;
+    }
+
+    return tenant;
   }
 
   static async findUserById(userId: string) {

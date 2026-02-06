@@ -18,6 +18,7 @@ import setupRoutes from './routes/setup.routes.js';
 import debugRoutes from './routes/debug.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import { errorHandler, notFoundHandler, requestLogger } from './middlewares/error.js';
+import { tenantSlugMiddleware } from './middlewares/tenant.js';
 
 // ESM __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -38,20 +39,22 @@ export function createApp(): Express {
   app.use(requestLogger());
 
   // Routes
-  app.use('/api/auth', authRoutes);
-  app.use('/api/tenants', tenantRoutes);
-  app.use('/api/tenants', workOrderRoutes);
-  app.use('/api/tenants', assetRoutes);
-  app.use('/api/tenants', maintenanceRoutes);
-  app.use('/api/tenants', sparePartRoutes);
-  app.use('/api/tenants', supplierRoutes);
-  app.use('/api/dashboard', dashboardRoutes);  // Dashboard has its own prefix
-  app.use('/api/alerts', alertRoutes);
-  app.use('/api/search', searchRoutes);
-  app.use('/api/jobs', jobsRoutes);
-  app.use('/api/setup', setupRoutes);
-  app.use('/api/debug', debugRoutes);
-  app.use('/api/admin', adminRoutes);
+  app.use('/api/t/:tenantSlug/auth', authRoutes);
+
+  app.use('/api/t/:tenantSlug', tenantSlugMiddleware);
+  app.use('/api/t/:tenantSlug', tenantRoutes);
+  app.use('/api/t/:tenantSlug', workOrderRoutes);
+  app.use('/api/t/:tenantSlug', assetRoutes);
+  app.use('/api/t/:tenantSlug', maintenanceRoutes);
+  app.use('/api/t/:tenantSlug', sparePartRoutes);
+  app.use('/api/t/:tenantSlug', supplierRoutes);
+  app.use('/api/t/:tenantSlug/dashboard', dashboardRoutes);
+  app.use('/api/t/:tenantSlug/alerts', alertRoutes);
+  app.use('/api/t/:tenantSlug/search', searchRoutes);
+  app.use('/api/t/:tenantSlug/jobs', jobsRoutes);
+  app.use('/api/t/:tenantSlug/setup', setupRoutes);
+  app.use('/api/t/:tenantSlug/debug', debugRoutes);
+  app.use('/api/t/:tenantSlug/admin', adminRoutes);
 
   // Health check
   app.get('/health', (_req, res) => {

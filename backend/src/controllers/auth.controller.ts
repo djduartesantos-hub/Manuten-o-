@@ -3,7 +3,6 @@ import { AuthenticatedRequest } from '../types/index.js';
 import { AuthService } from '../services/auth.service.js';
 import { generateToken, generateRefreshToken } from '../auth/jwt.js';
 import { logger } from '../config/logger.js';
-import { DEFAULT_TENANT_ID } from '../config/constants.js';
 
 export class AuthController {
   static async login(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -18,14 +17,17 @@ export class AuthController {
         return;
       }
 
-      // Use default tenant ID for demo
-      const defaultTenantId = DEFAULT_TENANT_ID;
+      const tenantId = req.tenantId;
 
-      const user = await AuthService.validateCredentials(
-        defaultTenantId,
-        email,
-        password,
-      );
+      if (!tenantId) {
+        res.status(400).json({
+          success: false,
+          error: 'Tenant is required',
+        });
+        return;
+      }
+
+      const user = await AuthService.validateCredentials(tenantId, email, password);
 
       if (!user) {
         res.status(401).json({
@@ -35,11 +37,7 @@ export class AuthController {
         return;
       }
 
-      const plantIds = await AuthService.getUserPlantIds(
-        user.id,
-        user.tenant_id,
-        user.role,
-      );
+      const plantIds = await AuthService.getUserPlantIds(user.id, user.tenant_id, user.role);
 
       const payload: any = {
         userId: user.id,

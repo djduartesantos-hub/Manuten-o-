@@ -42,6 +42,23 @@ CREATE TYPE stock_movement_type AS ENUM (
 -- STEP 2: CRIAR TABELAS
 -- ============================================================================
 
+-- Tabela: Tenants (Empresas)
+CREATE TABLE IF NOT EXISTS tenants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  description TEXT,
+  logo_url TEXT,
+  subscription_plan TEXT DEFAULT 'basic',
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX IF NOT EXISTS tenants_slug_idx ON tenants(slug);
+CREATE INDEX IF NOT EXISTS tenants_active_idx ON tenants(is_active);
+
 -- Tabela: Plants (Fábricas)
 CREATE TABLE IF NOT EXISTS plants (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -424,6 +441,21 @@ CREATE INDEX IF NOT EXISTS doc_versions_doc_id_idx ON asset_document_versions(do
 -- Tenant ID padrão (single-tenant mode)
 -- Este é o tenant ID que o backend usa por padrão
 -- Se mudar este valor, atualize também: backend/src/config/constants.ts
+
+-- Inserir Tenant Padrão
+INSERT INTO tenants (
+  id,
+  name,
+  slug,
+  is_active
+)
+VALUES (
+  '550e8400-e29b-41d4-a716-446655440000',
+  'Demo Company',
+  'demo',
+  true
+)
+ON CONFLICT DO NOTHING;
 
 -- Inserir Planta Padrão
 INSERT INTO plants (

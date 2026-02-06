@@ -44,9 +44,11 @@ CREATE TYPE stock_movement_type AS ENUM ('entrada', 'saida', 'ajuste');
 -- 4. CORE TABLES
 -- ========================================
 
--- Tenants (Empresas) - DISABLED FOR SINGLE-TENANT MODE
--- Uncomment this table to enable multi-tenant support
-/*
+-- Optional: default tenant seed (required for slug-based access)
+INSERT INTO tenants (id, name, slug, is_active)
+VALUES ('550e8400-e29b-41d4-a716-446655440000', 'Demo Company', 'demo', true)
+ON CONFLICT DO NOTHING;
+
 CREATE TABLE tenants (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
@@ -61,12 +63,12 @@ CREATE TABLE tenants (
 );
 
 CREATE INDEX tenants_slug_idx ON tenants(slug);
-*/
+CREATE INDEX tenants_active_idx ON tenants(is_active);
 
 -- Plants (Fábricas)
 CREATE TABLE plants (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
+  tenant_id UUID NOT NULL,
   name TEXT NOT NULL,
   code TEXT NOT NULL,
   address TEXT,
@@ -87,7 +89,7 @@ CREATE INDEX plants_tenant_code_idx ON plants(tenant_id, code);
 -- Users
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
+  tenant_id UUID NOT NULL,
   email TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   first_name TEXT NOT NULL,
@@ -119,7 +121,7 @@ CREATE INDEX user_plants_user_plant_idx ON user_plants(user_id, plant_id);
 -- Asset Categories
 CREATE TABLE asset_categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
+  tenant_id UUID NOT NULL,
   name TEXT NOT NULL,
   description TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
@@ -131,7 +133,7 @@ CREATE INDEX asset_categories_tenant_id_idx ON asset_categories(tenant_id);
 -- Assets (Equipamentos)
 CREATE TABLE assets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
+  tenant_id UUID NOT NULL,
   plant_id UUID NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
   category_id UUID NOT NULL REFERENCES asset_categories(id) ON DELETE RESTRICT,
   name TEXT NOT NULL,
@@ -164,7 +166,7 @@ CREATE INDEX assets_plant_code_idx ON assets(plant_id, code);
 -- Maintenance Plans
 CREATE TABLE maintenance_plans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
+  tenant_id UUID NOT NULL,
   asset_id UUID NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT,
@@ -183,7 +185,7 @@ CREATE INDEX maintenance_plans_tenant_id_idx ON maintenance_plans(tenant_id);
 -- Maintenance Tasks (Checklists)
 CREATE TABLE maintenance_tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
+  tenant_id UUID NOT NULL,
   plan_id UUID NOT NULL REFERENCES maintenance_plans(id) ON DELETE CASCADE,
   description TEXT NOT NULL,
   sequence INTEGER DEFAULT 0,
@@ -195,7 +197,7 @@ CREATE INDEX maintenance_tasks_plan_id_idx ON maintenance_tasks(plan_id);
 -- Work Orders
 CREATE TABLE work_orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
+  tenant_id UUID NOT NULL,
   plant_id UUID NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
   asset_id UUID NOT NULL REFERENCES assets(id) ON DELETE RESTRICT,
   plan_id UUID REFERENCES maintenance_plans(id) ON DELETE SET NULL,
@@ -242,7 +244,7 @@ CREATE INDEX work_order_tasks_work_order_id_idx ON work_order_tasks(work_order_i
 -- Suppliers
 CREATE TABLE suppliers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL, -- No FK constraint in single-tenant mode
+  tenant_id UUID NOT NULL,
   name TEXT NOT NULL,
   email TEXT,
   phone TEXT,

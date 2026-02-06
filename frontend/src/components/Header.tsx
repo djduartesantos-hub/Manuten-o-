@@ -13,36 +13,37 @@ interface NavItem {
 
 export function Header() {
   const { user, logout } = useAuth();
-  const { selectedPlant, plants, setSelectedPlant } = useAppStore();
+  const { selectedPlant, plants, setSelectedPlant, tenantSlug } = useAppStore();
   const { isConnected } = useSocket();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const location = useLocation();
 
+  const basePath = tenantSlug ? `/t/${tenantSlug}` : '';
   const navItems: NavItem[] = [
-    { label: 'Dashboard', href: '/dashboard', active: location.pathname === '/dashboard' },
-    { label: 'Ordens', href: '/work-orders', active: location.pathname === '/work-orders' },
-    { label: 'Equipamentos', href: '/assets', active: location.pathname === '/assets' },
-    { label: 'Pesquisa', href: '/search', active: location.pathname === '/search' },
+    { label: 'Dashboard', href: `${basePath}/dashboard`, active: location.pathname === `${basePath}/dashboard` },
+    { label: 'Ordens', href: `${basePath}/work-orders`, active: location.pathname === `${basePath}/work-orders` },
+    { label: 'Equipamentos', href: `${basePath}/assets`, active: location.pathname === `${basePath}/assets` },
+    { label: 'Pesquisa', href: `${basePath}/search`, active: location.pathname === `${basePath}/search` },
     {
       label: 'Planos',
-      href: '/maintenance-plans',
-      active: location.pathname === '/maintenance-plans',
+      href: `${basePath}/maintenance-plans`,
+      active: location.pathname === `${basePath}/maintenance-plans`,
     },
-    { label: 'Peças', href: '/spare-parts', active: location.pathname === '/spare-parts' },
-    { label: 'Fornecedores', href: '/suppliers', active: location.pathname === '/suppliers' },
-    { label: 'Relatórios', href: '/reports', active: location.pathname === '/reports' },
-    { label: 'Configurações', href: '/settings', active: location.pathname === '/settings' },
+    { label: 'Peças', href: `${basePath}/spare-parts`, active: location.pathname === `${basePath}/spare-parts` },
+    { label: 'Fornecedores', href: `${basePath}/suppliers`, active: location.pathname === `${basePath}/suppliers` },
+    { label: 'Relatórios', href: `${basePath}/reports`, active: location.pathname === `${basePath}/reports` },
+    { label: 'Configurações', href: `${basePath}/settings`, active: location.pathname === `${basePath}/settings` },
     ...(user?.role === 'admin_empresa' || user?.role === 'superadmin'
-      ? [{ label: 'Plantas', href: '/plants', active: location.pathname === '/plants' }]
+      ? [{ label: 'Plantas', href: `${basePath}/plants`, active: location.pathname === `${basePath}/plants` }]
       : []),
     ...(user?.role === 'superadmin'
-      ? [{ label: '🔧 Setup BD', href: '/admin/setup', active: location.pathname === '/admin/setup' }]
+      ? [{ label: '🔧 Setup BD', href: `${basePath}/admin/setup`, active: location.pathname === `${basePath}/admin/setup` }]
       : []),
   ];
 
   const handleLogout = () => {
     logout();
-    window.location.href = '/login';
+    window.location.href = tenantSlug ? `/t/${tenantSlug}/login` : '/';
   };
 
   return (
@@ -50,7 +51,7 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/dashboard" className="flex items-center space-x-2">
+          <Link to={tenantSlug ? `/t/${tenantSlug}/dashboard` : '/'} className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">⚙️</span>
             </div>

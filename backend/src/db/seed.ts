@@ -1,6 +1,7 @@
 import { db } from '../config/database.js';
 import bcrypt from 'bcrypt';
 import {
+  tenants,
   plants,
   users,
   assetCategories,
@@ -11,14 +12,14 @@ import {
   spareParts,
   stockMovements,
 } from './schema.js';
-import { DEFAULT_TENANT_ID } from '../config/constants.js';
+import { DEFAULT_TENANT_ID, DEFAULT_TENANT_SLUG } from '../config/constants.js';
 import { v4 as uuidv4 } from 'uuid';
 
 async function seed() {
   console.log('🌱 Starting database seed...');
 
   try {
-    // Use default tenant ID (single-tenant mode)
+    // Use default tenant for seed
     const tenantId = DEFAULT_TENANT_ID;
     const adminId = uuidv4();
     const technicianId = uuidv4();
@@ -26,6 +27,13 @@ async function seed() {
     const categoryId = uuidv4();
 
     console.log('ℹ️  Using default tenant ID:', tenantId);
+
+    await db.insert(tenants).values({
+      id: tenantId,
+      name: 'Demo Company',
+      slug: DEFAULT_TENANT_SLUG,
+      is_active: true,
+    }).onConflictDoNothing();
 
     // Insert plant
     await db.insert(plants).values({

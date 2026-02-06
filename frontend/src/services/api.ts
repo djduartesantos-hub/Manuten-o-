@@ -1,7 +1,7 @@
 // API Configuration
 // Use relative path for API calls - always works whether in dev or production
 // This ensures frontend requests go to the same origin
-const API_BASE_URL = '/api';
+const API_BASE_URL = '/api/t';
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -10,12 +10,23 @@ interface ApiResponse<T = any> {
   message?: string;
 }
 
+const getTenantSlug = (override?: string) => {
+  const candidate = override || localStorage.getItem('tenantSlug') || '';
+  const normalized = candidate.trim().toLowerCase();
+  if (!normalized) {
+    throw new Error('Tenant slug requerido');
+  }
+  return normalized;
+};
+
 export async function apiCall<T = any>(
   endpoint: string,
   options: RequestInit = {},
+  tenantSlugOverride?: string,
 ): Promise<T> {
   const token = localStorage.getItem('token');
-  const url = `${API_BASE_URL}${endpoint}`;
+  const tenantSlug = getTenantSlug(tenantSlugOverride);
+  const url = `${API_BASE_URL}/${tenantSlug}${endpoint}`;
 
   const headers: any = {
     'Content-Type': 'application/json',
@@ -46,6 +57,7 @@ export async function apiCall<T = any>(
 }
 
 export async function login(
+  tenantSlug: string,
   email: string,
   password: string,
 ): Promise<{
@@ -53,33 +65,36 @@ export async function login(
   refreshToken: string;
   user: any;
 }> {
-  // Backend uses default tenant for single-tenant mode
-  return apiCall('/auth/login', {
+  return apiCall(
+    '/auth/login',
+    {
     method: 'POST',
     body: JSON.stringify({ email, password }),
-  });
+    },
+    tenantSlug,
+  );
 }
 
 export async function getWorkOrders(plantId: string, status?: string) {
   const params = new URLSearchParams();
   if (status) params.append('status', status);
 
-  return apiCall(`/tenants/${plantId}/work-orders?${params.toString()}`);
+  return apiCall(`/${plantId}/work-orders?${params.toString()}`);
 }
 
 export async function getWorkOrder(plantId: string, workOrderId: string) {
-  return apiCall(`/tenants/${plantId}/work-orders/${workOrderId}`);
+  return apiCall(`/${plantId}/work-orders/${workOrderId}`);
 }
 
 export async function createWorkOrder(plantId: string, data: any) {
-  return apiCall(`/tenants/${plantId}/work-orders`, {
+  return apiCall(`/${plantId}/work-orders`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
 export async function updateWorkOrder(plantId: string, workOrderId: string, data: any) {
-  return apiCall(`/tenants/${plantId}/work-orders/${workOrderId}`, {
+  return apiCall(`/${plantId}/work-orders/${workOrderId}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
@@ -95,7 +110,7 @@ export async function getDashboardKPIs(plantId: string) {
 
 export async function getUserPlants() {
   try {
-    const data = await apiCall('/tenants/plants');
+    const data = await apiCall('/plants');
     console.log('API getUserPlants response:', data);
     
     // Handle both array and object responses
@@ -122,22 +137,22 @@ export async function getAssets(plantId: string, search?: string) {
   if (search) params.append('search', search);
 
   const query = params.toString();
-  return apiCall(`/tenants/${plantId}/assets${query ? `?${query}` : ''}`);
+  return apiCall(`/${plantId}/assets${query ? `?${query}` : ''}`);
 }
 
 export async function getMaintenancePlans(plantId: string) {
-  return apiCall(`/tenants/${plantId}/plans`);
+  return apiCall(`/${plantId}/plans`);
 }
 
 export async function createMaintenancePlan(plantId: string, data: any) {
-  return apiCall(`/tenants/${plantId}/plans`, {
+  return apiCall(`/${plantId}/plans`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
 export async function getSpareParts(plantId: string) {
-  return apiCall(`/tenants/${plantId}/spareparts`);
+  return apiCall(`/${plantId}/spareparts`);
 }
 
 export async function getSuppliers(plantId: string, search?: string) {
@@ -145,42 +160,42 @@ export async function getSuppliers(plantId: string, search?: string) {
   if (search) params.append('search', search);
 
   const query = params.toString();
-  return apiCall(`/tenants/${plantId}/suppliers${query ? `?${query}` : ''}`);
+  return apiCall(`/${plantId}/suppliers${query ? `?${query}` : ''}`);
 }
 
 export async function createSupplier(plantId: string, data: any) {
-  return apiCall(`/tenants/${plantId}/suppliers`, {
+  return apiCall(`/${plantId}/suppliers`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
 export async function updateSupplier(plantId: string, supplierId: string, data: any) {
-  return apiCall(`/tenants/${plantId}/suppliers/${supplierId}`, {
+  return apiCall(`/${plantId}/suppliers/${supplierId}`, {
     method: 'PATCH',
     body: JSON.stringify(data),
   });
 }
 
 export async function deleteSupplier(plantId: string, supplierId: string) {
-  return apiCall(`/tenants/${plantId}/suppliers/${supplierId}`, {
+  return apiCall(`/${plantId}/suppliers/${supplierId}`, {
     method: 'DELETE',
   });
 }
 
 export async function createSparePart(plantId: string, data: any) {
-  return apiCall(`/tenants/${plantId}/spareparts`, {
+  return apiCall(`/${plantId}/spareparts`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
 export async function getStockMovementsByPlant(plantId: string) {
-  return apiCall(`/tenants/${plantId}/stock-movements/plant/${plantId}`);
+  return apiCall(`/${plantId}/stock-movements/plant/${plantId}`);
 }
 
 export async function createStockMovement(plantId: string, data: any) {
-  return apiCall(`/tenants/${plantId}/stock-movements`, {
+  return apiCall(`/${plantId}/stock-movements`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -293,6 +308,12 @@ export async function searchAll(
 
 export async function getSetupStatus() {
   return apiCall('/setup/status');
+}
+
+export async function initializeDatabase() {
+  return apiCall('/setup/initialize', {
+    method: 'POST',
+  });
 }
 
 export async function seedDemoData() {

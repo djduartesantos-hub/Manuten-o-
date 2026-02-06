@@ -63,9 +63,11 @@ interface Plant {
 
 interface AppState {
   selectedTenant: string | null;
+  tenantSlug: string | null;
   selectedPlant: string | null;
   plants: Plant[];
   setSelectedTenant: (tenantId: string) => void;
+  setTenantSlug: (tenantSlug: string) => void;
   setSelectedPlant: (plantId: string) => void;
   setPlants: (plants: Plant[]) => void;
 }
@@ -73,20 +75,29 @@ interface AppState {
 export const useAppStore = create<AppState>((set) => {
   // Safely retrieve and validate stored values
   const storedTenant = localStorage.getItem('selectedTenant');
+  const storedTenantSlug = localStorage.getItem('tenantSlug');
   const storedPlant = localStorage.getItem('selectedPlant');
   
   // Filter out null-like strings and empty values
   const selectedTenant = storedTenant && storedTenant !== 'null' && storedTenant !== 'undefined' ? storedTenant : null;
+  const tenantSlug = storedTenantSlug && storedTenantSlug !== 'null' && storedTenantSlug !== 'undefined' ? storedTenantSlug : null;
   const selectedPlant = storedPlant && storedPlant !== 'null' && storedPlant !== 'undefined' ? storedPlant : null;
   
   return {
     selectedTenant,
+    tenantSlug,
     selectedPlant,
     plants: [],
 
     setSelectedTenant: (tenantId) => {
       localStorage.setItem('selectedTenant', tenantId);
       set({ selectedTenant: tenantId });
+    },
+
+    setTenantSlug: (slug) => {
+      const normalized = slug.trim().toLowerCase();
+      localStorage.setItem('tenantSlug', normalized);
+      set({ tenantSlug: normalized });
     },
 
     setSelectedPlant: (plantId) => {

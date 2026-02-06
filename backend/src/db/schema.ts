@@ -35,9 +35,7 @@ export const stockMovementTypeEnum = pgEnum('stock_movement_type', [
   'ajuste',
 ]);
 
-// Tenants (Empresas) - DISABLED FOR DEMO
-// To enable multi-tenant support, uncomment this table definition
-/*
+// Tenants (Empresas)
 export const tenants = pgTable(
   'tenants',
   {
@@ -56,11 +54,6 @@ export const tenants = pgTable(
     slugIdx: uniqueIndex('tenants_slug_idx').on(table.slug),
   }),
 );
-*/
-
-// Tenants table commented out for single-tenant mode
-// Uncomment below to enable multi-tenant functionality:
-// export const tenants = pgTable('tenants', { ... });
 
 // Plants (Fábricas)
 export const plants = pgTable(

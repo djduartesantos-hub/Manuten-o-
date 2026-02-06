@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MainLayout } from '../layouts/MainLayout';
 import { useAppStore } from '../context/store';
 import {
+  apiCall,
   createAdminPlant,
   createAdminUser,
   deactivateAdminPlant,
@@ -146,6 +147,7 @@ export function SettingsPage() {
 // ===================== COMPONENT STUBS =====================
 
 function AlertsSettings() {
+  const { selectedPlant } = useAppStore();
   const [alerts, setAlerts] = React.useState<any[]>([]);
   const [assets, setAssets] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -171,13 +173,8 @@ function AlertsSettings() {
   const fetchAlerts = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/alerts/configurations', {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAlerts(data);
-      }
+      const data = await apiCall('/alerts/configurations');
+      setAlerts(Array.isArray(data) ? data : (data?.data || []));
     } catch (error) {
       console.error('Failed to fetch alerts:', error);
     } finally {
@@ -187,13 +184,12 @@ function AlertsSettings() {
 
   const fetchAssets = async () => {
     try {
-      const response = await fetch('/api/assets', {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAssets(data.data || []);
+      if (!selectedPlant) {
+        setAssets([]);
+        return;
       }
+      const data = await getAssets(selectedPlant);
+      setAssets(data || []);
     } catch (error) {
       console.error('Failed to fetch assets:', error);
     }
@@ -207,28 +203,25 @@ function AlertsSettings() {
         ? `/api/alerts/configurations/${editingAlert.id}`
         : '/api/alerts/configurations';
 
-      const response = await fetch(url, {
+      await apiCall(url.replace('/api', ''), {
         method,
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
-      if (response.ok) {
-        setShowForm(false);
-        setEditingAlert(null);
-        setFormData({
-          asset_id: '',
-          alert_type: 'sla_critical',
-          threshold: 1,
-          time_unit: 'hours',
-          notify_roles: ['admin', 'manager'],
-          notify_email: true,
-          notify_push: false,
-          escalate_after_hours: 4,
-          description: '',
-        });
-        fetchAlerts();
-      }
+      setShowForm(false);
+      setEditingAlert(null);
+      setFormData({
+        asset_id: '',
+        alert_type: 'sla_critical',
+        threshold: 1,
+        time_unit: 'hours',
+        notify_roles: ['admin', 'manager'],
+        notify_email: true,
+        notify_push: false,
+        escalate_after_hours: 4,
+        description: '',
+      });
+      fetchAlerts();
     } catch (error) {
       console.error('Failed to save alert:', error);
     }
@@ -237,12 +230,10 @@ function AlertsSettings() {
   const handleDelete = async (alertId: string) => {
     if (!window.confirm('Eliminar este alerta?')) return;
     try {
-      const response = await fetch(`/api/alerts/configurations/${alertId}`, {
+      await apiCall(`/alerts/configurations/${alertId}`, {
         method: 'DELETE',
       });
-      if (response.ok) {
-        fetchAlerts();
-      }
+      fetchAlerts();
     } catch (error) {
       console.error('Failed to delete alert:', error);
     }
@@ -547,6 +538,7 @@ function AlertsSettings() {
 }
 
 function PreventiveMaintenanceSettings() {
+  const { selectedPlant } = useAppStore();
   const [plans, setPlans] = React.useState<any[]>([]);
   const [assets, setAssets] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -569,13 +561,12 @@ function PreventiveMaintenanceSettings() {
   const fetchPlans = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/maintenance-plans', {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setPlans(data.data || []);
+      if (!selectedPlant) {
+        setPlans([]);
+        return;
       }
+      const data = await apiCall(`/${selectedPlant}/plans`);
+      setPlans(data || []);
     } catch (error) {
       console.error('Failed to fetch plans:', error);
     } finally {
@@ -585,13 +576,12 @@ function PreventiveMaintenanceSettings() {
 
   const fetchAssets = async () => {
     try {
-      const response = await fetch('/api/assets', {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAssets(data.data || []);
+      if (!selectedPlant) {
+        setAssets([]);
+        return;
       }
+      const data = await getAssets(selectedPlant);
+      setAssets(data || []);
     } catch (error) {
       console.error('Failed to fetch assets:', error);
     }
@@ -600,30 +590,35 @@ function PreventiveMaintenanceSettings() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const method = editingPlan ? 'PUT' : 'POST';
-      const url = editingPlan
-        ? `/api/maintenance-plans/${editingPlan.id}`
-        : '/api/maintenance-plans';
+      if (!selectedPlant) return;
 
-      const response = await fetch(url, {
+      const method = editingPlan ? 'PATCH' : 'POST';
+      const url = editingPlan
+        ? `/${selectedPlant}/plans/${editingPlan.id}`
+        : `/${selectedPlant}/plans`;
+
+      await apiCall(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          asset_id: formData.asset_id,
+          name: formData.name,
+          description: formData.description || undefined,
+          frequency_type: formData.frequency_unit,
+          frequency_value: Number(formData.frequency_value),
+        }),
       });
 
-      if (response.ok) {
-        setShowForm(false);
-        setEditingPlan(null);
-        setFormData({
-          asset_id: '',
-          name: '',
-          frequency_value: 1,
-          frequency_unit: 'days',
-          description: '',
-          tasks: [],
-        });
-        fetchPlans();
-      }
+      setShowForm(false);
+      setEditingPlan(null);
+      setFormData({
+        asset_id: '',
+        name: '',
+        frequency_value: 1,
+        frequency_unit: 'days',
+        description: '',
+        tasks: [],
+      });
+      fetchPlans();
     } catch (error) {
       console.error('Failed to save plan:', error);
     }
@@ -632,12 +627,11 @@ function PreventiveMaintenanceSettings() {
   const handleDelete = async (planId: string) => {
     if (!window.confirm('Eliminar este plano?')) return;
     try {
-      const response = await fetch(`/api/maintenance-plans/${planId}`, {
+      if (!selectedPlant) return;
+      await apiCall(`/${selectedPlant}/plans/${planId}`, {
         method: 'DELETE',
       });
-      if (response.ok) {
-        fetchPlans();
-      }
+      fetchPlans();
     } catch (error) {
       console.error('Failed to delete plan:', error);
     }
@@ -904,6 +898,7 @@ function PreventiveMaintenanceSettings() {
 }
 
 function PredictiveWarningsSettings() {
+  const { selectedPlant } = useAppStore();
   const [warnings, setWarnings] = React.useState<any[]>([]);
   const [assets, setAssets] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -921,15 +916,14 @@ function PredictiveWarningsSettings() {
 
   const fetchAssets = async () => {
     try {
-      const response = await fetch('/api/assets', {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAssets(data.data || []);
-        if (data.data && data.data.length > 0) {
-          setSelectedAsset(data.data[0].id);
-        }
+      if (!selectedPlant) {
+        setAssets([]);
+        return;
+      }
+      const data = await getAssets(selectedPlant);
+      setAssets(data || []);
+      if (data && data.length > 0) {
+        setSelectedAsset(data[0].id);
       }
     } catch (error) {
       console.error('Failed to fetch assets:', error);
@@ -939,13 +933,8 @@ function PredictiveWarningsSettings() {
   const fetchWarnings = async (assetId: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/alerts/warnings/${assetId}`, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setWarnings(data);
-      }
+      const data = await apiCall(`/alerts/warnings/${assetId}`);
+      setWarnings(Array.isArray(data) ? data : (data?.data || []));
     } catch (error) {
       console.error('Failed to fetch warnings:', error);
     } finally {
@@ -1087,6 +1076,7 @@ function PredictiveWarningsSettings() {
 }
 
 function DocumentsLibrarySettings() {
+  const { selectedPlant } = useAppStore();
   const [documents, setDocuments] = React.useState<any[]>([]);
   const [assets, setAssets] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -1107,13 +1097,12 @@ function DocumentsLibrarySettings() {
 
   const fetchAssets = async () => {
     try {
-      const response = await fetch('/api/assets', {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAssets(data.data || []);
+      if (!selectedPlant) {
+        setAssets([]);
+        return;
       }
+      const data = await getAssets(selectedPlant);
+      setAssets(data || []);
     } catch (error) {
       console.error('Failed to fetch assets:', error);
     }
@@ -1122,13 +1111,8 @@ function DocumentsLibrarySettings() {
   const fetchDocuments = async (assetId: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/alerts/documents?asset_id=${assetId}`, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setDocuments(data);
-      }
+      const data = await apiCall(`/alerts/documents?asset_id=${assetId}`);
+      setDocuments(Array.isArray(data) ? data : (data?.data || []));
     } catch (error) {
       console.error('Failed to fetch documents:', error);
     } finally {
@@ -1148,8 +1132,13 @@ function DocumentsLibrarySettings() {
       formData.append('title', file.name);
       formData.append('file', file);
 
-      const response = await fetch('/api/alerts/documents', {
+      const tenantSlug = localStorage.getItem('tenantSlug');
+      if (!tenantSlug) throw new Error('Tenant slug requerido');
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`/api/t/${tenantSlug}/alerts/documents`, {
         method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData,
       });
 
@@ -1167,10 +1156,10 @@ function DocumentsLibrarySettings() {
   const handleDeleteDocument = async (docId: string) => {
     if (!window.confirm('Eliminar este documento?')) return;
     try {
-      const response = await fetch(`/api/alerts/documents/${docId}`, {
+      await apiCall(`/alerts/documents/${docId}`, {
         method: 'DELETE',
       });
-      if (response.ok && selectedAsset) {
+      if (selectedAsset) {
         fetchDocuments(selectedAsset);
       }
     } catch (error) {
@@ -1436,7 +1425,7 @@ function PermissionsSettings() {
 }
 
 function ManagementSettings() {
-  const { selectedPlant } = useAppStore();
+  const { selectedPlant, tenantSlug } = useAppStore();
   const [plants, setPlants] = React.useState<any[]>([]);
   const [users, setUsers] = React.useState<any[]>([]);
   const [roles, setRoles] = React.useState<Array<{ value: string; label: string }>>([]);
@@ -1840,7 +1829,7 @@ function ManagementSettings() {
               <h3 className="text-lg font-semibold text-slate-900">Equipamentos</h3>
               <p className="text-sm text-slate-500">Resumo por planta selecionada</p>
             </div>
-            <a className="text-sm text-primary-600" href="/assets">
+            <a className="text-sm text-primary-600" href={tenantSlug ? `/t/${tenantSlug}/assets` : '/'}>
               Ver lista
             </a>
           </div>

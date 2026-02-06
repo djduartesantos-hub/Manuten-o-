@@ -17,7 +17,8 @@ interface SearchResult {
 }
 
 export function SearchPage() {
-  const { selectedPlant } = useAppStore();
+  const { selectedPlant, tenantSlug } = useAppStore();
+  const basePath = tenantSlug ? `/t/${tenantSlug}` : '';
   const [query, setQuery] = useState('');
   const [type, setType] = useState<'all' | 'orders' | 'assets'>('all');
   const [status, setStatus] = useState('');
@@ -245,7 +246,7 @@ export function SearchPage() {
                   <h2 className="text-lg font-semibold text-slate-900">Ordens</h2>
                   <a
                     className="text-sm text-primary-600 inline-flex items-center gap-1"
-                    href="/work-orders"
+                    href={`${basePath}/work-orders`}
                   >
                     Ver ordens <ExternalLink className="w-4 h-4" />
                   </a>
@@ -292,7 +293,7 @@ export function SearchPage() {
                   <h2 className="text-lg font-semibold text-slate-900">Equipamentos</h2>
                   <a
                     className="text-sm text-primary-600 inline-flex items-center gap-1"
-                    href="/assets"
+                    href={`${basePath}/assets`}
                   >
                     Ver equipamentos <ExternalLink className="w-4 h-4" />
                   </a>

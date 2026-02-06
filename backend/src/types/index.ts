@@ -31,6 +31,7 @@ export interface JWTPayload {
 export interface AuthenticatedRequest extends Express.Request {
   user?: JWTPayload;
   tenantId?: string;
+  tenantSlug?: string;
   plantId?: string;
   body?: any;
   params?: any;
