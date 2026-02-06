@@ -29,6 +29,7 @@ export function Header() {
       active: location.pathname === '/maintenance-plans',
     },
     { label: 'Peças', href: '/spare-parts', active: location.pathname === '/spare-parts' },
+    { label: 'Fornecedores', href: '/suppliers', active: location.pathname === '/suppliers' },
     { label: 'Relatórios', href: '/reports', active: location.pathname === '/reports' },
     { label: 'Configurações', href: '/settings', active: location.pathname === '/settings' },
     ...(user?.role === 'superadmin'

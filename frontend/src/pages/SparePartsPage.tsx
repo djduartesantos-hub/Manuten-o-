@@ -14,6 +14,7 @@ import { useAppStore } from '../context/store';
 import {
   createSparePart,
   createStockMovement,
+  getSuppliers,
   getSpareParts,
   getStockMovementsByPlant,
 } from '../services/api';
@@ -24,6 +25,13 @@ interface SparePart {
   name: string;
   description?: string | null;
   unit_cost?: string | null;
+  supplier_id?: string | null;
+  supplier_name?: string | null;
+}
+
+interface Supplier {
+  id: string;
+  name: string;
 }
 
 interface StockMovement {
@@ -41,6 +49,7 @@ interface StockMovement {
 export function SparePartsPage() {
   const { selectedPlant } = useAppStore();
   const [parts, setParts] = useState<SparePart[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +61,7 @@ export function SparePartsPage() {
     name: '',
     description: '',
     unit_cost: '',
+    supplier_id: '',
   });
 
   const [movementForm, setMovementForm] = useState({
@@ -78,12 +88,14 @@ export function SparePartsPage() {
     setLoading(true);
     setError(null);
     try {
-      const [partsData, movementsData] = await Promise.all([
+      const [partsData, movementsData, suppliersData] = await Promise.all([
         selectedPlant ? getSpareParts(selectedPlant) : Promise.resolve([]),
         selectedPlant ? getStockMovementsByPlant(selectedPlant) : Promise.resolve([]),
+        selectedPlant ? getSuppliers(selectedPlant) : Promise.resolve([]),
       ]);
       setParts(partsData || []);
       setMovements(movementsData || []);
+      setSuppliers(suppliersData || []);
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar peças');
     } finally {
@@ -115,8 +127,9 @@ export function SparePartsPage() {
         name: partForm.name,
         description: partForm.description || undefined,
         unit_cost: partForm.unit_cost || undefined,
+        supplier_id: partForm.supplier_id || undefined,
       });
-      setPartForm({ code: '', name: '', description: '', unit_cost: '' });
+      setPartForm({ code: '', name: '', description: '', unit_cost: '', supplier_id: '' });
       setShowCreate(false);
       await loadData();
     } catch (err: any) {
@@ -274,6 +287,25 @@ export function SparePartsPage() {
                 }
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Fornecedor
+              </label>
+              <select
+                className="input"
+                value={partForm.supplier_id}
+                onChange={(event) =>
+                  setPartForm({ ...partForm, supplier_id: event.target.value })
+                }
+              >
+                <option value="">Sem fornecedor</option>
+                {suppliers.map((supplier) => (
+                  <option key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Descricao
@@ -339,12 +371,15 @@ export function SparePartsPage() {
                         <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                           Custo
                         </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                          Fornecedor
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
                       {parts.length === 0 && (
                         <tr>
-                          <td colSpan={3} className="px-6 py-6 text-center text-slate-500">
+                          <td colSpan={4} className="px-6 py-6 text-center text-slate-500">
                             Nenhuma peça encontrada
                           </td>
                         </tr>
@@ -357,6 +392,9 @@ export function SparePartsPage() {
                           <td className="px-6 py-4 text-sm text-slate-700">{part.name}</td>
                           <td className="px-6 py-4 text-sm text-slate-700">
                             {part.unit_cost ? `€ ${part.unit_cost}` : '-'}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-slate-700">
+                            {part.supplier_name || '-'}
                           </td>
                         </tr>
                       ))}

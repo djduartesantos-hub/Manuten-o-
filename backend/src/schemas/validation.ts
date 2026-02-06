@@ -136,7 +136,8 @@ export const CreateSupplierSchema = z.object({
   email: z.string().email('Email inválido').optional(),
   phone: z.string().max(20).optional(),
   address: z.string().max(500).optional(),
-  contact_person: z.string().max(200).optional(),
+  city: z.string().max(200).optional(),
+  country: z.string().max(200).optional(),
 });
 
 export const UpdateSupplierSchema = z.object({
@@ -144,7 +145,8 @@ export const UpdateSupplierSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().max(20).optional(),
   address: z.string().max(500).optional(),
-  contact_person: z.string().max(200).optional(),
+  city: z.string().max(200).optional(),
+  country: z.string().max(200).optional(),
 });
 
 // Meter Reading Schemas
@@ -190,5 +192,6 @@ export type CreateAssetCategoryInput = z.infer<typeof CreateAssetCategorySchema>
 export type CreateMaintenancePlanInput = z.infer<typeof CreateMaintenancePlanSchema>;
 export type CreateSparePartInput = z.infer<typeof CreateSparePartSchema>;
 export type CreateSupplierInput = z.infer<typeof CreateSupplierSchema>;
+export type UpdateSupplierInput = z.infer<typeof UpdateSupplierSchema>;
 export type CreateMeterReadingInput = z.infer<typeof CreateMeterReadingSchema>;
 export type CreateStockMovementInput = z.infer<typeof CreateStockMovementSchema>;

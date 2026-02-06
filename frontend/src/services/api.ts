@@ -140,6 +140,34 @@ export async function getSpareParts(plantId: string) {
   return apiCall(`/tenants/${plantId}/spareparts`);
 }
 
+export async function getSuppliers(plantId: string, search?: string) {
+  const params = new URLSearchParams();
+  if (search) params.append('search', search);
+
+  const query = params.toString();
+  return apiCall(`/tenants/${plantId}/suppliers${query ? `?${query}` : ''}`);
+}
+
+export async function createSupplier(plantId: string, data: any) {
+  return apiCall(`/tenants/${plantId}/suppliers`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateSupplier(plantId: string, supplierId: string, data: any) {
+  return apiCall(`/tenants/${plantId}/suppliers/${supplierId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteSupplier(plantId: string, supplierId: string) {
+  return apiCall(`/tenants/${plantId}/suppliers/${supplierId}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function createSparePart(plantId: string, data: any) {
   return apiCall(`/tenants/${plantId}/spareparts`, {
     method: 'POST',

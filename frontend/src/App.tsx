@@ -16,6 +16,7 @@ import { WorkOrdersPage } from './pages/WorkOrdersPage';
 import { AssetsPage } from './pages/AssetsPage';
 import { MaintenancePlansPage } from './pages/MaintenancePlansPage';
 import { SparePartsPage } from './pages/SparePartsPage';
+import { SuppliersPage } from './pages/SuppliersPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SearchPage } from './pages/SearchPage';
@@ -124,6 +125,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <SparePartsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/suppliers"
+              element={
+                <ProtectedRoute>
+                  <SuppliersPage />
                 </ProtectedRoute>
               }
             />

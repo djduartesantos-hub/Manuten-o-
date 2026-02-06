@@ -10,6 +10,7 @@ import assetRoutes from './routes/asset.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import maintenanceRoutes from './routes/maintenance.routes.js';
 import sparePartRoutes from './routes/sparepart.routes.js';
+import supplierRoutes from './routes/supplier.routes.js';
 import alertRoutes from './routes/alert.routes.js';
 import searchRoutes from './routes/search.routes.js';
 import jobsRoutes from './routes/jobs.routes.js';
@@ -43,6 +44,7 @@ export function createApp(): Express {
   app.use('/api/tenants', assetRoutes);
   app.use('/api/tenants', maintenanceRoutes);
   app.use('/api/tenants', sparePartRoutes);
+  app.use('/api/tenants', supplierRoutes);
   app.use('/api/dashboard', dashboardRoutes);  // Dashboard has its own prefix
   app.use('/api/alerts', alertRoutes);
   app.use('/api/search', searchRoutes);
