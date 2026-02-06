@@ -1,25 +1,7 @@
 import { db } from '../config/database.js';
 import { suppliers } from '../db/schema.js';
-import { and, desc, eq } from 'drizzle-orm';
-import { sql } from 'drizzle-orm';
-
-export interface CreateSupplierInput {
-  name: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  country?: string;
-}
-
-export interface UpdateSupplierInput {
-  name?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  country?: string;
-}
+import { and, desc, eq, sql } from 'drizzle-orm';
+import { CreateSupplierInput, UpdateSupplierInput } from '../schemas/validation.js';
 
 export class SupplierService {
   async getSuppliers(

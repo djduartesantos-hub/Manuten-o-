@@ -1,7 +1,11 @@
 import { Response } from 'express';
 import { SupplierService } from '../services/supplier.service.js';
 import { AuthenticatedRequest } from '../types/index.js';
-import { CreateSupplierSchema, UpdateSupplierSchema } from '../schemas/validation.js';
+import {
+  CreateSupplierInput,
+  CreateSupplierSchema,
+  UpdateSupplierSchema,
+} from '../schemas/validation.js';
 
 const supplierService = new SupplierService();
 
@@ -56,18 +60,9 @@ export async function getSupplier(req: AuthenticatedRequest, res: Response) {
 
 export async function createSupplier(req: AuthenticatedRequest, res: Response) {
   try {
-    const validation = CreateSupplierSchema.safeParse(req.body);
+    const data = CreateSupplierSchema.parse(req.body) as CreateSupplierInput;
 
-    if (!validation.success) {
-      res.status(400).json({
-        success: false,
-        error: 'Invalid input',
-        details: validation.error.errors,
-      });
-      return;
-    }
-
-    const supplier = await supplierService.createSupplier(req.tenantId!, validation.data);
+    const supplier = await supplierService.createSupplier(req.tenantId!, data);
 
     res.status(201).json({
       success: true,
@@ -76,9 +71,11 @@ export async function createSupplier(req: AuthenticatedRequest, res: Response) {
     });
   } catch (error) {
     console.error('Error creating supplier:', error);
-    res.status(400).json({
+    const isValidationError = error && typeof error === 'object' && 'errors' in error;
+    res.status(isValidationError ? 400 : 500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create supplier',
+      details: isValidationError ? (error as any).errors : undefined,
     });
   }
 }
