@@ -90,9 +90,19 @@ export const useAppStore = create<AppState>((set) => {
     },
 
     setSelectedPlant: (plantId) => {
-      localStorage.setItem('selectedPlant', plantId);
-      set({ selectedPlant: plantId });
-    },
+        const normalized =
+          plantId && plantId !== 'null' && plantId !== 'undefined' && plantId.trim() !== ''
+            ? plantId
+            : null;
+
+        if (normalized) {
+          localStorage.setItem('selectedPlant', normalized);
+        } else {
+          localStorage.removeItem('selectedPlant');
+        }
+
+        set({ selectedPlant: normalized });
+      },
 
     setPlants: (plants) => set({ plants }),
   };

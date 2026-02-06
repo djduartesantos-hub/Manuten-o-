@@ -114,6 +114,10 @@ export async function getUserPlants() {
 }
 
 export async function getAssets(plantId: string, search?: string) {
+  if (!plantId || plantId === 'null' || plantId === 'undefined' || plantId.trim() === '') {
+    throw new Error('Selecione uma planta valida');
+  }
+
   const params = new URLSearchParams();
   if (search) params.append('search', search);
 
