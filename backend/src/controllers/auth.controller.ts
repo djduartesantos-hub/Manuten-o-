@@ -5,6 +5,32 @@ import { generateToken, generateRefreshToken } from '../auth/jwt.js';
 import { logger } from '../config/logger.js';
 
 export class AuthController {
+  static async listTenants(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const email = typeof req.query?.email === 'string' ? req.query.email : '';
+
+      if (!email.trim()) {
+        res.status(400).json({
+          success: false,
+          error: 'Email is required',
+        });
+        return;
+      }
+
+      const tenants = await AuthService.findTenantsByEmail(email);
+
+      res.json({
+        success: true,
+        data: tenants,
+      });
+    } catch (error) {
+      logger.error('List tenants error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to load tenants',
+      });
+    }
+  }
   static async login(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { email, password } = req.body;

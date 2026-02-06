@@ -44,6 +44,29 @@ export class AuthService {
     return user;
   }
 
+  static async findTenantsByEmail(email: string) {
+    const normalized = email.trim().toLowerCase();
+
+    const rows = await db
+      .select({
+        id: tenants.id,
+        slug: tenants.slug,
+        name: tenants.name,
+      })
+      .from(users)
+      .innerJoin(tenants, eq(users.tenant_id, tenants.id))
+      .where(eq(users.email, normalized));
+
+    const unique = new Map<string, { id: string; slug: string; name: string }>();
+    for (const row of rows) {
+      if (!unique.has(row.slug)) {
+        unique.set(row.slug, row);
+      }
+    }
+
+    return Array.from(unique.values());
+  }
+
   /**
    * Get user's plant IDs - loads from user_plants relationship or all plants for admin roles
    */

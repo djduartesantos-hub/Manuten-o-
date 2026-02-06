@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { login as apiLogin } from '../services/api';
+import { listTenantsByEmail, login as apiLogin } from '../services/api';
 import { AlertCircle, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { useAppStore } from '../context/store';
 
@@ -12,13 +12,17 @@ export function LoginPage() {
   const { setTenantSlug } = useAppStore();
   const storedSlug = (localStorage.getItem('tenantSlug') || '').trim().toLowerCase();
   const [tenantSlugInput, setTenantSlugInput] = React.useState(
-    tenantSlug?.trim().toLowerCase() || storedSlug || 'demo'
+    tenantSlug?.trim().toLowerCase() || storedSlug || ''
   );
   const [email, setEmail] = React.useState('admin@cmms.com');
   const [password, setPassword] = React.useState('Admin@123456');
   const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
+  const [tenantOptions, setTenantOptions] = React.useState<
+    Array<{ id: string; slug: string; name: string }>
+  >([]);
+  const [loadingTenants, setLoadingTenants] = React.useState(false);
 
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -38,7 +42,7 @@ export function LoginPage() {
       const resolvedSlug = (tenantSlug || tenantSlugInput).trim().toLowerCase();
 
       if (!resolvedSlug) {
-        setError('Empresa (tenant) obrigatoria');
+        setError('Selecione a empresa antes de entrar.');
         setLoading(false);
         return;
       }
@@ -51,6 +55,26 @@ export function LoginPage() {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLoadTenants = async () => {
+    setError('');
+    setLoadingTenants(true);
+    try {
+      const tenants = await listTenantsByEmail(email);
+      setTenantOptions(tenants || []);
+
+      if (!tenants || tenants.length === 0) {
+        setTenantSlugInput('');
+        setError('Nenhuma empresa encontrada para este email.');
+      } else if (tenants.length === 1) {
+        setTenantSlugInput(tenants[0].slug);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao carregar empresas');
+    } finally {
+      setLoadingTenants(false);
     }
   };
 
@@ -98,21 +122,6 @@ export function LoginPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="tenant" className="block text-xs font-medium text-slate-500 uppercase tracking-[0.2em]">
-                  Empresa (slug)
-                </label>
-                <input
-                  id="tenant"
-                  type="text"
-                  value={tenantSlugInput}
-                  onChange={(e) => setTenantSlugInput(e.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-amber-400 focus:outline-none"
-                  placeholder="demo"
-                  required
-                />
-              </div>
-
-              <div>
                 <label htmlFor="email" className="block text-xs font-medium text-slate-500 uppercase tracking-[0.2em]">
                   Email
                 </label>
@@ -124,6 +133,37 @@ export function LoginPage() {
                   className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-amber-400 focus:outline-none"
                   required
                 />
+                <div className="mt-3 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleLoadTenants}
+                    disabled={loadingTenants}
+                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600 hover:border-amber-300 hover:text-slate-800 disabled:text-slate-400"
+                  >
+                    {loadingTenants ? 'A procurar...' : 'Escolher empresa'}
+                  </button>
+                  <span className="text-xs text-slate-500">Necessario para selecionar a empresa.</span>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="tenant" className="block text-xs font-medium text-slate-500 uppercase tracking-[0.2em]">
+                  Empresa
+                </label>
+                <select
+                  id="tenant"
+                  value={tenantSlugInput}
+                  onChange={(e) => setTenantSlugInput(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-amber-400 focus:outline-none"
+                  required
+                >
+                  <option value="">Selecione a empresa</option>
+                  {tenantOptions.map((tenant) => (
+                    <option key={tenant.id} value={tenant.slug}>
+                      {tenant.name} ({tenant.slug})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

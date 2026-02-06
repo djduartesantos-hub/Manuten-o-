@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import authRoutes from './routes/auth.routes.js';
+import authPublicRoutes from './routes/auth.public.routes.js';
 import tenantRoutes from './routes/tenant.routes.js';
 import workOrderRoutes from './routes/workorder.routes.js';
 import assetRoutes from './routes/asset.routes.js';
@@ -41,6 +42,7 @@ export function createApp(): Express {
 
   // Routes
   app.use('/api/setup', setupPublicRoutes);
+  app.use('/api/auth', authPublicRoutes);
   app.use('/api/t/:tenantSlug/auth', authRoutes);
 
   app.use('/api/t/:tenantSlug', tenantSlugMiddleware);

@@ -99,6 +99,15 @@ export async function login(
   );
 }
 
+export async function listTenantsByEmail(email: string) {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) {
+    throw new Error('Email obrigatorio');
+  }
+
+  return publicApiCall(`/api/auth/tenants?email=${encodeURIComponent(normalized)}`);
+}
+
 export async function getWorkOrders(plantId: string, status?: string) {
   const params = new URLSearchParams();
   if (status) params.append('status', status);
