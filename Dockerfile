@@ -53,6 +53,9 @@ COPY --from=backend-builder /app/backend/drizzle.config.mjs ./
 # Copy built frontend from builder
 COPY --from=frontend-builder /app/frontend/dist ./public
 
+# Copy SQL migrations for public bootstrap
+COPY scripts/database/migrations ./scripts/database/migrations
+
 # Create necessary directories
 RUN mkdir -p logs
 
