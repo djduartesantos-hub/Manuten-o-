@@ -571,24 +571,39 @@ export class SetupController {
   }
 
   private static async clearAllInternal(includeTenants: boolean): Promise<void> {
-    await db.execute(sql`TRUNCATE TABLE IF EXISTS stock_movements CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE IF EXISTS meter_readings CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE IF EXISTS attachments CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE IF EXISTS audit_logs CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE IF EXISTS work_order_tasks CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE IF EXISTS work_orders CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE IF EXISTS maintenance_tasks CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE IF EXISTS maintenance_plans CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE IF EXISTS assets CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE IF EXISTS spare_parts CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE IF EXISTS suppliers CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE IF EXISTS asset_categories CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE IF EXISTS user_plants CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE IF EXISTS users CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE IF EXISTS plants CASCADE;`);
+    const tables = [
+      'stock_movements',
+      'meter_readings',
+      'attachments',
+      'audit_logs',
+      'work_order_tasks',
+      'work_orders',
+      'maintenance_tasks',
+      'maintenance_plans',
+      'assets',
+      'spare_parts',
+      'suppliers',
+      'asset_categories',
+      'user_plants',
+      'users',
+      'plants',
+    ];
 
     if (includeTenants) {
-      await db.execute(sql`TRUNCATE TABLE IF EXISTS tenants CASCADE;`);
+      tables.push('tenants');
+    }
+
+    for (const table of tables) {
+      await db.execute(
+        sql.raw(
+          `DO $$
+BEGIN
+  IF to_regclass('public.${table}') IS NOT NULL THEN
+    EXECUTE 'TRUNCATE TABLE ${table} CASCADE';
+  END IF;
+END $$;`
+        )
+      );
     }
   }
 
