@@ -60,7 +60,7 @@ export async function listPlants(req: AuthenticatedRequest, res: Response) {
 export async function createPlant(req: AuthenticatedRequest, res: Response) {
   try {
     const tenantId = req.tenantId;
-    const { name, code, address, city, country, is_active } = req.body || {};
+    const { name, code, address, city, country, latitude, longitude, is_active } = req.body || {};
 
     if (!tenantId) {
       return res.status(400).json({ success: false, error: 'Tenant ID is required' });
@@ -89,6 +89,8 @@ export async function createPlant(req: AuthenticatedRequest, res: Response) {
         address,
         city,
         country,
+        latitude,
+        longitude,
         is_active: is_active ?? true,
       })
       .returning();
@@ -103,7 +105,7 @@ export async function updatePlant(req: AuthenticatedRequest, res: Response) {
   try {
     const tenantId = req.tenantId;
     const { plantId } = req.params;
-    const { name, code, address, city, country, is_active } = req.body || {};
+    const { name, code, address, city, country, latitude, longitude, is_active } = req.body || {};
 
     if (!tenantId || !plantId) {
       return res.status(400).json({ success: false, error: 'Plant ID is required' });
@@ -137,6 +139,8 @@ export async function updatePlant(req: AuthenticatedRequest, res: Response) {
         address: address ?? plant.address,
         city: city ?? plant.city,
         country: country ?? plant.country,
+        latitude: latitude ?? plant.latitude,
+        longitude: longitude ?? plant.longitude,
         is_active: is_active ?? plant.is_active,
         updated_at: new Date(),
       })

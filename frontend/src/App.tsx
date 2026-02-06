@@ -21,6 +21,7 @@ import { ReportsPage } from './pages/ReportsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SearchPage } from './pages/SearchPage';
 import { AdminSetupPage } from './pages/AdminSetupPage';
+import { PlantsPage } from './pages/PlantsPage';
 
 import './index.css';
 
@@ -152,6 +153,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/plants"
+              element={
+                <ProtectedRoute>
+                  <PlantsPage />
                 </ProtectedRoute>
               }
             />

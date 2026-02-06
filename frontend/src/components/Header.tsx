@@ -32,6 +32,9 @@ export function Header() {
     { label: 'Fornecedores', href: '/suppliers', active: location.pathname === '/suppliers' },
     { label: 'Relatórios', href: '/reports', active: location.pathname === '/reports' },
     { label: 'Configurações', href: '/settings', active: location.pathname === '/settings' },
+    ...(user?.role === 'admin_empresa' || user?.role === 'superadmin'
+      ? [{ label: 'Plantas', href: '/plants', active: location.pathname === '/plants' }]
+      : []),
     ...(user?.role === 'superadmin'
       ? [{ label: '🔧 Setup BD', href: '/admin/setup', active: location.pathname === '/admin/setup' }]
       : []),
