@@ -17,9 +17,18 @@ const maintenanceService = new MaintenanceService();
  */
 export async function getMaintenancePlans(req: AuthenticatedRequest, res: Response) {
   try {
+    const plantId = req.plantId as string;
     const { asset_id, type, is_active, search } = req.query;
 
-    const plans = await maintenanceService.getMaintenancePlans(req.tenantId!, {
+    if (!req.tenantId || !plantId) {
+      res.status(400).json({
+        success: false,
+        error: 'Plant ID is required',
+      });
+      return;
+    }
+
+    const plans = await maintenanceService.getMaintenancePlans(req.tenantId!, plantId, {
       asset_id: asset_id as string,
       type: type as string,
       is_active: is_active === 'true',
@@ -47,6 +56,7 @@ export async function getMaintenancePlans(req: AuthenticatedRequest, res: Respon
 export async function getMaintenancePlan(req: AuthenticatedRequest, res: Response) {
   try {
     const { plan_id } = req.params;
+    const plantId = req.plantId as string;
 
     if (!plan_id) {
       res.status(400).json({
@@ -56,7 +66,15 @@ export async function getMaintenancePlan(req: AuthenticatedRequest, res: Respons
       return;
     }
 
-    const plan = await maintenanceService.getMaintenancePlanById(req.tenantId!, plan_id);
+    if (!req.tenantId || !plantId) {
+      res.status(400).json({
+        success: false,
+        error: 'Plant ID is required',
+      });
+      return;
+    }
+
+    const plan = await maintenanceService.getMaintenancePlanById(req.tenantId!, plan_id, plantId);
 
     res.json({
       success: true,
@@ -77,6 +95,7 @@ export async function getMaintenancePlan(req: AuthenticatedRequest, res: Respons
  */
 export async function createMaintenancePlan(req: AuthenticatedRequest, res: Response) {
   try {
+    const plantId = req.plantId as string;
     const validation = createMaintenancePlanSchema.safeParse(req.body);
 
     if (!validation.success) {
@@ -88,8 +107,17 @@ export async function createMaintenancePlan(req: AuthenticatedRequest, res: Resp
       return;
     }
 
+    if (!req.tenantId || !plantId) {
+      res.status(400).json({
+        success: false,
+        error: 'Plant ID is required',
+      });
+      return;
+    }
+
     const plan = await maintenanceService.createMaintenancePlan(
       req.tenantId!,
+      plantId,
       validation.data
     );
 
@@ -124,6 +152,7 @@ export async function createMaintenancePlan(req: AuthenticatedRequest, res: Resp
 export async function updateMaintenancePlan(req: AuthenticatedRequest, res: Response) {
   try {
     const { plan_id } = req.params;
+    const plantId = req.plantId as string;
 
     if (!plan_id) {
       res.status(400).json({
@@ -144,8 +173,17 @@ export async function updateMaintenancePlan(req: AuthenticatedRequest, res: Resp
       return;
     }
 
+    if (!req.tenantId || !plantId) {
+      res.status(400).json({
+        success: false,
+        error: 'Plant ID is required',
+      });
+      return;
+    }
+
     const plan = await maintenanceService.updateMaintenancePlan(
       req.tenantId!,
+      plantId,
       plan_id,
       validation.data
     );
@@ -181,6 +219,7 @@ export async function updateMaintenancePlan(req: AuthenticatedRequest, res: Resp
 export async function deleteMaintenancePlan(req: AuthenticatedRequest, res: Response) {
   try {
     const { plan_id } = req.params;
+    const plantId = req.plantId as string;
 
     if (!plan_id) {
       res.status(400).json({
@@ -190,7 +229,15 @@ export async function deleteMaintenancePlan(req: AuthenticatedRequest, res: Resp
       return;
     }
 
-    await maintenanceService.deleteMaintenancePlan(req.tenantId!, plan_id);
+    if (!req.tenantId || !plantId) {
+      res.status(400).json({
+        success: false,
+        error: 'Plant ID is required',
+      });
+      return;
+    }
+
+    await maintenanceService.deleteMaintenancePlan(req.tenantId!, plantId, plan_id);
 
     if (isSocketManagerReady()) {
       const socketManager = getSocketManager();
@@ -222,6 +269,7 @@ export async function deleteMaintenancePlan(req: AuthenticatedRequest, res: Resp
 export async function getMaintenancePlansDue(req: AuthenticatedRequest, res: Response) {
   try {
     const { asset_id } = req.params;
+    const plantId = req.plantId as string;
 
     if (!asset_id) {
       res.status(400).json({
@@ -231,7 +279,15 @@ export async function getMaintenancePlansDue(req: AuthenticatedRequest, res: Res
       return;
     }
 
-    const plans = await maintenanceService.getMaintenancePlansDue(req.tenantId!, asset_id);
+    if (!req.tenantId || !plantId) {
+      res.status(400).json({
+        success: false,
+        error: 'Plant ID is required',
+      });
+      return;
+    }
+
+    const plans = await maintenanceService.getMaintenancePlansDue(req.tenantId!, plantId, asset_id);
 
     res.json({
       success: true,
@@ -254,6 +310,7 @@ export async function getMaintenancePlansDue(req: AuthenticatedRequest, res: Res
 export async function getMaintenanceTasks(req: AuthenticatedRequest, res: Response) {
   try {
     const { plan_id } = req.params;
+    const plantId = req.plantId as string;
 
     if (!plan_id) {
       res.status(400).json({
@@ -263,7 +320,15 @@ export async function getMaintenanceTasks(req: AuthenticatedRequest, res: Respon
       return;
     }
 
-    const tasks = await maintenanceService.getMaintenanceTasksByPlan(req.tenantId!, plan_id);
+    if (!req.tenantId || !plantId) {
+      res.status(400).json({
+        success: false,
+        error: 'Plant ID is required',
+      });
+      return;
+    }
+
+    const tasks = await maintenanceService.getMaintenanceTasksByPlan(req.tenantId!, plantId, plan_id);
 
     res.json({
       success: true,
@@ -286,6 +351,7 @@ export async function getMaintenanceTasks(req: AuthenticatedRequest, res: Respon
 export async function createMaintenanceTask(req: AuthenticatedRequest, res: Response) {
   try {
     const { plan_id } = req.params;
+    const plantId = req.plantId as string;
 
     if (!plan_id) {
       res.status(400).json({
@@ -309,7 +375,19 @@ export async function createMaintenanceTask(req: AuthenticatedRequest, res: Resp
       return;
     }
 
-    const task = await maintenanceService.createMaintenanceTask(req.tenantId!, validation.data);
+    if (!req.tenantId || !plantId) {
+      res.status(400).json({
+        success: false,
+        error: 'Plant ID is required',
+      });
+      return;
+    }
+
+    const task = await maintenanceService.createMaintenanceTask(
+      req.tenantId!,
+      plantId,
+      validation.data
+    );
 
     res.status(201).json({
       success: true,
@@ -332,6 +410,7 @@ export async function createMaintenanceTask(req: AuthenticatedRequest, res: Resp
 export async function deleteMaintenanceTask(req: AuthenticatedRequest, res: Response) {
   try {
     const { task_id } = req.params;
+    const plantId = req.plantId as string;
 
     if (!task_id) {
       res.status(400).json({
@@ -341,7 +420,15 @@ export async function deleteMaintenanceTask(req: AuthenticatedRequest, res: Resp
       return;
     }
 
-    await maintenanceService.deleteMaintenanceTask(req.tenantId!, task_id);
+    if (!req.tenantId || !plantId) {
+      res.status(400).json({
+        success: false,
+        error: 'Plant ID is required',
+      });
+      return;
+    }
+
+    await maintenanceService.deleteMaintenanceTask(req.tenantId!, plantId, task_id);
 
     res.json({
       success: true,

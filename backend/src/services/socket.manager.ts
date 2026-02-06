@@ -179,10 +179,12 @@ export class SocketManager {
   }
 
   emitAlertTriggered(tenantId: string, alert: any): void {
-    this.broadcastToRole(tenantId, 'admin', 'alert:triggered', {
-      alert,
-      severity: alert.severity,
-      message: alert.message,
+    ['admin_empresa', 'superadmin'].forEach((role) => {
+      this.broadcastToRole(tenantId, role, 'alert:triggered', {
+        alert,
+        severity: alert.severity,
+        message: alert.message,
+      });
     });
   }
 

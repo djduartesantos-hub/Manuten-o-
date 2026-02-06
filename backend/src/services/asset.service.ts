@@ -14,7 +14,7 @@ export class AssetService {
   static async getPlantAssets(tenantId: string, plantId: string) {
     try {
       // Try cache first
-      const cacheKey = CacheKeys.assetsList(tenantId);
+      const cacheKey = CacheKeys.assetsList(tenantId, plantId);
       const cached = await RedisService.getJSON(cacheKey);
       if (cached) {
         logger.debug(`Cache hit for assets list: ${cacheKey}`);
@@ -43,7 +43,7 @@ export class AssetService {
 
     // Cache result
     try {
-      const cacheKey = CacheKeys.assetsList(tenantId);
+      const cacheKey = CacheKeys.assetsList(tenantId, plantId);
       await RedisService.setJSON(cacheKey, assets, CacheTTL.ASSETS);
     } catch (cacheError) {
       logger.warn('Cache write error:', cacheError);
@@ -55,7 +55,7 @@ export class AssetService {
   /**
    * Obter equipamento por ID
    */
-  static async getAssetById(tenantId: string, assetId: string) {
+  static async getAssetById(tenantId: string, assetId: string, plantId?: string) {
     try {
       // Try cache first
       const cacheKey = CacheKeys.asset(tenantId, assetId);
@@ -69,11 +69,15 @@ export class AssetService {
     }
 
     const asset = await db.query.assets.findFirst({
-      where: (fields: any, { eq, and }: any) =>
-        and(
-          eq(fields.tenant_id, tenantId),
-          eq(fields.id, assetId),
-        ),
+      where: (fields: any, { eq, and }: any) => {
+        const conditions = [eq(fields.tenant_id, tenantId), eq(fields.id, assetId)];
+
+        if (plantId) {
+          conditions.push(eq(fields.plant_id, plantId));
+        }
+
+        return and(...conditions);
+      },
       with: {
         category: true,
         workOrders: {
@@ -135,7 +139,7 @@ export class AssetService {
 
     // Invalidate cache
     try {
-      await RedisService.del(CacheKeys.assetsList(tenantId));
+      await RedisService.del(CacheKeys.assetsList(tenantId, plantId));
       logger.debug(`Cache invalidated for assets list: ${tenantId}`);
     } catch (cacheError) {
       logger.warn('Cache invalidation error:', cacheError);
@@ -166,14 +170,19 @@ export class AssetService {
     tenantId: string,
     assetId: string,
     data: UpdateAssetInput,
+    plantId?: string,
   ) {
     // Validar que o equipamento pertence ao tenant
     const asset = await db.query.assets.findFirst({
-      where: (fields: any, { eq, and }: any) =>
-        and(
-          eq(fields.id, assetId),
-          eq(fields.tenant_id, tenantId),
-        ),
+      where: (fields: any, { eq, and }: any) => {
+        const conditions = [eq(fields.id, assetId), eq(fields.tenant_id, tenantId)];
+
+        if (plantId) {
+          conditions.push(eq(fields.plant_id, plantId));
+        }
+
+        return and(...conditions);
+      },
     });
 
     if (!asset) {
@@ -214,7 +223,7 @@ export class AssetService {
     try {
       await RedisService.delMultiple([
         CacheKeys.asset(tenantId, assetId),
-        CacheKeys.assetsList(tenantId),
+        CacheKeys.assetsList(tenantId, asset.plant_id),
       ]);
       logger.debug(`Cache invalidated for asset: ${assetId}`);
     } catch (cacheError) {
@@ -242,7 +251,23 @@ export class AssetService {
   /**
    * Eliminar equipamento (soft delete)
    */
-  static async deleteAsset(tenantId: string, assetId: string) {
+  static async deleteAsset(tenantId: string, assetId: string, plantId?: string) {
+    const existing = await db.query.assets.findFirst({
+      where: (fields: any, { eq, and }: any) => {
+        const conditions = [eq(fields.tenant_id, tenantId), eq(fields.id, assetId)];
+
+        if (plantId) {
+          conditions.push(eq(fields.plant_id, plantId));
+        }
+
+        return and(...conditions);
+      },
+    });
+
+    if (!existing) {
+      throw new Error('Equipamento não encontrado');
+    }
+
     const [deleted] = await db
       .update(assets)
       .set({
@@ -253,6 +278,7 @@ export class AssetService {
         and(
           eq(assets.tenant_id, tenantId),
           eq(assets.id, assetId),
+          ...(plantId ? [eq(assets.plant_id, plantId)] : []),
         ),
       )
       .returning();
@@ -261,7 +287,7 @@ export class AssetService {
     try {
       await RedisService.delMultiple([
         CacheKeys.asset(tenantId, assetId),
-        CacheKeys.assetsList(tenantId),
+        CacheKeys.assetsList(tenantId, existing.plant_id),
       ]);
     } catch (cacheError) {
       logger.warn('Cache invalidation error:', cacheError);

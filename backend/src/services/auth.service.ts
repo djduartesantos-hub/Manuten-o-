@@ -4,6 +4,16 @@ import { eq } from 'drizzle-orm';
 import { comparePasswords, hashPassword } from '../auth/jwt.js';
 
 export class AuthService {
+  private static normalizeRole(role: string) {
+    const roleAliases: Record<string, string> = {
+      admin: 'admin_empresa',
+      maintenance_manager: 'gestor_manutencao',
+      planner: 'gestor_manutencao',
+      technician: 'tecnico',
+    };
+
+    return roleAliases[role] || role;
+  }
   static async findUserByEmail(tenantId: string, email: string) {
     const user = await db.query.users.findFirst({
       where: (fields: any, { eq, and }: any) =>
@@ -29,8 +39,10 @@ export class AuthService {
    */
   static async getUserPlantIds(userId: string, tenantId: string, role: string): Promise<string[]> {
     try {
+      const normalizedRole = this.normalizeRole(role);
+
       // Admin empresa and super admin can access all plants in their tenant
-      if (role === 'admin_empresa' || role === 'superadmin') {
+      if (normalizedRole === 'admin_empresa' || normalizedRole === 'superadmin') {
         const allPlants = await db.query.plants.findMany({
           where: (fields: any, { eq }: any) => eq(fields.tenant_id, tenantId),
         });

@@ -38,6 +38,7 @@ export class MaintenanceService {
    */
   async getMaintenancePlans(
     tenant_id: string,
+    plant_id: string,
     filters?: {
       asset_id?: string;
       type?: string;
@@ -53,7 +54,7 @@ export class MaintenanceService {
 
     if (!hasFilters) {
       try {
-        const cacheKey = CacheKeys.maintenancePlans(tenant_id);
+        const cacheKey = CacheKeys.maintenancePlans(tenant_id, plant_id);
         const cached = await RedisService.getJSON(cacheKey);
         if (cached) {
           logger.debug(`Cache hit for maintenance plans: ${cacheKey}`);
@@ -84,7 +85,7 @@ export class MaintenanceService {
       .leftJoin(assets, eq(maintenancePlans.asset_id, assets.id));
 
     // Build conditions array
-    const conditions = [eq(maintenancePlans.tenant_id, tenant_id)];
+    const conditions = [eq(maintenancePlans.tenant_id, tenant_id), eq(assets.plant_id, plant_id)];
 
     if (filters?.asset_id) {
       conditions.push(eq(maintenancePlans.asset_id, filters.asset_id));
@@ -112,7 +113,7 @@ export class MaintenanceService {
 
     if (!hasFilters) {
       try {
-        const cacheKey = CacheKeys.maintenancePlans(tenant_id);
+        const cacheKey = CacheKeys.maintenancePlans(tenant_id, plant_id);
         await RedisService.setJSON(cacheKey, plans, CacheTTL.PLANS);
       } catch (cacheError) {
         logger.warn('Cache write error:', cacheError);
@@ -125,7 +126,7 @@ export class MaintenanceService {
   /**
    * Get a single maintenance plan by ID
    */
-  async getMaintenancePlanById(tenant_id: string, plan_id: string) {
+  async getMaintenancePlanById(tenant_id: string, plan_id: string, plant_id?: string) {
     try {
       const cacheKey = CacheKeys.maintenancePlan(tenant_id, plan_id);
       const cached = await RedisService.getJSON(cacheKey);
@@ -155,12 +156,18 @@ export class MaintenanceService {
       })
       .from(maintenancePlans)
       .leftJoin(assets, eq(maintenancePlans.asset_id, assets.id))
-      .where(
-        and(
+      .where(() => {
+        const conditions = [
           eq(maintenancePlans.tenant_id, tenant_id),
-          eq(maintenancePlans.id, plan_id)
-        )
-      )
+          eq(maintenancePlans.id, plan_id),
+        ];
+
+        if (plant_id) {
+          conditions.push(eq(assets.plant_id, plant_id));
+        }
+
+        return and(...conditions);
+      })
       .limit(1);
 
     if (!plan.length) {
@@ -182,11 +189,12 @@ export class MaintenanceService {
    */
   async createMaintenancePlan(
     tenant_id: string,
+    plant_id: string,
     input: CreateMaintenancePlanInput
   ) {
-    // Verify asset exists
+    // Verify asset exists and belongs to plant
     const assetExists = await db
-      .select({ id: assets.id })
+      .select({ id: assets.id, plant_id: assets.plant_id })
       .from(assets)
       .where(
         and(
@@ -198,6 +206,10 @@ export class MaintenanceService {
 
     if (!assetExists.length) {
       throw new Error('Asset not found');
+    }
+
+    if (assetExists[0].plant_id !== plant_id) {
+      throw new Error('Asset does not belong to this plant');
     }
 
     const [plan] = await db
@@ -220,14 +232,14 @@ export class MaintenanceService {
     // Invalidate cache
     try {
       await RedisService.delMultiple([
-        CacheKeys.maintenancePlans(tenant_id),
+        CacheKeys.maintenancePlans(tenant_id, plant_id),
         CacheKeys.maintenancePlan(tenant_id, plan.id),
       ]);
     } catch (cacheError) {
       logger.warn('Maintenance cache invalidation error:', cacheError);
     }
 
-    return this.getMaintenancePlanById(tenant_id, plan.id);
+    return this.getMaintenancePlanById(tenant_id, plan.id, plant_id);
   }
 
   /**
@@ -235,10 +247,11 @@ export class MaintenanceService {
    */
   async updateMaintenancePlan(
     tenant_id: string,
+    plant_id: string,
     plan_id: string,
     input: UpdateMaintenancePlanInput
   ) {
-    const plan = await this.getMaintenancePlanById(tenant_id, plan_id);
+    const plan = await this.getMaintenancePlanById(tenant_id, plan_id, plant_id);
 
     await db
       .update(maintenancePlans)
@@ -260,21 +273,21 @@ export class MaintenanceService {
     // Invalidate cache
     try {
       await RedisService.delMultiple([
-        CacheKeys.maintenancePlans(tenant_id),
+        CacheKeys.maintenancePlans(tenant_id, plant_id),
         CacheKeys.maintenancePlan(tenant_id, plan_id),
       ]);
     } catch (cacheError) {
       logger.warn('Maintenance cache invalidation error:', cacheError);
     }
 
-    return this.getMaintenancePlanById(tenant_id, plan_id);
+    return this.getMaintenancePlanById(tenant_id, plan_id, plant_id);
   }
 
   /**
    * Delete a maintenance plan
    */
-  async deleteMaintenancePlan(tenant_id: string, plan_id: string) {
-    await this.getMaintenancePlanById(tenant_id, plan_id);
+  async deleteMaintenancePlan(tenant_id: string, plant_id: string, plan_id: string) {
+    await this.getMaintenancePlanById(tenant_id, plan_id, plant_id);
 
     await db
       .delete(maintenancePlans)
@@ -288,7 +301,7 @@ export class MaintenanceService {
       // Invalidate cache
       try {
         await RedisService.delMultiple([
-          CacheKeys.maintenancePlans(tenant_id),
+          CacheKeys.maintenancePlans(tenant_id, plant_id),
           CacheKeys.maintenancePlan(tenant_id, plan_id),
         ]);
       } catch (cacheError) {
@@ -303,8 +316,25 @@ export class MaintenanceService {
    */
   async getMaintenancePlansDue(
     tenant_id: string,
+    plant_id: string,
     asset_id: string
   ) {
+    const asset = await db
+      .select({ id: assets.id })
+      .from(assets)
+      .where(
+        and(
+          eq(assets.tenant_id, tenant_id),
+          eq(assets.id, asset_id),
+          eq(assets.plant_id, plant_id),
+        )
+      )
+      .limit(1);
+
+    if (!asset.length) {
+      throw new Error('Asset not found');
+    }
+
     const activePlans = await db
       .select()
       .from(maintenancePlans)
@@ -358,10 +388,11 @@ export class MaintenanceService {
    */
   async getMaintenanceTasksByPlan(
     tenant_id: string,
+    plant_id: string,
     plan_id: string
   ) {
     // Verify plan exists
-    await this.getMaintenancePlanById(tenant_id, plan_id);
+    await this.getMaintenancePlanById(tenant_id, plan_id, plant_id);
 
     return await db
       .select()
@@ -380,10 +411,11 @@ export class MaintenanceService {
    */
   async createMaintenanceTask(
     tenant_id: string,
+    plant_id: string,
     input: CreateMaintenanceTaskInput
   ) {
     // Verify plan exists
-    await this.getMaintenancePlanById(tenant_id, input.plan_id);
+    await this.getMaintenancePlanById(tenant_id, input.plan_id, plant_id);
 
     const [task] = await db
       .insert(maintenanceTasks)
@@ -401,7 +433,7 @@ export class MaintenanceService {
   /**
    * Delete a maintenance task
    */
-  async deleteMaintenanceTask(tenant_id: string, task_id: string) {
+  async deleteMaintenanceTask(tenant_id: string, plant_id: string, task_id: string) {
     const task = await db
       .select()
       .from(maintenanceTasks)
@@ -415,6 +447,12 @@ export class MaintenanceService {
 
     if (!task.length) {
       throw new Error('Maintenance task not found');
+    }
+
+    const plan = await this.getMaintenancePlanById(tenant_id, task[0].plan_id, plant_id);
+
+    if (!plan) {
+      throw new Error('Maintenance plan not found');
     }
 
     await db

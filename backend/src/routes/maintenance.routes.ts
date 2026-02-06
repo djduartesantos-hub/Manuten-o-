@@ -16,7 +16,7 @@ router.get('/:plantId/plans', MaintenanceController.getMaintenancePlans);
 // POST /api/tenants/:plantId/plans - criar plano
 router.post(
   '/:plantId/plans',
-  requireRole('planner', 'supervisor', 'maintenance_manager', 'admin'),
+  requireRole('gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'),
   MaintenanceController.createMaintenancePlan
 );
 
@@ -26,14 +26,14 @@ router.get('/:plantId/plans/:plan_id', MaintenanceController.getMaintenancePlan)
 // PATCH /api/tenants/:plantId/plans/:plan_id - atualizar plano
 router.patch(
   '/:plantId/plans/:plan_id',
-  requireRole('planner', 'supervisor', 'maintenance_manager', 'admin'),
+  requireRole('gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'),
   MaintenanceController.updateMaintenancePlan
 );
 
 // DELETE /api/tenants/:plantId/plans/:plan_id - eliminar plano
 router.delete(
   '/:plantId/plans/:plan_id',
-  requireRole('supervisor', 'maintenance_manager', 'admin'),
+  requireRole('supervisor', 'gestor_manutencao', 'admin_empresa', 'superadmin'),
   MaintenanceController.deleteMaintenancePlan
 );
 
@@ -47,14 +47,14 @@ router.get('/:plantId/plans/:plan_id/tasks', MaintenanceController.getMaintenanc
 // POST /api/tenants/:plantId/plans/:plan_id/tasks - criar tarefa
 router.post(
   '/:plantId/plans/:plan_id/tasks',
-  requireRole('planner', 'supervisor', 'maintenance_manager', 'admin'),
+  requireRole('gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'),
   MaintenanceController.createMaintenanceTask
 );
 
 // DELETE /api/tenants/:plantId/tasks/:task_id - eliminar tarefa
 router.delete(
   '/:plantId/tasks/:task_id',
-  requireRole('supervisor', 'maintenance_manager', 'admin'),
+  requireRole('supervisor', 'gestor_manutencao', 'admin_empresa', 'superadmin'),
   MaintenanceController.deleteMaintenanceTask
 );
 

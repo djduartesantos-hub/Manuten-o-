@@ -35,13 +35,18 @@ export class AuthController {
         return;
       }
 
+      const plantIds = await AuthService.getUserPlantIds(
+        user.id,
+        user.tenant_id,
+        user.role,
+      );
+
       const payload: any = {
         userId: user.id,
         tenantId: user.tenant_id,
         email: user.email,
         role: user.role,
-        // In single-tenant mode, skip complex plantIds loading
-        // All authenticated users can access all plants
+        plantIds: plantIds || [],
       };
 
       const token = generateToken(payload);

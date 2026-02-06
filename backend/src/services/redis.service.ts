@@ -187,7 +187,8 @@ export class RedisService {
 export const CacheKeys = {
   // Assets
   asset: (tenantId: string, assetId: string) => `asset:${tenantId}:${assetId}`,
-  assetsList: (tenantId: string) => `assets:${tenantId}`,
+  assetsList: (tenantId: string, plantId?: string) =>
+    `assets:${tenantId}:${plantId || 'all'}`,
 
   // Work Orders
   workOrder: (tenantId: string, workOrderId: string) =>
@@ -203,7 +204,8 @@ export const CacheKeys = {
   
   // Maintenance Plans
   maintenancePlan: (tenantId: string, planId: string) => `plan:${tenantId}:${planId}`,
-  maintenancePlans: (tenantId: string) => `plans:${tenantId}`,
+  maintenancePlans: (tenantId: string, plantId?: string) =>
+    `plans:${tenantId}:${plantId || 'all'}`,
   
   // Documents
   document: (tenantId: string, docId: string) => `doc:${tenantId}:${docId}`,

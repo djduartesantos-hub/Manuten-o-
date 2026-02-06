@@ -105,7 +105,7 @@ export class WorkOrderService {
     return workOrder;
   }
 
-  static async getWorkOrderById(tenantId: string, workOrderId: string) {
+  static async getWorkOrderById(tenantId: string, workOrderId: string, plantId?: string) {
     try {
       const cacheKey = CacheKeys.workOrder(tenantId, workOrderId);
       const cached = await RedisService.getJSON(cacheKey);
@@ -118,8 +118,15 @@ export class WorkOrderService {
     }
 
     const workOrder = await db.query.workOrders.findFirst({
-      where: (fields: any, { eq, and }: any) =>
-        and(eq(fields.tenant_id, tenantId), eq(fields.id, workOrderId)),
+      where: (fields: any, { eq, and }: any) => {
+        const conditions = [eq(fields.tenant_id, tenantId), eq(fields.id, workOrderId)];
+
+        if (plantId) {
+          conditions.push(eq(fields.plant_id, plantId));
+        }
+
+        return and(...conditions);
+      },
       with: {
         asset: {
           with: {
@@ -165,7 +172,24 @@ export class WorkOrderService {
     tenantId: string,
     workOrderId: string,
     data: Partial<any>,
+    plantId?: string,
   ) {
+    const existing = await db.query.workOrders.findFirst({
+      where: (fields: any, { eq, and }: any) => {
+        const conditions = [eq(fields.tenant_id, tenantId), eq(fields.id, workOrderId)];
+
+        if (plantId) {
+          conditions.push(eq(fields.plant_id, plantId));
+        }
+
+        return and(...conditions);
+      },
+    });
+
+    if (!existing) {
+      throw new Error('Work order not found');
+    }
+
     const [updated] = await db
       .update(workOrders)
       .set({
@@ -173,7 +197,11 @@ export class WorkOrderService {
         updated_at: new Date(),
       })
       .where(
-        and(eq(workOrders.tenant_id, tenantId), eq(workOrders.id, workOrderId)),
+        and(
+          eq(workOrders.tenant_id, tenantId),
+          eq(workOrders.id, workOrderId),
+          ...(plantId ? [eq(workOrders.plant_id, plantId)] : []),
+        ),
       )
       .returning();
 

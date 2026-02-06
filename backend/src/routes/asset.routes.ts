@@ -22,21 +22,21 @@ router.get('/:plantId/assets/:id', AssetController.get);
 // POST /api/tenants/:plantId/assets - criar (Planner+)
 router.post(
   '/:plantId/assets',
-  requireRole('planner', 'technician', 'supervisor', 'maintenance_manager', 'admin'),
+  requireRole('tecnico', 'supervisor', 'gestor_manutencao', 'admin_empresa', 'superadmin'),
   AssetController.create
 );
 
 // PUT /api/tenants/:plantId/assets/:id - atualizar (Planner+)
 router.put(
   '/:plantId/assets/:id',
-  requireRole('planner', 'technician', 'supervisor', 'maintenance_manager', 'admin'),
+  requireRole('tecnico', 'supervisor', 'gestor_manutencao', 'admin_empresa', 'superadmin'),
   AssetController.update
 );
 
 // DELETE /api/tenants/:plantId/assets/:id - eliminar (Admin+)
 router.delete(
   '/:plantId/assets/:id',
-  requireRole('supervisor', 'maintenance_manager', 'admin'),
+  requireRole('supervisor', 'gestor_manutencao', 'admin_empresa', 'superadmin'),
   AssetController.delete
 );
 

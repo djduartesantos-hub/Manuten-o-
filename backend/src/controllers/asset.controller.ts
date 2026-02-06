@@ -92,7 +92,7 @@ export class AssetController {
         return;
       }
 
-      const asset = await AssetService.getAssetById(tenantId, id);
+      const asset = await AssetService.getAssetById(tenantId, id, plantId);
 
       if (!asset) {
         res.status(404).json({
@@ -205,7 +205,7 @@ export class AssetController {
       // Validar payload com Zod
       const validatedData = UpdateAssetSchema.parse(req.body);
 
-      const asset = await AssetService.updateAsset(tenantId, id, validatedData);
+      const asset = await AssetService.updateAsset(tenantId, id, validatedData, plantId);
 
       // Emit real-time notification
       if (isSocketManagerReady()) {
@@ -272,7 +272,7 @@ export class AssetController {
         return;
       }
 
-      await AssetService.deleteAsset(tenantId, id);
+      await AssetService.deleteAsset(tenantId, id, plantId);
 
       res.json({
         success: true,

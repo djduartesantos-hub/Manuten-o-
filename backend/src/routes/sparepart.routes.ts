@@ -16,7 +16,7 @@ router.get('/:plantId/spareparts', SparePartController.getSpareParts);
 // POST /api/tenants/:plantId/spareparts - criar peça
 router.post(
   '/:plantId/spareparts',
-  requireRole('planner', 'supervisor', 'maintenance_manager', 'admin'),
+  requireRole('gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'),
   SparePartController.createSparePart
 );
 
@@ -26,14 +26,14 @@ router.get('/:plantId/spareparts/:spare_part_id', SparePartController.getSparePa
 // PATCH /api/tenants/:plantId/spareparts/:spare_part_id - atualizar peça
 router.patch(
   '/:plantId/spareparts/:spare_part_id',
-  requireRole('planner', 'supervisor', 'maintenance_manager', 'admin'),
+  requireRole('gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'),
   SparePartController.updateSparePart
 );
 
 // DELETE /api/tenants/:plantId/spareparts/:spare_part_id - eliminar peça
 router.delete(
   '/:plantId/spareparts/:spare_part_id',
-  requireRole('supervisor', 'maintenance_manager', 'admin'),
+  requireRole('supervisor', 'gestor_manutencao', 'admin_empresa', 'superadmin'),
   SparePartController.deleteSparePart
 );
 
@@ -51,7 +51,7 @@ router.get('/:plantId/spareparts/:spare_part_id/movements', SparePartController.
 // POST /api/tenants/:plantId/stock-movements - registar movimento
 router.post(
   '/:plantId/stock-movements',
-  requireRole('technician', 'supervisor', 'maintenance_manager', 'admin'),
+  requireRole('tecnico', 'supervisor', 'gestor_manutencao', 'admin_empresa', 'superadmin'),
   SparePartController.createStockMovement
 );
 

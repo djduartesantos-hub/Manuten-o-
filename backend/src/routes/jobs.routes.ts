@@ -6,7 +6,7 @@ import { JobQueueService, QUEUES } from '../services/job.service.js';
 const router = Router();
 
 router.use(authMiddleware);
-router.use(requireRole('admin', 'supervisor', 'maintenance_manager'));
+router.use(requireRole('admin_empresa', 'supervisor', 'gestor_manutencao', 'superadmin'));
 
 // GET /api/jobs/stats
 router.get('/stats', async (_req: AuthenticatedRequest, res: Response) => {

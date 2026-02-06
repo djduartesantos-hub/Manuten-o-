@@ -1,7 +1,17 @@
 import { Response, NextFunction } from 'express';
 import { extractTokenFromHeader, verifyToken } from '../auth/jwt.js';
+import { AuthService } from '../services/auth.service.js';
 import { AuthenticatedRequest } from '../types/index.js';
 import { logger } from '../config/logger.js';
+
+const roleAliases: Record<string, string> = {
+  admin: 'admin_empresa',
+  maintenance_manager: 'gestor_manutencao',
+  planner: 'gestor_manutencao',
+  technician: 'tecnico',
+};
+
+const normalizeRole = (role?: string) => (role ? roleAliases[role] || role : role);
 
 export function authMiddleware(
   req: AuthenticatedRequest & { headers?: any },
@@ -27,6 +37,10 @@ export function authMiddleware(
         error: 'Invalid or expired token',
       });
       return;
+    }
+
+    if (payload?.role) {
+      payload.role = normalizeRole(payload.role);
     }
 
     req.user = payload;
@@ -55,7 +69,10 @@ export function requireRole(...roles: string[]) {
       return;
     }
 
-    if (!roles.includes(req.user.role)) {
+    const userRole = normalizeRole(req.user.role);
+    const allowedRoles = roles.map((role) => normalizeRole(role));
+
+    if (!allowedRoles.includes(userRole)) {
       res.status(403).json({
         success: false,
         error: 'Insufficient permissions',
@@ -102,11 +119,11 @@ export function tenantMiddleware(
   next();
 }
 
-export function plantMiddleware(
+export async function plantMiddleware(
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction,
-): void {
+): Promise<void> {
   const { plantId } = req.params;
 
   // If no plantId in params, skip - some routes don't use it
@@ -115,14 +132,48 @@ export function plantMiddleware(
   }
 
   // In single-tenant mode: if user is authenticated, they can access any plant
-  if (req.user) {
-    req.plantId = plantId;
-    return next();
+  if (!req.user) {
+    res.status(401).json({
+      success: false,
+      error: 'Not authenticated',
+    });
+    return;
   }
 
-  // Not authenticated
-  res.status(401).json({
-    success: false,
-    error: 'Not authenticated',
-  });
+  const tenantId = req.tenantId || req.user.tenantId;
+
+  if (!tenantId) {
+    res.status(400).json({
+      success: false,
+      error: 'Tenant ID is required',
+    });
+    return;
+  }
+
+  try {
+    const userRole = normalizeRole(req.user.role);
+    let plantIds = req.user.plantIds || [];
+
+    if (plantIds.length === 0) {
+      plantIds = await AuthService.getUserPlantIds(req.user.userId, tenantId, userRole);
+      req.user.plantIds = plantIds;
+    }
+
+    if (!plantIds.includes(plantId)) {
+      res.status(403).json({
+        success: false,
+        error: 'Access denied to this plant',
+      });
+      return;
+    }
+
+    req.plantId = plantId;
+    next();
+  } catch (error) {
+    logger.error('Plant middleware error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Plant authorization error',
+    });
+  }
 }

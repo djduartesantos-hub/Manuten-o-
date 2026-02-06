@@ -41,9 +41,10 @@ export class WorkOrderController {
   static async get(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { workOrderId } = req.params;
+      const { plantId } = req.params;
       const tenantId = req.tenantId;
 
-      if (!tenantId || !workOrderId) {
+      if (!tenantId || !workOrderId || !plantId) {
         res.status(400).json({
           success: false,
           error: 'Work order ID and plant ID are required',
@@ -51,7 +52,7 @@ export class WorkOrderController {
         return;
       }
 
-      const workOrder = await WorkOrderService.getWorkOrderById(tenantId, workOrderId);
+      const workOrder = await WorkOrderService.getWorkOrderById(tenantId, workOrderId, plantId);
 
       if (!workOrder) {
         res.status(404).json({
@@ -128,10 +129,11 @@ export class WorkOrderController {
   static async update(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { workOrderId } = req.params;
+      const { plantId } = req.params;
       const tenantId = req.tenantId;
       const updates = req.body;
 
-      if (!tenantId || !workOrderId) {
+      if (!tenantId || !workOrderId || !plantId) {
         res.status(400).json({
           success: false,
           error: 'Work order ID is required',
@@ -143,6 +145,7 @@ export class WorkOrderController {
         tenantId,
         workOrderId,
         updates,
+        plantId,
       );
 
       // Emit real-time notifications

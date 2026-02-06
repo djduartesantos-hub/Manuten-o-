@@ -75,7 +75,7 @@ async function seed() {
       password_hash: techPasswordHash,
       first_name: 'Tecnico',
       last_name: 'CMMS',
-      role: 'technician',
+      role: 'tecnico',
       is_active: true,
     });
 
