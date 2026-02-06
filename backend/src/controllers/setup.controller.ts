@@ -75,6 +75,26 @@ export class SetupController {
     return executed;
   }
 
+  private static async ensureTenantsTable(): Promise<void> {
+    await db.execute(sql.raw(`
+      CREATE TABLE IF NOT EXISTS tenants (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        description TEXT,
+        logo_url TEXT,
+        subscription_plan TEXT DEFAULT 'basic',
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+        deleted_at TIMESTAMPTZ
+      );
+
+      CREATE INDEX IF NOT EXISTS tenants_slug_idx ON tenants(slug);
+      CREATE INDEX IF NOT EXISTS tenants_active_idx ON tenants(is_active);
+    `));
+  }
+
   private static async seedDemoDataInternal(
     tenantId: string,
     tenantSlug: string,
@@ -88,6 +108,7 @@ export class SetupController {
     };
     note: string;
   }> {
+    await SetupController.ensureTenantsTable();
     await db
       .insert(tenants)
       .values({
@@ -550,24 +571,24 @@ export class SetupController {
   }
 
   private static async clearAllInternal(includeTenants: boolean): Promise<void> {
-    await db.execute(sql`TRUNCATE TABLE stock_movements CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE meter_readings CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE attachments CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE audit_logs CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE work_order_tasks CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE work_orders CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE maintenance_tasks CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE maintenance_plans CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE assets CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE spare_parts CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE suppliers CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE asset_categories CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE user_plants CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE users CASCADE;`);
-    await db.execute(sql`TRUNCATE TABLE plants CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE IF EXISTS stock_movements CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE IF EXISTS meter_readings CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE IF EXISTS attachments CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE IF EXISTS audit_logs CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE IF EXISTS work_order_tasks CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE IF EXISTS work_orders CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE IF EXISTS maintenance_tasks CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE IF EXISTS maintenance_plans CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE IF EXISTS assets CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE IF EXISTS spare_parts CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE IF EXISTS suppliers CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE IF EXISTS asset_categories CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE IF EXISTS user_plants CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE IF EXISTS users CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE IF EXISTS plants CASCADE;`);
 
     if (includeTenants) {
-      await db.execute(sql`TRUNCATE TABLE tenants CASCADE;`);
+      await db.execute(sql`TRUNCATE TABLE IF EXISTS tenants CASCADE;`);
     }
   }
 
@@ -611,6 +632,7 @@ export class SetupController {
       await SetupController.clearAllInternal(true);
 
       const migrations = await SetupController.runMigrationsInternal();
+      await SetupController.ensureTenantsTable();
       const seedResult = await SetupController.seedDemoDataInternal(tenantId, tenantSlug);
 
       res.json({
