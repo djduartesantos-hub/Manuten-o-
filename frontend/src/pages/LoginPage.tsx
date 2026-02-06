@@ -33,31 +33,6 @@ export function LoginPage() {
     }
   }, [isAuthenticated, navigate, storedSlug, tenantSlug, tenantSlugInput]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      const resolvedSlug = (tenantSlug || tenantSlugInput).trim().toLowerCase();
-
-      if (!resolvedSlug) {
-        setError('Selecione a empresa antes de entrar.');
-        setLoading(false);
-        return;
-      }
-
-      const result = await apiLogin(resolvedSlug, email, password);
-      setAuth(result.user, result.token, result.refreshToken);
-      setTenantSlug(resolvedSlug);
-      navigate(`/t/${resolvedSlug}/dashboard`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleLoadTenants = async () => {
     setError('');
     setLoadingTenants(true);
@@ -68,13 +43,46 @@ export function LoginPage() {
       if (!tenants || tenants.length === 0) {
         setTenantSlugInput('');
         setError('Nenhuma empresa encontrada para este email.');
+        return { status: 'none' as const };
       } else if (tenants.length === 1) {
         setTenantSlugInput(tenants[0].slug);
+        return { status: 'single' as const, tenant: tenants[0] };
       }
+      return { status: 'multiple' as const };
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar empresas');
+      return { status: 'error' as const };
     } finally {
       setLoadingTenants(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      let resolvedSlug = (tenantSlug || tenantSlugInput).trim().toLowerCase();
+
+      if (!resolvedSlug) {
+        const lookup = await handleLoadTenants();
+        if (lookup?.status === 'single') {
+          resolvedSlug = lookup.tenant.slug;
+        } else {
+          setError('Selecione a empresa antes de entrar.');
+          return;
+        }
+      }
+
+      const result = await apiLogin(resolvedSlug, email, password);
+      setAuth(result.user, result.token, result.refreshToken);
+      setTenantSlug(resolvedSlug);
+      navigate(`/t/${resolvedSlug}/dashboard`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
+    } finally {
+      setLoading(false);
     }
   };
 
