@@ -8,6 +8,11 @@ Files e documentação para setup e management de database.
   - Tabelas base
   - Relações
   - Constraints
+  - Inclui tabela tenants e seed demo (slug: demo)
+
+- **migrations/001_create_tenants.sql** - Migração para multi-tenant
+  - Cria tabela tenants e índices
+  - Seed do tenant demo
 
 - **create-admin-user.sql** - Setup completo com usuário admin
   - Cria todas as tabelas
@@ -106,6 +111,9 @@ npm run db:seed
 - **Senha:** Admin@123456
 - **Role:** superadmin
 
+### Acesso com slug:
+- URL: /t/demo/login
+
 ### Verificar dados:
 ```bash
 # Diagnosticar database
@@ -177,7 +185,8 @@ Se encontrar erros:
 ## 💡 Notas
 
 - **Tenant ID padrão:** `550e8400-e29b-41d4-a716-446655440000` (bater com `backend/src/config/constants.ts`)
+- **Tenant slug padrão:** `demo`
 - **Plant ID padrão:** `0fab0000-0000-0000-0000-000000000001`
-- **Modo single-tenant:** Todos os dados usam o mesmo tenant ID
+- **Modo multi-tenant:** Todas as rotas exigem slug (/t/{slug})
 - **user_plants:** Tabela que vincula users aos plants (essencial para plantIds)
 

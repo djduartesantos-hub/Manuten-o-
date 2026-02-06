@@ -15,6 +15,9 @@ router.get('/status', authMiddleware, requireRole('superadmin'), SetupController
 // POST /api/setup/seed - Seed demo data (requires auth)
 router.post('/seed', authMiddleware, requireRole('superadmin'), SetupController.seedDemoData);
 
+// POST /api/setup/migrate - Run SQL migrations (requires auth)
+router.post('/migrate', authMiddleware, requireRole('superadmin'), SetupController.runMigrations);
+
 // POST /api/setup/clear - Clear all data (dangerous!) (requires auth)
 router.post('/clear', authMiddleware, requireRole('superadmin'), SetupController.clearData);
 

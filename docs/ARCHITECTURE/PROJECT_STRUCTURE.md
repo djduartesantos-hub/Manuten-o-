@@ -249,24 +249,24 @@ cmms-enterprise/
 ### Autenticação
 
 ```
-POST   /api/auth/login
-POST   /api/auth/refresh
+POST   /api/t/:tenantSlug/auth/login
+POST   /api/t/:tenantSlug/auth/refresh
 ```
 
 ### Work Orders
 
 ```
-GET    /api/tenants/:plantId/work-orders
-POST   /api/tenants/:plantId/work-orders
-GET    /api/tenants/:plantId/work-orders/:workOrderId
-PUT    /api/tenants/:plantId/work-orders/:workOrderId
+GET    /api/t/:tenantSlug/work-orders
+POST   /api/t/:tenantSlug/work-orders
+GET    /api/t/:tenantSlug/work-orders/:workOrderId
+PUT    /api/t/:tenantSlug/work-orders/:workOrderId
 ```
 
 ### Dashboard
 
 ```
-GET    /api/dashboard/:plantId/metrics
-GET    /api/dashboard/:plantId/kpis
+GET    /api/t/:tenantSlug/dashboard/metrics
+GET    /api/t/:tenantSlug/dashboard/kpis
 ```
 
 ## 👥 Roles & Permissões
@@ -335,7 +335,7 @@ App em: `http://localhost:5173`
 
 ### 3. Credenciais Demo
 
-- Empresa: `cmms-demo`
+- Empresa: `demo`
 - Email: `admin@cmms.com`
 - Senha: `Admin@123456`
 

@@ -37,7 +37,18 @@ export function Header() {
       ? [{ label: 'Plantas', href: `${basePath}/plants`, active: location.pathname === `${basePath}/plants` }]
       : []),
     ...(user?.role === 'superadmin'
-      ? [{ label: '🔧 Setup BD', href: `${basePath}/admin/setup`, active: location.pathname === `${basePath}/admin/setup` }]
+      ? [
+          {
+            label: '🔧 Setup BD',
+            href: `${basePath}/admin/setup`,
+            active: location.pathname === `${basePath}/admin/setup`,
+          },
+          {
+            label: '🧱 Atualizar BD',
+            href: `${basePath}/admin/database`,
+            active: location.pathname === `${basePath}/admin/database`,
+          },
+        ]
       : []),
   ];
 

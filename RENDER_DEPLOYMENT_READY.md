@@ -135,11 +135,11 @@ npm run db:diagnose
 curl https://your-app.onrender.com/health
 
 # Testar login
-curl -X POST https://your-app.onrender.com/api/auth/login \
+curl -X POST https://your-app.onrender.com/api/t/demo/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "admin@cmms.com",
-    "password": "Admin@123456"
+      "email": "admin@cmms.com",
+      "password": "Admin@123456"
   }'
 ```
 

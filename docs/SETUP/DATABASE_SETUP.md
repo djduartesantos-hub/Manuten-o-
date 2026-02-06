@@ -191,7 +191,7 @@ O script SQL insere automaticamente dados de demonstração:
 
 ### **Tenant Demo**
 - **Nome:** CMMS Enterprise Demo
-- **Slug:** cmms-demo
+- **Slug:** demo
 - **Plano:** enterprise
 
 ### **Planta Demo**

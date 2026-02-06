@@ -34,7 +34,8 @@ cd backend
 npm run dev
 ```
 
-Será iniciado em: **http://localhost:3000/api**
+Será iniciado em: **http://localhost:3000**
+API base: **http://localhost:3000/api/t**
 
 ### Terminal 2 - Frontend
 ```bash
@@ -48,7 +49,7 @@ Será iniciado em: **http://localhost:5173**
 
 | Campo | Valor |
 |-------|-------|
-| **Tenant** | `cmms-demo` |
+| **Tenant** | `demo` |
 | **Email** | `admin@cmms.com` |
 | **Password** | `Admin@123456` |
 

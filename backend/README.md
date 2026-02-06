@@ -60,24 +60,24 @@ Enterprise Computerized Maintenance Management System (CMMS) - Backend API
 ## Demo Credentials
 
 After running `npm run db:seed`, you can login with:
-- **Email:** admin@cmms.local
-- **Password:** admin123456
+- **Email:** admin@cmms.com
+- **Password:** Admin@123456
 
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/login` - Login
-- `POST /api/auth/refresh` - Refresh token
+- `POST /api/t/:tenantSlug/auth/login` - Login
+- `POST /api/t/:tenantSlug/auth/refresh` - Refresh token
 
 ### Work Orders
-- `GET /api/tenants/:plantId/work-orders` - List work orders
-- `POST /api/tenants/:plantId/work-orders` - Create work order
-- `GET /api/tenants/:plantId/work-orders/:workOrderId` - Get work order details
-- `PUT /api/tenants/:plantId/work-orders/:workOrderId` - Update work order
+- `GET /api/t/:tenantSlug/work-orders` - List work orders
+- `POST /api/t/:tenantSlug/work-orders` - Create work order
+- `GET /api/t/:tenantSlug/work-orders/:workOrderId` - Get work order details
+- `PUT /api/t/:tenantSlug/work-orders/:workOrderId` - Update work order
 
 ### Dashboard
-- `GET /api/dashboard/:plantId/metrics` - Get metrics
-- `GET /api/dashboard/:plantId/kpis` - Get KPIs
+- `GET /api/t/:tenantSlug/dashboard/metrics` - Get metrics
+- `GET /api/t/:tenantSlug/dashboard/kpis` - Get KPIs
 
 ## Development
 

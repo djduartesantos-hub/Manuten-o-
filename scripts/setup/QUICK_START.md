@@ -80,7 +80,7 @@ Veja: `docs/GUIDES/WINDOWS_PT_QUICK.md`
 ## Verificar se Funcionou
 
 ```cmd
-Abrir navegador: http://localhost:5173
+Abrir navegador: http://localhost:5173/t/demo/login
 
 Deve aparecer: Sistema CMMS funcionando
 

@@ -157,7 +157,7 @@ Após rodar o seed, pode fazer login com:
 
 - **Email:** admin@cmms.com
 - **Password:** Admin@123456
-- **Tenant:** cmms-demo
+- **Tenant:** demo
 
 ---
 

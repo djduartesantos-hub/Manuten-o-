@@ -1,4 +1,6 @@
 import { Response } from 'express';
+import fs from 'fs/promises';
+import path from 'path';
 import { AuthenticatedRequest } from '../types/index.js';
 import { db } from '../config/database.js';
 import { sql } from 'drizzle-orm';
@@ -19,6 +21,25 @@ import { DEFAULT_TENANT_ID, DEFAULT_TENANT_SLUG } from '../config/constants.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export class SetupController {
+  private static async resolveMigrationsDir(): Promise<string | null> {
+    const candidates = [
+      path.resolve(process.cwd(), 'scripts/database/migrations'),
+      path.resolve(process.cwd(), '../scripts/database/migrations'),
+    ];
+
+    for (const candidate of candidates) {
+      try {
+        const stat = await fs.stat(candidate);
+        if (stat.isDirectory()) {
+          return candidate;
+        }
+      } catch (error) {
+        // Ignore and try next candidate.
+      }
+    }
+
+    return null;
+  }
   /**
    * Initialize database with admin user (only works if DB is empty)
    * This endpoint does NOT require authentication
@@ -481,6 +502,71 @@ export class SetupController {
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to clear data',
+      });
+    }
+  }
+
+  /**
+   * Run SQL migrations from scripts/database/migrations
+   */
+  static async runMigrations(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user || req.user.role !== 'superadmin') {
+        res.status(403).json({
+          success: false,
+          error: 'Only superadmin can run migrations',
+        });
+        return;
+      }
+
+      const migrationsDir = await SetupController.resolveMigrationsDir();
+
+      if (!migrationsDir) {
+        res.status(404).json({
+          success: false,
+          error: 'Migrations directory not found',
+        });
+        return;
+      }
+
+      const entries = await fs.readdir(migrationsDir);
+      const migrationFiles = entries
+        .filter((file) => file.endsWith('.sql'))
+        .sort((a, b) => a.localeCompare(b));
+
+      if (migrationFiles.length === 0) {
+        res.json({
+          success: true,
+          message: 'No migrations found',
+          data: { files: [] },
+        });
+        return;
+      }
+
+      const executed: string[] = [];
+
+      for (const file of migrationFiles) {
+        const fullPath = path.join(migrationsDir, file);
+        const sqlContent = await fs.readFile(fullPath, 'utf-8');
+        const trimmed = sqlContent.trim();
+
+        if (!trimmed) {
+          continue;
+        }
+
+        await db.execute(sql.raw(trimmed));
+        executed.push(file);
+      }
+
+      res.json({
+        success: true,
+        message: 'Migrations executed successfully',
+        data: { files: executed },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to run migrations',
       });
     }
   }

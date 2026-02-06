@@ -100,13 +100,12 @@ Manuten-o/
 
 #### Exemplo de Login (tenant_slug)
 ```bash
-POST /api/auth/login
+POST /api/t/:tenantSlug/auth/login
 Content-Type: application/json
 
 {
   "email": "admin@cmms.com",
-  "password": "Admin@123456",
-  "tenant_slug": "cmms-demo"
+  "password": "Admin@123456"
 }
 
 # Resposta esperada (exemplo)

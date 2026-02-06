@@ -22,6 +22,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { SearchPage } from './pages/SearchPage';
 import { AdminSetupPage } from './pages/AdminSetupPage';
 import { PlantsPage } from './pages/PlantsPage';
+import { DatabaseUpdatePage } from './pages/DatabaseUpdatePage';
 
 import './index.css';
 
@@ -246,6 +247,15 @@ function TenantRoutes() {
         element={
           <ProtectedRoute>
             <AdminSetupPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="admin/database"
+        element={
+          <ProtectedRoute requiredRoles={['superadmin']}>
+            <DatabaseUpdatePage />
           </ProtectedRoute>
         }
       />

@@ -32,8 +32,8 @@ _Isto vai instalar todas as dependências automaticamente._
 Duplo-clique em: **`start-all.bat`**
 
 - Abre 2 terminais automáticamente
-- Abre o navegador em http://localhost:5173
-- Acesso a: **`admin@cmms.com`** / **`Admin@123456`**
+- Abre o navegador em http://localhost:5173/t/demo/login
+- Acesso a: **`admin@cmms.com`** / **`Admin@123456`** (URL: `/t/demo/login`)
 
 ### Opção B: Manual
 Abra **2 terminais** separados:
@@ -50,7 +50,7 @@ cd frontend
 npm run dev
 ```
 
-Depois acesse: http://localhost:5173
+Depois acesse: http://localhost:5173/t/demo/login
 
 ---
 

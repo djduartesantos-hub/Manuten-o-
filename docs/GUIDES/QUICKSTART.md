@@ -71,7 +71,8 @@ Password: cmms_password
 ```
 Email:    admin@cmms.com
 Password: Admin@123456
-Tenant:   cmms-demo
+Tenant:   demo
+URL:      http://localhost:5173/t/demo/login
 ```
 
 ---
@@ -94,7 +95,7 @@ npm run dev
 → Roda em `http://localhost:5173`
 
 ### **3. Fazer Login**
-- Abrir: http://localhost:5173
+- Abrir: http://localhost:5173/t/demo/login
 - Email: `admin@cmms.com`
 - Password: `Admin@123456`
 

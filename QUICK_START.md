@@ -51,6 +51,7 @@ Após executar o script SQL, você deve ver:
 Email:    admin@cmms.com
 Password: Admin@123456
 Role:     superadmin
+URL:      http://localhost:5173/t/demo/login
 ```
 
 ## 🚀 Passo 3: Iniciar Aplicação
@@ -74,10 +75,11 @@ npm run dev
 ```
 
 O frontend estará em: http://localhost:5173
+Login via slug: http://localhost:5173/t/demo/login
 
 ## 📊 Passo 4: Adicionar Dados Demonstrativos (Opcional)
 
-1. Acesse http://localhost:5173
+1. Acesse http://localhost:5173/t/demo/login
 2. Faça login com as credenciais acima
 3. No menu superior, clique em **🔧 Setup BD**
 4. Clique em **Adicionar Dados**

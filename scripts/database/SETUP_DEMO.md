@@ -147,12 +147,11 @@ VITE ...
 
 ### 3. Fazer Login
 
-1. Aceda a http://localhost:5173
-2. Clique em "Login"
-3. Insira:
+1. Aceda a http://localhost:5173/t/demo/login
+2. Insira:
    - **Email:** admin@cmms.com
    - **Senha:** Admin@123456
-4. Clique em "Entrar"
+3. Clique em "Entrar"
 
 ### 4. Testar as Funcionalidades
 
@@ -171,7 +170,7 @@ VITE ...
 1. Abra a consola do browser (F12)
 2. Vá à aba "Network" 
 3. Clique em "Equipamentos"
-4. Procure por `/api/tenants/*/assets`
+4. Procure por `/api/t/*/assets`
 5. A resposta deve incluir `"success": true` com 12 equipamentos
 
 ---

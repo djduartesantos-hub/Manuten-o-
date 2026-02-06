@@ -322,6 +322,12 @@ export async function seedDemoData() {
   });
 }
 
+export async function runMigrations() {
+  return apiCall('/setup/migrate', {
+    method: 'POST',
+  });
+}
+
 export async function clearAllData() {
   return apiCall('/setup/clear', {
     method: 'POST',

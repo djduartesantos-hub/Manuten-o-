@@ -45,6 +45,7 @@ cd frontend && npm install && npm run dev
 ```
 
 ✅ **Login:** `admin@cmms.com` / `Admin@123456`  
+✅ **URL:** `http://localhost:5173/t/demo/login`
 📋 **Adicionar dados demo:** Menu `🔧 Setup BD` após login  
 📖 [**QUICK_START.md**](./QUICK_START.md) - Guia detalhado
 
@@ -295,7 +296,7 @@ npm run dev          # Iniciar Vite dev server
 ```
 Frontend:  http://localhost:5173
 Backend:   http://localhost:3000
-API:       http://localhost:3000/api
+API:       http://localhost:3000/api/t
 ```
 
 ---
@@ -334,7 +335,7 @@ CORS_ORIGIN=https://seu-frontend.onrender.com
 NODE_ENV=production
 
 # Frontend
-VITE_API_URL=https://seu-backend.onrender.com/api
+VITE_API_URL=https://seu-backend.onrender.com/api/t
 ```
 
 ---
@@ -345,15 +346,12 @@ VITE_API_URL=https://seu-backend.onrender.com/api
 
 #### Login
 ```bash
-POST /api/auth/login
+POST /api/t/:tenantSlug/auth/login
 Content-Type: application/json
 
 {
   "email": "admin@cmms.com",
-  "password": "Admin@123456",
-  // Either provide tenant_id (UUID) or tenant_slug (easier for demo)
-  // "tenant_id": "00000000-0000-0000-0000-000000000000",
-  "tenant_slug": "cmms-demo"
+  "password": "Admin@123456"
 }
 
 Response:
@@ -376,7 +374,7 @@ Response:
 
 #### Refresh Token
 ```bash
-POST /api/auth/refresh
+POST /api/t/:tenantSlug/auth/refresh
 Authorization: Bearer <refresh_token>
 ```
 
@@ -384,7 +382,7 @@ Authorization: Bearer <refresh_token>
 
 #### Métricas
 ```bash
-GET /api/dashboard/{plantId}/metrics
+GET /api/t/{tenantSlug}/dashboard/metrics
 Authorization: Bearer <token>
 
 Response:
@@ -403,7 +401,7 @@ Response:
 
 #### KPIs
 ```bash
-GET /api/dashboard/{plantId}/kpis
+GET /api/t/{tenantSlug}/dashboard/kpis
 Authorization: Bearer <token>
 
 Response:
@@ -422,19 +420,19 @@ Response:
 
 #### Listar Equipamentos
 ```bash
-GET /api/tenants/{plantId}/assets
+GET /api/t/{tenantSlug}/assets
 Authorization: Bearer <token>
 ```
 
 #### Buscar Equipamentos
 ```bash
-GET /api/tenants/{plantId}/assets?search=pump&category={categoryId}
+GET /api/t/{tenantSlug}/assets?search=pump&category={categoryId}
 Authorization: Bearer <token>
 ```
 
 #### Criar Equipamento
 ```bash
-POST /api/tenants/{plantId}/assets
+POST /api/t/{tenantSlug}/assets
 Authorization: Bearer <token>
 Content-Type: application/json
 
@@ -458,13 +456,13 @@ Content-Type: application/json
 
 #### Obter Detalhes do Equipamento
 ```bash
-GET /api/tenants/{plantId}/assets/{id}
+GET /api/t/{tenantSlug}/assets/{id}
 Authorization: Bearer <token>
 ```
 
 #### Atualizar Equipamento
 ```bash
-PUT /api/tenants/{plantId}/assets/{id}
+PUT /api/t/{tenantSlug}/assets/{id}
 Authorization: Bearer <token>
 Content-Type: application/json
 
@@ -476,13 +474,13 @@ Content-Type: application/json
 
 #### Eliminar Equipamento
 ```bash
-DELETE /api/tenants/{plantId}/assets/{id}
+DELETE /api/t/{tenantSlug}/assets/{id}
 Authorization: Bearer <token>
 ```
 
 #### Equipamentos com Manutenção em Atraso
 ```bash
-GET /api/tenants/{plantId}/assets/maintenance/due
+GET /api/t/{tenantSlug}/assets/maintenance/due
 Authorization: Bearer <token>
 ```
 
@@ -492,19 +490,19 @@ Authorization: Bearer <token>
 
 #### Listar
 ```bash
-GET /api/tenants/{plantId}/work-orders?status=aberta
+GET /api/t/{tenantSlug}/work-orders?status=aberta
 Authorization: Bearer <token>
 ```
 
 #### Obter Detalhes
 ```bash
-GET /api/tenants/{plantId}/work-orders/{id}
+GET /api/t/{tenantSlug}/work-orders/{id}
 Authorization: Bearer <token>
 ```
 
 #### Criar
 ```bash
-POST /api/tenants/{plantId}/work-orders
+POST /api/t/{tenantSlug}/work-orders
 Authorization: Bearer <token>
 Content-Type: application/json
 
@@ -521,7 +519,7 @@ Content-Type: application/json
 
 #### Atualizar
 ```bash
-PUT /api/tenants/{plantId}/work-orders/{id}
+PUT /api/t/{tenantSlug}/work-orders/{id}
 Authorization: Bearer <token>
 Content-Type: application/json
 
@@ -896,12 +894,12 @@ Phase 2 Status:         ✅ Complete + UI
 
 **Endpoints Disponíveis:**
 ```
-GET    /api/tenants/:plantId/assets
-POST   /api/tenants/:plantId/assets
-GET    /api/tenants/:plantId/assets/:id
-PUT    /api/tenants/:plantId/assets/:id
-DELETE /api/tenants/:plantId/assets/:id
-GET    /api/tenants/:plantId/assets/maintenance/due
+GET    /api/t/:tenantSlug/assets
+POST   /api/t/:tenantSlug/assets
+GET    /api/t/:tenantSlug/assets/:id
+PUT    /api/t/:tenantSlug/assets/:id
+DELETE /api/t/:tenantSlug/assets/:id
+GET    /api/t/:tenantSlug/assets/maintenance/due
 ```
 
 Veja [PHASE_1_COMPLETION.md](./PHASE_1_COMPLETION.md) para detalhes completos.
@@ -1087,7 +1085,7 @@ MIT License - Veja [LICENSE](./LICENSE) para detalhes
 ## 🎓 Credenciais Demo
 
 ```
-Empresa:  cmms-demo
+Empresa:  demo
 Email:    admin@cmms.com
 Senha:    Admin@123456
 ```

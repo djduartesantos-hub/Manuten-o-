@@ -29,7 +29,7 @@ Enterprise Computerized Maintenance Management System (CMMS) - Frontend Applicat
 
 2. Create `.env.local` if needed (optional):
    ```
-   VITE_API_URL=http://localhost:3000/api
+   VITE_API_URL=http://localhost:3000/api/t
    ```
 
 3. Start development server:
@@ -41,16 +41,16 @@ Enterprise Computerized Maintenance Management System (CMMS) - Frontend Applicat
 
 ## Available Pages
 
-- **Login** - Authentication page (`/login`)
-- **Dashboard** - Main dashboard with metrics (`/dashboard`)
-- **Work Orders** - Order management (`/work-orders`)
-- **Assets** - Equipment management (`/assets`)
+- **Login** - Authentication page (`/t/demo/login`)
+- **Dashboard** - Main dashboard with metrics (`/t/demo/dashboard`)
+- **Work Orders** - Order management (`/t/demo/work-orders`)
+- **Assets** - Equipment management (`/t/demo/assets`)
 
 ## Demo Credentials
 
-- **Empresa (ID)**: cmms-demo
+- **Tenant (slug)**: demo
 - **Email**: admin@cmms.com
-- **Senha**: Admin@123456
+- **Password**: Admin@123456
 
 ## Development
 
@@ -70,7 +70,7 @@ npm run preview
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| VITE_API_URL | http://localhost:3000/api | Backend API URL |
+| VITE_API_URL | http://localhost:3000/api/t | Backend API URL |
 
 ## License
 

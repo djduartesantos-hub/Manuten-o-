@@ -15,7 +15,7 @@
 fetch('http://localhost:3000/api/setup/status')
 
 // ✅ Agora:
-getSetupStatus() // Usa API_BASE_URL relativa
+getSetupStatus() // Usa API_BASE_URL relativa (rota /api/t/:tenantSlug/setup)
 ```
 
 ### 2. **API Service (`api.ts`)**
@@ -93,12 +93,12 @@ ADMIN_PASSWORD: Admin@123456
 curl https://seu-app-name.onrender.com/health
 
 # Login
-curl -X POST https://seu-app-name.onrender.com/api/auth/login \
+curl -X POST https://seu-app-name.onrender.com/api/t/demo/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@cmms.com","password":"Admin@123456"}'
+   -d '{"email":"admin@cmms.com","password":"Admin@123456"}'
 
 # Assets (com seu token JWT)
-curl https://seu-app-name.onrender.com/api/tenants/{plantId}/assets \
+curl https://seu-app-name.onrender.com/api/t/demo/assets \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -184,7 +184,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 | Serviço | URL |
 |---------|-----|
 | **App** | `https://seu-app.onrender.com` |
-| **API** | `https://seu-app.onrender.com/api` |
+| **API** | `https://seu-app.onrender.com/api/t` |
 | **Setup** | `https://seu-app.onrender.com/admin/setup` |
 | **Health** | `https://seu-app.onrender.com/health` |
 

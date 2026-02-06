@@ -105,7 +105,7 @@ npm run db:seed
 
 | Campo | Valor |
 |-------|-------|
-| Empresa | `cmms-demo` |
+| Empresa | `demo` |
 | Email | `admin@cmms.com` |
 | Senha | `Admin@123456` |
 
@@ -155,7 +155,7 @@ Abra o navegador e acesse:
 1. **Frontend**: http://localhost:5173
    - Deve mostrar página de login
 
-2. **Backend API**: http://localhost:3000/api
+2. **Backend API**: http://localhost:3000/health
    - Deve retornar informações do servidor
 
 ---
