@@ -15,6 +15,7 @@ import alertRoutes from './routes/alert.routes.js';
 import searchRoutes from './routes/search.routes.js';
 import jobsRoutes from './routes/jobs.routes.js';
 import setupRoutes from './routes/setup.routes.js';
+import setupPublicRoutes from './routes/setup.public.routes.js';
 import debugRoutes from './routes/debug.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import { errorHandler, notFoundHandler, requestLogger } from './middlewares/error.js';
@@ -39,6 +40,7 @@ export function createApp(): Express {
   app.use(requestLogger());
 
   // Routes
+  app.use('/api/setup', setupPublicRoutes);
   app.use('/api/t/:tenantSlug/auth', authRoutes);
 
   app.use('/api/t/:tenantSlug', tenantSlugMiddleware);

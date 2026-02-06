@@ -40,6 +40,314 @@ export class SetupController {
 
     return null;
   }
+
+  private static async runMigrationsInternal(): Promise<string[]> {
+    const migrationsDir = await SetupController.resolveMigrationsDir();
+
+    if (!migrationsDir) {
+      return [];
+    }
+
+    const entries = await fs.readdir(migrationsDir);
+    const migrationFiles = entries
+      .filter((file) => file.endsWith('.sql'))
+      .sort((a, b) => a.localeCompare(b));
+
+    if (migrationFiles.length === 0) {
+      return [];
+    }
+
+    const executed: string[] = [];
+
+    for (const file of migrationFiles) {
+      const fullPath = path.join(migrationsDir, file);
+      const sqlContent = await fs.readFile(fullPath, 'utf-8');
+      const trimmed = sqlContent.trim();
+
+      if (!trimmed) {
+        continue;
+      }
+
+      await db.execute(sql.raw(trimmed));
+      executed.push(file);
+    }
+
+    return executed;
+  }
+
+  private static async seedDemoDataInternal(
+    tenantId: string,
+    tenantSlug: string,
+  ): Promise<{
+    added: {
+      users: number;
+      plants: number;
+      assets: number;
+      maintenancePlans: number;
+      spareParts: number;
+    };
+    note: string;
+  }> {
+    await db
+      .insert(tenants)
+      .values({
+        id: tenantId,
+        name: 'Demo Company',
+        slug: tenantSlug,
+        is_active: true,
+      })
+      .onConflictDoNothing();
+
+    // Use fixed demo IDs so we can check if they exist
+    const demoPlantId = '0fab0000-0000-0000-0000-000000000001';
+    const demoAdminId = '00000001-0000-0000-0000-000000000001';
+    const demoTechId = '00000000-0000-0000-0000-000000000002';
+    const demoCategoryId = '10000000-0000-0000-0000-000000000001';
+
+    let usersAdded = 0;
+    let plantsAdded = 0;
+    let assetsAdded = 0;
+    let plansAdded = 0;
+    let partsAdded = 0;
+
+    // Check what already exists
+    const existingPlant = await db.execute(sql`SELECT id FROM plants WHERE id = ${demoPlantId}`);
+    const existingAdmin = await db.execute(sql`SELECT id FROM users WHERE id = ${demoAdminId}`);
+    const existingTech = await db.execute(sql`SELECT id FROM users WHERE email = 'tech@cmms.com'`);
+    const existingCategory = await db.execute(
+      sql`SELECT id FROM asset_categories WHERE id = ${demoCategoryId}`,
+    );
+
+    // Insert plant (only if doesn't exist)
+    if (existingPlant.rows.length === 0) {
+      await db
+        .insert(plants)
+        .values({
+          id: demoPlantId,
+          tenant_id: tenantId,
+          name: 'Fábrica Principal',
+          code: 'PLANT-001',
+          address: 'Rua Industrial, 123',
+          city: 'Lisboa',
+          country: 'Portugal',
+          is_active: true,
+        })
+        .onConflictDoNothing();
+      plantsAdded++;
+    }
+
+    // Insert category (only if doesn't exist)
+    if (existingCategory.rows.length === 0) {
+      await db
+        .insert(assetCategories)
+        .values({
+          id: demoCategoryId,
+          tenant_id: tenantId,
+          name: 'Equipamento Pesado',
+          description: 'Equipamentos de grande porte',
+        })
+        .onConflictDoNothing();
+    }
+
+    // Insert admin user (only if doesn't exist)
+    if (existingAdmin.rows.length === 0) {
+      const passwordHash = await bcrypt.hash('Admin@123456', 10);
+      await db
+        .insert(users)
+        .values({
+          id: demoAdminId,
+          tenant_id: tenantId,
+          email: 'admin@cmms.com',
+          password_hash: passwordHash,
+          first_name: 'Admin',
+          last_name: 'CMMS',
+          role: 'superadmin',
+          is_active: true,
+        })
+        .onConflictDoNothing();
+      usersAdded++;
+    }
+
+    // Insert technician user (only if doesn't exist)
+    if (existingTech.rows.length === 0) {
+      const techPasswordHash = await bcrypt.hash('Tech@123456', 10);
+      await db
+        .insert(users)
+        .values({
+          id: demoTechId,
+          tenant_id: tenantId,
+          email: 'tech@cmms.com',
+          password_hash: techPasswordHash,
+          first_name: 'Tecnico',
+          last_name: 'CMMS',
+          role: 'tecnico',
+          is_active: true,
+        })
+        .onConflictDoNothing();
+      usersAdded++;
+    }
+
+    // Link users to plant (with conflict handling)
+    await db
+      .insert(userPlants)
+      .values([
+        { id: uuidv4(), user_id: demoAdminId, plant_id: demoPlantId },
+        { id: uuidv4(), user_id: demoTechId, plant_id: demoPlantId },
+      ])
+      .onConflictDoNothing();
+
+    // Insert sample assets with fixed IDs
+    const assetBaseIds = [
+      '20000000-0000-0000-0000-000000000001',
+      '20000000-0000-0000-0000-000000000002',
+      '20000000-0000-0000-0000-000000000003',
+      '20000000-0000-0000-0000-000000000004',
+      '20000000-0000-0000-0000-000000000005',
+    ];
+
+    for (let i = 0; i < 5; i++) {
+      const existingAsset = await db.execute(
+        sql`SELECT id FROM assets WHERE id = ${assetBaseIds[i]}`,
+      );
+
+      if (existingAsset.rows.length === 0) {
+        await db
+          .insert(assets)
+          .values({
+            id: assetBaseIds[i],
+            tenant_id: tenantId,
+            plant_id: demoPlantId,
+            category_id: demoCategoryId,
+            name: `Equipamento Demo ${i + 1}`,
+            code: `DEMO-${String(i + 1).padStart(3, '0')}`,
+            model: `Model-X${i + 1}`,
+            manufacturer: 'TechMakers Inc',
+            serial_number: `SN-DEMO-${String(i + 1).padStart(5, '0')}`,
+            location: `Seção ${i + 1}`,
+            status: 'operacional',
+            is_critical: i === 0,
+            meter_type: 'hours',
+          })
+          .onConflictDoNothing();
+        assetsAdded++;
+      }
+    }
+
+    // Maintenance plans & tasks (first 3 assets)
+    const planBaseIds = [
+      '30000000-0000-0000-0000-000000000001',
+      '30000000-0000-0000-0000-000000000002',
+      '30000000-0000-0000-0000-000000000003',
+    ];
+
+    for (let i = 0; i < 3; i++) {
+      const existingPlan = await db.execute(
+        sql`SELECT id FROM maintenance_plans WHERE id = ${planBaseIds[i]}`,
+      );
+
+      if (existingPlan.rows.length === 0) {
+        await db
+          .insert(maintenancePlans)
+          .values({
+            id: planBaseIds[i],
+            tenant_id: tenantId,
+            asset_id: assetBaseIds[i],
+            name: `Plano Preventivo Demo ${i + 1}`,
+            description: 'Plano de manutenção preventiva mensal',
+            type: 'preventiva',
+            frequency_type: 'days',
+            frequency_value: 30,
+            is_active: true,
+          })
+          .onConflictDoNothing();
+        plansAdded++;
+
+        // Tasks for this plan
+        await db
+          .insert(maintenanceTasks)
+          .values([
+            {
+              id: uuidv4(),
+              tenant_id: tenantId,
+              plan_id: planBaseIds[i],
+              description: 'Inspeção visual e limpeza',
+              sequence: 1,
+            },
+            {
+              id: uuidv4(),
+              tenant_id: tenantId,
+              plan_id: planBaseIds[i],
+              description: 'Verificar níveis e ruídos',
+              sequence: 2,
+            },
+          ])
+          .onConflictDoNothing();
+      }
+    }
+
+    // Spare parts with fixed IDs
+    const sparePartBaseIds = [
+      '40000000-0000-0000-0000-000000000001',
+      '40000000-0000-0000-0000-000000000002',
+      '40000000-0000-0000-0000-000000000003',
+      '40000000-0000-0000-0000-000000000004',
+      '40000000-0000-0000-0000-000000000005',
+    ];
+
+    for (let i = 0; i < 5; i++) {
+      const existingPart = await db.execute(
+        sql`SELECT id FROM spare_parts WHERE id = ${sparePartBaseIds[i]}`,
+      );
+
+      if (existingPart.rows.length === 0) {
+        await db
+          .insert(spareParts)
+          .values({
+            id: sparePartBaseIds[i],
+            tenant_id: tenantId,
+            code: `SP-DEMO-${String(i + 1).padStart(3, '0')}`,
+            name: `Peça Sobressalente Demo ${i + 1}`,
+            description: 'Item para manutenção',
+            unit_cost: (25 * (i + 1)).toFixed(2),
+          })
+          .onConflictDoNothing();
+        partsAdded++;
+
+        // Initial stock movement for this part
+        await db
+          .insert(stockMovements)
+          .values({
+            id: uuidv4(),
+            tenant_id: tenantId,
+            plant_id: demoPlantId,
+            spare_part_id: sparePartBaseIds[i],
+            type: 'entrada',
+            quantity: 10 + i * 2,
+            unit_cost: (20 + i * 5).toFixed(2),
+            total_cost: ((20 + i * 5) * (10 + i * 2)).toFixed(2),
+            notes: 'Stock inicial demo',
+            created_by: demoAdminId,
+          })
+          .onConflictDoNothing();
+      }
+    }
+
+    const note =
+      usersAdded === 0 && assetsAdded === 0
+        ? 'All demo data already exists. Use "Clear All Data" to reset before seeding again.'
+        : 'New demo data added successfully!';
+
+    return {
+      added: {
+        users: usersAdded,
+        plants: plantsAdded,
+        assets: assetsAdded,
+        maintenancePlans: plansAdded,
+        spareParts: partsAdded,
+      },
+      note,
+    };
+  }
   /**
    * Initialize database with admin user (only works if DB is empty)
    * This endpoint does NOT require authentication
@@ -219,240 +527,18 @@ export class SetupController {
 
       const tenantId = req.tenantId || DEFAULT_TENANT_ID;
       const tenantSlug = req.tenantSlug || DEFAULT_TENANT_SLUG;
-
-      await db.insert(tenants).values({
-        id: tenantId,
-        name: 'Demo Company',
-        slug: tenantSlug,
-        is_active: true,
-      }).onConflictDoNothing();
-      
-      // Use fixed demo IDs so we can check if they exist
-      const demoPlantId = '0fab0000-0000-0000-0000-000000000001';
-      const demoAdminId = '00000001-0000-0000-0000-000000000001';
-      const demoTechId = '00000000-0000-0000-0000-000000000002';
-      const demoCategoryId = '10000000-0000-0000-0000-000000000001';
-      
-      let usersAdded = 0;
-      let plantsAdded = 0;
-      let assetsAdded = 0;
-      let plansAdded = 0;
-      let partsAdded = 0;
-
-      // Check what already exists
-      const existingPlant = await db.execute(
-        sql`SELECT id FROM plants WHERE id = ${demoPlantId}`
-      );
-      const existingAdmin = await db.execute(
-        sql`SELECT id FROM users WHERE id = ${demoAdminId}`
-      );
-      const existingTech = await db.execute(
-        sql`SELECT id FROM users WHERE email = 'tech@cmms.com'`
-      );
-      const existingCategory = await db.execute(
-        sql`SELECT id FROM asset_categories WHERE id = ${demoCategoryId}`
-      );
-
-      // Insert plant (only if doesn't exist)
-      if (existingPlant.rows.length === 0) {
-        await db.insert(plants).values({
-          id: demoPlantId,
-          tenant_id: tenantId,
-          name: 'Fábrica Principal',
-          code: 'PLANT-001',
-          address: 'Rua Industrial, 123',
-          city: 'Lisboa',
-          country: 'Portugal',
-          is_active: true,
-        }).onConflictDoNothing();
-        plantsAdded++;
-      }
-
-      // Insert category (only if doesn't exist)
-      if (existingCategory.rows.length === 0) {
-        await db.insert(assetCategories).values({
-          id: demoCategoryId,
-          tenant_id: tenantId,
-          name: 'Equipamento Pesado',
-          description: 'Equipamentos de grande porte',
-        }).onConflictDoNothing();
-      }
-
-      // Insert admin user (only if doesn't exist)
-      if (existingAdmin.rows.length === 0) {
-        const passwordHash = await bcrypt.hash('Admin@123456', 10);
-        await db.insert(users).values({
-          id: demoAdminId,
-          tenant_id: tenantId,
-          email: 'admin@cmms.com',
-          password_hash: passwordHash,
-          first_name: 'Admin',
-          last_name: 'CMMS',
-          role: 'superadmin',
-          is_active: true,
-        }).onConflictDoNothing();
-        usersAdded++;
-      }
-
-      // Insert technician user (only if doesn't exist)
-      if (existingTech.rows.length === 0) {
-        const techPasswordHash = await bcrypt.hash('Tech@123456', 10);
-        await db.insert(users).values({
-          id: demoTechId,
-          tenant_id: tenantId,
-          email: 'tech@cmms.com',
-          password_hash: techPasswordHash,
-          first_name: 'Tecnico',
-          last_name: 'CMMS',
-          role: 'tecnico',
-          is_active: true,
-        }).onConflictDoNothing();
-        usersAdded++;
-      }
-
-      // Link users to plant (with conflict handling)
-      await db.insert(userPlants).values([
-        { id: uuidv4(), user_id: demoAdminId, plant_id: demoPlantId },
-        { id: uuidv4(), user_id: demoTechId, plant_id: demoPlantId },
-      ]).onConflictDoNothing();
-
-      // Insert sample assets with fixed IDs
-      const assetBaseIds = [
-        '20000000-0000-0000-0000-000000000001',
-        '20000000-0000-0000-0000-000000000002',
-        '20000000-0000-0000-0000-000000000003',
-        '20000000-0000-0000-0000-000000000004',
-        '20000000-0000-0000-0000-000000000005',
-      ];
-
-      for (let i = 0; i < 5; i++) {
-        const existingAsset = await db.execute(
-          sql`SELECT id FROM assets WHERE id = ${assetBaseIds[i]}`
-        );
-        
-        if (existingAsset.rows.length === 0) {
-          await db.insert(assets).values({
-            id: assetBaseIds[i],
-            tenant_id: tenantId,
-            plant_id: demoPlantId,
-            category_id: demoCategoryId,
-            name: `Equipamento Demo ${i + 1}`,
-            code: `DEMO-${String(i + 1).padStart(3, '0')}`,
-            model: `Model-X${i + 1}`,
-            manufacturer: 'TechMakers Inc',
-            serial_number: `SN-DEMO-${String(i + 1).padStart(5, '0')}`,
-            location: `Seção ${i + 1}`,
-            status: 'operacional',
-            is_critical: i === 0,
-            meter_type: 'hours',
-          }).onConflictDoNothing();
-          assetsAdded++;
-        }
-      }
-
-      // Maintenance plans & tasks (first 3 assets)
-      const planBaseIds = [
-        '30000000-0000-0000-0000-000000000001',
-        '30000000-0000-0000-0000-000000000002',
-        '30000000-0000-0000-0000-000000000003',
-      ];
-
-      for (let i = 0; i < 3; i++) {
-        const existingPlan = await db.execute(
-          sql`SELECT id FROM maintenance_plans WHERE id = ${planBaseIds[i]}`
-        );
-        
-        if (existingPlan.rows.length === 0) {
-          await db.insert(maintenancePlans).values({
-            id: planBaseIds[i],
-            tenant_id: tenantId,
-            asset_id: assetBaseIds[i],
-            name: `Plano Preventivo Demo ${i + 1}`,
-            description: 'Plano de manutenção preventiva mensal',
-            type: 'preventiva',
-            frequency_type: 'days',
-            frequency_value: 30,
-            is_active: true,
-          }).onConflictDoNothing();
-          plansAdded++;
-
-          // Tasks for this plan
-          await db.insert(maintenanceTasks).values([
-            {
-              id: uuidv4(),
-              tenant_id: tenantId,
-              plan_id: planBaseIds[i],
-              description: 'Inspeção visual e limpeza',
-              sequence: 1,
-            },
-            {
-              id: uuidv4(),
-              tenant_id: tenantId,
-              plan_id: planBaseIds[i],
-              description: 'Verificar níveis e ruídos',
-              sequence: 2,
-            },
-          ]).onConflictDoNothing();
-        }
-      }
-
-      // Spare parts with fixed IDs
-      const sparePartBaseIds = [
-        '40000000-0000-0000-0000-000000000001',
-        '40000000-0000-0000-0000-000000000002',
-        '40000000-0000-0000-0000-000000000003',
-        '40000000-0000-0000-0000-000000000004',
-        '40000000-0000-0000-0000-000000000005',
-      ];
-
-      for (let i = 0; i < 5; i++) {
-        const existingPart = await db.execute(
-          sql`SELECT id FROM spare_parts WHERE id = ${sparePartBaseIds[i]}`
-        );
-        
-        if (existingPart.rows.length === 0) {
-          await db.insert(spareParts).values({
-            id: sparePartBaseIds[i],
-            tenant_id: tenantId,
-            code: `SP-DEMO-${String(i + 1).padStart(3, '0')}`,
-            name: `Peça Sobressalente Demo ${i + 1}`,
-            description: 'Item para manutenção',
-            unit_cost: (25 * (i + 1)).toFixed(2),
-          }).onConflictDoNothing();
-          partsAdded++;
-
-          // Initial stock movement for this part
-          await db.insert(stockMovements).values({
-            id: uuidv4(),
-            tenant_id: tenantId,
-            plant_id: demoPlantId,
-            spare_part_id: sparePartBaseIds[i],
-            type: 'entrada',
-            quantity: 10 + i * 2,
-            unit_cost: (20 + i * 5).toFixed(2),
-            total_cost: ((20 + i * 5) * (10 + i * 2)).toFixed(2),
-            notes: 'Stock inicial demo',
-            created_by: demoAdminId,
-          }).onConflictDoNothing();
-        }
-      }
+      const result = await SetupController.seedDemoDataInternal(tenantId, tenantSlug);
+      const { added, note } = result;
 
       res.json({
         success: true,
-        message: usersAdded > 0 || assetsAdded > 0 
-          ? 'Demo data seeded successfully' 
-          : 'Demo data already exists - no changes made',
+        message:
+          added.users > 0 || added.assets > 0
+            ? 'Demo data seeded successfully'
+            : 'Demo data already exists - no changes made',
         data: {
-          added: {
-            users: usersAdded,
-            plants: plantsAdded,
-            assets: assetsAdded,
-            maintenancePlans: plansAdded,
-            spareParts: partsAdded,
-          },
-          note: usersAdded === 0 && assetsAdded === 0 
-            ? 'All demo data already exists. Use "Clear All Data" to reset before seeding again.'
-            : 'New demo data added successfully!',
+          added,
+          note,
         },
       });
     } catch (error) {
@@ -507,6 +593,51 @@ export class SetupController {
   }
 
   /**
+   * Public bootstrap: run migrations + seed demo data (only when DB is empty)
+   */
+  static async bootstrapAll(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userCount = await db.execute(sql`SELECT COUNT(*) FROM users;`);
+      const count = Number(userCount.rows[0].count);
+
+      if (count > 0) {
+        res.status(400).json({
+          success: false,
+          error: 'Database already initialized. Users exist.',
+          userCount: count,
+        });
+        return;
+      }
+
+      const rawSlug = typeof req.body?.tenantSlug === 'string' ? req.body.tenantSlug : '';
+      const tenantSlug = (rawSlug || DEFAULT_TENANT_SLUG).trim().toLowerCase();
+      const tenantId = tenantSlug === DEFAULT_TENANT_SLUG ? DEFAULT_TENANT_ID : uuidv4();
+
+      const migrations = await SetupController.runMigrationsInternal();
+      const seedResult = await SetupController.seedDemoDataInternal(tenantId, tenantSlug);
+
+      res.json({
+        success: true,
+        message: 'Database bootstrap completed',
+        data: {
+          tenantId,
+          tenantSlug,
+          loginUrl: `/t/${tenantSlug}/login`,
+          migrations,
+          seed: seedResult,
+          adminEmail: 'admin@cmms.com',
+          passwordHint: 'Admin@123456',
+        },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to bootstrap database',
+      });
+    }
+  }
+
+  /**
    * Run SQL migrations from scripts/database/migrations
    */
   static async runMigrations(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -519,43 +650,15 @@ export class SetupController {
         return;
       }
 
-      const migrationsDir = await SetupController.resolveMigrationsDir();
+      const executed = await SetupController.runMigrationsInternal();
 
-      if (!migrationsDir) {
-        res.status(404).json({
-          success: false,
-          error: 'Migrations directory not found',
-        });
-        return;
-      }
-
-      const entries = await fs.readdir(migrationsDir);
-      const migrationFiles = entries
-        .filter((file) => file.endsWith('.sql'))
-        .sort((a, b) => a.localeCompare(b));
-
-      if (migrationFiles.length === 0) {
+      if (executed.length === 0) {
         res.json({
           success: true,
           message: 'No migrations found',
           data: { files: [] },
         });
         return;
-      }
-
-      const executed: string[] = [];
-
-      for (const file of migrationFiles) {
-        const fullPath = path.join(migrationsDir, file);
-        const sqlContent = await fs.readFile(fullPath, 'utf-8');
-        const trimmed = sqlContent.trim();
-
-        if (!trimmed) {
-          continue;
-        }
-
-        await db.execute(sql.raw(trimmed));
-        executed.push(file);
       }
 
       res.json({

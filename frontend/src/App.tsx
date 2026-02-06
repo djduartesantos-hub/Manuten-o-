@@ -23,6 +23,7 @@ import { SearchPage } from './pages/SearchPage';
 import { AdminSetupPage } from './pages/AdminSetupPage';
 import { PlantsPage } from './pages/PlantsPage';
 import { DatabaseUpdatePage } from './pages/DatabaseUpdatePage';
+import { SetupInitPage } from './pages/SetupInitPage';
 
 import './index.css';
 
@@ -90,6 +91,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<TenantGate />} />
+            <Route path="/setup" element={<SetupInitPage />} />
             <Route path="/t/:tenantSlug/*" element={<TenantRoutes />} />
           </Routes>
         </BrowserRouter>

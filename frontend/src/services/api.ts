@@ -56,6 +56,29 @@ export async function apiCall<T = any>(
   return result.data as T;
 }
 
+async function publicApiCall<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(endpoint, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'API request failed');
+  }
+
+  const result: ApiResponse<T> = await response.json();
+
+  if (!result.success) {
+    throw new Error(result.error || 'API request failed');
+  }
+
+  return result.data as T;
+}
+
 export async function login(
   tenantSlug: string,
   email: string,
@@ -331,5 +354,12 @@ export async function runMigrations() {
 export async function clearAllData() {
   return apiCall('/setup/clear', {
     method: 'POST',
+  });
+}
+
+export async function bootstrapDatabase(tenantSlug: string) {
+  return publicApiCall('/api/setup/bootstrap', {
+    method: 'POST',
+    body: JSON.stringify({ tenantSlug }),
   });
 }
