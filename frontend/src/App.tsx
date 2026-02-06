@@ -90,7 +90,7 @@ function App() {
       <SocketProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<TenantGate />} />
+            <Route path="/" element={<LoginPage />} />
             <Route path="/setup" element={<SetupInitPage />} />
             <Route path="/t/:tenantSlug/*" element={<TenantRoutes />} />
           </Routes>
@@ -102,29 +102,6 @@ function App() {
 }
 
 export default App;
-
-function TenantGate() {
-  const storedSlug = localStorage.getItem('tenantSlug');
-  const normalized = storedSlug ? storedSlug.trim().toLowerCase() : '';
-
-  if (normalized) {
-    return <Navigate to={`/t/${normalized}/login`} replace />;
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-      <div className="max-w-md rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-        <h1 className="text-xl font-semibold text-slate-900">Tenant obrigatorio</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Aceda usando a URL com slug, por exemplo:
-        </p>
-        <div className="mt-3 rounded-full bg-slate-100 px-4 py-2 text-xs text-slate-700">
-          /t/sua-empresa/login
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function TenantRoutes() {
   const { tenantSlug } = useParams();

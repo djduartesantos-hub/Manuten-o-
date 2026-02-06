@@ -2,17 +2,32 @@ import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { login as apiLogin } from '../services/api';
-import { AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { useAppStore } from '../context/store';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { tenantSlug } = useParams();
-  const { setAuth } = useAuth();
+  const { setAuth, isAuthenticated } = useAuth();
+  const { setTenantSlug } = useAppStore();
+  const storedSlug = (localStorage.getItem('tenantSlug') || '').trim().toLowerCase();
+  const [tenantSlugInput, setTenantSlugInput] = React.useState(
+    tenantSlug?.trim().toLowerCase() || storedSlug || 'demo'
+  );
   const [email, setEmail] = React.useState('admin@cmms.com');
   const [password, setPassword] = React.useState('Admin@123456');
   const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      const slug = tenantSlug?.trim().toLowerCase() || storedSlug || tenantSlugInput;
+      if (slug) {
+        navigate(`/t/${slug}/dashboard`, { replace: true });
+      }
+    }
+  }, [isAuthenticated, navigate, storedSlug, tenantSlug, tenantSlugInput]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,15 +35,18 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      if (!tenantSlug) {
-        setError('Tenant inválido');
+      const resolvedSlug = (tenantSlug || tenantSlugInput).trim().toLowerCase();
+
+      if (!resolvedSlug) {
+        setError('Empresa (tenant) obrigatoria');
         setLoading(false);
         return;
       }
 
-      const result = await apiLogin(tenantSlug, email, password);
+      const result = await apiLogin(resolvedSlug, email, password);
       setAuth(result.user, result.token, result.refreshToken);
-      navigate(`/t/${tenantSlug}/dashboard`);
+      setTenantSlug(resolvedSlug);
+      navigate(`/t/${resolvedSlug}/dashboard`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -37,92 +55,117 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-600 to-primary-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-lg mb-4">
-            <span className="text-3xl">⚙️</span>
+    <div className="min-h-screen bg-[#f6f1e8] text-slate-900 relative overflow-hidden">
+      <div className="absolute -top-32 -left-24 h-80 w-80 rounded-full bg-amber-200/60 blur-3xl" />
+      <div className="absolute -bottom-40 right-0 h-96 w-96 rounded-full bg-teal-200/70 blur-3xl" />
+
+      <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col items-center gap-12 px-6 py-16 lg:flex-row lg:items-stretch">
+        <div className="flex w-full flex-col justify-center lg:w-1/2">
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.25em] text-slate-500">
+            <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+            Maintenance Intelligence Suite
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">CMMS Enterprise</h1>
-          <p className="text-primary-100">Computerized Maintenance Management System</p>
+          <h1 className="mt-6 text-4xl font-semibold text-slate-900 font-display lg:text-5xl">
+            CMMS Enterprise
+          </h1>
+          <p className="mt-4 text-base text-slate-600">
+            Operacoes de manutencao, ativos e equipas num unico cockpit. Escolha a empresa, entre e
+            acompanhe a performance em tempo real.
+          </p>
+          <div className="mt-8 grid gap-4 text-sm text-slate-600">
+            <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 shadow-sm">
+              Dashboards com KPIs, alertas e backlog sempre atualizados.
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 shadow-sm">
+              Plano, execute e revise ordens com equipas distribuídas.
+            </div>
+          </div>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Entrar na Plataforma</h2>
-
-          {error && (
-            <div className="mb-6 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent"
-                required
-              />
+        <div className="flex w-full items-center lg:w-1/2">
+          <div className="w-full rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
+            <div className="mb-6">
+              <h2 className="text-2xl font-semibold text-slate-900 font-display">Entrar</h2>
+              <p className="text-sm text-slate-500">Indique a empresa e as suas credenciais.</p>
             </div>
 
-            {/* Password */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Senha
-              </label>
-              <div className="relative">
+            {error && (
+              <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                <p className="text-sm text-red-800">{error}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="tenant" className="block text-xs font-medium text-slate-500 uppercase tracking-[0.2em]">
+                  Empresa (slug)
+                </label>
                 <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent pr-10"
+                  id="tenant"
+                  type="text"
+                  value={tenantSlugInput}
+                  onChange={(e) => setTenantSlugInput(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-amber-400 focus:outline-none"
+                  placeholder="demo"
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
               </div>
+
+              <div>
+                <label htmlFor="email" className="block text-xs font-medium text-slate-500 uppercase tracking-[0.2em]">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-amber-400 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-xs font-medium text-slate-500 uppercase tracking-[0.2em]">
+                  Senha
+                </label>
+                <div className="relative mt-2">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-amber-400 focus:outline-none pr-12"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="mt-2 w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:bg-slate-400"
+              >
+                {loading ? 'Entrando...' : 'Entrar'}
+              </button>
+            </form>
+
+            <div className="mt-6 rounded-2xl border border-amber-200/60 bg-amber-50/70 p-4 text-xs text-amber-900">
+              <p className="font-semibold">Demo rapido</p>
+              <p>Email: admin@cmms.com</p>
+              <p>Senha: Admin@123456</p>
+              <p>Empresa: demo</p>
             </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition mt-6"
-            >
-              {loading ? 'Entrando...' : 'Entrar'}
-            </button>
-          </form>
-
-          {/* Demo Info */}
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-900 font-medium mb-2">Credenciais de Demo:</p>
-            <ul className="text-xs text-blue-800 space-y-1">
-              <li>• Email: <code className="bg-white px-1 rounded">admin@cmms.com</code></li>
-              <li>• Senha: <code className="bg-white px-1 rounded">Admin@123456</code></li>
-            </ul>
           </div>
         </div>
-
-        {/* Footer */}
-        <p className="text-center text-primary-100 text-sm mt-8">
-          © 2024 CMMS Enterprise. Todos os direitos reservados.
-        </p>
       </div>
     </div>
   );
