@@ -11,7 +11,8 @@ interface ApiResponse<T = any> {
 }
 
 const getTenantSlug = (override?: string) => {
-  const candidate = override || localStorage.getItem('tenantSlug') || '';
+  const pathMatch = window.location.pathname.match(/^\/t\/([^/]+)/);
+  const candidate = override || localStorage.getItem('tenantSlug') || pathMatch?.[1] || '';
   const normalized = candidate.trim().toLowerCase();
   if (!normalized) {
     throw new Error('Tenant slug requerido');
