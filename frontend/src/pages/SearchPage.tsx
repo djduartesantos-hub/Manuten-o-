@@ -110,13 +110,25 @@ export function SearchPage() {
 
   return (
     <MainLayout>
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Pesquisa</h1>
-        <p className="text-gray-600 mt-2">Resultados globais em ordens e equipamentos</p>
-      </div>
+      <div className="space-y-8 font-display">
+        <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-violet-50 p-8 shadow-sm">
+          <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-violet-200/50 blur-3xl" />
+          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-sky-200/40 blur-3xl" />
+          <div className="relative">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
+              Pesquisa inteligente
+            </p>
+            <h1 className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl">
+              Encontre ordens e ativos em segundos
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-slate-600">
+              Combine filtros, prioridades e categorias para uma busca mais precisa.
+            </p>
+          </div>
+        </section>
 
-      <div className="card p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-7">
           <input
             className="input md:col-span-2"
             placeholder="Pesquisar por título, descrição, código..."
@@ -174,12 +186,15 @@ export function SearchPage() {
             <option value="date_desc">Mais recentes</option>
             <option value="date_asc">Mais antigas</option>
           </select>
-          <button onClick={() => handleSearch(1)} className="btn-primary inline-flex items-center gap-2">
+          <button
+            onClick={() => handleSearch(1)}
+            className="btn-primary inline-flex items-center gap-2"
+          >
             <Search className="w-4 h-4" />
             Pesquisar
           </button>
         </div>
-        {error && <p className="text-red-600 mt-3 text-sm">{error}</p>}
+        {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
         {activeFilters.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {activeFilters.map((filter) => (
@@ -198,34 +213,36 @@ export function SearchPage() {
         )}
       </div>
 
-      {(results.orders.total > 0 || results.assets.total > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="card p-4">
-            <p className="text-xs text-gray-500">Ordens</p>
-            <p className="text-2xl font-semibold text-gray-900">{results.orders.total}</p>
+        {(results.orders.total > 0 || results.assets.total > 0) && (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs text-slate-500">Ordens</p>
+              <p className="text-2xl font-semibold text-slate-900">{results.orders.total}</p>
+            </div>
+            <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs text-slate-500">Equipamentos</p>
+              <p className="text-2xl font-semibold text-slate-900">{results.assets.total}</p>
+            </div>
+            <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs text-slate-500">Pesquisa</p>
+              <p className="text-sm font-medium text-slate-900">{lastQuery}</p>
+            </div>
           </div>
-          <div className="card p-4">
-            <p className="text-xs text-gray-500">Equipamentos</p>
-            <p className="text-2xl font-semibold text-gray-900">{results.assets.total}</p>
-          </div>
-          <div className="card p-4">
-            <p className="text-xs text-gray-500">Pesquisa</p>
-            <p className="text-sm font-medium text-gray-900">{lastQuery}</p>
-          </div>
-        </div>
-      )}
+        )}
 
-      {loading && (
-        <div className="card p-8 text-center text-gray-600">A pesquisar...</div>
-      )}
+        {loading && (
+          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-600">
+            A pesquisar...
+          </div>
+        )}
 
-      {!loading && (results.orders.items.length > 0 || results.assets.items.length > 0) && (
-        <div className="space-y-6">
+        {!loading && (results.orders.items.length > 0 || results.assets.items.length > 0) && (
+          <div className="space-y-6">
           {(type === 'all' || type === 'orders') && (
-            <div className="card">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-100 px-6 py-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">Ordens</h2>
+                  <h2 className="text-lg font-semibold text-slate-900">Ordens</h2>
                   <a
                     className="text-sm text-primary-600 inline-flex items-center gap-1"
                     href="/work-orders"
@@ -234,19 +251,19 @@ export function SearchPage() {
                   </a>
                 </div>
               </div>
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y divide-slate-100">
                 {results.orders.items.length === 0 && (
-                  <div className="px-6 py-4 text-sm text-gray-500">Sem resultados</div>
+                  <div className="px-6 py-4 text-sm text-slate-500">Sem resultados</div>
                 )}
                 {results.orders.items.map((order) => (
                   <div key={order.id} className="px-6 py-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium text-gray-900">{highlight(order.title)}</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="font-medium text-slate-900">{highlight(order.title)}</p>
+                        <p className="text-sm text-slate-600">
                           {order.description ? highlight(order.description) : '-'}
                         </p>
-                        <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                        <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
                           <span>ID: {order.id}</span>
                           {order.priority && (
                             <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
@@ -256,8 +273,10 @@ export function SearchPage() {
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                        <span className="text-xs text-gray-500">Score {order.score?.toFixed(2) || '-'}</span>
-                        <span className="text-xs text-gray-700">{order.status}</span>
+                        <span className="text-xs text-slate-500">
+                          Score {order.score?.toFixed(2) || '-'}
+                        </span>
+                        <span className="text-xs text-slate-700">{order.status}</span>
                       </div>
                     </div>
                   </div>
@@ -267,10 +286,10 @@ export function SearchPage() {
           )}
 
           {(type === 'all' || type === 'assets') && (
-            <div className="card">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-100 px-6 py-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">Equipamentos</h2>
+                  <h2 className="text-lg font-semibold text-slate-900">Equipamentos</h2>
                   <a
                     className="text-sm text-primary-600 inline-flex items-center gap-1"
                     href="/assets"
@@ -279,17 +298,17 @@ export function SearchPage() {
                   </a>
                 </div>
               </div>
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y divide-slate-100">
                 {results.assets.items.length === 0 && (
-                  <div className="px-6 py-4 text-sm text-gray-500">Sem resultados</div>
+                  <div className="px-6 py-4 text-sm text-slate-500">Sem resultados</div>
                 )}
                 {results.assets.items.map((asset) => (
                   <div key={asset.id} className="px-6 py-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium text-gray-900">{highlight(asset.name)}</p>
-                        <p className="text-sm text-gray-600">{highlight(asset.code)}</p>
-                        <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                        <p className="font-medium text-slate-900">{highlight(asset.name)}</p>
+                        <p className="text-sm text-slate-600">{highlight(asset.code)}</p>
+                        <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
                           <span>ID: {asset.id}</span>
                           {asset.category && (
                             <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
@@ -299,7 +318,9 @@ export function SearchPage() {
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                        <span className="text-xs text-gray-500">Score {asset.score?.toFixed(2) || '-'}</span>
+                        <span className="text-xs text-slate-500">
+                          Score {asset.score?.toFixed(2) || '-'}
+                        </span>
                         {asset.is_critical ? (
                           <BadgeAlert className="w-4 h-4 text-red-500" />
                         ) : (
@@ -316,11 +337,13 @@ export function SearchPage() {
       )}
 
       {!loading && results.orders.items.length === 0 && results.assets.items.length === 0 && query && !error && (
-        <div className="card p-8 text-center text-gray-500">Sem resultados.</div>
+        <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500">
+          Sem resultados.
+        </div>
       )}
 
       {(results.orders.total > 0 || results.assets.total > 0) && (
-        <div className="mt-6 flex items-center justify-between">
+        <div className="flex items-center justify-between rounded-3xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
           <button
             className="btn-secondary"
             disabled={page <= 1 || loading}
@@ -328,7 +351,7 @@ export function SearchPage() {
           >
             Anterior
           </button>
-          <div className="flex items-center gap-3 text-sm text-gray-600">
+          <div className="flex items-center gap-3">
             <span>Página {page}</span>
             <select
               className="input max-w-[110px]"
@@ -360,6 +383,7 @@ export function SearchPage() {
           </button>
         </div>
       )}
+      </div>
     </MainLayout>
   );
 }

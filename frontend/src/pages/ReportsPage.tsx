@@ -325,47 +325,62 @@ export function ReportsPage() {
 
   return (
     <MainLayout>
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Relatórios Avançados</h1>
-          <p className="text-gray-600 mt-2">Análises, métricas e exportações de ordens</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            className="btn-primary inline-flex items-center gap-2"
-            onClick={exportCsv}
-            disabled={loading}
-          >
-            <Download className="w-4 h-4" />
-            CSV
-          </button>
-          <button
-            className="btn-primary inline-flex items-center gap-2"
-            onClick={exportPdf}
-            disabled={loading}
-          >
-            <Download className="w-4 h-4" />
-            PDF
-          </button>
-        </div>
-      </div>
+      <div className="space-y-8 font-display">
+        <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-indigo-50 p-8 shadow-sm">
+          <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-indigo-200/50 blur-3xl" />
+          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-emerald-200/40 blur-3xl" />
+          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-700">
+                Analises de desempenho
+              </p>
+              <h1 className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl">
+                Relatorios avancados
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm text-slate-600">
+                Explore indicadores, historicos e exporte dados para auditorias
+                ou reunioes.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="btn-primary inline-flex items-center gap-2"
+                onClick={exportCsv}
+                disabled={loading}
+              >
+                <Download className="h-4 w-4" />
+                CSV
+              </button>
+              <button
+                className="btn-primary inline-flex items-center gap-2"
+                onClick={exportPdf}
+                disabled={loading}
+              >
+                <Download className="h-4 w-4" />
+                PDF
+              </button>
+            </div>
+          </div>
+        </section>
 
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-          <p className="text-red-800">{error}</p>
-        </div>
-      )}
+        {error && (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="h-5 w-5 text-rose-600" />
+              <p className="text-sm text-rose-800">{error}</p>
+            </div>
+          </div>
+        )}
 
-      {loading && (
-        <div className="card p-12 text-center">
-          <Loader2 className="w-10 h-10 text-gray-400 mx-auto mb-4 animate-spin" />
-          <p className="text-gray-600">Carregando relatórios...</p>
-        </div>
-      )}
+        {loading && (
+          <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center">
+            <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-slate-400" />
+            <p className="text-sm text-slate-600">Carregando relatórios...</p>
+          </div>
+        )}
 
-      {!loading && (
-        <>
+        {!loading && (
+          <>
           {/* Report Type Selector */}
           <div className="card mb-6 p-4">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Tipo de Relatório</h2>
@@ -600,7 +615,9 @@ export function ReportsPage() {
             </div>
           </div>
         </>
-      )}
+          </>
+        )}
+      </div>
     </MainLayout>
   );
 }

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MainLayout } from '../layouts/MainLayout';
 import {
   Bell,
   Cog,
@@ -55,40 +56,46 @@ export function SettingsPage() {
     ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <SettingsIcon className="w-6 h-6 text-blue-600" />
+    <MainLayout>
+      <div className="space-y-8 font-display">
+        <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-blue-50 p-8 shadow-sm">
+          <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-blue-200/50 blur-3xl" />
+          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-emerald-200/40 blur-3xl" />
+          <div className="relative flex items-center gap-4">
+            <div className="rounded-2xl bg-blue-100 p-3">
+              <SettingsIcon className="h-6 w-6 text-blue-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Configurações</h1>
-              <p className="text-slate-600 mt-1">Gerencie alertas, manutenção e documentação</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">
+                Centro de controle
+              </p>
+              <h1 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">
+                Configuracoes
+              </h1>
+              <p className="mt-2 text-sm text-slate-600">
+                Gerencie alertas, manutencao preventiva e documentos em um unico lugar.
+              </p>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar Navigation */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
           <div className="lg:col-span-1">
-            <nav className="space-y-2 bg-white rounded-lg shadow-sm p-4 sticky top-20">
+            <nav className="space-y-2 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all ${
                     activeTab === tab.id
-                      ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-600'
+                      ? 'bg-blue-50 text-blue-600 border border-blue-200'
                       : 'text-slate-600 hover:bg-slate-50'
                   }`}
                 >
                   {tab.icon}
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{tab.label}</div>
+                    <p className="text-xs text-slate-400 truncate">{tab.description}</p>
                   </div>
                   {activeTab === tab.id && <ChevronRight className="w-4 h-4 flex-shrink-0" />}
                 </button>
@@ -96,38 +103,18 @@ export function SettingsPage() {
             </nav>
           </div>
 
-          {/* Content Area */}
           <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              {/* Alerts & Notifications */}
-              {activeTab === 'alerts' && (
-                <AlertsSettings />
-              )}
-
-              {/* Preventive Maintenance */}
-              {activeTab === 'preventive' && (
-                <PreventiveMaintenanceSettings />
-              )}
-
-              {/* Predictive Warnings */}
-              {activeTab === 'warnings' && (
-                <PredictiveWarningsSettings />
-              )}
-
-              {/* Documents Library */}
-              {activeTab === 'documents' && (
-                <DocumentsLibrarySettings />
-              )}
-
-              {/* Permissions */}
-              {activeTab === 'permissions' && (
-                <PermissionsSettings />
-              )}
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              {activeTab === 'alerts' && <AlertsSettings />}
+              {activeTab === 'preventive' && <PreventiveMaintenanceSettings />}
+              {activeTab === 'warnings' && <PredictiveWarningsSettings />}
+              {activeTab === 'documents' && <DocumentsLibrarySettings />}
+              {activeTab === 'permissions' && <PermissionsSettings />}
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </MainLayout>
   );
 }
 
