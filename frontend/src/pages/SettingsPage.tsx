@@ -1,11 +1,28 @@
 import React, { useState } from 'react';
 import { MainLayout } from '../layouts/MainLayout';
+import { useAppStore } from '../context/store';
+import {
+  createAdminPlant,
+  createAdminUser,
+  deactivateAdminPlant,
+  getAdminPlants,
+  getAdminRoles,
+  getAdminUsers,
+  getAssets,
+  updateAdminPlant,
+  updateAdminUser,
+} from '../services/api';
 import {
   Bell,
   Cog,
   FileText,
   AlertTriangle,
   Shield,
+  Building2,
+  Users,
+  Plus,
+  Pencil,
+  Trash2,
   ChevronRight,
   Settings as SettingsIcon,
 } from 'lucide-react';
@@ -16,7 +33,8 @@ type SettingTab =
   | 'preventive'
   | 'warnings'
   | 'documents'
-  | 'permissions';
+  | 'permissions'
+  | 'management';
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingTab>('alerts');
@@ -52,6 +70,12 @@ export function SettingsPage() {
         label: 'Permissões & Roles',
         icon: <Shield className="w-5 h-5" />,
         description: 'Gerencie acesso por role',
+      },
+      {
+        id: 'management',
+        label: 'Gestao administrativa',
+        icon: <Users className="w-5 h-5" />,
+        description: 'Plantas, utilizadores, roles e equipamentos',
       },
     ];
 
@@ -110,6 +134,7 @@ export function SettingsPage() {
               {activeTab === 'warnings' && <PredictiveWarningsSettings />}
               {activeTab === 'documents' && <DocumentsLibrarySettings />}
               {activeTab === 'permissions' && <PermissionsSettings />}
+              {activeTab === 'management' && <ManagementSettings />}
             </div>
           </div>
         </div>
@@ -246,7 +271,14 @@ function AlertsSettings() {
     { value: 'maintenance_overdue', label: '⏰ Manutenção Vencida' },
   ];
 
-  const roles = ['admin', 'manager', 'technician', 'viewer'];
+  const roles = [
+    'superadmin',
+    'admin_empresa',
+    'gestor_manutencao',
+    'supervisor',
+    'tecnico',
+    'leitor',
+  ];
 
   return (
     <div>
@@ -1398,6 +1430,647 @@ function PermissionsSettings() {
           <strong>Nota:</strong> As permissões são pré-configuradas por role. Customização de roles será
           disponibilizada em futuras versões.
         </p>
+      </div>
+    </div>
+  );
+}
+
+function ManagementSettings() {
+  const { selectedPlant } = useAppStore();
+  const [plants, setPlants] = React.useState<any[]>([]);
+  const [users, setUsers] = React.useState<any[]>([]);
+  const [roles, setRoles] = React.useState<Array<{ value: string; label: string }>>([]);
+  const [assets, setAssets] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [saving, setSaving] = React.useState(false);
+
+  const [newPlant, setNewPlant] = React.useState({
+    name: '',
+    code: '',
+    city: '',
+    country: '',
+  });
+  const [editingPlantId, setEditingPlantId] = React.useState<string | null>(null);
+  const [plantForm, setPlantForm] = React.useState({
+    name: '',
+    code: '',
+    address: '',
+    city: '',
+    country: '',
+    is_active: true,
+  });
+
+  const [newUser, setNewUser] = React.useState({
+    email: '',
+    password: '',
+    first_name: '',
+    last_name: '',
+    role: 'tecnico',
+    plant_ids: [] as string[],
+  });
+  const [editingUserId, setEditingUserId] = React.useState<string | null>(null);
+  const [userForm, setUserForm] = React.useState({
+    first_name: '',
+    last_name: '',
+    role: 'tecnico',
+    is_active: true,
+    plant_ids: [] as string[],
+  });
+
+  const togglePlantSelection = (ids: string[], plantId: string) =>
+    ids.includes(plantId) ? ids.filter((id) => id !== plantId) : [...ids, plantId];
+
+  const loadAdminData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [plantsData, usersData, rolesData] = await Promise.all([
+        getAdminPlants(),
+        getAdminUsers(),
+        getAdminRoles(),
+      ]);
+      setPlants(plantsData || []);
+      setUsers(usersData || []);
+      setRoles(rolesData || []);
+    } catch (err: any) {
+      setError(err.message || 'Falha ao carregar dados de gestao');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadAssets = async () => {
+    if (!selectedPlant) {
+      setAssets([]);
+      return;
+    }
+
+    try {
+      const data = await getAssets(selectedPlant);
+      setAssets(data || []);
+    } catch (err) {
+      setAssets([]);
+    }
+  };
+
+  React.useEffect(() => {
+    loadAdminData();
+  }, []);
+
+  React.useEffect(() => {
+    loadAssets();
+  }, [selectedPlant]);
+
+  const handleCreatePlant = async () => {
+    if (!newPlant.name || !newPlant.code) {
+      setError('Nome e codigo da planta sao obrigatorios');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      await createAdminPlant(newPlant);
+      setNewPlant({ name: '', code: '', city: '', country: '' });
+      await loadAdminData();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao criar planta');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleStartPlantEdit = (plant: any) => {
+    setEditingPlantId(plant.id);
+    setPlantForm({
+      name: plant.name || '',
+      code: plant.code || '',
+      address: plant.address || '',
+      city: plant.city || '',
+      country: plant.country || '',
+      is_active: plant.is_active ?? true,
+    });
+  };
+
+  const handleUpdatePlant = async () => {
+    if (!editingPlantId) return;
+
+    setSaving(true);
+    setError(null);
+    try {
+      await updateAdminPlant(editingPlantId, plantForm);
+      setEditingPlantId(null);
+      await loadAdminData();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao atualizar planta');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeactivatePlant = async (plantId: string) => {
+    if (!window.confirm('Desativar esta planta?')) return;
+
+    setSaving(true);
+    setError(null);
+    try {
+      await deactivateAdminPlant(plantId);
+      await loadAdminData();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao desativar planta');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreateUser = async () => {
+    if (!newUser.email || !newUser.password || !newUser.first_name || !newUser.last_name) {
+      setError('Preencha os campos obrigatorios do utilizador');
+      return;
+    }
+
+    if (newUser.plant_ids.length === 0) {
+      setError('Selecione pelo menos uma planta para o utilizador');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      await createAdminUser(newUser);
+      setNewUser({
+        email: '',
+        password: '',
+        first_name: '',
+        last_name: '',
+        role: 'tecnico',
+        plant_ids: [],
+      });
+      await loadAdminData();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao criar utilizador');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleStartUserEdit = (user: any) => {
+    setEditingUserId(user.id);
+    setUserForm({
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
+      role: user.role || 'tecnico',
+      is_active: user.is_active ?? true,
+      plant_ids: user.plant_ids || [],
+    });
+  };
+
+  const handleUpdateUser = async () => {
+    if (!editingUserId) return;
+
+    if (userForm.plant_ids.length === 0) {
+      setError('Selecione pelo menos uma planta para o utilizador');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      await updateAdminUser(editingUserId, userForm);
+      setEditingUserId(null);
+      await loadAdminData();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao atualizar utilizador');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900">Gestao administrativa</h2>
+        <p className="text-slate-600 mt-1">
+          Controle plantas, utilizadores, roles e equipamentos sem sair das configuracoes.
+        </p>
+      </div>
+
+      {error && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">Plantas</h3>
+              <p className="text-sm text-slate-500">Cadastre e organize instalacoes</p>
+            </div>
+            <Building2 className="h-5 w-5 text-slate-400" />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                Nome da planta
+              </label>
+              <input
+                className="input"
+                value={newPlant.name}
+                onChange={(event) => setNewPlant({ ...newPlant, name: event.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                Codigo
+              </label>
+              <input
+                className="input"
+                value={newPlant.code}
+                onChange={(event) => setNewPlant({ ...newPlant, code: event.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                Cidade
+              </label>
+              <input
+                className="input"
+                value={newPlant.city}
+                onChange={(event) => setNewPlant({ ...newPlant, city: event.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                Pais
+              </label>
+              <input
+                className="input"
+                value={newPlant.country}
+                onChange={(event) => setNewPlant({ ...newPlant, country: event.target.value })}
+              />
+            </div>
+          </div>
+
+          <button
+            className="btn-primary inline-flex items-center gap-2"
+            onClick={handleCreatePlant}
+            disabled={saving}
+          >
+            <Plus className="h-4 w-4" />
+            Criar planta
+          </button>
+
+          <div className="space-y-3">
+            {loading && <p className="text-sm text-slate-500">Carregando plantas...</p>}
+            {!loading && plants.length === 0 && (
+              <p className="text-sm text-slate-500">Nenhuma planta cadastrada.</p>
+            )}
+            {plants.map((plant) => (
+              <div
+                key={plant.id}
+                className="rounded-2xl border border-slate-100 bg-slate-50 p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {plant.code} - {plant.name}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {plant.city || 'Cidade'} · {plant.country || 'Pais'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        plant.is_active
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-slate-200 text-slate-600'
+                      }`}
+                    >
+                      {plant.is_active ? 'Ativa' : 'Inativa'}
+                    </span>
+                    <button
+                      className="text-xs text-slate-500 hover:text-slate-700"
+                      onClick={() => handleStartPlantEdit(plant)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      className="text-xs text-rose-500 hover:text-rose-600"
+                      onClick={() => handleDeactivatePlant(plant.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {editingPlantId === plant.id && (
+                  <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <input
+                      className="input"
+                      value={plantForm.name}
+                      onChange={(event) =>
+                        setPlantForm({ ...plantForm, name: event.target.value })
+                      }
+                      placeholder="Nome"
+                    />
+                    <input
+                      className="input"
+                      value={plantForm.code}
+                      onChange={(event) =>
+                        setPlantForm({ ...plantForm, code: event.target.value })
+                      }
+                      placeholder="Codigo"
+                    />
+                    <input
+                      className="input"
+                      value={plantForm.city}
+                      onChange={(event) =>
+                        setPlantForm({ ...plantForm, city: event.target.value })
+                      }
+                      placeholder="Cidade"
+                    />
+                    <input
+                      className="input"
+                      value={plantForm.country}
+                      onChange={(event) =>
+                        setPlantForm({ ...plantForm, country: event.target.value })
+                      }
+                      placeholder="Pais"
+                    />
+                    <label className="flex items-center gap-2 text-xs text-slate-600">
+                      <input
+                        type="checkbox"
+                        checked={plantForm.is_active}
+                        onChange={(event) =>
+                          setPlantForm({ ...plantForm, is_active: event.target.checked })
+                        }
+                      />
+                      Planta ativa
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        className="btn-primary"
+                        onClick={handleUpdatePlant}
+                        disabled={saving}
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        className="btn-secondary"
+                        onClick={() => setEditingPlantId(null)}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">Equipamentos</h3>
+              <p className="text-sm text-slate-500">Resumo por planta selecionada</p>
+            </div>
+            <a className="text-sm text-primary-600" href="/assets">
+              Ver lista
+            </a>
+          </div>
+
+          {!selectedPlant && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+              Selecione uma planta no topo para visualizar equipamentos.
+            </div>
+          )}
+
+          {selectedPlant && (
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <p className="text-xs text-slate-500">Total</p>
+                <p className="text-2xl font-semibold text-slate-900">{assets.length}</p>
+              </div>
+              <div className="space-y-2">
+                {assets.slice(0, 5).map((asset) => (
+                  <div
+                    key={asset.id}
+                    className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white px-3 py-2"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">{asset.name}</p>
+                      <p className="text-xs text-slate-500">{asset.code}</p>
+                    </div>
+                    <span className="text-xs text-slate-500">{asset.status || 'ativo'}</span>
+                  </div>
+                ))}
+                {assets.length === 0 && (
+                  <p className="text-sm text-slate-500">Sem equipamentos cadastrados.</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">Utilizadores e roles</h3>
+            <p className="text-sm text-slate-500">Crie contas e distribua acessos</p>
+          </div>
+          <Users className="h-5 w-5 text-slate-400" />
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <input
+            className="input"
+            placeholder="Nome"
+            value={newUser.first_name}
+            onChange={(event) => setNewUser({ ...newUser, first_name: event.target.value })}
+          />
+          <input
+            className="input"
+            placeholder="Apelido"
+            value={newUser.last_name}
+            onChange={(event) => setNewUser({ ...newUser, last_name: event.target.value })}
+          />
+          <input
+            className="input"
+            placeholder="Email"
+            value={newUser.email}
+            onChange={(event) => setNewUser({ ...newUser, email: event.target.value })}
+          />
+          <input
+            className="input"
+            placeholder="Password temporaria"
+            value={newUser.password}
+            onChange={(event) => setNewUser({ ...newUser, password: event.target.value })}
+          />
+          <select
+            className="input"
+            value={newUser.role}
+            onChange={(event) => setNewUser({ ...newUser, role: event.target.value })}
+          >
+            {roles.map((role) => (
+              <option key={role.value} value={role.value}>
+                {role.label}
+              </option>
+            ))}
+          </select>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
+            <p className="text-xs font-semibold text-slate-500">Plantas</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {plants.map((plant) => (
+                <button
+                  key={plant.id}
+                  type="button"
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    newUser.plant_ids.includes(plant.id)
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-white text-slate-600'
+                  }`}
+                  onClick={() =>
+                    setNewUser({
+                      ...newUser,
+                      plant_ids: togglePlantSelection(newUser.plant_ids, plant.id),
+                    })
+                  }
+                >
+                  {plant.code}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <button
+          className="btn-primary inline-flex items-center gap-2"
+          onClick={handleCreateUser}
+          disabled={saving}
+        >
+          <Plus className="h-4 w-4" />
+          Criar utilizador
+        </button>
+
+        <div className="space-y-3">
+          {loading && <p className="text-sm text-slate-500">Carregando utilizadores...</p>}
+          {!loading && users.length === 0 && (
+            <p className="text-sm text-slate-500">Nenhum utilizador encontrado.</p>
+          )}
+          {users.map((user) => (
+            <div key={user.id} className="rounded-2xl border border-slate-100 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {user.first_name} {user.last_name}
+                  </p>
+                  <p className="text-xs text-slate-500">{user.email}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">
+                    {user.role}
+                  </span>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      user.is_active
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-slate-200 text-slate-600'
+                    }`}
+                  >
+                    {user.is_active ? 'Ativo' : 'Inativo'}
+                  </span>
+                  <button
+                    className="text-xs text-slate-500 hover:text-slate-700"
+                    onClick={() => handleStartUserEdit(user)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {editingUserId === user.id && (
+                <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <input
+                    className="input"
+                    value={userForm.first_name}
+                    onChange={(event) =>
+                      setUserForm({ ...userForm, first_name: event.target.value })
+                    }
+                    placeholder="Nome"
+                  />
+                  <input
+                    className="input"
+                    value={userForm.last_name}
+                    onChange={(event) =>
+                      setUserForm({ ...userForm, last_name: event.target.value })
+                    }
+                    placeholder="Apelido"
+                  />
+                  <select
+                    className="input"
+                    value={userForm.role}
+                    onChange={(event) => setUserForm({ ...userForm, role: event.target.value })}
+                  >
+                    {roles.map((role) => (
+                      <option key={role.value} value={role.value}>
+                        {role.label}
+                      </option>
+                    ))}
+                  </select>
+                  <label className="flex items-center gap-2 text-xs text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={userForm.is_active}
+                      onChange={(event) =>
+                        setUserForm({ ...userForm, is_active: event.target.checked })
+                      }
+                    />
+                    Utilizador ativo
+                  </label>
+                  <div className="md:col-span-2 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                    <p className="text-xs font-semibold text-slate-500">Plantas</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {plants.map((plant) => (
+                        <button
+                          key={plant.id}
+                          type="button"
+                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                            userForm.plant_ids.includes(plant.id)
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-white text-slate-600'
+                          }`}
+                          onClick={() =>
+                            setUserForm({
+                              ...userForm,
+                              plant_ids: togglePlantSelection(userForm.plant_ids, plant.id),
+                            })
+                          }
+                        >
+                          {plant.code}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 md:col-span-2">
+                    <button className="btn-primary" onClick={handleUpdateUser} disabled={saving}>
+                      Guardar
+                    </button>
+                    <button className="btn-secondary" onClick={() => setEditingUserId(null)}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

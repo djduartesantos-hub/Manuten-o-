@@ -158,6 +158,56 @@ export async function getJobQueueStats() {
   return apiCall('/jobs/stats');
 }
 
+// ============================================================================
+// ADMIN MANAGEMENT (plants, users, roles)
+// ============================================================================
+
+export async function getAdminPlants() {
+  return apiCall('/admin/plants');
+}
+
+export async function createAdminPlant(data: any) {
+  return apiCall('/admin/plants', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateAdminPlant(plantId: string, data: any) {
+  return apiCall(`/admin/plants/${plantId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deactivateAdminPlant(plantId: string) {
+  return apiCall(`/admin/plants/${plantId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function getAdminUsers() {
+  return apiCall('/admin/users');
+}
+
+export async function createAdminUser(data: any) {
+  return apiCall('/admin/users', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateAdminUser(userId: string, data: any) {
+  return apiCall(`/admin/users/${userId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getAdminRoles() {
+  return apiCall('/admin/roles');
+}
+
 export async function enqueueJob(data: {
   queue: string;
   jobName: string;
