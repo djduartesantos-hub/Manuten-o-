@@ -1,17 +1,24 @@
 import { Response, NextFunction } from 'express';
 import { extractTokenFromHeader, verifyToken } from '../auth/jwt.js';
 import { AuthService } from '../services/auth.service.js';
-import { AuthenticatedRequest } from '../types/index.js';
+import { AuthenticatedRequest, UserRole } from '../types/index.js';
 import { logger } from '../config/logger.js';
 
-const roleAliases: Record<string, string> = {
-  admin: 'admin_empresa',
-  maintenance_manager: 'gestor_manutencao',
-  planner: 'gestor_manutencao',
-  technician: 'tecnico',
+const roleAliases: Record<string, UserRole> = {
+  admin: UserRole.AdminEmpresa,
+  maintenance_manager: UserRole.GestorManutencao,
+  planner: UserRole.GestorManutencao,
+  technician: UserRole.Tecnico,
 };
 
-const normalizeRole = (role?: string) => (role ? roleAliases[role] || role : role);
+const normalizeRole = (role?: string | UserRole): UserRole | undefined => {
+  if (!role) return undefined;
+
+  const mapped = roleAliases[role] ?? role;
+  const allowedRoles = Object.values(UserRole);
+
+  return allowedRoles.includes(mapped as UserRole) ? (mapped as UserRole) : undefined;
+};
 
 export function authMiddleware(
   req: AuthenticatedRequest & { headers?: any },
@@ -39,8 +46,9 @@ export function authMiddleware(
       return;
     }
 
-    if (payload?.role) {
-      payload.role = normalizeRole(payload.role);
+    const normalizedRole = normalizeRole(payload?.role);
+    if (normalizedRole) {
+      payload.role = normalizedRole;
     }
 
     req.user = payload;
@@ -70,9 +78,11 @@ export function requireRole(...roles: string[]) {
     }
 
     const userRole = normalizeRole(req.user.role);
-    const allowedRoles = roles.map((role) => normalizeRole(role));
+    const allowedRoles = roles
+      .map((role) => normalizeRole(role))
+      .filter((role): role is UserRole => Boolean(role));
 
-    if (!allowedRoles.includes(userRole)) {
+    if (!userRole || !allowedRoles.includes(userRole)) {
       res.status(403).json({
         success: false,
         error: 'Insufficient permissions',
