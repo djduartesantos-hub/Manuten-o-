@@ -5,15 +5,30 @@ import { getSetupStatus, seedDemoData, clearAllData } from '../services/api';
 interface DatabaseStatus {
   connected: boolean;
   tablesCount: number;
+  tables?: string[];
   hasData: {
     users: boolean;
     plants: boolean;
     assets: boolean;
+    maintenancePlans: boolean;
+    maintenanceTasks: boolean;
+    spareParts: boolean;
+    stockMovements: boolean;
+    workOrders: boolean;
+    categories: boolean;
+    suppliers: boolean;
   };
   counts: {
     users: number;
     plants: number;
     assets: number;
+    maintenancePlans: number;
+    maintenanceTasks: number;
+    spareParts: number;
+    stockMovements: number;
+    workOrders: number;
+    categories: number;
+    suppliers: number;
   };
 }
 
@@ -184,9 +199,67 @@ export function AdminSetupPage() {
               </div>
             </div>
 
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="text-sm text-gray-600 mb-1">Planos</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {status.counts.maintenancePlans}
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="text-sm text-gray-600 mb-1">Tarefas</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {status.counts.maintenanceTasks}
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="text-sm text-gray-600 mb-1">Peças</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {status.counts.spareParts}
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="text-sm text-gray-600 mb-1">Movimentos</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {status.counts.stockMovements}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="text-sm text-gray-600 mb-1">Ordens</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {status.counts.workOrders}
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="text-sm text-gray-600 mb-1">Categorias</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {status.counts.categories}
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="text-sm text-gray-600 mb-1">Fornecedores</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {status.counts.suppliers}
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="text-sm text-gray-600 mb-1">Plantas</div>
+                <div className="text-2xl font-bold text-gray-900">{status.counts.plants}</div>
+              </div>
+            </div>
+
             <div className="border-t pt-4">
               <h3 className="text-sm font-semibold text-gray-700 mb-2">Estado dos Dados:</h3>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="flex items-center gap-2">
                   {status.hasData.users ? (
                     <CheckCircle className="w-4 h-4 text-green-600" />
@@ -211,8 +284,80 @@ export function AdminSetupPage() {
                   )}
                   <span className="text-sm text-gray-700">Equipamentos</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  {status.hasData.maintenancePlans ? (
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-amber-600" />
+                  )}
+                  <span className="text-sm text-gray-700">Planos</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {status.hasData.maintenanceTasks ? (
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-amber-600" />
+                  )}
+                  <span className="text-sm text-gray-700">Tarefas</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {status.hasData.spareParts ? (
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-amber-600" />
+                  )}
+                  <span className="text-sm text-gray-700">Peças</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {status.hasData.stockMovements ? (
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-amber-600" />
+                  )}
+                  <span className="text-sm text-gray-700">Movimentos</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {status.hasData.workOrders ? (
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-amber-600" />
+                  )}
+                  <span className="text-sm text-gray-700">Ordens</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {status.hasData.categories ? (
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-amber-600" />
+                  )}
+                  <span className="text-sm text-gray-700">Categorias</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {status.hasData.suppliers ? (
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-amber-600" />
+                  )}
+                  <span className="text-sm text-gray-700">Fornecedores</span>
+                </div>
               </div>
             </div>
+
+            {status.tables && status.tables.length > 0 && (
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Tabelas detectadas</h3>
+                <div className="flex flex-wrap gap-2">
+                  {status.tables.map((table) => (
+                    <span
+                      key={table}
+                      className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600"
+                    >
+                      {table}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -237,7 +382,8 @@ export function AdminSetupPage() {
                   <li>• 2 utilizadores (Admin e Técnico)</li>
                   <li>• 1 fábrica (Fábrica Principal)</li>
                   <li>• 5 equipamentos de exemplo</li>
-                  <li>• 3 planos de manutenção preventiva</li>
+                  <li>• 1 categoria de ativos</li>
+                  <li>• 3 planos de manutenção preventiva + tarefas</li>
                   <li>• 5 peças sobressalentes com stock inicial</li>
                 </ul>
               </div>

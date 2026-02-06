@@ -114,6 +114,13 @@ export class SetupController {
       const userCount = await db.execute(sql`SELECT COUNT(*) FROM users;`);
       const plantCount = await db.execute(sql`SELECT COUNT(*) FROM plants;`);
       const assetCount = await db.execute(sql`SELECT COUNT(*) FROM assets;`);
+      const planCount = await db.execute(sql`SELECT COUNT(*) FROM maintenance_plans;`);
+      const taskCount = await db.execute(sql`SELECT COUNT(*) FROM maintenance_tasks;`);
+      const sparePartCount = await db.execute(sql`SELECT COUNT(*) FROM spare_parts;`);
+      const stockMovementCount = await db.execute(sql`SELECT COUNT(*) FROM stock_movements;`);
+      const workOrderCount = await db.execute(sql`SELECT COUNT(*) FROM work_orders;`);
+      const categoryCount = await db.execute(sql`SELECT COUNT(*) FROM asset_categories;`);
+      const supplierCount = await db.execute(sql`SELECT COUNT(*) FROM suppliers;`);
 
       res.json({
         success: true,
@@ -125,11 +132,25 @@ export class SetupController {
             users: Number(userCount.rows[0].count) > 0,
             plants: Number(plantCount.rows[0].count) > 0,
             assets: Number(assetCount.rows[0].count) > 0,
+            maintenancePlans: Number(planCount.rows[0].count) > 0,
+            maintenanceTasks: Number(taskCount.rows[0].count) > 0,
+            spareParts: Number(sparePartCount.rows[0].count) > 0,
+            stockMovements: Number(stockMovementCount.rows[0].count) > 0,
+            workOrders: Number(workOrderCount.rows[0].count) > 0,
+            categories: Number(categoryCount.rows[0].count) > 0,
+            suppliers: Number(supplierCount.rows[0].count) > 0,
           },
           counts: {
             users: Number(userCount.rows[0].count),
             plants: Number(plantCount.rows[0].count),
             assets: Number(assetCount.rows[0].count),
+            maintenancePlans: Number(planCount.rows[0].count),
+            maintenanceTasks: Number(taskCount.rows[0].count),
+            spareParts: Number(sparePartCount.rows[0].count),
+            stockMovements: Number(stockMovementCount.rows[0].count),
+            workOrders: Number(workOrderCount.rows[0].count),
+            categories: Number(categoryCount.rows[0].count),
+            suppliers: Number(supplierCount.rows[0].count),
           },
         },
       });
