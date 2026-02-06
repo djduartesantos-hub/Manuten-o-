@@ -549,6 +549,28 @@ export class SetupController {
     }
   }
 
+  private static async clearAllInternal(includeTenants: boolean): Promise<void> {
+    await db.execute(sql`TRUNCATE TABLE stock_movements CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE meter_readings CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE attachments CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE audit_logs CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE work_order_tasks CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE work_orders CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE maintenance_tasks CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE maintenance_plans CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE assets CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE spare_parts CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE suppliers CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE asset_categories CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE user_plants CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE users CASCADE;`);
+    await db.execute(sql`TRUNCATE TABLE plants CASCADE;`);
+
+    if (includeTenants) {
+      await db.execute(sql`TRUNCATE TABLE tenants CASCADE;`);
+    }
+  }
+
   /**
    * Clear all data from database (dangerous!)
    */
@@ -563,22 +585,7 @@ export class SetupController {
         return;
       }
 
-      // Truncate tables in correct order (respecting foreign keys)
-      await db.execute(sql`TRUNCATE TABLE stock_movements CASCADE;`);
-      await db.execute(sql`TRUNCATE TABLE meter_readings CASCADE;`);
-      await db.execute(sql`TRUNCATE TABLE attachments CASCADE;`);
-      await db.execute(sql`TRUNCATE TABLE audit_logs CASCADE;`);
-      await db.execute(sql`TRUNCATE TABLE work_order_tasks CASCADE;`);
-      await db.execute(sql`TRUNCATE TABLE work_orders CASCADE;`);
-      await db.execute(sql`TRUNCATE TABLE maintenance_tasks CASCADE;`);
-      await db.execute(sql`TRUNCATE TABLE maintenance_plans CASCADE;`);
-      await db.execute(sql`TRUNCATE TABLE assets CASCADE;`);
-      await db.execute(sql`TRUNCATE TABLE spare_parts CASCADE;`);
-      await db.execute(sql`TRUNCATE TABLE suppliers CASCADE;`);
-      await db.execute(sql`TRUNCATE TABLE asset_categories CASCADE;`);
-      await db.execute(sql`TRUNCATE TABLE user_plants CASCADE;`);
-      await db.execute(sql`TRUNCATE TABLE users CASCADE;`);
-      await db.execute(sql`TRUNCATE TABLE plants CASCADE;`);
+      await SetupController.clearAllInternal(false);
 
       res.json({
         success: true,
@@ -597,21 +604,11 @@ export class SetupController {
    */
   static async bootstrapAll(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const userCount = await db.execute(sql`SELECT COUNT(*) FROM users;`);
-      const count = Number(userCount.rows[0].count);
-
-      if (count > 0) {
-        res.status(400).json({
-          success: false,
-          error: 'Database already initialized. Users exist.',
-          userCount: count,
-        });
-        return;
-      }
-
       const rawSlug = typeof req.body?.tenantSlug === 'string' ? req.body.tenantSlug : '';
       const tenantSlug = (rawSlug || DEFAULT_TENANT_SLUG).trim().toLowerCase();
       const tenantId = tenantSlug === DEFAULT_TENANT_SLUG ? DEFAULT_TENANT_ID : uuidv4();
+
+      await SetupController.clearAllInternal(true);
 
       const migrations = await SetupController.runMigrationsInternal();
       const seedResult = await SetupController.seedDemoDataInternal(tenantId, tenantSlug);

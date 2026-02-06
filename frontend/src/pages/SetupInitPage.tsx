@@ -33,7 +33,11 @@ export function SetupInitPage() {
       return;
     }
 
-    if (!confirm('Isto vai inicializar a base de dados. Continuar?')) {
+    if (!confirm('Isto vai APAGAR TODOS os dados e recriar a base de dados. Continuar?')) {
+      return;
+    }
+
+    if (!confirm('Confirmacao final: deseja mesmo apagar tudo e executar o setup?')) {
       return;
     }
 
@@ -60,7 +64,7 @@ export function SetupInitPage() {
           </div>
           <h1 className="text-3xl font-bold text-slate-900">Setup Inicial da Base de Dados</h1>
           <p className="mt-2 text-sm text-slate-600">
-            Esta pagina executa migracoes e carrega dados demo. Disponivel apenas se a base estiver vazia.
+            Esta pagina apaga todos os dados existentes, executa migracoes e carrega dados demo.
           </p>
         </div>
 
@@ -84,7 +88,7 @@ export function SetupInitPage() {
               Executar Setup
             </button>
             <div className="text-xs text-slate-500">
-              Sem login. O setup bloqueia se ja existir utilizadores.
+              Sem login. O setup apaga todos os dados antes de recriar.
             </div>
           </div>
 
