@@ -3,6 +3,7 @@ import { MainLayout } from '../layouts/MainLayout';
 import {
   AlertCircle,
   AlertTriangle,
+  CheckCircle2,
   Download,
   LayoutGrid,
   List,
@@ -339,518 +340,678 @@ export function WorkOrdersPage() {
     cancelada: 'Cancelada',
   };
 
+  const statusSummary = useMemo(() => {
+    const counts = {
+      total: workOrders.length,
+      aberta: 0,
+      em_curso: 0,
+      concluida: 0,
+    };
+
+    workOrders.forEach((order) => {
+      if (order.status === 'aberta') counts.aberta += 1;
+      if (order.status === 'em_curso') counts.em_curso += 1;
+      if (order.status === 'concluida') counts.concluida += 1;
+    });
+
+    return counts;
+  }, [workOrders]);
+
+  const prioritySummary = useMemo(() => {
+    return workOrders.reduce<Record<string, number>>((acc, order) => {
+      const key = order.priority || 'n/a';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+  }, [workOrders]);
+
   return (
     <MainLayout>
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Ordens de Trabalho</h1>
-          <p className="text-gray-600 mt-2">Pedidos e acompanhamento da manutenção</p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowCreate((value) => !value)}
-            className="btn-primary inline-flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Nova ordem
-          </button>
-          <button
-            onClick={exportCsv}
-            className="btn-secondary inline-flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Exportar CSV
-          </button>
-          <button
-            onClick={loadData}
-            className="btn-secondary inline-flex items-center gap-2"
-            disabled={loading}
-          >
-            <RefreshCcw className="w-4 h-4" />
-            Atualizar
-          </button>
-        </div>
-      </div>
-
-      {!selectedPlant && (
-        <div className="card p-12 text-center">
-          <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Selecione uma fábrica</h2>
-          <p className="text-gray-600">Escolha uma fábrica no topo para ver as ordens</p>
-        </div>
-      )}
-
-      {selectedPlant && showCreate && (
-        <div className="card mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Nova ordem</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-8 font-display">
+        <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-sky-50 p-8 shadow-sm">
+          <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-sky-200/50 blur-3xl" />
+          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-emerald-200/40 blur-3xl" />
+          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ativo</label>
-              <select
-                className="input"
-                value={form.asset_id}
-                onChange={(event) => setForm({ ...form, asset_id: event.target.value })}
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
+                Fluxo de manutencao
+              </p>
+              <h1 className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl">
+                Ordens de trabalho em tempo real
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm text-slate-600">
+                Centralize solicitacoes, prioridades e SLAs com uma visao completa do
+                andamento da equipe.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => setShowCreate((value) => !value)}
+                className="btn-primary inline-flex items-center gap-2"
               >
-                <option value="">Selecione</option>
-                {assets.map((asset) => (
-                  <option key={asset.id} value={asset.id}>
-                    {asset.code} - {asset.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Título</label>
-              <input
-                className="input"
-                value={form.title}
-                onChange={(event) => setForm({ ...form, title: event.target.value })}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Prioridade</label>
-              <select
-                className="input"
-                value={form.priority}
-                onChange={(event) => setForm({ ...form, priority: event.target.value })}
+                <Plus className="h-4 w-4" />
+                Nova ordem
+              </button>
+              <button
+                onClick={exportCsv}
+                className="btn-secondary inline-flex items-center gap-2"
               >
-                <option value="baixa">Baixa</option>
-                <option value="media">Média</option>
-                <option value="alta">Alta</option>
-                <option value="critica">Crítica</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Horas estimadas
-              </label>
-              <input
-                className="input"
-                value={form.estimated_hours}
-                onChange={(event) => setForm({ ...form, estimated_hours: event.target.value })}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Data e hora planeada
-              </label>
-              <input
-                type="datetime-local"
-                className="input"
-                value={form.scheduled_date}
-                onChange={(event) => setForm({ ...form, scheduled_date: event.target.value })}
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-              <textarea
-                className="input min-h-[96px]"
-                value={form.description}
-                onChange={(event) => setForm({ ...form, description: event.target.value })}
-              />
+                <Download className="h-4 w-4" />
+                Exportar CSV
+              </button>
+              <button
+                onClick={loadData}
+                className="btn-secondary inline-flex items-center gap-2"
+                disabled={loading}
+              >
+                <RefreshCcw className="h-4 w-4" />
+                Atualizar
+              </button>
             </div>
           </div>
 
-          <div className="mt-4 flex items-center gap-3">
-            <button
-              onClick={handleCreate}
-              className="btn-primary"
-              disabled={creating}
-            >
-              {creating ? 'A criar...' : 'Criar ordem'}
-            </button>
-            <button
-              onClick={() => setShowCreate(false)}
-              className="btn-secondary"
-              disabled={creating}
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleSaveTemplate}
-              className="btn-secondary inline-flex items-center gap-2"
-              disabled={creating}
-            >
-              <Save className="w-4 h-4" />
-              Guardar template
-            </button>
-          </div>
-
-          {templates.length > 0 && (
-            <div className="mt-4">
-              <p className="text-sm text-gray-500 mb-2">Templates guardados</p>
-              <div className="flex flex-wrap gap-2">
-                {templates.map((template) => (
-                  <button
-                    key={template.name}
-                    className="btn-secondary"
-                    onClick={() => handleApplyTemplate(template)}
-                  >
-                    {template.name}
-                  </button>
-                ))}
+          <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+              <div className="flex items-center gap-3 text-sm text-slate-600">
+                <List className="h-4 w-4 text-sky-600" />
+                Total de ordens
               </div>
+              <p className="mt-3 text-2xl font-semibold text-slate-900">
+                {statusSummary.total}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">Fila completa</p>
             </div>
-          )}
-        </div>
-      )}
-
-      {selectedPlant && editingOrder && (
-        <div className="card mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Atualizar ordem: {editingOrder.title}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select
-                className="input"
-                value={updateForm.status}
-                onChange={(event) => setUpdateForm({ ...updateForm, status: event.target.value })}
-              >
-                <option value="aberta">Aberta</option>
-                <option value="atribuida">Atribuída</option>
-                <option value="em_curso">Em curso</option>
-                <option value="concluida">Concluída</option>
-                <option value="cancelada">Cancelada</option>
-              </select>
+            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+              <div className="flex items-center gap-3 text-sm text-slate-600">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                Abertas
+              </div>
+              <p className="mt-3 text-2xl font-semibold text-slate-900">
+                {statusSummary.aberta}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">Aguardando inicio</p>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Prioridade</label>
-              <select
-                className="input"
-                value={updateForm.priority}
-                onChange={(event) => setUpdateForm({ ...updateForm, priority: event.target.value })}
-              >
-                <option value="baixa">Baixa</option>
-                <option value="media">Média</option>
-                <option value="alta">Alta</option>
-                <option value="critica">Crítica</option>
-              </select>
+            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+              <div className="flex items-center gap-3 text-sm text-slate-600">
+                <RefreshCcw className="h-4 w-4 text-sky-600" />
+                Em curso
+              </div>
+              <p className="mt-3 text-2xl font-semibold text-slate-900">
+                {statusSummary.em_curso}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">Execucao ativa</p>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Data e hora planeada
-              </label>
-              <input
-                type="datetime-local"
-                className="input"
-                value={updateForm.scheduled_date}
-                onChange={(event) =>
-                  setUpdateForm({ ...updateForm, scheduled_date: event.target.value })
-                }
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Horas reais
-              </label>
-              <input
-                className="input"
-                value={updateForm.actual_hours}
-                onChange={(event) =>
-                  setUpdateForm({ ...updateForm, actual_hours: event.target.value })
-                }
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Data e hora de conclusão
-              </label>
-              <input
-                type="datetime-local"
-                className="input"
-                value={updateForm.completed_at}
-                onChange={(event) =>
-                  setUpdateForm({ ...updateForm, completed_at: event.target.value })
-                }
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
-              <textarea
-                className="input min-h-[96px]"
-                value={updateForm.notes}
-                onChange={(event) => setUpdateForm({ ...updateForm, notes: event.target.value })}
-              />
+            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+              <div className="flex items-center gap-3 text-sm text-slate-600">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                Concluidas
+              </div>
+              <p className="mt-3 text-2xl font-semibold text-slate-900">
+                {statusSummary.concluida}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">Finalizadas</p>
             </div>
           </div>
 
-          <div className="mt-4 flex items-center gap-3">
-            <button onClick={handleUpdate} className="btn-primary" disabled={updating}>
-              {updating ? 'A atualizar...' : 'Guardar alterações'}
-            </button>
-            <button
-              onClick={() => setEditingOrder(null)}
-              className="btn-secondary"
-              disabled={updating}
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
-      )}
-
-      {selectedPlant && (
-        <div className="card">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 border-b">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Ordens</h2>
-              <p className="text-sm text-gray-500">{workOrders.length} registros</p>
-              {(alertSummary.overdue > 0 || alertSummary.dueSoon > 0) && (
-                <div className="mt-2 flex items-center gap-3 text-sm">
-                  {alertSummary.overdue > 0 && (
-                    <span className="inline-flex items-center gap-1 text-red-600">
-                      <AlertTriangle className="w-4 h-4" />
-                      {alertSummary.overdue} em atraso
-                    </span>
-                  )}
-                  {alertSummary.dueSoon > 0 && (
-                    <span className="inline-flex items-center gap-1 text-yellow-600">
-                      <AlertTriangle className="w-4 h-4" />
-                      {alertSummary.dueSoon} a vencer
-                    </span>
-                  )}
-                </div>
+          {(alertSummary.overdue > 0 || alertSummary.dueSoon > 0) && (
+            <div className="relative mt-6 flex flex-wrap items-center gap-3 text-xs">
+              {alertSummary.overdue > 0 && (
+                <span className="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 font-semibold text-rose-700">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {alertSummary.overdue} em atraso
+                </span>
+              )}
+              {alertSummary.dueSoon > 0 && (
+                <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 font-semibold text-amber-700">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {alertSummary.dueSoon} a vencer
+                </span>
               )}
             </div>
+          )}
+        </section>
 
-            <div className="flex items-center gap-2">
-              <input
-                className="input"
-                placeholder="Pesquisar..."
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
-              <label className="text-sm text-gray-600">Status</label>
-              <select
-                className="input"
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
-              >
-                {statusOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <div className="flex items-center gap-1">
-                <button
-                  className={`btn-secondary ${viewMode === 'table' ? 'bg-gray-200' : ''}`}
-                  onClick={() => setViewMode('table')}
+        {!selectedPlant && (
+          <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-10 text-center">
+            <AlertCircle className="mx-auto mb-4 h-10 w-10 text-slate-400" />
+            <h2 className="text-xl font-semibold text-slate-900 mb-2">
+              Selecione uma fabrica
+            </h2>
+            <p className="text-sm text-slate-600">
+              Escolha uma fabrica no topo para visualizar as ordens.
+            </p>
+          </div>
+        )}
+
+        {selectedPlant && showCreate && (
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Nova ordem</h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Ativo</label>
+                <select
+                  className="input"
+                  value={form.asset_id}
+                  onChange={(event) => setForm({ ...form, asset_id: event.target.value })}
                 >
-                  <List className="w-4 h-4" />
-                </button>
-                <button
-                  className={`btn-secondary ${viewMode === 'kanban' ? 'bg-gray-200' : ''}`}
-                  onClick={() => setViewMode('kanban')}
+                  <option value="">Selecione</option>
+                  {assets.map((asset) => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.code} - {asset.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Titulo</label>
+                <input
+                  className="input"
+                  value={form.title}
+                  onChange={(event) => setForm({ ...form, title: event.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Prioridade</label>
+                <select
+                  className="input"
+                  value={form.priority}
+                  onChange={(event) => setForm({ ...form, priority: event.target.value })}
                 >
-                  <LayoutGrid className="w-4 h-4" />
-                </button>
+                  <option value="baixa">Baixa</option>
+                  <option value="media">Media</option>
+                  <option value="alta">Alta</option>
+                  <option value="critica">Critica</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Horas estimadas
+                </label>
+                <input
+                  className="input"
+                  value={form.estimated_hours}
+                  onChange={(event) => setForm({ ...form, estimated_hours: event.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Data e hora planeada
+                </label>
+                <input
+                  type="datetime-local"
+                  className="input"
+                  value={form.scheduled_date}
+                  onChange={(event) => setForm({ ...form, scheduled_date: event.target.value })}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Descricao</label>
+                <textarea
+                  className="input min-h-[96px]"
+                  value={form.description}
+                  onChange={(event) => setForm({ ...form, description: event.target.value })}
+                />
               </div>
             </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button onClick={handleCreate} className="btn-primary" disabled={creating}>
+                {creating ? 'A criar...' : 'Criar ordem'}
+              </button>
+              <button
+                onClick={() => setShowCreate(false)}
+                className="btn-secondary"
+                disabled={creating}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveTemplate}
+                className="btn-secondary inline-flex items-center gap-2"
+                disabled={creating}
+              >
+                <Save className="h-4 w-4" />
+                Guardar template
+              </button>
+            </div>
           </div>
+        )}
 
-          {loading && (
-            <div className="p-12 text-center">
-              <Loader2 className="w-8 h-8 text-gray-400 mx-auto mb-4 animate-spin" />
-              <p className="text-gray-600">Carregando ordens...</p>
+        {selectedPlant && editingOrder && (
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">
+              Atualizar ordem: {editingOrder.title}
+            </h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                <select
+                  className="input"
+                  value={updateForm.status}
+                  onChange={(event) =>
+                    setUpdateForm({ ...updateForm, status: event.target.value })
+                  }
+                >
+                  <option value="aberta">Aberta</option>
+                  <option value="atribuida">Atribuida</option>
+                  <option value="em_curso">Em curso</option>
+                  <option value="concluida">Concluida</option>
+                  <option value="cancelada">Cancelada</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Prioridade</label>
+                <select
+                  className="input"
+                  value={updateForm.priority}
+                  onChange={(event) =>
+                    setUpdateForm({ ...updateForm, priority: event.target.value })
+                  }
+                >
+                  <option value="baixa">Baixa</option>
+                  <option value="media">Media</option>
+                  <option value="alta">Alta</option>
+                  <option value="critica">Critica</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Data e hora planeada
+                </label>
+                <input
+                  type="datetime-local"
+                  className="input"
+                  value={updateForm.scheduled_date}
+                  onChange={(event) =>
+                    setUpdateForm({ ...updateForm, scheduled_date: event.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Horas reais
+                </label>
+                <input
+                  className="input"
+                  value={updateForm.actual_hours}
+                  onChange={(event) =>
+                    setUpdateForm({ ...updateForm, actual_hours: event.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Data e hora de conclusao
+                </label>
+                <input
+                  type="datetime-local"
+                  className="input"
+                  value={updateForm.completed_at}
+                  onChange={(event) =>
+                    setUpdateForm({ ...updateForm, completed_at: event.target.value })
+                  }
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Notas</label>
+                <textarea
+                  className="input min-h-[96px]"
+                  value={updateForm.notes}
+                  onChange={(event) => setUpdateForm({ ...updateForm, notes: event.target.value })}
+                />
+              </div>
             </div>
-          )}
 
-          {!loading && error && (
-            <div className="p-12 text-center">
-              <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-4" />
-              <p className="text-gray-600">{error}</p>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button onClick={handleUpdate} className="btn-primary" disabled={updating}>
+                {updating ? 'A atualizar...' : 'Guardar alteracoes'}
+              </button>
+              <button
+                onClick={() => setEditingOrder(null)}
+                className="btn-secondary"
+                disabled={updating}
+              >
+                Cancelar
+              </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {!loading && !error && viewMode === 'table' && (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Ordem
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Ativo
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Responsável
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Registo
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      SLA
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Prioridade
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Ações
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {workOrders.length === 0 && (
-                    <tr>
-                      <td colSpan={8} className="px-6 py-6 text-center text-gray-500">
-                        Nenhuma ordem encontrada
-                      </td>
-                    </tr>
-                  )}
-                  {workOrders.map((order) => {
-                    const slaDate = order.sla_deadline ? new Date(order.sla_deadline) : null;
-                    const isOverdue = slaDate ? slaDate.getTime() < Date.now() : false;
-                    const dueSoon = slaDate
-                      ? slaDate.getTime() >= Date.now() &&
-                        slaDate.getTime() <= Date.now() + 24 * 60 * 60 * 1000
-                      : false;
-                    const createdDate = order.created_at ? new Date(order.created_at) : null;
-
-                    return (
-                      <tr key={order.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{order.title}</div>
-                          <div className="text-xs text-gray-500">
-                            {order.description || 'Sem descrição'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {order.asset ? `${order.asset.code} - ${order.asset.name}` : '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {order.assignedUser
-                            ? `${order.assignedUser.first_name} ${order.assignedUser.last_name}`
-                            : 'Não atribuído'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {createdDate ? createdDate.toLocaleString() : '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {slaDate ? (
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs ${
-                                isOverdue
-                                  ? 'bg-red-100 text-red-700'
-                                  : dueSoon
-                                  ? 'bg-yellow-100 text-yellow-700'
-                                  : 'bg-green-100 text-green-700'
-                              }`}
-                            >
-                              {slaDate.toLocaleDateString()}
-                            </span>
-                          ) : (
-                            '-'
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {order.priority || 'n/a'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
-                            {statusLabels[order.status] || order.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <button
-                            className="btn-secondary inline-flex items-center gap-2"
-                            onClick={() => handleStartEdit(order)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                            Atualizar
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {!loading && !error && viewMode === 'kanban' && (
-            <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
-              {Object.keys(statusLabels).map((statusKey) => (
-                <div key={statusKey} className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-700">
-                      {statusLabels[statusKey]}
-                    </h3>
-                    <span className="text-xs text-gray-500">
-                      {(groupedByStatus[statusKey] || []).length}
-                    </span>
+        {selectedPlant && (
+          <section className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
+            <div className="space-y-6">
+              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <input
+                      className="w-full bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
+                      placeholder="Pesquisar por titulo, ativo ou descricao"
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                    />
                   </div>
-                  <div className="space-y-3">
-                    {(groupedByStatus[statusKey] || []).map((order) => {
-                      const slaDate = order.sla_deadline ? new Date(order.sla_deadline) : null;
-                      const isOverdue = slaDate ? slaDate.getTime() < Date.now() : false;
-                      const dueSoon = slaDate
-                        ? slaDate.getTime() >= Date.now() &&
-                          slaDate.getTime() <= Date.now() + 24 * 60 * 60 * 1000
-                        : false;
-                      const createdDate = order.created_at ? new Date(order.created_at) : null;
-
-                      return (
-                        <div key={order.id} className="bg-white rounded-lg p-3 shadow-sm">
-                          <p className="text-sm font-semibold text-gray-900">{order.title}</p>
-                          <p className="text-xs text-gray-500">
-                            {order.asset ? `${order.asset.code} - ${order.asset.name}` : 'Sem ativo'}
-                          </p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {createdDate ? createdDate.toLocaleString() : '-'}
-                          </p>
-                          <div className="mt-2 flex items-center gap-2 flex-wrap">
-                            <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
-                              {order.priority || 'n/a'}
-                            </span>
-                            {slaDate && (
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs ${
-                                  isOverdue
-                                    ? 'bg-red-100 text-red-700'
-                                    : dueSoon
-                                    ? 'bg-yellow-100 text-yellow-700'
-                                    : 'bg-green-100 text-green-700'
-                                }`}
-                              >
-                                SLA {slaDate.toLocaleDateString()}
-                              </span>
-                            )}
-                          </div>
-                          <button
-                            className="btn-secondary mt-3 inline-flex items-center gap-2"
-                            onClick={() => handleStartEdit(order)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                            Atualizar
-                          </button>
-                        </div>
-                      );
-                    })}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <select
+                      className="input text-xs font-semibold"
+                      value={statusFilter}
+                      onChange={(event) => setStatusFilter(event.target.value)}
+                    >
+                      {statusOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="flex items-center gap-1">
+                      <button
+                        className={`btn-secondary ${viewMode === 'table' ? 'bg-gray-200' : ''}`}
+                        onClick={() => setViewMode('table')}
+                      >
+                        <List className="h-4 w-4" />
+                      </button>
+                      <button
+                        className={`btn-secondary ${viewMode === 'kanban' ? 'bg-gray-200' : ''}`}
+                        onClick={() => setViewMode('kanban')}
+                      >
+                        <LayoutGrid className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex flex-col gap-2 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900">Ordens</h2>
+                    <p className="text-sm text-slate-500">{workOrders.length} registros</p>
+                  </div>
+                  {(alertSummary.overdue > 0 || alertSummary.dueSoon > 0) && (
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      {alertSummary.overdue > 0 && (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 font-semibold text-rose-700">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          {alertSummary.overdue} em atraso
+                        </span>
+                      )}
+                      {alertSummary.dueSoon > 0 && (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 font-semibold text-amber-700">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          {alertSummary.dueSoon} a vencer
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {loading && (
+                  <div className="p-12 text-center">
+                    <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-slate-400" />
+                    <p className="text-sm text-slate-600">Carregando ordens...</p>
+                  </div>
+                )}
+
+                {!loading && error && (
+                  <div className="p-12 text-center">
+                    <AlertCircle className="mx-auto mb-4 h-8 w-8 text-rose-400" />
+                    <p className="text-sm text-slate-600">{error}</p>
+                  </div>
+                )}
+
+                {!loading && !error && viewMode === 'table' && (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-200">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                            Ordem
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                            Ativo
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                            Responsavel
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                            Registo
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                            SLA
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                            Prioridade
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                            Status
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                            Acoes
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {workOrders.length === 0 && (
+                          <tr>
+                            <td colSpan={8} className="px-6 py-8 text-center text-slate-500">
+                              Nenhuma ordem encontrada
+                            </td>
+                          </tr>
+                        )}
+                        {workOrders.map((order) => {
+                          const slaDate = order.sla_deadline ? new Date(order.sla_deadline) : null;
+                          const isOverdue = slaDate ? slaDate.getTime() < Date.now() : false;
+                          const dueSoon = slaDate
+                            ? slaDate.getTime() >= Date.now() &&
+                              slaDate.getTime() <= Date.now() + 24 * 60 * 60 * 1000
+                            : false;
+                          const createdDate = order.created_at ? new Date(order.created_at) : null;
+
+                          return (
+                            <tr key={order.id}>
+                              <td className="px-6 py-4">
+                                <div className="text-sm font-semibold text-slate-900">
+                                  {order.title}
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                  {order.description || 'Sem descricao'}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-slate-700">
+                                {order.asset ? `${order.asset.code} - ${order.asset.name}` : '-'}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-slate-700">
+                                {order.assignedUser
+                                  ? `${order.assignedUser.first_name} ${order.assignedUser.last_name}`
+                                  : 'Nao atribuido'}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-slate-700">
+                                {createdDate ? createdDate.toLocaleString() : '-'}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-slate-700">
+                                {slaDate ? (
+                                  <span
+                                    className={`rounded-full px-2 py-1 text-xs ${
+                                      isOverdue
+                                        ? 'bg-rose-100 text-rose-700'
+                                        : dueSoon
+                                        ? 'bg-amber-100 text-amber-700'
+                                        : 'bg-emerald-100 text-emerald-700'
+                                    }`}
+                                  >
+                                    {slaDate.toLocaleDateString()}
+                                  </span>
+                                ) : (
+                                  '-'
+                                )}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-slate-700">
+                                {order.priority || 'n/a'}
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700">
+                                  {statusLabels[order.status] || order.status}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <button
+                                  className="btn-secondary inline-flex items-center gap-2"
+                                  onClick={() => handleStartEdit(order)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                  Atualizar
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {!loading && !error && viewMode === 'kanban' && (
+                  <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
+                    {Object.keys(statusLabels).map((statusKey) => (
+                      <div key={statusKey} className="rounded-2xl bg-slate-50 p-4">
+                        <div className="mb-3 flex items-center justify-between">
+                          <h3 className="text-sm font-semibold text-slate-700">
+                            {statusLabels[statusKey]}
+                          </h3>
+                          <span className="text-xs text-slate-500">
+                            {(groupedByStatus[statusKey] || []).length}
+                          </span>
+                        </div>
+                        <div className="space-y-3">
+                          {(groupedByStatus[statusKey] || []).map((order) => {
+                            const slaDate = order.sla_deadline
+                              ? new Date(order.sla_deadline)
+                              : null;
+                            const isOverdue = slaDate ? slaDate.getTime() < Date.now() : false;
+                            const dueSoon = slaDate
+                              ? slaDate.getTime() >= Date.now() &&
+                                slaDate.getTime() <= Date.now() + 24 * 60 * 60 * 1000
+                              : false;
+                            const createdDate = order.created_at
+                              ? new Date(order.created_at)
+                              : null;
+
+                            return (
+                              <div key={order.id} className="rounded-2xl bg-white p-4 shadow-sm">
+                                <p className="text-sm font-semibold text-slate-900">
+                                  {order.title}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                  {order.asset
+                                    ? `${order.asset.code} - ${order.asset.name}`
+                                    : 'Sem ativo'}
+                                </p>
+                                <p className="mt-1 text-xs text-slate-400">
+                                  {createdDate ? createdDate.toLocaleString() : '-'}
+                                </p>
+                                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                                  <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-700">
+                                    {order.priority || 'n/a'}
+                                  </span>
+                                  {slaDate && (
+                                    <span
+                                      className={`rounded-full px-2 py-1 ${
+                                        isOverdue
+                                          ? 'bg-rose-100 text-rose-700'
+                                          : dueSoon
+                                          ? 'bg-amber-100 text-amber-700'
+                                          : 'bg-emerald-100 text-emerald-700'
+                                      }`}
+                                    >
+                                      SLA {slaDate.toLocaleDateString()}
+                                    </span>
+                                  )}
+                                </div>
+                                <button
+                                  className="btn-secondary mt-4 inline-flex items-center gap-2"
+                                  onClick={() => handleStartEdit(order)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                  Atualizar
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-      )}
+
+            <aside className="space-y-6">
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h3 className="text-sm font-semibold text-slate-900">Prioridades</h3>
+                <div className="mt-4 space-y-3">
+                  {Object.keys(prioritySummary).length === 0 && (
+                    <p className="text-xs text-slate-500">Sem dados suficientes.</p>
+                  )}
+                  {Object.entries(prioritySummary).map(([priority, count]) => (
+                    <div
+                      key={priority}
+                      className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2"
+                    >
+                      <span className="text-xs font-semibold text-slate-700">{priority}</span>
+                      <span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-600">
+                        {count}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-slate-800 shadow-sm">
+                <h3 className="text-sm font-semibold">SLA em risco</h3>
+                <p className="mt-2 text-xs text-slate-600">
+                  Monitore ordens em atraso ou prestes a vencer para evitar impactos
+                  na disponibilidade.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-full bg-white px-3 py-1 font-semibold text-rose-700">
+                    {alertSummary.overdue} em atraso
+                  </span>
+                  <span className="rounded-full bg-white px-3 py-1 font-semibold text-amber-700">
+                    {alertSummary.dueSoon} a vencer
+                  </span>
+                </div>
+              </div>
+
+              {templates.length > 0 && (
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h3 className="text-sm font-semibold text-slate-900">Templates guardados</h3>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {templates.map((template) => (
+                      <button
+                        key={template.name}
+                        className="btn-secondary"
+                        onClick={() => handleApplyTemplate(template)}
+                      >
+                        {template.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </aside>
+          </section>
+        )}
+      </div>
     </MainLayout>
   );
 }
