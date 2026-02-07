@@ -35,7 +35,7 @@ interface Supplier {
   updated_at?: string;
 }
 
-export function SuppliersPage() {
+export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { selectedPlant } = useAppStore();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(false);
@@ -241,9 +241,8 @@ export function SuppliersPage() {
     }
   };
 
-  return (
-    <MainLayout>
-      <div className="space-y-8 font-display">
+  const content = (
+    <div className="space-y-8 font-display">
         <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-sky-50 p-8 shadow-sm">
           <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-sky-200/50 blur-3xl" />
           <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-cyan-200/40 blur-3xl" />
@@ -566,7 +565,12 @@ export function SuppliersPage() {
             ))}
           </div>
         </section>
-      </div>
-    </MainLayout>
+    </div>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <MainLayout>{content}</MainLayout>;
 }

@@ -6,15 +6,11 @@ import {
   ArrowUpCircle,
   Boxes,
   Loader2,
-  Plus,
   RefreshCcw,
   Wrench,
 } from 'lucide-react';
 import { useAppStore } from '../context/store';
 import {
-  createSparePart,
-  createStockMovement,
-  getSuppliers,
   getSpareParts,
   getStockMovementsByPlant,
 } from '../services/api';
@@ -27,11 +23,6 @@ interface SparePart {
   unit_cost?: string | null;
   supplier_id?: string | null;
   supplier_name?: string | null;
-}
-
-interface Supplier {
-  id: string;
-  name: string;
 }
 
 interface StockMovement {
@@ -49,28 +40,9 @@ interface StockMovement {
 export function SparePartsPage() {
   const { selectedPlant } = useAppStore();
   const [parts, setParts] = useState<SparePart[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showCreate, setShowCreate] = useState(false);
-  const [creating, setCreating] = useState(false);
-
-  const [partForm, setPartForm] = useState({
-    code: '',
-    name: '',
-    description: '',
-    unit_cost: '',
-    supplier_id: '',
-  });
-
-  const [movementForm, setMovementForm] = useState({
-    spare_part_id: '',
-    type: 'entrada',
-    quantity: 1,
-    unit_cost: '',
-    notes: '',
-  });
 
   const movementSummary = useMemo(() => {
     return movements.reduce(
@@ -91,11 +63,9 @@ export function SparePartsPage() {
       const [partsData, movementsData, suppliersData] = await Promise.all([
         selectedPlant ? getSpareParts(selectedPlant) : Promise.resolve([]),
         selectedPlant ? getStockMovementsByPlant(selectedPlant) : Promise.resolve([]),
-        selectedPlant ? getSuppliers(selectedPlant) : Promise.resolve([]),
       ]);
       setParts(partsData || []);
       setMovements(movementsData || []);
-      setSuppliers(suppliersData || []);
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar peças');
     } finally {
@@ -108,72 +78,6 @@ export function SparePartsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlant]);
 
-  const handleCreatePart = async () => {
-    if (!partForm.code || !partForm.name) {
-      setError('Preencha o código e o nome');
-      return;
-    }
-
-    setCreating(true);
-    setError(null);
-    try {
-      if (!selectedPlant) {
-        setError('Selecione uma fábrica');
-        setCreating(false);
-        return;
-      }
-      await createSparePart(selectedPlant, {
-        code: partForm.code,
-        name: partForm.name,
-        description: partForm.description || undefined,
-        unit_cost: partForm.unit_cost || undefined,
-        supplier_id: partForm.supplier_id || undefined,
-      });
-      setPartForm({ code: '', name: '', description: '', unit_cost: '', supplier_id: '' });
-      setShowCreate(false);
-      await loadData();
-    } catch (err: any) {
-      setError(err.message || 'Erro ao criar peça');
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const handleCreateMovement = async () => {
-    if (!selectedPlant) {
-      setError('Selecione uma fábrica');
-      return;
-    }
-
-    if (!movementForm.spare_part_id) {
-      setError('Selecione a peça');
-      return;
-    }
-
-    setCreating(true);
-    setError(null);
-    try {
-      await createStockMovement(selectedPlant, {
-        spare_part_id: movementForm.spare_part_id,
-        type: movementForm.type as any,
-        quantity: Number(movementForm.quantity),
-        unit_cost: movementForm.unit_cost || undefined,
-        notes: movementForm.notes || undefined,
-      });
-      setMovementForm({
-        spare_part_id: '',
-        type: 'entrada',
-        quantity: 1,
-        unit_cost: '',
-        notes: '',
-      });
-      await loadData();
-    } catch (err: any) {
-      setError(err.message || 'Erro ao registrar movimento');
-    } finally {
-      setCreating(false);
-    }
-  };
 
   return (
     <MainLayout>
@@ -190,18 +94,11 @@ export function SparePartsPage() {
                 Pecas e stock sob controlo
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-slate-600">
-                Registe entradas e saidas, acompanhe movimentos e mantenha o
+                Consulte pecas, movimentos e quantidades para manter o
                 abastecimento sempre visivel.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => setShowCreate((value) => !value)}
-                className="btn-primary inline-flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Nova peça
-              </button>
               <button
                 onClick={loadData}
                 className="btn-secondary inline-flex items-center gap-2"
@@ -255,86 +152,6 @@ export function SparePartsPage() {
           </div>
         </section>
 
-        {showCreate && (
-          <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
-            <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,#f59e0b,#10b981)]" />
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Nova peça</h2>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Código</label>
-              <input
-                className="input"
-                value={partForm.code}
-                onChange={(event) => setPartForm({ ...partForm, code: event.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
-              <input
-                className="input"
-                value={partForm.name}
-                onChange={(event) => setPartForm({ ...partForm, name: event.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Custo unitário
-              </label>
-              <input
-                className="input"
-                value={partForm.unit_cost}
-                onChange={(event) =>
-                  setPartForm({ ...partForm, unit_cost: event.target.value })
-                }
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Fornecedor
-              </label>
-              <select
-                className="input"
-                value={partForm.supplier_id}
-                onChange={(event) =>
-                  setPartForm({ ...partForm, supplier_id: event.target.value })
-                }
-              >
-                <option value="">Sem fornecedor</option>
-                {suppliers.map((supplier) => (
-                  <option key={supplier.id} value={supplier.id}>
-                    {supplier.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Descricao
-              </label>
-              <textarea
-                className="input min-h-[96px]"
-                value={partForm.description}
-                onChange={(event) =>
-                  setPartForm({ ...partForm, description: event.target.value })
-                }
-              />
-            </div>
-          </div>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <button onClick={handleCreatePart} className="btn-primary" disabled={creating}>
-              {creating ? 'A criar...' : 'Criar peça'}
-            </button>
-            <button
-              onClick={() => setShowCreate(false)}
-              className="btn-secondary"
-              disabled={creating}
-            >
-              Cancelar
-            </button>
-          </div>
-          </div>
-        )}
-
         {error && (
           <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 shadow-sm">
             <div className="flex items-center gap-3">
@@ -353,8 +170,8 @@ export function SparePartsPage() {
 
         {!loading && (
           <>
-            <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-              <div className="rounded-[28px] border border-slate-200 bg-white/95 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)] xl:col-span-2">
+            <section>
+              <div className="rounded-[28px] border border-slate-200 bg-white/95 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
                 <div className="border-b border-slate-100 p-5">
                   <h2 className="text-lg font-semibold text-slate-900">Pecas cadastradas</h2>
                   <p className="text-sm text-slate-500">{parts.length} itens</p>
@@ -401,96 +218,6 @@ export function SparePartsPage() {
                       ))}
                     </tbody>
                   </table>
-                </div>
-              </div>
-
-              <div className="rounded-[28px] border border-slate-200 bg-white/95 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
-                <div className="border-b border-slate-100 p-5">
-                  <h2 className="text-lg font-semibold text-slate-900">Movimento de stock</h2>
-                  <p className="text-sm text-slate-500">Registrar entrada/saida</p>
-                </div>
-                <div className="p-5 space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Peça</label>
-                    <select
-                      className="input"
-                      value={movementForm.spare_part_id}
-                      onChange={(event) =>
-                        setMovementForm({ ...movementForm, spare_part_id: event.target.value })
-                      }
-                    >
-                      <option value="">Selecione</option>
-                      {parts.map((part) => (
-                        <option key={part.id} value={part.id}>
-                          {part.code} - {part.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
-                    <select
-                      className="input"
-                      value={movementForm.type}
-                      onChange={(event) =>
-                        setMovementForm({ ...movementForm, type: event.target.value })
-                      }
-                    >
-                      <option value="entrada">Entrada</option>
-                      <option value="saida">Saida</option>
-                      <option value="ajuste">Ajuste</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Quantidade
-                    </label>
-                    <input
-                      type="number"
-                      className="input"
-                      value={movementForm.quantity}
-                      onChange={(event) =>
-                        setMovementForm({
-                          ...movementForm,
-                          quantity: Number(event.target.value),
-                        })
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Custo unitario
-                    </label>
-                    <input
-                      className="input"
-                      value={movementForm.unit_cost}
-                      onChange={(event) =>
-                        setMovementForm({ ...movementForm, unit_cost: event.target.value })
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Notas</label>
-                    <textarea
-                      className="input min-h-[96px]"
-                      value={movementForm.notes}
-                      onChange={(event) =>
-                        setMovementForm({ ...movementForm, notes: event.target.value })
-                      }
-                    />
-                  </div>
-
-                  <button
-                    onClick={handleCreateMovement}
-                    className="btn-primary w-full"
-                    disabled={creating}
-                  >
-                    {creating ? 'A registar...' : 'Registar movimento'}
-                  </button>
                 </div>
               </div>
             </section>

@@ -102,12 +102,6 @@ export function Header() {
           active: location.pathname === '/spare-parts',
           icon: Package,
         },
-        {
-          label: 'Fornecedores',
-          href: '/suppliers',
-          active: location.pathname === '/suppliers',
-          icon: Users,
-        },
       ],
     },
     {

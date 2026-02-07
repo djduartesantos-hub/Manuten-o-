@@ -33,6 +33,7 @@ import { AdminSetupPage } from './AdminSetupPage';
 import { DatabaseUpdatePage } from './DatabaseUpdatePage';
 import { SetupInitPage } from './SetupInitPage';
 import { PlantsPage } from './PlantsPage';
+import { SuppliersPage } from './SuppliersPage';
 
 type SettingTab =
   | 'general'
@@ -1517,7 +1518,9 @@ function ManagementSettings() {
   const [activeDbTool, setActiveDbTool] = React.useState<
     'setup' | 'migrations' | 'bootstrap' | null
   >(null);
-  const [activeAdminPanel, setActiveAdminPanel] = React.useState<'plants' | null>(null);
+  const [activeAdminPanel, setActiveAdminPanel] = React.useState<
+    'plants' | 'suppliers' | null
+  >(null);
   const [plantModalOpen, setPlantModalOpen] = React.useState(false);
   const [userModalOpen, setUserModalOpen] = React.useState(false);
   const [userModalMode, setUserModalMode] = React.useState<'create' | 'edit'>('create');
@@ -1836,6 +1839,12 @@ function ManagementSettings() {
       title: 'Plantas',
       description: 'Gestao completa de plantas e atribuicoes.',
       icon: Building2,
+    },
+    {
+      id: 'suppliers' as const,
+      title: 'Fornecedores',
+      description: 'Base de parceiros e contactos de compra.',
+      icon: Users,
     },
   ];
 
@@ -2509,6 +2518,26 @@ function ManagementSettings() {
             </button>
             <div className="max-h-[80vh] overflow-y-auto pr-1">
               <PlantsPage embedded />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeAdminPanel === 'suppliers' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setActiveAdminPanel(null)}
+          />
+          <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+            <button
+              onClick={() => setActiveAdminPanel(null)}
+              className="absolute right-4 top-4 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              Fechar
+            </button>
+            <div className="max-h-[80vh] overflow-y-auto pr-1">
+              <SuppliersPage embedded />
             </div>
           </div>
         </div>
