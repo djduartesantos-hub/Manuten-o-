@@ -11,6 +11,11 @@ interface NavItem {
   active: boolean;
 }
 
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
 export function Header() {
   const { user, logout } = useAuth();
   const { selectedPlant, plants, setSelectedPlant } = useAppStore();
@@ -18,38 +23,58 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const location = useLocation();
 
-  const navItems: NavItem[] = [
-    { label: 'Dashboard', href: '/dashboard', active: location.pathname === '/dashboard' },
-    { label: 'Ordens', href: '/work-orders', active: location.pathname === '/work-orders' },
-    { label: 'Equipamentos', href: '/assets', active: location.pathname === '/assets' },
-    { label: 'Pesquisa', href: '/search', active: location.pathname === '/search' },
+  const navSections: NavSection[] = [
     {
-      label: 'Planos',
-      href: '/maintenance-plans',
-      active: location.pathname === '/maintenance-plans',
+      title: 'Visao geral',
+      items: [
+        { label: 'Dashboard', href: '/dashboard', active: location.pathname === '/dashboard' },
+        { label: 'Pesquisa', href: '/search', active: location.pathname === '/search' },
+        { label: 'Relatorios', href: '/reports', active: location.pathname === '/reports' },
+      ],
     },
-    { label: 'Peças', href: '/spare-parts', active: location.pathname === '/spare-parts' },
-    { label: 'Fornecedores', href: '/suppliers', active: location.pathname === '/suppliers' },
-    { label: 'Relatórios', href: '/reports', active: location.pathname === '/reports' },
-    { label: 'Configurações', href: '/settings', active: location.pathname === '/settings' },
-    ...(user?.role === 'admin_empresa' || user?.role === 'superadmin'
-      ? [{ label: 'Plantas', href: '/plants', active: location.pathname === '/plants' }]
-      : []),
-    ...(user?.role === 'superadmin'
-      ? [
-          {
-            label: '🔧 Setup BD',
-            href: '/admin/setup',
-            active: location.pathname === '/admin/setup',
-          },
-          {
-            label: '🧱 Atualizar BD',
-            href: '/admin/database',
-            active: location.pathname === '/admin/database',
-          },
-        ]
-      : []),
-  ];
+    {
+      title: 'Operacoes',
+      items: [
+        { label: 'Ordens', href: '/work-orders', active: location.pathname === '/work-orders' },
+        {
+          label: 'Planos',
+          href: '/maintenance-plans',
+          active: location.pathname === '/maintenance-plans',
+        },
+      ],
+    },
+    {
+      title: 'Inventario',
+      items: [
+        { label: 'Equipamentos', href: '/assets', active: location.pathname === '/assets' },
+        { label: 'Pecas', href: '/spare-parts', active: location.pathname === '/spare-parts' },
+        { label: 'Fornecedores', href: '/suppliers', active: location.pathname === '/suppliers' },
+      ],
+    },
+    {
+      title: 'Administracao',
+      items: [
+        { label: 'Configuracoes', href: '/settings', active: location.pathname === '/settings' },
+        ...(user?.role === 'admin_empresa' || user?.role === 'superadmin'
+          ? [{ label: 'Plantas', href: '/plants', active: location.pathname === '/plants' }]
+          : []),
+        ...(user?.role === 'superadmin'
+          ? [
+              {
+                label: 'Setup BD',
+                href: '/admin/setup',
+                active: location.pathname === '/admin/setup',
+              },
+              {
+                label: 'Atualizar BD',
+                href: '/admin/database',
+                active: location.pathname === '/admin/database',
+              },
+            ]
+          : []),
+      ],
+    },
+  ].filter((section) => section.items.length > 0);
 
   const handleLogout = () => {
     logout();
@@ -71,19 +96,31 @@ export function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                  item.active
-                    ? 'bg-primary-100 text-primary-700'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                {item.label}
-              </Link>
+          <nav className="hidden md:flex items-center gap-4">
+            {navSections.map((section, sectionIndex) => (
+              <div key={section.title} className="flex items-center gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">
+                  {section.title}
+                </span>
+                <div className="flex items-center gap-1">
+                  {section.items.map((item) => (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+                        item.active
+                          ? 'bg-primary-100 text-primary-700'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+                {sectionIndex < navSections.length - 1 && (
+                  <span className="h-6 w-px bg-gray-200" />
+                )}
+              </div>
             ))}
           </nav>
 
@@ -170,18 +207,27 @@ export function Header() {
                 </select>
               </div>
             )}
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={`block px-3 py-2 rounded-lg text-sm font-medium transition ${
-                  item.active
-                    ? 'bg-primary-100 text-primary-700'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                {item.label}
-              </Link>
+            {navSections.map((section) => (
+              <div key={section.title} className="mb-3">
+                <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">
+                  {section.title}
+                </p>
+                <div className="mt-2 space-y-1">
+                  {section.items.map((item) => (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className={`block px-3 py-2 rounded-lg text-sm font-medium transition ${
+                        item.active
+                          ? 'bg-primary-100 text-primary-700'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
             ))}
           </nav>
         )}
