@@ -18,6 +18,14 @@ router.post('/seed', authMiddleware, requireRole('superadmin'), SetupController.
 // POST /api/setup/migrate - Run SQL migrations (requires auth)
 router.post('/migrate', authMiddleware, requireRole('superadmin'), SetupController.runMigrations);
 
+// POST /api/setup/patch/work-orders - Add work_performed column if missing
+router.post(
+	'/patch/work-orders',
+	authMiddleware,
+	requireRole('superadmin'),
+	SetupController.patchWorkOrders,
+);
+
 // POST /api/setup/clear - Clear all data (dangerous!) (requires auth)
 router.post('/clear', authMiddleware, requireRole('superadmin'), SetupController.clearData);
 

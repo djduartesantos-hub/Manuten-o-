@@ -479,6 +479,12 @@ export async function runMigrations() {
   });
 }
 
+export async function patchWorkOrders() {
+  return apiCall('/setup/patch/work-orders', {
+    method: 'POST',
+  });
+}
+
 export async function clearAllData() {
   return apiCall('/setup/clear', {
     method: 'POST',

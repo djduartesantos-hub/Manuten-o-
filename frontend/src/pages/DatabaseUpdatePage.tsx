@@ -5,6 +5,7 @@ import {
   clearAllData,
   getSetupStatus,
   initializeDatabase,
+  patchWorkOrders,
   runMigrations,
   seedDemoData,
 } from '../services/api';
@@ -110,6 +111,26 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
       await fetchStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao inicializar');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleWorkOrdersPatch = async () => {
+    if (!confirm('Aplicar patch para corrigir ordens de trabalho?')) {
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await patchWorkOrders();
+      setSuccess('Patch aplicado. A coluna work_performed foi verificada/adicionada.');
+      await fetchStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
     } finally {
       setLoading(false);
     }
@@ -250,6 +271,26 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
             </div>
           </div>
         )}
+
+        <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-4 mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-amber-900">Correcoes rapidas</p>
+              <p className="text-xs text-amber-800 mt-1">
+                Use este patch se surgir erro ao carregar ordens de trabalho (coluna
+                <span className="font-semibold"> work_performed</span> em falta).
+              </p>
+            </div>
+            <button
+              onClick={handleWorkOrdersPatch}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition"
+            >
+              <Wrench className="w-4 h-4" />
+              Aplicar patch ordens
+            </button>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button

@@ -754,4 +754,47 @@ END $$;`
       });
     }
   }
+
+  /**
+   * Patch: add work_performed column to work_orders if missing
+   */
+  static async patchWorkOrders(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user || req.user.role !== 'superadmin') {
+        res.status(403).json({
+          success: false,
+          error: 'Only superadmin can run patches',
+        });
+        return;
+      }
+
+      await db.execute(sql.raw(`
+        DO $$
+        BEGIN
+          IF to_regclass('public.work_orders') IS NOT NULL THEN
+            IF NOT EXISTS (
+              SELECT 1
+              FROM information_schema.columns
+              WHERE table_schema = 'public'
+                AND table_name = 'work_orders'
+                AND column_name = 'work_performed'
+            ) THEN
+              ALTER TABLE work_orders ADD COLUMN work_performed TEXT;
+            END IF;
+          END IF;
+        END $$;
+      `));
+
+      res.json({
+        success: true,
+        message: 'Patch aplicado com sucesso',
+        data: { patch: 'work_orders_work_performed' },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to apply patch',
+      });
+    }
+  }
 }
