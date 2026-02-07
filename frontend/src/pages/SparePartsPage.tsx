@@ -47,6 +47,14 @@ export function SparePartsPage() {
   const [movementStartDate, setMovementStartDate] = useState('');
   const [movementEndDate, setMovementEndDate] = useState('');
   const [movementSearch, setMovementSearch] = useState('');
+  const [movementMinQty, setMovementMinQty] = useState('');
+  const [movementMaxQty, setMovementMaxQty] = useState('');
+  const [movementMinCost, setMovementMinCost] = useState('');
+  const [movementMaxCost, setMovementMaxCost] = useState('');
+  const [partSearch, setPartSearch] = useState('');
+  const [partSupplierSearch, setPartSupplierSearch] = useState('');
+  const [partMinCost, setPartMinCost] = useState('');
+  const [partMaxCost, setPartMaxCost] = useState('');
 
   const movementSummary = useMemo(() => {
     return movements.reduce(
@@ -84,6 +92,10 @@ export function SparePartsPage() {
 
   const filteredMovements = useMemo(() => {
     const normalizedSearch = movementSearch.trim().toLowerCase();
+    const minQty = movementMinQty ? Number(movementMinQty) : null;
+    const maxQty = movementMaxQty ? Number(movementMaxQty) : null;
+    const minCost = movementMinCost ? Number(movementMinCost) : null;
+    const maxCost = movementMaxCost ? Number(movementMaxCost) : null;
 
     return movements.filter((movement) => {
       if (movementTypeFilter !== 'all' && movement.type !== movementTypeFilter) {
@@ -98,6 +110,13 @@ export function SparePartsPage() {
           return false;
         }
       }
+
+      if (minQty !== null && movement.quantity < minQty) return false;
+      if (maxQty !== null && movement.quantity > maxQty) return false;
+
+      const parsedCost = movement.unit_cost ? Number(movement.unit_cost) : null;
+      if (minCost !== null && (parsedCost === null || parsedCost < minCost)) return false;
+      if (maxCost !== null && (parsedCost === null || parsedCost > maxCost)) return false;
 
       if (!movement.created_at) return true;
 
@@ -115,7 +134,42 @@ export function SparePartsPage() {
 
       return true;
     });
-  }, [movementEndDate, movementSearch, movementStartDate, movementTypeFilter, movements]);
+  }, [
+    movementEndDate,
+    movementMaxCost,
+    movementMaxQty,
+    movementMinCost,
+    movementMinQty,
+    movementSearch,
+    movementStartDate,
+    movementTypeFilter,
+    movements,
+  ]);
+
+  const filteredParts = useMemo(() => {
+    const normalizedSearch = partSearch.trim().toLowerCase();
+    const normalizedSupplier = partSupplierSearch.trim().toLowerCase();
+    const minCost = partMinCost ? Number(partMinCost) : null;
+    const maxCost = partMaxCost ? Number(partMaxCost) : null;
+
+    return parts.filter((part) => {
+      if (normalizedSearch) {
+        const label = `${part.code} ${part.name}`.toLowerCase();
+        if (!label.includes(normalizedSearch)) return false;
+      }
+
+      if (normalizedSupplier) {
+        const supplierLabel = (part.supplier_name || '').toLowerCase();
+        if (!supplierLabel.includes(normalizedSupplier)) return false;
+      }
+
+      const parsedCost = part.unit_cost ? Number(part.unit_cost) : null;
+      if (minCost !== null && (parsedCost === null || parsedCost < minCost)) return false;
+      if (maxCost !== null && (parsedCost === null || parsedCost > maxCost)) return false;
+
+      return true;
+    });
+  }, [partMaxCost, partMinCost, partSearch, partSupplierSearch, parts]);
 
 
   return (
@@ -213,7 +267,48 @@ export function SparePartsPage() {
               <div className="rounded-[28px] border border-slate-200 bg-white/95 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
                 <div className="border-b border-slate-100 p-5">
                   <h2 className="text-lg font-semibold text-slate-900">Pecas cadastradas</h2>
-                  <p className="text-sm text-slate-500">{parts.length} itens</p>
+                  <p className="text-sm text-slate-500">{filteredParts.length} itens</p>
+                </div>
+                <div className="border-b border-slate-100 bg-slate-50/80 p-4">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+                    <input
+                      className="input h-9"
+                      placeholder="Pesquisar codigo/nome"
+                      value={partSearch}
+                      onChange={(event) => setPartSearch(event.target.value)}
+                    />
+                    <input
+                      className="input h-9"
+                      placeholder="Fornecedor"
+                      value={partSupplierSearch}
+                      onChange={(event) => setPartSupplierSearch(event.target.value)}
+                    />
+                    <input
+                      className="input h-9"
+                      placeholder="Custo minimo"
+                      value={partMinCost}
+                      onChange={(event) => setPartMinCost(event.target.value)}
+                    />
+                    <input
+                      className="input h-9"
+                      placeholder="Custo maximo"
+                      value={partMaxCost}
+                      onChange={(event) => setPartMaxCost(event.target.value)}
+                    />
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <button
+                      className="btn-secondary h-9"
+                      onClick={() => {
+                        setPartSearch('');
+                        setPartSupplierSearch('');
+                        setPartMinCost('');
+                        setPartMaxCost('');
+                      }}
+                    >
+                      Limpar filtros
+                    </button>
+                  </div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-slate-200">
@@ -234,14 +329,14 @@ export function SparePartsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
-                      {parts.length === 0 && (
+                      {filteredParts.length === 0 && (
                         <tr>
                           <td colSpan={4} className="px-6 py-6 text-center text-slate-500">
                             Nenhuma peça encontrada
                           </td>
                         </tr>
                       )}
-                      {parts.map((part) => (
+                      {filteredParts.map((part) => (
                         <tr key={part.id} className="transition hover:bg-amber-50/40">
                           <td className="px-6 py-4 text-sm font-medium text-slate-900">
                             {part.code}
@@ -278,6 +373,30 @@ export function SparePartsPage() {
                         value={movementSearch}
                         onChange={(event) => setMovementSearch(event.target.value)}
                       />
+                      <input
+                        className="input h-9 w-full sm:w-32"
+                        placeholder="Qtd min"
+                        value={movementMinQty}
+                        onChange={(event) => setMovementMinQty(event.target.value)}
+                      />
+                      <input
+                        className="input h-9 w-full sm:w-32"
+                        placeholder="Qtd max"
+                        value={movementMaxQty}
+                        onChange={(event) => setMovementMaxQty(event.target.value)}
+                      />
+                      <input
+                        className="input h-9 w-full sm:w-32"
+                        placeholder="Custo min"
+                        value={movementMinCost}
+                        onChange={(event) => setMovementMinCost(event.target.value)}
+                      />
+                      <input
+                        className="input h-9 w-full sm:w-32"
+                        placeholder="Custo max"
+                        value={movementMaxCost}
+                        onChange={(event) => setMovementMaxCost(event.target.value)}
+                      />
                       <select
                         className="input h-9"
                         value={movementTypeFilter}
@@ -307,6 +426,10 @@ export function SparePartsPage() {
                           setMovementStartDate('');
                           setMovementEndDate('');
                           setMovementSearch('');
+                          setMovementMinQty('');
+                          setMovementMaxQty('');
+                          setMovementMinCost('');
+                          setMovementMaxCost('');
                         }}
                       >
                         Limpar
