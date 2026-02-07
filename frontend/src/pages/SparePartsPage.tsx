@@ -444,7 +444,6 @@ export function SparePartsPage() {
                     </tbody>
                   </table>
                 </div>
-                </div>
                 {sortedParts.length > visibleParts.length && (
                   <div className="border-t border-slate-100 p-4">
                     <button
