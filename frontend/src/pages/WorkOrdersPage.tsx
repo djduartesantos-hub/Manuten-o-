@@ -1159,6 +1159,7 @@ export function WorkOrdersPage() {
               </button>
             </div>
           </div>
+        </div>
         )}
 
         {selectedPlant && editingOrder && (
@@ -1588,6 +1589,7 @@ export function WorkOrdersPage() {
               </div>
             </div>
           </div>
+        </div>
         )}
 
         {selectedPlant && (
