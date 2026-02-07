@@ -96,6 +96,9 @@ export class SocketManager {
       // Join role room (for role-specific broadcasts)
       socket.join(`tenant:${tenantId}:role:${role}`);
 
+      // Join user room (for user-specific broadcasts)
+      socket.join(`tenant:${tenantId}:user:${id}`);
+
       // Emit connection success
       socket.emit('connected', {
         socketId: socket.id,
@@ -150,6 +153,13 @@ export class SocketManager {
 
   broadcastToRole(tenantId: string, role: string, eventName: string, data: any): void {
     this.io.to(`tenant:${tenantId}:role:${role}`).emit(eventName, {
+      ...data,
+      timestamp: new Date(),
+    });
+  }
+
+  broadcastToUser(tenantId: string, userId: string, eventName: string, data: any): void {
+    this.io.to(`tenant:${tenantId}:user:${userId}`).emit(eventName, {
       ...data,
       timestamp: new Date(),
     });

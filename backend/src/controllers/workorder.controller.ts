@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../types/index.js';
 import { WorkOrderService } from '../services/workorder.service.js';
+import { NotificationService } from '../services/notification.service.js';
 import { logger } from '../config/logger.js';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 
@@ -253,6 +254,37 @@ export class WorkOrderController {
         updates,
         plantId,
       );
+
+      const nextStatus = updates.status ?? existing.status;
+      const assignmentChanged =
+        Object.prototype.hasOwnProperty.call(updates, 'assigned_to') &&
+        updates.assigned_to !== existing.assigned_to;
+
+      if (nextStatus !== existing.status) {
+        await NotificationService.notifyWorkOrderEvent({
+          tenantId,
+          plantId,
+          assignedTo: workOrder.assigned_to,
+          createdBy: workOrder.created_by,
+          title: 'Mudanca de estado',
+          message: `Ordem ${workOrder.title} passou para ${workOrder.status}.`,
+          type: 'info',
+          workOrderId: workOrder.id,
+        });
+      }
+
+      if (assignmentChanged && updates.assigned_to) {
+        await NotificationService.notifyWorkOrderEvent({
+          tenantId,
+          plantId,
+          assignedTo: updates.assigned_to,
+          createdBy: workOrder.created_by,
+          title: 'Ordem atribuida',
+          message: `Ordem ${workOrder.title} foi atribuida.`,
+          type: 'success',
+          workOrderId: workOrder.id,
+        });
+      }
 
       // Emit real-time notifications
       if (isSocketManagerReady()) {

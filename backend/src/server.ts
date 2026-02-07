@@ -7,6 +7,7 @@ import { SocketManager } from './services/socket.manager.js';
 import { setSocketManager } from './utils/socket-instance.js';
 import { initJobProcessors } from './jobs/processors.js';
 import { ElasticsearchService } from './services/elasticsearch.service.js';
+import { NotificationService } from './services/notification.service.js';
 
 const PORT = process.env.PORT || 3000;
 
@@ -51,6 +52,13 @@ async function startServer() {
       logger.info(`📊 Health check: http://localhost:${PORT}/health`);
       logger.info(`🔌 WebSocket: ws://localhost:${PORT}`);
     });
+
+    // SLA overdue notifications (best-effort)
+    setInterval(() => {
+      NotificationService.checkSlaOverdue().catch((error) => {
+        logger.warn('SLA check failed:', error instanceof Error ? error.message : error);
+      });
+    }, 5 * 60 * 1000);
 
     // Graceful shutdown
     process.on('SIGTERM', () => {
