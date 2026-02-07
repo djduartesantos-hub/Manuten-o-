@@ -6,7 +6,7 @@ export async function getUserPlants(req: AuthenticatedRequest, res: Response) {
   try {
     console.log('[getUserPlants] Request received');
     console.log(`  req.user: ${JSON.stringify(req.user)}`);
-    
+
     if (!req.user) {
       console.warn('getUserPlants: Missing user authentication');
       res.status(401).json({
@@ -18,7 +18,7 @@ export async function getUserPlants(req: AuthenticatedRequest, res: Response) {
 
     // Get tenantId from user's JWT token
     const tenantId = req.user.tenantId;
-    
+
     if (!tenantId) {
       console.error('getUserPlants: User has no tenantId in JWT', {
         userId: req.user.userId,
@@ -31,14 +31,22 @@ export async function getUserPlants(req: AuthenticatedRequest, res: Response) {
       return;
     }
 
-    console.log(`[getUserPlants] Fetching plants for user ${req.user.userId} in tenant ${tenantId}`);
+    console.log(
+      `[getUserPlants] Fetching plants for user ${req.user.userId} in tenant ${tenantId}`,
+    );
 
-    const plants = await TenantService.getUserPlants(req.user.userId, tenantId);
+    const plants = await TenantService.getUserPlants(
+      req.user.userId,
+      tenantId,
+      req.user.role,
+    );
 
     console.log(`[getUserPlants] API returning ${plants.length} plants`);
-    
+
     if (!plants || plants.length === 0) {
-      console.warn(`[getUserPlants] Warning: No plants found for user ${req.user.userId} in tenant ${tenantId}`);
+      console.warn(
+        `[getUserPlants] Warning: No plants found for user ${req.user.userId} in tenant ${tenantId}`,
+      );
     }
 
     res.json({

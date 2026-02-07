@@ -3,19 +3,29 @@ import { plants, workOrders } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 
 export class TenantService {
-  static async getUserPlants(userId: string, tenantId: string) {
+  static async getUserPlants(userId: string, tenantId: string, role?: string) {
     try {
       console.log(`[getUserPlants] Fetching plants for user: ${userId}, tenant: ${tenantId}`);
-      
+
+      if (role === 'admin_empresa' || role === 'superadmin') {
+        const allPlants = await db.query.plants.findMany({
+          where: (fields: any, { eq }: any) => eq(fields.tenant_id, tenantId),
+        });
+        console.log(
+          `[getUserPlants] Admin role detected (${role}). Returning ${allPlants.length} plants.`,
+        );
+        return allPlants;
+      }
+
       const userPlants = await db.query.userPlants.findMany({
         where: (fields: any, { eq }: any) => eq(fields.user_id, userId),
         with: {
           plant: true,
-        }
+        },
       });
 
       console.log(`[getUserPlants] Found ${userPlants.length} user_plant records for user ${userId}`);
-      
+
       if (userPlants.length === 0) {
         console.warn(`[getUserPlants] No user_plant records found for user ${userId}`);
         return [];
@@ -23,7 +33,9 @@ export class TenantService {
 
       // Log each plant relationship
       userPlants.forEach((up: any, idx: number) => {
-        console.log(`  [${idx}] user_plants.id=${up.id}, plant_id=${up.plant_id}, plant.id=${up.plant?.id}, plant.name=${up.plant?.name}, plant.tenant_id=${up.plant?.tenant_id}`);
+        console.log(
+          `  [${idx}] user_plants.id=${up.id}, plant_id=${up.plant_id}, plant.id=${up.plant?.id}, plant.name=${up.plant?.name}, plant.tenant_id=${up.plant?.tenant_id}`,
+        );
       });
 
       // Extract plant IDs and filter by tenant
@@ -32,12 +44,16 @@ export class TenantService {
         .filter((plant: any) => {
           const matches = plant && plant.tenant_id === tenantId;
           if (!matches) {
-            console.warn(`[getUserPlants] Plant ${plant?.id} filtered out - tenant mismatch (expected: ${tenantId}, got: ${plant?.tenant_id})`);
+            console.warn(
+              `[getUserPlants] Plant ${plant?.id} filtered out - tenant mismatch (expected: ${tenantId}, got: ${plant?.tenant_id})`,
+            );
           }
           return matches;
         });
 
-      console.log(`[getUserPlants] Returning ${filteredPlants.length} plants for user ${userId} in tenant ${tenantId}`);
+      console.log(
+        `[getUserPlants] Returning ${filteredPlants.length} plants for user ${userId} in tenant ${tenantId}`,
+      );
       return filteredPlants;
     } catch (error) {
       console.error('[getUserPlants] Error:', error);
