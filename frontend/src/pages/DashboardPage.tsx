@@ -297,14 +297,14 @@ export function DashboardPage() {
   return (
     <MainLayout>
       <div
-        className="relative space-y-10 font-display text-[color:var(--dash-ink)]"
+        className="relative space-y-10 rounded-[32px] bg-[linear-gradient(180deg,#e2e8f0_0%,#f8fafc_45%,#e8edf3_100%)] p-6 font-display text-[color:var(--dash-ink)] sm:p-8"
         style={
           {
             '--dash-accent': '#0f766e',
             '--dash-accent-2': '#f59e0b',
-            '--dash-ink': '#0f172a',
-            '--dash-surface': '#f8fafc',
-            '--dash-surface-2': '#f1f5f9',
+            '--dash-ink': '#0b1220',
+            '--dash-surface': '#f1f5f9',
+            '--dash-surface-2': '#e2e8f0',
           } as CSSProperties
         }
       >
@@ -340,20 +340,20 @@ export function DashboardPage() {
                 </span>
               </div>
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[22px] border border-slate-200/70 bg-white/85 p-4 shadow-sm">
+                <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-4 shadow-sm">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                     Efetividade
                   </p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900">
+                  <p className="mt-2 text-3xl font-semibold text-slate-900">
                     {completionRate}%
                   </p>
                   <p className="text-xs text-slate-500">Ordens concluidas</p>
                 </div>
-                <div className="rounded-[22px] border border-slate-200/70 bg-white/85 p-4 shadow-sm">
+                <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-4 shadow-sm">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                     Pressao de backlog
                   </p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900">
+                  <p className="mt-2 text-3xl font-semibold text-slate-900">
                     {backlogShare}%
                   </p>
                   <p className="text-xs text-slate-500">Participacao no total</p>
@@ -417,6 +417,43 @@ export function DashboardPage() {
                   {metrics?.in_progress ?? 0}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">Ordens em curso</p>
+              </div>
+              <div className="rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm sm:col-span-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+                    Alertas recentes
+                  </p>
+                  <span className="text-[10px] text-slate-400">
+                    {alerts.length} itens
+                  </span>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {alerts.length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-[color:var(--dash-surface)] px-4 py-4 text-center text-xs text-slate-500">
+                      Nenhum alerta recente
+                    </div>
+                  )}
+                  {alerts.slice(0, 3).map((alert) => (
+                    <div
+                      key={alert.id}
+                      className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] px-4 py-3 text-xs text-slate-600"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
+                          severityBadge[alert.severity] || 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {alert.severity}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          {formatDateTime(alert.created_at)}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm font-semibold text-slate-800">
+                        {alert.message}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
               <button
                 className="sm:col-span-2 inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-[color:var(--dash-surface)]"
@@ -496,11 +533,11 @@ export function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="mt-6 grid gap-4 lg:grid-cols-5">
+                <div className="mt-6 grid gap-3 lg:grid-cols-5">
                   {statusColumns.map((column) => (
                     <div
                       key={column.key}
-                      className={`flex min-h-[320px] flex-col rounded-[22px] border p-4 transition ${column.tone} ${
+                      className={`flex min-h-[280px] flex-col rounded-[22px] border p-3 transition ${column.tone} ${
                         dragOverStatus === column.key ? 'ring-2 ring-emerald-400/60' : ''
                       }`}
                       onDragOver={(event) => {
@@ -519,14 +556,14 @@ export function DashboardPage() {
                           {(groupedOrders[column.key] || []).length}
                         </span>
                       </div>
-                      <div className="space-y-3">
+                      <div className="space-y-2.5">
                         {(groupedOrders[column.key] || []).map((order) => (
                           <div
                             key={order.id}
                             draggable
                             onDragStart={() => handleDragStart(order.id)}
                             onDragEnd={handleDragEnd}
-                            className={`rounded-[18px] border border-slate-200 bg-white/90 p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_16px_26px_-20px_rgba(15,23,42,0.45)] ${
+                            className={`rounded-[18px] border border-slate-200 bg-white/90 p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_16px_26px_-20px_rgba(15,23,42,0.45)] ${
                               draggingOrderId === order.id ? 'opacity-50' : ''
                             }`}
                           >
@@ -645,41 +682,6 @@ export function DashboardPage() {
                       </p>
                       <p className="mt-2 text-[11px] text-slate-400">
                         {formatDateTime(order.created_at)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-sm">
-                <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent),#34d399)]" />
-                <h3 className="text-sm font-semibold text-slate-900">Alertas recentes</h3>
-                <div className="mt-4 space-y-3">
-                  {alerts.length === 0 && (
-                    <div className="rounded-2xl border border-dashed border-slate-200 bg-[color:var(--dash-surface)] px-4 py-6 text-center text-xs text-slate-500">
-                      Nenhum alerta recente
-                    </div>
-                  )}
-                  {alerts.map((alert) => (
-                    <div
-                      key={alert.id}
-                      className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] px-4 py-3 text-xs text-slate-600"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
-                          severityBadge[alert.severity] || 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {alert.severity}
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          {formatDateTime(alert.created_at)}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm font-semibold text-slate-800">
-                        {alert.message}
-                      </p>
-                      <p className="mt-1 text-[11px] text-slate-500">
-                        {alert.asset ? `${alert.asset.code} - ${alert.asset.name}` : 'Sem ativo'}
                       </p>
                     </div>
                   ))}
