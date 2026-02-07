@@ -1159,7 +1159,6 @@ export function WorkOrdersPage() {
               </button>
             </div>
           </div>
-        </div>
         )}
 
         {selectedPlant && editingOrder && (
