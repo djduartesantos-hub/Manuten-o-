@@ -147,7 +147,21 @@ export async function getAssets(plantId: string, search?: string) {
   if (search) params.append('search', search);
 
   const query = params.toString();
-  return apiCall(`/${plantId}/assets${query ? `?${query}` : ''}`);
+  const data = await apiCall(`/${plantId}/assets${query ? `?${query}` : ''}`);
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (data && Array.isArray((data as any).data)) {
+    return (data as any).data;
+  }
+
+  if (data && Array.isArray((data as any).assets)) {
+    return (data as any).assets;
+  }
+
+  return [];
 }
 
 export async function createAsset(plantId: string, data: any) {

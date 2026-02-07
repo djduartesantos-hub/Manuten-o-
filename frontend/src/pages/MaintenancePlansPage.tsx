@@ -70,12 +70,35 @@ export function MaintenancePlansPage() {
     }
 
     try {
-      const [plansData, assetsData] = await Promise.all([
+      const [plansResult, assetsResult] = await Promise.allSettled([
         getMaintenancePlans(selectedPlant),
         getAssets(selectedPlant),
       ]);
-      setPlans(plansData || []);
-      setAssets(assetsData || []);
+
+      if (plansResult.status === 'fulfilled') {
+        setPlans(plansResult.value || []);
+      } else {
+        setPlans([]);
+      }
+
+      if (assetsResult.status === 'fulfilled') {
+        setAssets(assetsResult.value || []);
+      } else {
+        setAssets([]);
+      }
+
+      if (plansResult.status === 'rejected' || assetsResult.status === 'rejected') {
+        const planMessage =
+          plansResult.status === 'rejected'
+            ? plansResult.reason?.message || 'Erro ao carregar planos'
+            : null;
+        const assetMessage =
+          assetsResult.status === 'rejected'
+            ? assetsResult.reason?.message || 'Erro ao carregar equipamentos'
+            : null;
+
+        setError(planMessage || assetMessage);
+      }
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar planos');
     } finally {

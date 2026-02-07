@@ -14,6 +14,7 @@ import {
   userPlants,
   maintenancePlans,
   maintenanceTasks,
+  workOrders,
   spareParts,
   stockMovements,
 } from '../db/schema.js';
@@ -104,6 +105,7 @@ export class SetupController {
       plants: number;
       assets: number;
       maintenancePlans: number;
+      workOrders: number;
       spareParts: number;
     };
     note: string;
@@ -129,6 +131,7 @@ export class SetupController {
     let plantsAdded = 0;
     let assetsAdded = 0;
     let plansAdded = 0;
+    let workOrdersAdded = 0;
     let partsAdded = 0;
 
     // Check what already exists
@@ -308,6 +311,44 @@ export class SetupController {
       }
     }
 
+    const workOrderBaseIds = [
+      '50000000-0000-0000-0000-000000000001',
+      '50000000-0000-0000-0000-000000000002',
+      '50000000-0000-0000-0000-000000000003',
+    ];
+
+    for (let i = 0; i < 3; i++) {
+      const existingOrder = await db.execute(
+        sql`SELECT id FROM work_orders WHERE id = ${workOrderBaseIds[i]}`,
+      );
+
+      if (existingOrder.rows.length === 0) {
+        await db
+          .insert(workOrders)
+          .values({
+            id: workOrderBaseIds[i],
+            tenant_id: tenantId,
+            plant_id: demoPlantId,
+            asset_id: assetBaseIds[i],
+            plan_id: planBaseIds[i],
+            assigned_to: demoTechId,
+            created_by: demoAdminId,
+            title: `Ordem Demo ${i + 1}`,
+            description: 'Ordem de trabalho demonstrativa',
+            status: i === 1 ? 'em_curso' : i === 2 ? 'concluida' : 'aberta',
+            priority: i === 2 ? 'alta' : 'media',
+            scheduled_date: new Date(),
+            started_at: i >= 1 ? new Date() : undefined,
+            completed_at: i === 2 ? new Date() : undefined,
+            estimated_hours: '2',
+            actual_hours: i === 2 ? '1.5' : undefined,
+            notes: 'Gerado automaticamente pelo seed demo',
+          })
+          .onConflictDoNothing();
+        workOrdersAdded++;
+      }
+    }
+
     // Spare parts with fixed IDs
     const sparePartBaseIds = [
       '40000000-0000-0000-0000-000000000001',
@@ -366,6 +407,7 @@ export class SetupController {
         plants: plantsAdded,
         assets: assetsAdded,
         maintenancePlans: plansAdded,
+        workOrders: workOrdersAdded,
         spareParts: partsAdded,
       },
       note,

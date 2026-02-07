@@ -12,6 +12,7 @@ interface BootstrapResult {
       plants: number;
       assets: number;
       maintenancePlans: number;
+      workOrders: number;
       spareParts: number;
     };
     note: string;

@@ -67,8 +67,9 @@ export function AdminSetupPage() {
       
       // Check if data was added or already existed
       if (result?.added) {
-        const { users, plants, assets, maintenancePlans, spareParts } = result.added;
-        const totalAdded = users + plants + assets + maintenancePlans + spareParts;
+        const { users, plants, assets, maintenancePlans, workOrders, spareParts } = result.added;
+        const totalAdded =
+          users + plants + assets + maintenancePlans + workOrders + spareParts;
         
         if (totalAdded > 0) {
           setSuccess(
@@ -77,6 +78,7 @@ export function AdminSetupPage() {
             `• ${plants} fábrica(s)\n` +
             `• ${assets} equipamento(s)\n` +
             `• ${maintenancePlans} plano(s) de manutenção\n` +
+            `• ${workOrders} ordem(ns) de trabalho\n` +
             `• ${spareParts} peça(s) sobressalente(s)`
           );
         } else {
