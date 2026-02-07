@@ -105,10 +105,14 @@ export class WorkOrderService {
     return workOrder;
   }
 
-  static async getWorkOrderById(tenantId: string, workOrderId: string, plantId?: string) {
+  static async getWorkOrderById(
+    tenantId: string,
+    workOrderId: string,
+    plantId?: string,
+  ): Promise<any | null> {
     try {
       const cacheKey = CacheKeys.workOrder(tenantId, workOrderId);
-      const cached = await RedisService.getJSON(cacheKey);
+      const cached = await RedisService.getJSON<any>(cacheKey);
       if (cached) {
         logger.debug(`Cache hit for work order: ${cacheKey}`);
         return cached;

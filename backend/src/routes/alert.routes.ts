@@ -26,7 +26,7 @@ router.get('/configurations', authMiddleware, async (req: AuthenticatedRequest, 
       asset_id as string | undefined,
     );
 
-    return res.json(configs);
+    return res.json({ success: true, data: configs });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to fetch alert configurations' });
   }
@@ -62,7 +62,7 @@ router.post(
         ...req.body,
       });
 
-      return res.status(201).json(config);
+      return res.status(201).json({ success: true, data: config });
     } catch (error) {
       return res.status(500).json({ error: 'Failed to create alert configuration' });
     }
@@ -89,7 +89,7 @@ router.put(
         req.body,
       );
 
-      return res.json(updated);
+      return res.json({ success: true, data: updated });
     } catch (error) {
       return res.status(500).json({ error: 'Failed to update alert configuration' });
     }
@@ -134,7 +134,7 @@ router.get('/history', authMiddleware, async (req: AuthenticatedRequest, res: Re
       offset: offset ? parseInt(offset as string) : undefined,
     });
 
-    return res.json(alerts);
+    return res.json({ success: true, data: alerts });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to fetch alerts' });
   }
@@ -164,7 +164,7 @@ router.post(
         resolution_notes: req.body.resolution_notes,
       });
 
-      return res.json(alert);
+      return res.json({ success: true, data: alert });
     } catch (error) {
       return res.status(500).json({ error: 'Failed to resolve alert' });
     }
@@ -182,7 +182,7 @@ router.get('/stats', authMiddleware, async (req: AuthenticatedRequest, res: Resp
 
     const stats = await AlertService.getAlertStats(tenantId);
 
-    return res.json(stats);
+    return res.json({ success: true, data: stats });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to fetch alert stats' });
   }
@@ -203,7 +203,7 @@ router.get('/warnings/:assetId', authMiddleware, async (req: AuthenticatedReques
       assetId,
     );
 
-    return res.json(warning || {});
+    return res.json({ success: true, data: warning ? [warning] : [] });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to generate warnings' });
   }
@@ -231,7 +231,7 @@ router.get('/documents', authMiddleware, async (req: AuthenticatedRequest, res: 
       },
     );
 
-    return res.json(documents);
+    return res.json({ success: true, data: documents });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to fetch documents' });
   }
@@ -280,7 +280,7 @@ router.post(
         });
       }
 
-      return res.status(201).json(document);
+      return res.status(201).json({ success: true, data: document });
     } catch (error) {
       return res.status(500).json({ error: 'Failed to upload document' });
     }
@@ -299,7 +299,7 @@ router.get('/documents/:id/versions', authMiddleware, async (req: AuthenticatedR
 
     const versions = await DocumentService.getDocumentVersions(tenantId, id);
 
-    return res.json(versions);
+    return res.json({ success: true, data: versions });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to fetch document versions' });
   }
@@ -331,7 +331,7 @@ router.put(
         expires_at: req.body.expires_at ? new Date(req.body.expires_at) : undefined,
       });
 
-      return res.json(updated);
+      return res.json({ success: true, data: updated });
     } catch (error) {
       return res.status(500).json({ error: 'Failed to update document' });
     }
@@ -371,7 +371,7 @@ router.get('/documents/expiring', authMiddleware, async (req: AuthenticatedReque
       parseInt(days as string),
     );
 
-    return res.json(documents);
+    return res.json({ success: true, data: documents });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to fetch expiring documents' });
   }
