@@ -600,13 +600,9 @@ export function WorkOrdersPage() {
     setAuditLoading(true);
     setAuditError(null);
     try {
-      const [workOrder, logs] = await Promise.all([
-        getWorkOrder(selectedPlant, workOrderId),
-        getWorkOrderAuditLogs(selectedPlant, workOrderId),
-      ]);
+      const workOrder = await getWorkOrder(selectedPlant, workOrderId);
       setEditingOrder(workOrder);
       setOrderTasks(workOrder.tasks || []);
-      setAuditLogs(logs || []);
       setUpdateForm({
         status: workOrder.status || 'aberta',
         priority: workOrder.priority || 'media',
@@ -617,10 +613,22 @@ export function WorkOrdersPage() {
         completed_at: toDateTimeLocal(workOrder.completed_at),
       });
     } catch (err: any) {
-      setTasksError(err.message || 'Erro ao carregar tarefas.');
-      setAuditError(err.message || 'Erro ao carregar historico.');
+      setTasksError(err.message || 'Erro ao carregar ordem.');
+      setAuditLoading(false);
+      setTasksLoading(false);
+      setAuditLogs([]);
+      return;
     } finally {
       setTasksLoading(false);
+    }
+
+    try {
+      const logs = await getWorkOrderAuditLogs(selectedPlant, workOrderId);
+      setAuditLogs(logs || []);
+    } catch (err: any) {
+      setAuditLogs([]);
+      setAuditError(err.message || 'Erro ao carregar historico.');
+    } finally {
       setAuditLoading(false);
     }
   };
