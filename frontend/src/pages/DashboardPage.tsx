@@ -29,9 +29,9 @@ interface Metrics {
 }
 
 interface KPIs {
-  mttr: number | string;
-  mtbf: string;
-  availability: string;
+  mttr: number;
+  mtbf: number;
+  sla_compliance: number;
   backlog: number;
 }
 
@@ -445,20 +445,24 @@ export function DashboardPage() {
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                         MTTR
                       </p>
-                      <p className="mt-2 text-2xl font-semibold text-slate-900">{kpis.mttr}h</p>
+                      <p className="mt-2 text-2xl font-semibold text-slate-900">
+                        {kpis.mttr}h
+                      </p>
                     </div>
                     <div className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] p-4">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                         MTBF
                       </p>
-                      <p className="mt-2 text-2xl font-semibold text-slate-900">{kpis.mtbf}</p>
+                      <p className="mt-2 text-2xl font-semibold text-slate-900">
+                        {kpis.mtbf}h
+                      </p>
                     </div>
                     <div className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] p-4">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-                        Disponibilidade
+                        SLA cumprido
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-slate-900">
-                        {kpis.availability}
+                        {kpis.sla_compliance}%
                       </p>
                     </div>
                     <div className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] p-4">
