@@ -12,6 +12,7 @@ export interface CreateSparePartInput {
   name: string;
   description?: string;
   unit_cost?: string;
+  min_stock?: number;
   supplier_id?: string;
 }
 
@@ -20,6 +21,7 @@ export interface UpdateSparePartInput {
   name?: string;
   description?: string;
   unit_cost?: string;
+  min_stock?: number;
   supplier_id?: string;
 }
 
