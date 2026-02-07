@@ -43,6 +43,11 @@ interface MaintenancePlan {
 
 export function MaintenancePlansPage() {
   const { selectedPlant } = useAppStore();
+  const diagnosticsEnabled = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    return params.get('diag') === '1' || localStorage.getItem('diagnostics') === '1';
+  }, []);
   const [plans, setPlans] = useState<MaintenancePlan[]>([]);
   const [assets, setAssets] = useState<AssetOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -198,6 +203,7 @@ export function MaintenancePlansPage() {
 
   useEffect(() => {
     const checkHealth = async () => {
+      if (!diagnosticsEnabled) return;
       setApiDiagnostics((prev) => ({ ...prev, status: 'loading' }));
       const result = await getApiHealth();
       setApiDiagnostics({
@@ -208,7 +214,7 @@ export function MaintenancePlansPage() {
     };
 
     checkHealth();
-  }, [selectedPlant]);
+  }, [diagnosticsEnabled, selectedPlant]);
 
   useEffect(() => {
     loadData();
@@ -522,7 +528,7 @@ export function MaintenancePlansPage() {
           </div>
         )}
 
-        {selectedPlant && (
+        {selectedPlant && diagnosticsEnabled && (
           <DiagnosticsPanel
             title="Planos e ativos"
             rows={[

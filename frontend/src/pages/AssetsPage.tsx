@@ -54,6 +54,11 @@ interface AssetCategory {
 
 export function AssetsPage() {
   const { selectedPlant } = useAppStore();
+  const diagnosticsEnabled = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    return params.get('diag') === '1' || localStorage.getItem('diagnostics') === '1';
+  }, []);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -286,6 +291,7 @@ export function AssetsPage() {
 
   useEffect(() => {
     const checkHealth = async () => {
+      if (!diagnosticsEnabled) return;
       setApiDiagnostics((prev) => ({ ...prev, status: 'loading' }));
       const result = await getApiHealth();
       setApiDiagnostics({
@@ -296,7 +302,7 @@ export function AssetsPage() {
     };
 
     checkHealth();
-  }, [selectedPlant]);
+  }, [diagnosticsEnabled, selectedPlant]);
 
   useEffect(() => {
     loadCategories();
@@ -493,7 +499,7 @@ export function AssetsPage() {
         </div>
       )}
 
-      {selectedPlant && (
+      {selectedPlant && diagnosticsEnabled && (
         <div className="mt-8">
           <DiagnosticsPanel
             title="Equipamentos"

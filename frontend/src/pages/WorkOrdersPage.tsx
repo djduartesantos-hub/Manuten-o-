@@ -72,6 +72,11 @@ interface WorkOrderUpdateState {
 
 export function WorkOrdersPage() {
   const { selectedPlant } = useAppStore();
+  const diagnosticsEnabled = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    return params.get('diag') === '1' || localStorage.getItem('diagnostics') === '1';
+  }, []);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [assets, setAssets] = useState<AssetOption[]>([]);
   const [statusFilter, setStatusFilter] = useState('');
@@ -280,6 +285,7 @@ export function WorkOrdersPage() {
 
   useEffect(() => {
     const checkHealth = async () => {
+      if (!diagnosticsEnabled) return;
       setApiDiagnostics((prev) => ({ ...prev, status: 'loading' }));
       const result = await getApiHealth();
       setApiDiagnostics({
@@ -290,7 +296,7 @@ export function WorkOrdersPage() {
     };
 
     checkHealth();
-  }, [selectedPlant]);
+  }, [diagnosticsEnabled, selectedPlant]);
 
   useEffect(() => {
     loadData();
@@ -600,7 +606,7 @@ export function WorkOrdersPage() {
           )}
         </section>
 
-        {selectedPlant && (
+        {selectedPlant && diagnosticsEnabled && (
           <DiagnosticsPanel
             title="Ordens e ativos"
             rows={[
