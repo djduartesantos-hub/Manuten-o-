@@ -17,7 +17,6 @@ import {
   Settings,
   Building2,
   Database,
-  ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../context/store';
@@ -132,22 +131,7 @@ export function Header() {
               },
             ]
           : []),
-        ...(user?.role === 'superadmin'
-          ? [
-              {
-                label: 'Setup BD',
-                href: '/admin/setup',
-                active: location.pathname === '/admin/setup',
-                icon: Database,
-              },
-              {
-                label: 'Atualizar BD',
-                href: '/admin/database',
-                active: location.pathname === '/admin/database',
-                icon: Database,
-              },
-            ]
-          : []),
+        ...(user?.role === 'superadmin' ? [] : []),
       ],
     },
   ].filter((section) => section.items.length > 0);

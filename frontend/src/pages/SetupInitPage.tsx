@@ -22,7 +22,11 @@ interface BootstrapResult {
   passwordHint: string;
 }
 
-export function SetupInitPage() {
+interface SetupInitPageProps {
+  embedded?: boolean;
+}
+
+export function SetupInitPage({ embedded = false }: SetupInitPageProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<BootstrapResult | null>(null);
@@ -51,8 +55,8 @@ export function SetupInitPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 px-6 py-12">
-      <div className="mx-auto max-w-3xl">
+    <div className={embedded ? '' : 'min-h-screen bg-slate-50 px-6 py-12'}>
+      <div className={embedded ? 'max-w-3xl' : 'mx-auto max-w-3xl'}>
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary-100">
             <Database className="h-6 w-6 text-primary-600" />

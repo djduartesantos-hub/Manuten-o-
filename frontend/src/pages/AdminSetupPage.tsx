@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { MainLayout } from '../layouts/MainLayout';
 import { Database, AlertCircle, CheckCircle, Trash2, RefreshCw, Server } from 'lucide-react';
 import { getSetupStatus, seedDemoData, clearAllData, initializeDatabase } from '../services/api';
 
@@ -34,7 +35,11 @@ interface DatabaseStatus {
   };
 }
 
-export function AdminSetupPage() {
+interface AdminSetupPageProps {
+  embedded?: boolean;
+}
+
+export function AdminSetupPage({ embedded = false }: AdminSetupPageProps) {
   const [status, setStatus] = useState<DatabaseStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -144,281 +149,238 @@ export function AdminSetupPage() {
     fetchStatus();
   }, []);
 
-  return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <Server className="w-8 h-8 text-primary-600" />
-          Configuração da Base de Dados
-        </h1>
-        <p className="text-gray-600 mt-2">
-          Gerir a base de dados e dados demonstrativos do sistema
-        </p>
-      </div>
-
-      {/* Status Card */}
-      <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-            <Database className="w-6 h-6 text-blue-600" />
-            Estado da Base de Dados
-          </h2>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={handleInitialize}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-400 transition"
-            >
-              <Server className="w-4 h-4" />
-              Inicializar
-            </button>
-            <button
-              onClick={fetchStatus}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              Atualizar
-            </button>
-          </div>
-        </div>
-
-        {error && (
-          <div className="mb-4 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-red-800">{error}</div>
-          </div>
-        )}
-
-        {success && (
-          <div className="mb-4 flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-green-800 whitespace-pre-line">{success}</div>
-          </div>
-        )}
-
-        {status && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="text-sm text-gray-600 mb-1">Ligação</div>
-                <div className="flex items-center gap-2">
-                  {status.connected ? (
-                    <>
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                      <span className="font-semibold text-green-600">Conectado</span>
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="w-5 h-5 text-red-600" />
-                      <span className="font-semibold text-red-600">Desconectado</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="text-sm text-gray-600 mb-1">Tabelas</div>
-                <div className="text-2xl font-bold text-gray-900">{status.tablesCount}</div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="text-sm text-gray-600 mb-1">Utilizadores</div>
-                <div className="text-2xl font-bold text-gray-900">{status.counts.users}</div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="text-sm text-gray-600 mb-1">Equipamentos</div>
-                <div className="text-2xl font-bold text-gray-900">{status.counts.assets}</div>
-              </div>
+  const content = (
+    <div className="space-y-8 font-display">
+        <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#f8fafc,_#ffffff_60%)] p-8 shadow-[0_28px_80px_-60px_rgba(15,23,42,0.35)]">
+          <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-emerald-200/40 blur-3xl" />
+          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-sky-200/40 blur-3xl" />
+          <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700">
+                Administracao
+              </p>
+              <h1 className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl">
+                Configuracao da base de dados
+              </h1>
+              <p className="mt-2 text-sm text-slate-600">
+                Gerencie a base de dados, seeds e estado operacional do sistema.
+              </p>
             </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="text-sm text-gray-600 mb-1">Planos</div>
-                <div className="text-2xl font-bold text-gray-900">
-                  {status.counts.maintenancePlans}
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="text-sm text-gray-600 mb-1">Tarefas</div>
-                <div className="text-2xl font-bold text-gray-900">
-                  {status.counts.maintenanceTasks}
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="text-sm text-gray-600 mb-1">Peças</div>
-                <div className="text-2xl font-bold text-gray-900">
-                  {status.counts.spareParts}
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="text-sm text-gray-600 mb-1">Movimentos</div>
-                <div className="text-2xl font-bold text-gray-900">
-                  {status.counts.stockMovements}
-                </div>
-              </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={handleInitialize}
+                disabled={loading}
+                className="btn-primary inline-flex items-center gap-2"
+              >
+                <Server className="w-4 h-4" />
+                Inicializar
+              </button>
+              <button
+                onClick={fetchStatus}
+                disabled={loading}
+                className="btn-secondary inline-flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Atualizar
+              </button>
             </div>
+          </div>
+        </section>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="text-sm text-gray-600 mb-1">Ordens</div>
-                <div className="text-2xl font-bold text-gray-900">
-                  {status.counts.workOrders}
-                </div>
-              </div>
+        {/* Status Card */}
+        <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
+          <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,#10b981,#38bdf8)]" />
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <Database className="w-5 h-5 text-emerald-600" />
+              Estado da Base de Dados
+            </h2>
+            <div className="text-xs text-slate-500">Atualize para ver o estado real</div>
+          </div>
 
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="text-sm text-gray-600 mb-1">Categorias</div>
-                <div className="text-2xl font-bold text-gray-900">
-                  {status.counts.categories}
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="text-sm text-gray-600 mb-1">Fornecedores</div>
-                <div className="text-2xl font-bold text-gray-900">
-                  {status.counts.suppliers}
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="text-sm text-gray-600 mb-1">Plantas</div>
-                <div className="text-2xl font-bold text-gray-900">{status.counts.plants}</div>
-              </div>
+          {error && (
+            <div className="mb-4 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50/80 p-4">
+              <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-rose-800">{error}</div>
             </div>
+          )}
 
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">Estado dos Dados:</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-sm text-gray-600 mb-1">Tenants</div>
-                  <div className="text-2xl font-bold text-gray-900">
-                    {status.counts.tenants}
+          {success && (
+            <div className="mb-4 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4">
+              <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-emerald-800 whitespace-pre-line">{success}</div>
+            </div>
+          )}
+
+          {status && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs text-slate-500 mb-1">Ligacao</div>
+                  <div className="flex items-center gap-2">
+                    {status.connected ? (
+                      <>
+                        <CheckCircle className="w-5 h-5 text-emerald-600" />
+                        <span className="font-semibold text-emerald-700">Conectado</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="w-5 h-5 text-rose-600" />
+                        <span className="font-semibold text-rose-700">Desconectado</span>
+                      </>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {status.hasData.users ? (
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-amber-600" />
-                  )}
-                  <span className="text-sm text-gray-700">Utilizadores</span>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs text-slate-500 mb-1">Tabelas</div>
+                  <div className="text-2xl font-semibold text-slate-900">{status.tablesCount}</div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {status.hasData.plants ? (
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-amber-600" />
-                  )}
-                  <span className="text-sm text-gray-700">Fábricas</span>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs text-slate-500 mb-1">Utilizadores</div>
+                  <div className="text-2xl font-semibold text-slate-900">{status.counts.users}</div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {status.hasData.assets ? (
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-amber-600" />
-                  )}
-                  <span className="text-sm text-gray-700">Equipamentos</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {status.hasData.maintenancePlans ? (
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-amber-600" />
-                  )}
-                  <span className="text-sm text-gray-700">Planos</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {status.hasData.maintenanceTasks ? (
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-amber-600" />
-                  )}
-                  <span className="text-sm text-gray-700">Tarefas</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {status.hasData.spareParts ? (
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-amber-600" />
-                  )}
-                  <span className="text-sm text-gray-700">Peças</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {status.hasData.stockMovements ? (
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-amber-600" />
-                  )}
-                  <span className="text-sm text-gray-700">Movimentos</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {status.hasData.workOrders ? (
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-amber-600" />
-                  )}
-                  <span className="text-sm text-gray-700">Ordens</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {status.hasData.categories ? (
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-amber-600" />
-                  )}
-                  <span className="text-sm text-gray-700">Categorias</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {status.hasData.suppliers ? (
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-amber-600" />
-                  )}
-                  <span className="text-sm text-gray-700">Fornecedores</span>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs text-slate-500 mb-1">Equipamentos</div>
+                  <div className="text-2xl font-semibold text-slate-900">{status.counts.assets}</div>
                 </div>
               </div>
-            </div>
 
-            {status.tables && status.tables.length > 0 && (
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Tabelas detectadas</h3>
-                <div className="flex flex-wrap gap-2">
-                  {status.tables.map((table) => (
-                    <span
-                      key={table}
-                      className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600"
-                    >
-                      {table}
-                    </span>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs text-slate-500 mb-1">Planos</div>
+                  <div className="text-2xl font-semibold text-slate-900">
+                    {status.counts.maintenancePlans}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs text-slate-500 mb-1">Tarefas</div>
+                  <div className="text-2xl font-semibold text-slate-900">
+                    {status.counts.maintenanceTasks}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs text-slate-500 mb-1">Pecas</div>
+                  <div className="text-2xl font-semibold text-slate-900">
+                    {status.counts.spareParts}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs text-slate-500 mb-1">Movimentos</div>
+                  <div className="text-2xl font-semibold text-slate-900">
+                    {status.counts.stockMovements}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs text-slate-500 mb-1">Ordens</div>
+                  <div className="text-2xl font-semibold text-slate-900">
+                    {status.counts.workOrders}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs text-slate-500 mb-1">Categorias</div>
+                  <div className="text-2xl font-semibold text-slate-900">
+                    {status.counts.categories}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs text-slate-500 mb-1">Fornecedores</div>
+                  <div className="text-2xl font-semibold text-slate-900">
+                    {status.counts.suppliers}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs text-slate-500 mb-1">Plantas</div>
+                  <div className="text-2xl font-semibold text-slate-900">{status.counts.plants}</div>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100 pt-4">
+                <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400 mb-3">
+                  Estado dos dados
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-xs text-slate-500 mb-1">Tenants</div>
+                    <div className="text-2xl font-semibold text-slate-900">
+                      {status.counts.tenants}
+                    </div>
+                  </div>
+                  {(
+                    [
+                      { key: 'users', label: 'Utilizadores' },
+                      { key: 'plants', label: 'Fabricas' },
+                      { key: 'assets', label: 'Equipamentos' },
+                      { key: 'maintenancePlans', label: 'Planos' },
+                      { key: 'maintenanceTasks', label: 'Tarefas' },
+                      { key: 'spareParts', label: 'Pecas' },
+                      { key: 'stockMovements', label: 'Movimentos' },
+                      { key: 'workOrders', label: 'Ordens' },
+                      { key: 'categories', label: 'Categorias' },
+                      { key: 'suppliers', label: 'Fornecedores' },
+                    ] as const
+                  ).map((item) => (
+                    <div key={item.key} className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-3 py-2">
+                      {status.hasData[item.key] ? (
+                        <CheckCircle className="w-4 h-4 text-emerald-600" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-amber-600" />
+                      )}
+                      <span className="text-xs text-slate-700">{item.label}</span>
+                    </div>
                   ))}
                 </div>
               </div>
-            )}
-          </div>
-        )}
-      </div>
 
-      {/* Actions Card */}
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Ações Disponíveis</h2>
-        
-        <div className="space-y-4">
+              {status.tables && status.tables.length > 0 && (
+                <div className="border-t border-slate-100 pt-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400 mb-3">
+                    Tabelas detectadas
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {status.tables.map((table) => (
+                      <span
+                        key={table}
+                        className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600"
+                      >
+                        {table}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Actions Card */}
+        <div className="rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Acoes disponiveis</h2>
+
+          <div className="space-y-4">
           {/* Seed Demo Data */}
-          <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
-            <div className="flex items-start justify-between">
+            <div className="rounded-[24px] border border-sky-200 bg-sky-50/80 p-4">
+              <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 mb-2">Adicionar Dados Demonstrativos</h3>
-                <p className="text-sm text-gray-600 mb-3">
+                <h3 className="font-semibold text-slate-900 mb-2">Adicionar Dados Demonstrativos</h3>
+                <p className="text-sm text-slate-600 mb-3">
                   Preenche a base de dados com dados de exemplo: utilizadores, fábricas, equipamentos, planos de manutenção e peças sobressalentes.
-                  <span className="block mt-1 text-xs text-blue-700 font-medium">
+                  <span className="block mt-1 text-xs text-sky-700 font-medium">
                     ✓ Seguro: Pode executar múltiplas vezes (não cria duplicatas)
                   </span>
                 </p>
-                <ul className="text-xs text-gray-600 space-y-1">
+                <ul className="text-xs text-slate-600 space-y-1">
                   <li>• 2 utilizadores (Admin e Técnico)</li>
                   <li>• 1 fábrica (Fábrica Principal)</li>
                   <li>• 5 equipamentos de exemplo</li>
@@ -430,7 +392,7 @@ export function AdminSetupPage() {
               <button
                 onClick={handleSeedData}
                 disabled={loading}
-                className="ml-4 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition font-medium whitespace-nowrap"
+                className="btn-primary whitespace-nowrap"
               >
                 Adicionar Dados
               </button>
@@ -438,24 +400,24 @@ export function AdminSetupPage() {
           </div>
 
           {/* Clear All Data */}
-          <div className="border border-red-200 rounded-lg p-4 bg-red-50">
-            <div className="flex items-start justify-between">
+            <div className="rounded-[24px] border border-rose-200 bg-rose-50/80 p-4">
+              <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-600" />
+                <h3 className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-rose-600" />
                   Limpar Todos os Dados
                 </h3>
-                <p className="text-sm text-gray-600 mb-2">
-                  <strong className="text-red-700">⚠️ ATENÇÃO:</strong> Esta ação irá apagar TODOS os dados da base de dados de forma permanente. Esta operação não pode ser revertida!
+                <p className="text-sm text-slate-600 mb-2">
+                  <strong className="text-rose-700">⚠️ ATENÇÃO:</strong> Esta ação irá apagar TODOS os dados da base de dados de forma permanente. Esta operação não pode ser revertida!
                 </p>
-                <p className="text-xs text-red-600">
+                <p className="text-xs text-rose-600">
                   Use apenas para testes ou antes de reiniciar o sistema do zero.
                 </p>
               </div>
               <button
                 onClick={handleClearData}
                 disabled={loading}
-                className="ml-4 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 transition font-medium whitespace-nowrap flex items-center gap-2"
+                className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 disabled:bg-slate-300"
               >
                 <Trash2 className="w-4 h-4" />
                 Limpar Tudo
@@ -465,12 +427,18 @@ export function AdminSetupPage() {
         </div>
       </div>
 
-      {/* Info Footer */}
-      <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-        <p className="text-sm text-amber-900">
-          <strong>Nota:</strong> Estas operações requerem permissões de superadmin. Certifique-se de que está autenticado como administrador do sistema.
-        </p>
-      </div>
+        {/* Info Footer */}
+        <div className="rounded-[24px] border border-amber-200 bg-amber-50/80 p-4">
+          <p className="text-sm text-amber-900">
+            <strong>Nota:</strong> Estas operações requerem permissões de superadmin. Certifique-se de que está autenticado como administrador do sistema.
+          </p>
+        </div>
     </div>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <MainLayout>{content}</MainLayout>;
 }

@@ -26,7 +26,13 @@ import {
   Trash2,
   ChevronRight,
   Settings as SettingsIcon,
+  Database,
+  Server,
+  Wrench,
 } from 'lucide-react';
+import { AdminSetupPage } from './AdminSetupPage';
+import { DatabaseUpdatePage } from './DatabaseUpdatePage';
+import { SetupInitPage } from './SetupInitPage';
 
 type SettingTab =
   | 'general'
@@ -1508,6 +1514,9 @@ function ManagementSettings() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
+  const [activeDbTool, setActiveDbTool] = React.useState<
+    'setup' | 'migrations' | 'bootstrap' | null
+  >(null);
 
   const [newPlant, setNewPlant] = React.useState({
     name: '',
@@ -1715,6 +1724,27 @@ function ManagementSettings() {
     }
   };
 
+  const dbTools = [
+    {
+      id: 'setup' as const,
+      title: 'Setup BD',
+      description: 'Estado e administracao da base de dados.',
+      icon: Database,
+    },
+    {
+      id: 'migrations' as const,
+      title: 'Atualizar BD',
+      description: 'Executar migracoes e aplicar seeds.',
+      icon: Wrench,
+    },
+    {
+      id: 'bootstrap' as const,
+      title: 'Setup inicial',
+      description: 'Recriar a base do zero (acao destrutiva).',
+      icon: Server,
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -1732,6 +1762,40 @@ function ManagementSettings() {
           {error}
         </div>
       )}
+
+      <div className="rounded-[28px] border border-slate-200 bg-white/95 p-5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">Ferramentas da base de dados</h3>
+            <p className="text-sm text-slate-500">Menu rapido de configuracao e migracoes.</p>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          {dbTools.map((tool) => {
+            const Icon = tool.icon;
+            return (
+              <button
+                key={tool.id}
+                onClick={() => setActiveDbTool(tool.id)}
+                className="group rounded-[22px] border border-slate-200 bg-white p-4 text-left shadow-[0_12px_24px_-20px_rgba(15,23,42,0.4)] transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{tool.title}</p>
+                    <p className="mt-1 text-xs text-slate-500">{tool.description}</p>
+                  </div>
+                  <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 transition group-hover:bg-emerald-100">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                </div>
+                <div className="mt-3 text-xs font-semibold text-emerald-700">
+                  Abrir
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-5 shadow-sm space-y-6">
@@ -2158,6 +2222,28 @@ function ManagementSettings() {
           ))}
         </div>
       </div>
+
+      {activeDbTool && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setActiveDbTool(null)}
+          />
+          <div className="relative w-full max-w-5xl overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+            <button
+              onClick={() => setActiveDbTool(null)}
+              className="absolute right-4 top-4 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              Fechar
+            </button>
+            <div className="max-h-[80vh] overflow-y-auto pr-1">
+              {activeDbTool === 'setup' && <AdminSetupPage embedded />}
+              {activeDbTool === 'migrations' && <DatabaseUpdatePage embedded />}
+              {activeDbTool === 'bootstrap' && <SetupInitPage embedded />}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

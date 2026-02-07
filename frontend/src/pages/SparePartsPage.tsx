@@ -178,7 +178,7 @@ export function SparePartsPage() {
   return (
     <MainLayout>
       <div className="space-y-8 font-display">
-        <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-amber-50 p-8 shadow-sm">
+        <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#fff7ed,_#ffffff_60%)] p-8 shadow-[0_28px_80px_-60px_rgba(245,158,11,0.35)]">
           <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-amber-200/50 blur-3xl" />
           <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-emerald-200/40 blur-3xl" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -214,7 +214,7 @@ export function SparePartsPage() {
           </div>
 
           <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+            <div className="rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
               <div className="flex items-center gap-3 text-sm text-slate-600">
                 <Boxes className="h-4 w-4 text-amber-600" />
                 Pecas cadastradas
@@ -222,7 +222,7 @@ export function SparePartsPage() {
               <p className="mt-3 text-2xl font-semibold text-slate-900">{parts.length}</p>
               <p className="mt-1 text-xs text-slate-500">Catalogo ativo</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+            <div className="rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
               <div className="flex items-center gap-3 text-sm text-slate-600">
                 <ArrowUpCircle className="h-4 w-4 text-emerald-600" />
                 Entradas
@@ -232,7 +232,7 @@ export function SparePartsPage() {
               </p>
               <p className="mt-1 text-xs text-slate-500">Movimentos recentes</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+            <div className="rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
               <div className="flex items-center gap-3 text-sm text-slate-600">
                 <ArrowDownCircle className="h-4 w-4 text-rose-600" />
                 Saidas
@@ -242,7 +242,7 @@ export function SparePartsPage() {
               </p>
               <p className="mt-1 text-xs text-slate-500">Consumo</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+            <div className="rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
               <div className="flex items-center gap-3 text-sm text-slate-600">
                 <Wrench className="h-4 w-4 text-sky-600" />
                 Ajustes
@@ -256,7 +256,8 @@ export function SparePartsPage() {
         </section>
 
         {showCreate && (
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
+            <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,#f59e0b,#10b981)]" />
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Nova peça</h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
@@ -335,7 +336,7 @@ export function SparePartsPage() {
         )}
 
         {error && (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 shadow-sm">
             <div className="flex items-center gap-3">
               <AlertCircle className="h-5 w-5 text-rose-600" />
               <p className="text-sm text-rose-800">{error}</p>
@@ -344,7 +345,7 @@ export function SparePartsPage() {
         )}
 
         {loading && (
-          <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center">
+          <div className="rounded-[28px] border border-slate-200 bg-white/95 p-12 text-center shadow-sm">
             <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-slate-400" />
             <p className="text-sm text-slate-600">Carregando peças...</p>
           </div>
@@ -353,7 +354,7 @@ export function SparePartsPage() {
         {!loading && (
           <>
             <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm xl:col-span-2">
+              <div className="rounded-[28px] border border-slate-200 bg-white/95 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)] xl:col-span-2">
                 <div className="border-b border-slate-100 p-5">
                   <h2 className="text-lg font-semibold text-slate-900">Pecas cadastradas</h2>
                   <p className="text-sm text-slate-500">{parts.length} itens</p>
@@ -385,7 +386,7 @@ export function SparePartsPage() {
                         </tr>
                       )}
                       {parts.map((part) => (
-                        <tr key={part.id}>
+                        <tr key={part.id} className="transition hover:bg-amber-50/40">
                           <td className="px-6 py-4 text-sm font-medium text-slate-900">
                             {part.code}
                           </td>
@@ -403,7 +404,7 @@ export function SparePartsPage() {
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="rounded-[28px] border border-slate-200 bg-white/95 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
                 <div className="border-b border-slate-100 p-5">
                   <h2 className="text-lg font-semibold text-slate-900">Movimento de stock</h2>
                   <p className="text-sm text-slate-500">Registrar entrada/saida</p>
@@ -495,7 +496,7 @@ export function SparePartsPage() {
             </section>
 
             {movements.length > 0 && (
-              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="rounded-[28px] border border-slate-200 bg-white/95 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
                 <div className="border-b border-slate-100 p-5">
                   <h2 className="text-lg font-semibold text-slate-900">Movimentos recentes</h2>
                   <p className="text-sm text-slate-500">Ultimos registos da planta</p>
@@ -520,14 +521,24 @@ export function SparePartsPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
                       {movements.map((movement) => (
-                        <tr key={movement.id}>
+                        <tr key={movement.id} className="transition hover:bg-amber-50/40">
                           <td className="px-6 py-4 text-sm text-slate-700">
                             {movement.spare_part
                               ? `${movement.spare_part.code} - ${movement.spare_part.name}`
                               : '-'}
                           </td>
                           <td className="px-6 py-4 text-sm text-slate-700 capitalize">
-                            {movement.type}
+                            <span
+                              className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                                movement.type === 'entrada'
+                                  ? 'bg-emerald-100 text-emerald-700'
+                                  : movement.type === 'saida'
+                                  ? 'bg-rose-100 text-rose-700'
+                                  : 'bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              {movement.type}
+                            </span>
                           </td>
                           <td className="px-6 py-4 text-sm text-slate-700">
                             {movement.quantity}

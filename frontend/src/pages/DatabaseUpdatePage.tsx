@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { MainLayout } from '../layouts/MainLayout';
 import { AlertCircle, CheckCircle, Database, RefreshCw, Server, Wrench } from 'lucide-react';
 import {
   clearAllData,
@@ -44,7 +45,11 @@ interface MigrationResult {
   files?: string[];
 }
 
-export function DatabaseUpdatePage() {
+interface DatabaseUpdatePageProps {
+  embedded?: boolean;
+}
+
+export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps) {
   const [status, setStatus] = useState<DatabaseStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -158,8 +163,8 @@ export function DatabaseUpdatePage() {
     fetchStatus();
   }, []);
 
-  return (
-    <div className="p-6 max-w-5xl mx-auto">
+  const content = (
+    <div className={embedded ? 'space-y-6 font-display' : 'p-6 max-w-5xl mx-auto'}>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
           <Wrench className="w-8 h-8 text-primary-600" />
@@ -288,4 +293,10 @@ export function DatabaseUpdatePage() {
       </div>
     </div>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <MainLayout>{content}</MainLayout>;
 }
