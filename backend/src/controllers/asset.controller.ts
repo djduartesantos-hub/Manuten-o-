@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AssetService } from '../services/asset.service.js';
 import { CreateAssetSchema, UpdateAssetSchema } from '../schemas/validation.js';
@@ -8,9 +8,25 @@ import { ZodError } from 'zod';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 import { db } from '../config/database.js';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const resolvePlantId = async (req: AuthenticatedRequest, tenantId?: string) => {
   const direct = (req.plantId as string) || (req.params?.plantId as string);
   if (direct && direct.trim() !== '') {
+    if (UUID_REGEX.test(direct)) {
+      return direct;
+    }
+
+    if (tenantId) {
+      const byCode = await db.query.plants.findFirst({
+        where: (fields: any, { eq, and }: any) =>
+          and(eq(fields.tenant_id, tenantId), eq(fields.code, direct)),
+      });
+      if (byCode) {
+        return byCode.id;
+      }
+    }
+
     return direct;
   }
 
