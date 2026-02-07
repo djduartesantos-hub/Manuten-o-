@@ -1261,7 +1261,9 @@ export function WorkOrdersPage() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Notas</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Trabalho realizado
+                  </label>
                   <textarea
                     className="input min-h-[96px]"
                     value={updateForm.notes}
