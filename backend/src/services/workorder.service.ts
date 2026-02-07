@@ -3,7 +3,7 @@ import {
   workOrders,
   workOrderTasks,
 } from '../db/schema.js';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { CacheKeys, CacheTTL, RedisService } from './redis.service.js';
 import { logger } from '../config/logger.js';
@@ -382,6 +382,48 @@ export class WorkOrderService {
     }
 
     return task;
+  }
+
+  static async getTasks(workOrderId: string) {
+    return db
+      .select()
+      .from(workOrderTasks)
+      .where(eq(workOrderTasks.work_order_id, workOrderId));
+  }
+
+  static async setTaskCompletion(taskId: string, isCompleted: boolean) {
+    const [task] = await db
+      .update(workOrderTasks)
+      .set({
+        is_completed: isCompleted,
+        completed_at: isCompleted ? new Date() : null,
+      })
+      .where(eq(workOrderTasks.id, taskId))
+      .returning();
+
+    try {
+      const workOrder = await db.query.workOrders.findFirst({
+        where: (fields: any, { eq }: any) => eq(fields.id, task.work_order_id),
+      });
+      if (workOrder) {
+        await RedisService.del(CacheKeys.workOrder(workOrder.tenant_id, task.work_order_id));
+      }
+    } catch (cacheError) {
+      logger.warn('Work order cache invalidation error:', cacheError);
+    }
+
+    return task;
+  }
+
+  static async hasIncompleteTasks(workOrderId: string): Promise<boolean> {
+    const result = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM work_order_tasks
+      WHERE work_order_id = ${workOrderId}
+        AND is_completed = false
+    `);
+    const count = Number(result.rows?.[0]?.count ?? 0);
+    return count > 0;
   }
 
   static async completeTask(taskId: string) {

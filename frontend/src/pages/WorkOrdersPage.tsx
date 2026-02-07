@@ -25,9 +25,12 @@ import {
   deleteWorkOrder,
   getAssets,
   getApiHealth,
+  getWorkOrder,
   getSpareParts,
   getStockMovementsByPlant,
   getWorkOrders,
+  addWorkOrderTask,
+  updateWorkOrderTask,
   updateWorkOrder,
 } from '../services/api';
 import { DiagnosticsPanel } from '../components/DiagnosticsPanel';
@@ -58,6 +61,13 @@ interface StockMovement {
   } | null;
 }
 
+interface WorkOrderTask {
+  id: string;
+  description: string;
+  is_completed: boolean;
+  completed_at?: string | null;
+}
+
 interface WorkOrder {
   id: string;
   title: string;
@@ -76,6 +86,7 @@ interface WorkOrder {
   completed_at?: string | null;
   notes?: string | null;
   work_performed?: string | null;
+  tasks?: WorkOrderTask[];
   asset?: {
     code: string;
     name: string;
@@ -180,6 +191,11 @@ export function WorkOrdersPage() {
   const [orderMovements, setOrderMovements] = useState<StockMovement[]>([]);
   const [orderMovementsLoading, setOrderMovementsLoading] = useState(false);
   const [orderMovementsError, setOrderMovementsError] = useState<string | null>(null);
+  const [orderTasks, setOrderTasks] = useState<WorkOrderTask[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
+  const [tasksError, setTasksError] = useState<string | null>(null);
+  const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [tasksSaving, setTasksSaving] = useState(false);
   const [templates, setTemplates] = useState<
     Array<{ name: string; data: WorkOrderFormState }>
   >([]);
@@ -525,6 +541,9 @@ export function WorkOrdersPage() {
     setUsagePartSearch('');
     setOrderMovements([]);
     setOrderMovementsError(null);
+    setOrderTasks([]);
+    setTasksError(null);
+    setNewTaskDescription('');
     setUpdateForm({
       status: order.status || 'aberta',
       priority: order.priority || 'media',
@@ -534,6 +553,7 @@ export function WorkOrdersPage() {
       notes: order.notes || '',
       completed_at: toDateTimeLocal(order.completed_at),
     });
+    loadWorkOrderDetails(order.id);
   };
 
   useEffect(() => {
@@ -541,6 +561,82 @@ export function WorkOrdersPage() {
     loadOrderMovements(editingOrder.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingOrder, selectedPlant]);
+
+  const loadWorkOrderDetails = async (workOrderId: string) => {
+    if (!selectedPlant) return;
+    setTasksLoading(true);
+    setTasksError(null);
+    try {
+      const workOrder = await getWorkOrder(selectedPlant, workOrderId);
+      setEditingOrder(workOrder);
+      setOrderTasks(workOrder.tasks || []);
+      setUpdateForm({
+        status: workOrder.status || 'aberta',
+        priority: workOrder.priority || 'media',
+        scheduled_date: toDateTimeLocal(workOrder.scheduled_date),
+        actual_hours: workOrder.actual_hours || '',
+        work_performed: workOrder.work_performed || '',
+        notes: workOrder.notes || '',
+        completed_at: toDateTimeLocal(workOrder.completed_at),
+      });
+    } catch (err: any) {
+      setTasksError(err.message || 'Erro ao carregar tarefas.');
+    } finally {
+      setTasksLoading(false);
+    }
+  };
+
+  const handleAddTask = async () => {
+    if (!selectedPlant || !editingOrder) return;
+    if (!editingPermissions?.canOperateOrder) {
+      setTasksError('Sem permissao para atualizar tarefas.');
+      return;
+    }
+    if (!newTaskDescription.trim()) {
+      setTasksError('Indique a tarefa.');
+      return;
+    }
+
+    setTasksSaving(true);
+    setTasksError(null);
+    try {
+      const task = await addWorkOrderTask(
+        selectedPlant,
+        editingOrder.id,
+        newTaskDescription.trim(),
+      );
+      setOrderTasks((prev) => [...prev, task]);
+      setNewTaskDescription('');
+    } catch (err: any) {
+      setTasksError(err.message || 'Erro ao adicionar tarefa.');
+    } finally {
+      setTasksSaving(false);
+    }
+  };
+
+  const handleToggleTask = async (task: WorkOrderTask) => {
+    if (!selectedPlant || !editingOrder) return;
+    if (!editingPermissions?.canOperateOrder) {
+      setTasksError('Sem permissao para atualizar tarefas.');
+      return;
+    }
+
+    setTasksSaving(true);
+    setTasksError(null);
+    try {
+      const updated = await updateWorkOrderTask(
+        selectedPlant,
+        editingOrder.id,
+        task.id,
+        !task.is_completed,
+      );
+      setOrderTasks((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+    } catch (err: any) {
+      setTasksError(err.message || 'Erro ao atualizar tarefa.');
+    } finally {
+      setTasksSaving(false);
+    }
+  };
 
   const handleAddUsedPart = async () => {
     if (!selectedPlant || !editingOrder) return;
@@ -718,6 +814,16 @@ export function WorkOrdersPage() {
     if (!selectedPlant || !editingOrder || !userId) return;
     if (!isAdmin && editingOrder.assigned_to !== userId) {
       setError('Apenas o responsavel pode terminar a ordem');
+      return;
+    }
+
+    if (!updateForm.work_performed.trim()) {
+      setError('Indique o trabalho realizado antes de terminar a ordem');
+      return;
+    }
+
+    if (orderTasks.some((task) => !task.is_completed)) {
+      setError('Conclua todas as tarefas antes de terminar a ordem');
       return;
     }
 
@@ -905,6 +1011,10 @@ export function WorkOrdersPage() {
       (editingOrder.status === 'concluida'
         ? editingPermissions?.canOperateOrder
         : editingPermissions?.canEditOrder || editingPermissions?.canOperateOrder),
+  );
+
+  const canShowChecklist = Boolean(
+    editingOrder && (editingPermissions?.canOperateOrder || editingPermissions?.canEditOrder),
   );
 
   return (
@@ -1349,6 +1459,84 @@ export function WorkOrdersPage() {
                       Fechar
                     </button>
                   </div>
+                </div>
+              )}
+
+              {canShowChecklist && (
+                <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    Checklist
+                  </p>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Marque as tarefas concluídas antes de finalizar a ordem.
+                  </p>
+
+                  {tasksError && (
+                    <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                      {tasksError}
+                    </div>
+                  )}
+
+                  {tasksLoading && (
+                    <p className="mt-4 text-xs text-slate-500">A carregar tarefas...</p>
+                  )}
+
+                  {!tasksLoading && orderTasks.length === 0 && (
+                    <p className="mt-4 text-xs text-slate-500">
+                      Ainda nao ha tarefas registadas nesta ordem.
+                    </p>
+                  )}
+
+                  {orderTasks.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      {orderTasks.map((task) => (
+                        <label
+                          key={task.id}
+                          className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={task.is_completed}
+                            onChange={() => handleToggleTask(task)}
+                            disabled={tasksSaving || !editingPermissions?.canOperateOrder}
+                          />
+                          <span
+                            className={
+                              task.is_completed
+                                ? 'text-slate-400 line-through'
+                                : 'text-slate-700'
+                            }
+                          >
+                            {task.description}
+                          </span>
+                          {task.completed_at && (
+                            <span className="ml-auto text-[11px] text-slate-400">
+                              {formatShortDateTime(task.completed_at)}
+                            </span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {editingPermissions?.canOperateOrder && (
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <input
+                        className="input flex-1"
+                        placeholder="Adicionar tarefa"
+                        value={newTaskDescription}
+                        onChange={(event) => setNewTaskDescription(event.target.value)}
+                        disabled={tasksSaving}
+                      />
+                      <button
+                        className="btn-secondary"
+                        onClick={handleAddTask}
+                        disabled={tasksSaving}
+                      >
+                        Adicionar
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 

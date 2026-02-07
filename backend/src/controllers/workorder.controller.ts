@@ -225,6 +225,26 @@ export class WorkOrderController {
           });
           return;
         }
+
+        if (updates.status === 'concluida') {
+          const workPerformed = updates.work_performed ?? existing.work_performed;
+          if (!workPerformed || String(workPerformed).trim() === '') {
+            res.status(400).json({
+              success: false,
+              error: 'Indique o trabalho realizado antes de concluir',
+            });
+            return;
+          }
+
+          const hasIncomplete = await WorkOrderService.hasIncompleteTasks(existing.id);
+          if (hasIncomplete) {
+            res.status(400).json({
+              success: false,
+              error: 'Conclua todas as tarefas antes de terminar a ordem',
+            });
+            return;
+          }
+        }
       }
 
       const workOrder = await WorkOrderService.updateWorkOrder(
@@ -319,6 +339,142 @@ export class WorkOrderController {
       res.status(500).json({
         success: false,
         error: 'Failed to delete work order',
+      });
+    }
+  }
+
+  static async listTasks(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { workOrderId, plantId } = req.params;
+      const tenantId = req.tenantId;
+
+      if (!tenantId || !workOrderId || !plantId) {
+        res.status(400).json({
+          success: false,
+          error: 'Work order ID is required',
+        });
+        return;
+      }
+
+      const workOrder = await WorkOrderService.getWorkOrderById(tenantId, workOrderId, plantId);
+      if (!workOrder) {
+        res.status(404).json({
+          success: false,
+          error: 'Work order not found',
+        });
+        return;
+      }
+
+      const tasks = await WorkOrderService.getTasks(workOrderId);
+      res.json({
+        success: true,
+        data: tasks,
+      });
+    } catch (error) {
+      logger.error('List work order tasks error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch work order tasks',
+      });
+    }
+  }
+
+  static async addTask(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { workOrderId, plantId } = req.params;
+      const tenantId = req.tenantId;
+      const { description } = req.body;
+
+      if (!tenantId || !workOrderId || !plantId) {
+        res.status(400).json({
+          success: false,
+          error: 'Work order ID is required',
+        });
+        return;
+      }
+
+      if (!description || String(description).trim() === '') {
+        res.status(400).json({
+          success: false,
+          error: 'Descricao da tarefa e obrigatoria',
+        });
+        return;
+      }
+
+      const workOrder = await WorkOrderService.getWorkOrderById(tenantId, workOrderId, plantId);
+      if (!workOrder) {
+        res.status(404).json({
+          success: false,
+          error: 'Work order not found',
+        });
+        return;
+      }
+
+      const task = await WorkOrderService.addTask(workOrderId, String(description).trim());
+      res.status(201).json({
+        success: true,
+        data: task,
+      });
+    } catch (error) {
+      logger.error('Add work order task error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to add task',
+      });
+    }
+  }
+
+  static async updateTask(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { workOrderId, plantId, taskId } = req.params;
+      const tenantId = req.tenantId;
+      const { is_completed } = req.body;
+
+      if (!tenantId || !workOrderId || !plantId || !taskId) {
+        res.status(400).json({
+          success: false,
+          error: 'Task ID is required',
+        });
+        return;
+      }
+
+      if (typeof is_completed !== 'boolean') {
+        res.status(400).json({
+          success: false,
+          error: 'Estado da tarefa invalido',
+        });
+        return;
+      }
+
+      const workOrder = await WorkOrderService.getWorkOrderById(tenantId, workOrderId, plantId);
+      if (!workOrder) {
+        res.status(404).json({
+          success: false,
+          error: 'Work order not found',
+        });
+        return;
+      }
+
+      const tasks = await WorkOrderService.getTasks(workOrderId);
+      const taskExists = tasks.some((task: any) => task.id === taskId);
+      if (!taskExists) {
+        res.status(404).json({
+          success: false,
+          error: 'Task not found',
+        });
+        return;
+      }
+
+      const task = await WorkOrderService.setTaskCompletion(taskId, is_completed);
+      res.json({
+        success: true,
+        data: task,
+      });
+    } catch (error) {
+      logger.error('Update work order task error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to update task',
       });
     }
   }

@@ -176,6 +176,29 @@ export async function updateWorkOrder(plantId: string, workOrderId: string, data
   });
 }
 
+export async function getWorkOrderTasks(plantId: string, workOrderId: string) {
+  return apiCall(`/${plantId}/work-orders/${workOrderId}/tasks`);
+}
+
+export async function addWorkOrderTask(plantId: string, workOrderId: string, description: string) {
+  return apiCall(`/${plantId}/work-orders/${workOrderId}/tasks`, {
+    method: 'POST',
+    body: JSON.stringify({ description }),
+  });
+}
+
+export async function updateWorkOrderTask(
+  plantId: string,
+  workOrderId: string,
+  taskId: string,
+  is_completed: boolean,
+) {
+  return apiCall(`/${plantId}/work-orders/${workOrderId}/tasks/${taskId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ is_completed }),
+  });
+}
+
 export async function deleteWorkOrder(plantId: string, workOrderId: string) {
   return apiCall(`/${plantId}/work-orders/${workOrderId}`, {
     method: 'DELETE',
