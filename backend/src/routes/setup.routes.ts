@@ -26,6 +26,14 @@ router.post(
 	SetupController.patchWorkOrders,
 );
 
+// POST /api/setup/patch/all - Apply all corrections and migrations
+router.post(
+  '/patch/all',
+  authMiddleware,
+  requireRole('superadmin'),
+  SetupController.applyCorrections,
+);
+
 // POST /api/setup/clear - Clear all data (dangerous!) (requires auth)
 router.post('/clear', authMiddleware, requireRole('superadmin'), SetupController.clearData);
 

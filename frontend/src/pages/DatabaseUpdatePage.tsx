@@ -5,6 +5,7 @@ import {
   clearAllData,
   getSetupStatus,
   initializeDatabase,
+  applyDbCorrections,
   patchWorkOrders,
   runMigrations,
   seedDemoData,
@@ -44,6 +45,11 @@ interface DatabaseStatus {
 
 interface MigrationResult {
   files?: string[];
+}
+
+interface CorrectionsResult {
+  migrations?: string[];
+  patches?: string[];
 }
 
 interface DatabaseUpdatePageProps {
@@ -131,6 +137,37 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
       await fetchStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApplyCorrections = async () => {
+    if (!confirm('Aplicar todas as correcoes estruturais na base de dados?')) {
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const result: CorrectionsResult = await applyDbCorrections();
+      const migrationsList = result?.migrations || [];
+      const patchesList = result?.patches || [];
+      const details = [
+        migrationsList.length > 0
+          ? `Migracoes: ${migrationsList.join(', ')}`
+          : 'Sem migracoes pendentes.',
+        patchesList.length > 0
+          ? `Patches: ${patchesList.join(', ')}`
+          : 'Sem patches adicionais.',
+      ].join('\n');
+      setMigrations(migrationsList);
+      setSuccess(`Correcoes aplicadas com sucesso.\n${details}`);
+      await fetchStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao aplicar correcoes');
     } finally {
       setLoading(false);
     }
@@ -272,13 +309,27 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
           </div>
         )}
 
-        <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-4 mb-6">
+        <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-4 mb-6 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-amber-900">Correcoes rapidas</p>
+              <p className="text-sm font-semibold text-amber-900">Correcoes estruturais</p>
               <p className="text-xs text-amber-800 mt-1">
-                Use este patch se surgir erro ao carregar ordens de trabalho (coluna
-                <span className="font-semibold"> work_performed</span> em falta).
+                Executa migracoes e patches recomendados para manter a estrutura atualizada.
+              </p>
+            </div>
+            <button
+              onClick={handleApplyCorrections}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-700 text-white rounded-lg hover:bg-amber-800 disabled:bg-gray-400 transition"
+            >
+              <Wrench className="w-4 h-4" />
+              Aplicar correcoes gerais
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-amber-800">
+                Use o patch abaixo apenas para corrigir falhas nas ordens de trabalho.
               </p>
             </div>
             <button

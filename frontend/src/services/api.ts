@@ -485,6 +485,12 @@ export async function patchWorkOrders() {
   });
 }
 
+export async function applyDbCorrections() {
+  return apiCall('/setup/patch/all', {
+    method: 'POST',
+  });
+}
+
 export async function clearAllData() {
   return apiCall('/setup/clear', {
     method: 'POST',

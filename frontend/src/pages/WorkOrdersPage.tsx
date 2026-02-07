@@ -606,6 +606,11 @@ export function WorkOrdersPage() {
       return;
     }
 
+    if (editingOrder.status === 'concluida' && !canOperateOrder) {
+      setError('Apenas o responsavel ou admin pode alterar ordens concluidas');
+      return;
+    }
+
     setUpdating(true);
     setError(null);
 
@@ -887,6 +892,21 @@ export function WorkOrdersPage() {
     };
   }, [editingOrder, isAdmin, isManager, userId]);
 
+  const canShowPartsSection = Boolean(
+    editingOrder &&
+      editingPermissions?.canOperateOrder &&
+      (editingOrder.status === 'em_curso' ||
+        editingOrder.status === 'concluida' ||
+        Boolean(editingOrder.started_at)),
+  );
+
+  const canShowEditForm = Boolean(
+    editingOrder &&
+      (editingOrder.status === 'concluida'
+        ? editingPermissions?.canOperateOrder
+        : editingPermissions?.canEditOrder || editingPermissions?.canOperateOrder),
+  );
+
   return (
     <MainLayout>
       <div className="space-y-8 font-display">
@@ -1148,7 +1168,7 @@ export function WorkOrdersPage() {
               onClick={() => setEditingOrder(null)}
             />
             <div
-              className="relative w-full max-w-5xl max-h-[88vh] overflow-y-auto rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]"
+              className="relative w-full max-w-5xl max-h-[88vh] overflow-y-auto rounded-[32px] border border-slate-200 bg-gradient-to-br from-white via-white to-emerald-50/60 p-6 shadow-[0_40px_80px_-45px_rgba(15,23,42,0.6)]"
               role="dialog"
               aria-modal="true"
             >
@@ -1158,348 +1178,363 @@ export function WorkOrdersPage() {
               >
                 Fechar
               </button>
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-700">
-                Detalhes da ordem
-              </p>
-              <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900">
-                    {editingOrder.title}
-                  </h2>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {editingOrder.asset
-                      ? `${editingOrder.asset.code} - ${editingOrder.asset.name}`
-                      : 'Sem ativo'}
+              <div className="space-y-6">
+                <div className="rounded-[24px] border border-slate-200 bg-white/95 p-5 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-700">
+                    Detalhes da ordem
                   </p>
+                  <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h2 className="text-xl font-semibold text-slate-900">
+                        {editingOrder.title}
+                      </h2>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {editingOrder.asset
+                          ? `${editingOrder.asset.code} - ${editingOrder.asset.name}`
+                          : 'Sem ativo'}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        statusBadgeClass[editingOrder.status] || 'bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      {statusLabels[editingOrder.status] || editingOrder.status}
+                    </span>
+                  </div>
                 </div>
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    statusBadgeClass[editingOrder.status] || 'bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  {statusLabels[editingOrder.status] || editingOrder.status}
-                </span>
-              </div>
 
-              {editingPermissions?.isAssignedToOther &&
-                !editingPermissions?.canEditOrder &&
-                !editingPermissions?.canOperateOrder && (
-                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
-                  Esta ordem esta atribuida a outro utilizador. Apenas leitura.
+                {editingPermissions?.isAssignedToOther &&
+                  !editingPermissions?.canEditOrder &&
+                  !editingPermissions?.canOperateOrder && (
+                  <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
+                    Esta ordem esta atribuida a outro utilizador. Apenas leitura.
+                  </div>
+                )}
+
+                <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                      Resumo rapido
+                    </p>
+                  </div>
+                  <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                      <p className="font-semibold text-slate-700">Criado por</p>
+                      <p className="mt-1">
+                        {editingOrder.createdByUser
+                          ? `${editingOrder.createdByUser.first_name} ${editingOrder.createdByUser.last_name}`
+                          : 'Nao informado'}
+                      </p>
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        {formatDateTime(editingOrder.created_at)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                      <p className="font-semibold text-slate-700">Responsavel</p>
+                      <p className="mt-1">
+                        {editingOrder.assignedUser
+                          ? `${editingOrder.assignedUser.first_name} ${editingOrder.assignedUser.last_name}`
+                          : 'Nao atribuido'}
+                      </p>
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        {formatDateTime(
+                          editingOrder.started_at || editingOrder.updated_at || editingOrder.created_at,
+                        )}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                      <p className="font-semibold text-slate-700">Prioridade</p>
+                      <p className="mt-1">{updateForm.priority}</p>
+                    </div>
+                  </div>
+                </div>
+
+              {canShowEditForm && (
+                <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    Atualizacao da ordem
+                  </p>
+                  <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Prioridade</label>
+                      <select
+                        className="input"
+                        value={updateForm.priority}
+                        onChange={(event) =>
+                          setUpdateForm({ ...updateForm, priority: event.target.value })
+                        }
+                        disabled={!editingPermissions?.canEditOrder}
+                      >
+                        <option value="baixa">Baixa</option>
+                        <option value="media">Media</option>
+                        <option value="alta">Alta</option>
+                        <option value="critica">Critica</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Data e hora planeada
+                      </label>
+                      <input
+                        type="datetime-local"
+                        className="input"
+                        value={updateForm.scheduled_date}
+                        onChange={(event) =>
+                          setUpdateForm({ ...updateForm, scheduled_date: event.target.value })
+                        }
+                        disabled={!editingPermissions?.canEditOrder}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Horas reais
+                      </label>
+                      <input
+                        className="input"
+                        value={updateForm.actual_hours}
+                        onChange={(event) =>
+                          setUpdateForm({ ...updateForm, actual_hours: event.target.value })
+                        }
+                        disabled={!editingPermissions?.canOperateOrder}
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Trabalho realizado
+                      </label>
+                      <textarea
+                        className="input min-h-[96px]"
+                        value={updateForm.work_performed}
+                        onChange={(event) =>
+                          setUpdateForm({ ...updateForm, work_performed: event.target.value })
+                        }
+                        disabled={!editingPermissions?.canOperateOrder}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Notas</label>
+                      <textarea
+                        className="input min-h-[96px]"
+                        value={updateForm.notes}
+                        onChange={(event) =>
+                          setUpdateForm({ ...updateForm, notes: event.target.value })
+                        }
+                        disabled={!editingPermissions?.canOperateOrder}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex flex-wrap items-center gap-3">
+                    <button onClick={handleUpdate} className="btn-primary" disabled={updating}>
+                      {updating ? 'A atualizar...' : 'Guardar alteracoes'}
+                    </button>
+                    {editingPermissions?.canDeleteOrder && (
+                      <button
+                        onClick={handleDeleteOrder}
+                        className="btn-secondary text-rose-600"
+                        disabled={updating}
+                      >
+                        Eliminar
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setEditingOrder(null)}
+                      className="btn-secondary"
+                      disabled={updating}
+                    >
+                      Fechar
+                    </button>
+                  </div>
                 </div>
               )}
 
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-                  <p className="font-semibold text-slate-700">Criado por</p>
-                  <p className="mt-1">
-                    {editingOrder.createdByUser
-                      ? `${editingOrder.createdByUser.first_name} ${editingOrder.createdByUser.last_name}`
-                      : 'Nao informado'}
+              {canShowPartsSection && (
+                <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    Pecas utilizadas
                   </p>
-                  <p className="mt-1 text-[11px] text-slate-500">
-                    {formatDateTime(editingOrder.created_at)}
+                  <p className="mt-2 text-sm text-slate-600">
+                    Registe as pecas consumidas nesta ordem para atualizar o stock.
                   </p>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-                  <p className="font-semibold text-slate-700">Responsavel</p>
-                  <p className="mt-1">
-                    {editingOrder.assignedUser
-                      ? `${editingOrder.assignedUser.first_name} ${editingOrder.assignedUser.last_name}`
-                      : 'Nao atribuido'}
-                  </p>
-                  <p className="mt-1 text-[11px] text-slate-500">
-                    {formatDateTime(editingOrder.started_at || editingOrder.updated_at || editingOrder.created_at)}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-                  <p className="font-semibold text-slate-700">Prioridade</p>
-                  <p className="mt-1">{updateForm.priority}</p>
-                </div>
-              </div>
 
-              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Prioridade</label>
-                  <select
-                    className="input"
-                    value={updateForm.priority}
-                    onChange={(event) =>
-                      setUpdateForm({ ...updateForm, priority: event.target.value })
-                    }
-                    disabled={!editingPermissions?.canEditOrder}
-                  >
-                    <option value="baixa">Baixa</option>
-                    <option value="media">Media</option>
-                    <option value="alta">Alta</option>
-                    <option value="critica">Critica</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Data e hora planeada
-                  </label>
-                  <input
-                    type="datetime-local"
-                    className="input"
-                    value={updateForm.scheduled_date}
-                    onChange={(event) =>
-                      setUpdateForm({ ...updateForm, scheduled_date: event.target.value })
-                    }
-                    disabled={!editingPermissions?.canEditOrder}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Horas reais
-                  </label>
-                  <input
-                    className="input"
-                    value={updateForm.actual_hours}
-                    onChange={(event) =>
-                      setUpdateForm({ ...updateForm, actual_hours: event.target.value })
-                    }
-                    disabled={!editingPermissions?.canOperateOrder}
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Trabalho realizado
-                  </label>
-                  <textarea
-                    className="input min-h-[96px]"
-                    value={updateForm.work_performed}
-                    onChange={(event) =>
-                      setUpdateForm({ ...updateForm, work_performed: event.target.value })
-                    }
-                    disabled={!editingPermissions?.canOperateOrder}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Notas</label>
-                  <textarea
-                    className="input min-h-[96px]"
-                    value={updateForm.notes}
-                    onChange={(event) =>
-                      setUpdateForm({ ...updateForm, notes: event.target.value })
-                    }
-                    disabled={!editingPermissions?.canOperateOrder}
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                {(editingPermissions?.canEditOrder || editingPermissions?.canOperateOrder) && (
-                  <button onClick={handleUpdate} className="btn-primary" disabled={updating}>
-                    {updating ? 'A atualizar...' : 'Guardar alteracoes'}
-                  </button>
-                )}
-                {editingPermissions?.canDeleteOrder && (
-                  <button
-                    onClick={handleDeleteOrder}
-                    className="btn-secondary text-rose-600"
-                    disabled={updating}
-                  >
-                    Eliminar
-                  </button>
-                )}
-                <button
-                  onClick={() => setEditingOrder(null)}
-                  className="btn-secondary"
-                  disabled={updating}
-                >
-                  Fechar
-                </button>
-              </div>
-
-              <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                  Pecas utilizadas
-                </p>
-                <p className="mt-2 text-sm text-slate-600">
-                  Registe as pecas consumidas nesta ordem para atualizar o stock.
-                </p>
-
-                {editingOrder.status !== 'em_curso' && (
-                  <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-                    Esta funcionalidade fica disponivel apos iniciar a ordem.
-                  </div>
-                )}
-
-                {editingOrder.status === 'em_curso' && (
-                  <div className="mt-4 space-y-4">
-                    {partsError && (
-                      <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                        {partsError}
+                  {editingOrder.status === 'em_curso' && (
+                    <div className="mt-4 space-y-4">
+                      {partsError && (
+                        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                          {partsError}
+                        </div>
+                      )}
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Peca
+                          </label>
+                          <input
+                            className="input mb-2"
+                            placeholder="Pesquisar peca"
+                            value={usagePartSearch}
+                            onChange={(event) => setUsagePartSearch(event.target.value)}
+                            disabled={partsLoading || !editingPermissions?.canOperateOrder}
+                          />
+                          <select
+                            className="input"
+                            value={usageForm.spare_part_id}
+                            onChange={(event) =>
+                              setUsageForm({ ...usageForm, spare_part_id: event.target.value })
+                            }
+                            disabled={partsLoading || !editingPermissions?.canOperateOrder}
+                          >
+                            <option value="">Selecionar...</option>
+                            {filteredUsageParts.map((part) => (
+                              <option key={part.id} value={part.id}>
+                                {part.code} - {part.name}
+                              </option>
+                            ))}
+                          </select>
+                          {!partsLoading && filteredUsageParts.length === 0 && (
+                            <p className="mt-2 text-xs text-slate-500">
+                              Nenhuma peca encontrada.
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Quantidade
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            className="input"
+                            value={usageForm.quantity}
+                            onChange={(event) =>
+                              setUsageForm({
+                                ...usageForm,
+                                quantity: Number(event.target.value),
+                              })
+                            }
+                            disabled={!editingPermissions?.canOperateOrder}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Custo unitario (opcional)
+                          </label>
+                          <input
+                            className="input"
+                            value={usageForm.unit_cost}
+                            onChange={(event) =>
+                              setUsageForm({ ...usageForm, unit_cost: event.target.value })
+                            }
+                            disabled={!editingPermissions?.canOperateOrder}
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Notas (opcional)
+                          </label>
+                          <input
+                            className="input"
+                            value={usageForm.notes}
+                            onChange={(event) =>
+                              setUsageForm({ ...usageForm, notes: event.target.value })
+                            }
+                            disabled={!editingPermissions?.canOperateOrder}
+                          />
+                        </div>
                       </div>
-                    )}
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          Peca
-                        </label>
-                        <input
-                          className="input mb-2"
-                          placeholder="Pesquisar peca"
-                          value={usagePartSearch}
-                          onChange={(event) => setUsagePartSearch(event.target.value)}
-                          disabled={partsLoading || !editingPermissions?.canOperateOrder}
-                        />
-                        <select
-                          className="input"
-                          value={usageForm.spare_part_id}
-                          onChange={(event) =>
-                            setUsageForm({ ...usageForm, spare_part_id: event.target.value })
-                          }
-                          disabled={partsLoading || !editingPermissions?.canOperateOrder}
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          className="btn-primary"
+                          onClick={handleAddUsedPart}
+                          disabled={usageSaving || !editingPermissions?.canOperateOrder}
                         >
-                          <option value="">Selecionar...</option>
-                          {filteredUsageParts.map((part) => (
-                            <option key={part.id} value={part.id}>
-                              {part.code} - {part.name}
-                            </option>
-                          ))}
-                        </select>
-                        {!partsLoading && filteredUsageParts.length === 0 && (
-                          <p className="mt-2 text-xs text-slate-500">
-                            Nenhuma peca encontrada.
-                          </p>
+                          {usageSaving ? 'A registar...' : 'Registar peca usada'}
+                        </button>
+                        {usageMessage && (
+                          <span className="text-xs text-slate-500">{usageMessage}</span>
                         )}
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          Quantidade
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          className="input"
-                          value={usageForm.quantity}
-                          onChange={(event) =>
-                            setUsageForm({
-                              ...usageForm,
-                              quantity: Number(event.target.value),
-                            })
-                          }
-                          disabled={!editingPermissions?.canOperateOrder}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          Custo unitario (opcional)
-                        </label>
-                        <input
-                          className="input"
-                          value={usageForm.unit_cost}
-                          onChange={(event) =>
-                            setUsageForm({ ...usageForm, unit_cost: event.target.value })
-                          }
-                          disabled={!editingPermissions?.canOperateOrder}
-                        />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          Notas (opcional)
-                        </label>
-                        <input
-                          className="input"
-                          value={usageForm.notes}
-                          onChange={(event) =>
-                            setUsageForm({ ...usageForm, notes: event.target.value })
-                          }
-                          disabled={!editingPermissions?.canOperateOrder}
-                        />
-                      </div>
                     </div>
+                  )}
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        className="btn-primary"
-                        onClick={handleAddUsedPart}
-                        disabled={usageSaving || !editingPermissions?.canOperateOrder}
-                      >
-                        {usageSaving ? 'A registar...' : 'Registar peca usada'}
-                      </button>
-                      {usageMessage && (
-                        <span className="text-xs text-slate-500">{usageMessage}</span>
+                  <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                        Registos desta ordem
+                      </p>
+                      {orderMovements.length > 0 && (
+                        <span className="text-xs font-semibold text-slate-600">
+                          {orderMovements.length} movimentos
+                        </span>
                       )}
                     </div>
-                  </div>
-                )}
 
-                <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                      Registos desta ordem
-                    </p>
+                    {orderMovementsLoading && (
+                      <p className="mt-3 text-xs text-slate-500">A carregar movimentos...</p>
+                    )}
+                    {orderMovementsError && (
+                      <p className="mt-3 text-xs text-rose-600">{orderMovementsError}</p>
+                    )}
+                    {!orderMovementsLoading &&
+                      !orderMovementsError &&
+                      orderMovements.length === 0 && (
+                        <p className="mt-3 text-xs text-slate-500">
+                          Ainda nao ha pecas registadas nesta ordem.
+                        </p>
+                      )}
+
                     {orderMovements.length > 0 && (
-                      <span className="text-xs font-semibold text-slate-600">
-                        {orderMovements.length} movimentos
-                      </span>
+                      <div className="mt-3 overflow-x-auto">
+                        <table className="min-w-full divide-y divide-slate-200 text-xs">
+                          <thead className="bg-slate-50">
+                            <tr>
+                              <th className="px-3 py-2 text-left font-semibold text-slate-500">
+                                Peca
+                              </th>
+                              <th className="px-3 py-2 text-left font-semibold text-slate-500">
+                                Quantidade
+                              </th>
+                              <th className="px-3 py-2 text-left font-semibold text-slate-500">
+                                Custo
+                              </th>
+                              <th className="px-3 py-2 text-left font-semibold text-slate-500">
+                                Data
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {orderMovements.map((movement) => (
+                              <tr key={movement.id}>
+                                <td className="px-3 py-2 text-slate-700">
+                                  {movement.spare_part
+                                    ? `${movement.spare_part.code} - ${movement.spare_part.name}`
+                                    : '-'}
+                                </td>
+                                <td className="px-3 py-2 text-slate-700">
+                                  {movement.quantity}
+                                </td>
+                                <td className="px-3 py-2 text-slate-700">
+                                  {movement.unit_cost ? `€ ${movement.unit_cost}` : '-'}
+                                </td>
+                                <td className="px-3 py-2 text-slate-500">
+                                  {formatShortDateTime(movement.created_at)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     )}
                   </div>
-
-                  {orderMovementsLoading && (
-                    <p className="mt-3 text-xs text-slate-500">A carregar movimentos...</p>
-                  )}
-                  {orderMovementsError && (
-                    <p className="mt-3 text-xs text-rose-600">{orderMovementsError}</p>
-                  )}
-                  {!orderMovementsLoading && !orderMovementsError && orderMovements.length === 0 && (
-                    <p className="mt-3 text-xs text-slate-500">
-                      Ainda nao ha pecas registadas nesta ordem.
-                    </p>
-                  )}
-
-                  {orderMovements.length > 0 && (
-                    <div className="mt-3 overflow-x-auto">
-                      <table className="min-w-full divide-y divide-slate-200 text-xs">
-                        <thead className="bg-slate-50">
-                          <tr>
-                            <th className="px-3 py-2 text-left font-semibold text-slate-500">
-                              Peca
-                            </th>
-                            <th className="px-3 py-2 text-left font-semibold text-slate-500">
-                              Quantidade
-                            </th>
-                            <th className="px-3 py-2 text-left font-semibold text-slate-500">
-                              Custo
-                            </th>
-                            <th className="px-3 py-2 text-left font-semibold text-slate-500">
-                              Data
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {orderMovements.map((movement) => (
-                            <tr key={movement.id}>
-                              <td className="px-3 py-2 text-slate-700">
-                                {movement.spare_part
-                                  ? `${movement.spare_part.code} - ${movement.spare_part.name}`
-                                  : '-'}
-                              </td>
-                              <td className="px-3 py-2 text-slate-700">
-                                {movement.quantity}
-                              </td>
-                              <td className="px-3 py-2 text-slate-700">
-                                {movement.unit_cost ? `€ ${movement.unit_cost}` : '-'}
-                              </td>
-                              <td className="px-3 py-2 text-slate-500">
-                                {formatShortDateTime(movement.created_at)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
                 </div>
-              </div>
+              )}
 
-              <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                   Acoes
                 </p>
