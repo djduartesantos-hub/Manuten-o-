@@ -56,7 +56,12 @@ export class MaintenanceService {
       try {
         const cacheKey = CacheKeys.maintenancePlans(tenant_id, plant_id);
         const cached = await RedisService.getJSON(cacheKey);
-        if (cached) {
+        if (Array.isArray(cached)) {
+          if (cached.length > 0) {
+            logger.debug(`Cache hit for maintenance plans: ${cacheKey}`);
+            return cached;
+          }
+        } else if (cached) {
           logger.debug(`Cache hit for maintenance plans: ${cacheKey}`);
           return cached;
         }
@@ -111,7 +116,7 @@ export class MaintenanceService {
 
     const plans = await query.orderBy(desc(maintenancePlans.created_at));
 
-    if (!hasFilters) {
+    if (!hasFilters && plans.length > 0) {
       try {
         const cacheKey = CacheKeys.maintenancePlans(tenant_id, plant_id);
         await RedisService.setJSON(cacheKey, plans, CacheTTL.PLANS);
