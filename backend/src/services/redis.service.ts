@@ -12,9 +12,10 @@ export class RedisService {
         port: parseInt(process.env.REDIS_PORT || '6379'),
         password: process.env.REDIS_PASSWORD,
         db: parseInt(process.env.REDIS_DB || '0'),
+        connectTimeout: 2000,
         retryStrategy: (times) => Math.min(times * 50, 2000),
-        enableReadyCheck: false,
-        maxRetriesPerRequest: null,
+        enableReadyCheck: true,
+        maxRetriesPerRequest: 1,
       });
 
       redisClient.on('connect', () => {
@@ -29,10 +30,17 @@ export class RedisService {
     return redisClient;
   }
 
+  private static isReady(client: Redis): boolean {
+    return client.status === 'ready';
+  }
+
   // Get value
   static async get(key: string): Promise<string | null> {
     try {
       const client = this.getInstance();
+      if (!this.isReady(client)) {
+        return null;
+      }
       return await client.get(key);
     } catch (error) {
       logger.error(`Redis GET error for key ${key}:`, error);
@@ -55,6 +63,9 @@ export class RedisService {
   static async set(key: string, value: string, expiresIn?: number): Promise<boolean> {
     try {
       const client = this.getInstance();
+      if (!this.isReady(client)) {
+        return false;
+      }
       if (expiresIn) {
         await client.setex(key, expiresIn, value);
       } else {
@@ -76,6 +87,9 @@ export class RedisService {
   static async del(key: string): Promise<boolean> {
     try {
       const client = this.getInstance();
+      if (!this.isReady(client)) {
+        return false;
+      }
       await client.del(key);
       return true;
     } catch (error) {
@@ -88,6 +102,9 @@ export class RedisService {
   static async delMultiple(keys: string[]): Promise<boolean> {
     try {
       const client = this.getInstance();
+      if (!this.isReady(client)) {
+        return false;
+      }
       if (keys.length > 0) {
         await client.del(...keys);
       }
@@ -102,6 +119,9 @@ export class RedisService {
   static async incr(key: string): Promise<number> {
     try {
       const client = this.getInstance();
+      if (!this.isReady(client)) {
+        return 0;
+      }
       return await client.incr(key);
     } catch (error) {
       logger.error(`Redis INCR error for key ${key}:`, error);
@@ -113,6 +133,9 @@ export class RedisService {
   static async exists(key: string): Promise<boolean> {
     try {
       const client = this.getInstance();
+      if (!this.isReady(client)) {
+        return false;
+      }
       const result = await client.exists(key);
       return result === 1;
     } catch (error) {
@@ -125,6 +148,9 @@ export class RedisService {
   static async ttl(key: string): Promise<number> {
     try {
       const client = this.getInstance();
+      if (!this.isReady(client)) {
+        return -1;
+      }
       return await client.ttl(key);
     } catch (error) {
       logger.error(`Redis TTL error for key ${key}:`, error);
@@ -136,6 +162,9 @@ export class RedisService {
   static async expire(key: string, seconds: number): Promise<boolean> {
     try {
       const client = this.getInstance();
+      if (!this.isReady(client)) {
+        return false;
+      }
       const result = await client.expire(key, seconds);
       return result === 1;
     } catch (error) {
@@ -148,6 +177,9 @@ export class RedisService {
   static async flushDb(): Promise<boolean> {
     try {
       const client = this.getInstance();
+      if (!this.isReady(client)) {
+        return false;
+      }
       await client.flushdb();
       logger.info('Redis DB flushed');
       return true;
@@ -161,6 +193,9 @@ export class RedisService {
   static async ping(): Promise<boolean> {
     try {
       const client = this.getInstance();
+      if (!this.isReady(client)) {
+        return false;
+      }
       const result = await client.ping();
       return result === 'PONG';
     } catch (error) {
