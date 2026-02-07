@@ -1,10 +1,34 @@
 import { Response } from 'express';
+import { eq } from 'drizzle-orm';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AssetService } from '../services/asset.service.js';
 import { CreateAssetSchema, UpdateAssetSchema } from '../schemas/validation.js';
 import { logger } from '../config/logger.js';
 import { ZodError } from 'zod';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
+import { db } from '../config/database.js';
+import { plants } from '../db/schema.js';
+
+const resolvePlantId = async (req: AuthenticatedRequest, tenantId?: string) => {
+  const direct = (req.plantId as string) || (req.params?.plantId as string);
+  if (direct && direct.trim() !== '') {
+    return direct;
+  }
+
+  const fallback = req.user?.plantIds?.[0];
+  if (fallback) {
+    return fallback;
+  }
+
+  if (tenantId) {
+    const firstPlant = await db.query.plants.findFirst({
+      where: (fields: any, { eq }: any) => eq(fields.tenant_id, tenantId),
+    });
+    return firstPlant?.id || null;
+  }
+
+  return null;
+};
 
 export class AssetController {
   /**
@@ -13,7 +37,7 @@ export class AssetController {
    */
   static async list(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const plantId = (req.plantId as string) || (req.params.plantId as string);
+      const plantId = await resolvePlantId(req, tenantId);
       const tenantId = req.tenantId as string;
       const { search, category } = req.query;
 
@@ -81,7 +105,7 @@ export class AssetController {
   static async get(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const plantId = (req.plantId as string) || (req.params.plantId as string);
+      const plantId = await resolvePlantId(req, tenantId);
       const tenantId = req.tenantId as string;
 
       if (!tenantId || !plantId || !id) {
@@ -121,7 +145,7 @@ export class AssetController {
    */
   static async create(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const plantId = (req.plantId as string) || (req.params.plantId as string);
+      const plantId = await resolvePlantId(req, tenantId);
       const tenantId = req.tenantId as string;
 
       if (!tenantId || !plantId) {
@@ -191,7 +215,7 @@ export class AssetController {
   static async update(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const plantId = (req.plantId as string) || (req.params.plantId as string);
+      const plantId = await resolvePlantId(req, tenantId);
       const tenantId = req.tenantId as string;
 
       if (!tenantId || !plantId || !id) {
@@ -261,7 +285,7 @@ export class AssetController {
   static async delete(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const plantId = (req.plantId as string) || (req.params.plantId as string);
+      const plantId = await resolvePlantId(req, tenantId);
       const tenantId = req.tenantId as string;
 
       if (!tenantId || !plantId || !id) {
@@ -293,7 +317,7 @@ export class AssetController {
    */
   static async getDueForMaintenance(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const plantId = (req.plantId as string) || (req.params.plantId as string);
+      const plantId = await resolvePlantId(req, tenantId);
       const tenantId = req.tenantId as string;
 
       if (!tenantId || !plantId) {
