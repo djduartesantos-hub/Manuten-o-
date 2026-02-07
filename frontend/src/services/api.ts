@@ -16,6 +16,9 @@ export async function apiCall<T = any>(
 ): Promise<T> {
   const token = localStorage.getItem('token');
   const url = `${API_BASE_URL}${endpoint}`;
+  const controller = new AbortController();
+  const timeoutMs = 15000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   const headers: any = {
     'Content-Type': 'application/json',
@@ -29,7 +32,10 @@ export async function apiCall<T = any>(
   const response = await fetch(url, {
     ...options,
     headers,
+    signal: controller.signal,
   });
+
+  clearTimeout(timeoutId);
 
   if (!response.ok) {
     const error = await response.json();
@@ -46,13 +52,19 @@ export async function apiCall<T = any>(
 }
 
 async function publicApiCall<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const controller = new AbortController();
+  const timeoutMs = 15000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const response = await fetch(endpoint, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
     },
+    signal: controller.signal,
   });
+
+  clearTimeout(timeoutId);
 
   if (!response.ok) {
     const error = await response.json();
