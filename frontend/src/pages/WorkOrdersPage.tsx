@@ -26,6 +26,7 @@ import {
   getAssets,
   getApiHealth,
   getWorkOrder,
+  getWorkOrderAuditLogs,
   getSpareParts,
   getStockMovementsByPlant,
   getWorkOrders,
@@ -66,6 +67,19 @@ interface WorkOrderTask {
   description: string;
   is_completed: boolean;
   completed_at?: string | null;
+}
+
+interface AuditLog {
+  id: string;
+  action: string;
+  created_at?: string | null;
+  old_values?: Record<string, any> | null;
+  new_values?: Record<string, any> | null;
+  user?: {
+    id?: string;
+    first_name?: string | null;
+    last_name?: string | null;
+  } | null;
 }
 
 interface WorkOrder {
@@ -196,6 +210,9 @@ export function WorkOrdersPage() {
   const [tasksError, setTasksError] = useState<string | null>(null);
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [tasksSaving, setTasksSaving] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<
     Array<{ name: string; data: WorkOrderFormState }>
   >([]);
@@ -534,6 +551,18 @@ export function WorkOrdersPage() {
     return `${datePart} ${timePart}`;
   };
 
+  const formatAuditUser = (log: AuditLog) => {
+    if (!log.user) return 'Sistema';
+    const name = `${log.user.first_name || ''} ${log.user.last_name || ''}`.trim();
+    return name || log.user.id || 'Utilizador';
+  };
+
+  const formatAuditFields = (log: AuditLog) => {
+    const fields = Object.keys(log.new_values || {});
+    if (fields.length === 0) return 'Sem detalhes';
+    return `Campos: ${fields.join(', ')}`;
+  };
+
   const handleStartEdit = (order: WorkOrder) => {
     setEditingOrder(order);
     setUsageForm({ spare_part_id: '', quantity: 1, unit_cost: '', notes: '' });
@@ -544,6 +573,8 @@ export function WorkOrdersPage() {
     setOrderTasks([]);
     setTasksError(null);
     setNewTaskDescription('');
+    setAuditLogs([]);
+    setAuditError(null);
     setUpdateForm({
       status: order.status || 'aberta',
       priority: order.priority || 'media',
@@ -566,10 +597,16 @@ export function WorkOrdersPage() {
     if (!selectedPlant) return;
     setTasksLoading(true);
     setTasksError(null);
+    setAuditLoading(true);
+    setAuditError(null);
     try {
-      const workOrder = await getWorkOrder(selectedPlant, workOrderId);
+      const [workOrder, logs] = await Promise.all([
+        getWorkOrder(selectedPlant, workOrderId),
+        getWorkOrderAuditLogs(selectedPlant, workOrderId),
+      ]);
       setEditingOrder(workOrder);
       setOrderTasks(workOrder.tasks || []);
+      setAuditLogs(logs || []);
       setUpdateForm({
         status: workOrder.status || 'aberta',
         priority: workOrder.priority || 'media',
@@ -581,8 +618,10 @@ export function WorkOrdersPage() {
       });
     } catch (err: any) {
       setTasksError(err.message || 'Erro ao carregar tarefas.');
+      setAuditError(err.message || 'Erro ao carregar historico.');
     } finally {
       setTasksLoading(false);
+      setAuditLoading(false);
     }
   };
 
@@ -1539,6 +1578,50 @@ export function WorkOrdersPage() {
                   )}
                 </div>
               )}
+
+              <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  Historico de alteracoes
+                </p>
+                {auditError && (
+                  <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                    {auditError}
+                  </div>
+                )}
+                {auditLoading && (
+                  <p className="mt-4 text-xs text-slate-500">A carregar historico...</p>
+                )}
+                {!auditLoading && auditLogs.length === 0 && (
+                  <p className="mt-4 text-xs text-slate-500">
+                    Sem alteracoes registadas ainda.
+                  </p>
+                )}
+                {auditLogs.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    {auditLogs.map((log) => (
+                      <div
+                        key={log.id}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-semibold text-slate-700">
+                            {log.action}
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            {formatShortDateTime(log.created_at)}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-[11px] text-slate-500">
+                          {formatAuditUser(log)}
+                        </p>
+                        <p className="mt-1 text-[11px] text-slate-500">
+                          {formatAuditFields(log)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {canShowPartsSection && (
                 <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">

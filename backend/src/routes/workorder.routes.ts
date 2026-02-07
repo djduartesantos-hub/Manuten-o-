@@ -18,5 +18,6 @@ router.delete('/:plantId/work-orders/:workOrderId', WorkOrderController.remove);
 router.get('/:plantId/work-orders/:workOrderId/tasks', WorkOrderController.listTasks);
 router.post('/:plantId/work-orders/:workOrderId/tasks', WorkOrderController.addTask);
 router.patch('/:plantId/work-orders/:workOrderId/tasks/:taskId', WorkOrderController.updateTask);
+router.get('/:plantId/work-orders/:workOrderId/audit', WorkOrderController.listAuditLogs);
 
 export default router;

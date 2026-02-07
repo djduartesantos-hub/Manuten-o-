@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../types/index.js';
 import { WorkOrderService } from '../services/workorder.service.js';
 import { NotificationService } from '../services/notification.service.js';
+import { AuditService } from '../services/audit.service.js';
 import { logger } from '../config/logger.js';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 
@@ -108,6 +109,24 @@ export class WorkOrderController {
         priority,
         estimated_hours,
       });
+
+      if (req.user?.userId) {
+        await AuditService.createLog({
+          tenant_id: tenantId,
+          user_id: req.user.userId,
+          action: 'create',
+          entity_type: 'work_order',
+          entity_id: workOrder.id,
+          new_values: {
+            title: workOrder.title,
+            status: workOrder.status,
+            priority: workOrder.priority,
+            asset_id: workOrder.asset_id,
+            assigned_to: workOrder.assigned_to,
+          },
+          ip_address: req.ip,
+        });
+      }
 
       // Emit real-time notification
       if (isSocketManagerReady()) {
@@ -255,6 +274,29 @@ export class WorkOrderController {
         plantId,
       );
 
+      if (req.user?.userId) {
+        const fields = Object.keys(updates || {});
+        if (fields.length > 0) {
+          const oldValues: Record<string, any> = {};
+          const newValues: Record<string, any> = {};
+          fields.forEach((field) => {
+            oldValues[field] = (existing as any)[field];
+            newValues[field] = (workOrder as any)[field];
+          });
+
+          await AuditService.createLog({
+            tenant_id: tenantId,
+            user_id: req.user.userId,
+            action: 'update',
+            entity_type: 'work_order',
+            entity_id: workOrder.id,
+            old_values: oldValues,
+            new_values: newValues,
+            ip_address: req.ip,
+          });
+        }
+      }
+
       const nextStatus = updates.status ?? existing.status;
       const assignmentChanged =
         Object.prototype.hasOwnProperty.call(updates, 'assigned_to') &&
@@ -358,6 +400,24 @@ export class WorkOrderController {
           error: 'Sem permissao para eliminar esta ordem',
         });
         return;
+      }
+
+      if (req.user?.userId) {
+        await AuditService.createLog({
+          tenant_id: tenantId,
+          user_id: req.user.userId,
+          action: 'delete',
+          entity_type: 'work_order',
+          entity_id: existing.id,
+          old_values: {
+            title: existing.title,
+            status: existing.status,
+            priority: existing.priority,
+            asset_id: existing.asset_id,
+            assigned_to: existing.assigned_to,
+          },
+          ip_address: req.ip,
+        });
       }
 
       await WorkOrderService.deleteWorkOrder(tenantId, workOrderId, plantId);
@@ -507,6 +567,42 @@ export class WorkOrderController {
       res.status(500).json({
         success: false,
         error: 'Failed to update task',
+      });
+    }
+  }
+
+  static async listAuditLogs(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { workOrderId, plantId } = req.params;
+      const tenantId = req.tenantId;
+
+      if (!tenantId || !workOrderId || !plantId) {
+        res.status(400).json({
+          success: false,
+          error: 'Work order ID is required',
+        });
+        return;
+      }
+
+      const workOrder = await WorkOrderService.getWorkOrderById(tenantId, workOrderId, plantId);
+      if (!workOrder) {
+        res.status(404).json({
+          success: false,
+          error: 'Work order not found',
+        });
+        return;
+      }
+
+      const logs = await AuditService.getEntityLogs(tenantId, 'work_order', workOrderId);
+      res.json({
+        success: true,
+        data: logs,
+      });
+    } catch (error) {
+      logger.error('List work order audit logs error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch audit logs',
       });
     }
   }

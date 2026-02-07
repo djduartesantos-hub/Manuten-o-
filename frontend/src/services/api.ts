@@ -176,6 +176,10 @@ export async function updateWorkOrder(plantId: string, workOrderId: string, data
   });
 }
 
+export async function getWorkOrderAuditLogs(plantId: string, workOrderId: string) {
+  return apiCall(`/${plantId}/work-orders/${workOrderId}/audit`);
+}
+
 export async function getWorkOrderTasks(plantId: string, workOrderId: string) {
   return apiCall(`/${plantId}/work-orders/${workOrderId}/tasks`);
 }
