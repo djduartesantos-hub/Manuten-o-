@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, type CSSProperties } from 'react';
 import { MainLayout } from '../layouts/MainLayout';
 import { useAppStore } from '../context/store';
 import {
@@ -82,19 +82,30 @@ export function SettingsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-8 font-display">
-        <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-blue-50 p-8 shadow-sm">
-          <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-blue-200/50 blur-3xl" />
-          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-emerald-200/40 blur-3xl" />
-          <div className="relative flex items-center gap-4">
-            <div className="rounded-2xl bg-blue-100 p-3">
-              <SettingsIcon className="h-6 w-6 text-blue-600" />
+      <div
+        className="relative space-y-10 font-display text-[color:var(--settings-ink)]"
+        style={
+          {
+            '--settings-accent': '#0f766e',
+            '--settings-accent-2': '#2563eb',
+            '--settings-ink': '#0f172a',
+            '--settings-surface': '#f8fafc',
+          } as CSSProperties
+        }
+      >
+        <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#ecfeff,_#ffffff_55%)] p-8 shadow-[0_28px_80px_-60px_rgba(15,118,110,0.5)]">
+          <div className="absolute -right-12 -top-20 h-56 w-56 rounded-full bg-emerald-200/60 blur-3xl" />
+          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-blue-200/50 blur-3xl" />
+          <div className="absolute right-12 top-10 h-2 w-20 rounded-full bg-[color:var(--settings-accent)] opacity-40" />
+          <div className="relative flex flex-col items-start gap-5 md:flex-row md:items-center">
+            <div className="rounded-2xl border border-emerald-100 bg-white/80 p-3 shadow-sm">
+              <SettingsIcon className="h-6 w-6 text-[color:var(--settings-accent)]" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700">
                 Centro de controle
               </p>
-              <h1 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">
+              <h1 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl lg:text-5xl">
                 Configuracoes
               </h1>
               <p className="mt-2 text-sm text-slate-600">
@@ -106,30 +117,39 @@ export function SettingsPage() {
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
           <div className="lg:col-span-1">
-            <nav className="space-y-2 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <nav className="space-y-2 rounded-[28px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all ${
+                  className={`relative w-full rounded-2xl border px-4 py-3 text-left transition-all ${
                     activeTab === tab.id
-                      ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                      : 'text-slate-600 hover:bg-slate-50'
+                      ? 'border-emerald-200 bg-[color:var(--settings-surface)] text-[color:var(--settings-accent)] shadow-sm'
+                      : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-[color:var(--settings-surface)]'
                   }`}
                 >
-                  {tab.icon}
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{tab.label}</div>
-                    <p className="text-xs text-slate-400 truncate">{tab.description}</p>
+                  {activeTab === tab.id && (
+                    <span className="absolute left-2 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-[color:var(--settings-accent)]" />
+                  )}
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-white/70 p-2 text-[color:var(--settings-accent)] shadow-sm">
+                      {tab.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{tab.label}</div>
+                      <p className="text-xs text-slate-400 truncate">{tab.description}</p>
+                    </div>
+                    {activeTab === tab.id && (
+                      <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                    )}
                   </div>
-                  {activeTab === tab.id && <ChevronRight className="w-4 h-4 flex-shrink-0" />}
                 </button>
               ))}
             </nav>
           </div>
 
           <div className="lg:col-span-3">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_20px_60px_-45px_rgba(15,118,110,0.4)]">
               {activeTab === 'alerts' && <AlertsSettings />}
               {activeTab === 'preventive' && <PreventiveMaintenanceSettings />}
               {activeTab === 'warnings' && <PredictiveWarningsSettings />}

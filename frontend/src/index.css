@@ -51,3 +51,44 @@ body {
 .font-display {
   font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
 }
+
+@keyframes plans-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes plans-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.plans-reveal {
+  animation: plans-fade-up 0.6s ease both;
+}
+
+.plans-reveal-delay-1 {
+  animation-delay: 0.08s;
+}
+
+.plans-reveal-delay-2 {
+  animation-delay: 0.16s;
+}
+
+.plans-reveal-delay-3 {
+  animation-delay: 0.24s;
+}
+
+.plans-float {
+  animation: plans-float 6s ease-in-out infinite;
+}

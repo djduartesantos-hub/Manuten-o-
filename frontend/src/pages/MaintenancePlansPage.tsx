@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { MainLayout } from '../layouts/MainLayout';
 import {
   Activity,
@@ -433,17 +433,28 @@ export function MaintenancePlansPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-8 font-display">
-        <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-emerald-50 p-8 shadow-sm">
-          <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-emerald-200/50 blur-3xl" />
-          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-lime-200/40 blur-3xl" />
+      <div
+        className="relative space-y-10 font-display text-[color:var(--plans-ink)]"
+        style={
+          {
+            '--plans-accent': '#0f766e',
+            '--plans-accent-2': '#f59e0b',
+            '--plans-ink': '#0f172a',
+            '--plans-surface': '#f8fafc',
+          } as CSSProperties
+        }
+      >
+        <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#ecfdf3,_#ffffff_55%)] p-8 shadow-[0_28px_80px_-60px_rgba(15,118,110,0.55)]">
+          <div className="absolute -right-12 -top-20 h-56 w-56 rounded-full bg-emerald-200/60 blur-3xl plans-float" />
+          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-amber-200/50 blur-3xl plans-float" />
+          <div className="absolute right-12 top-10 h-2 w-20 rounded-full bg-[color:var(--plans-accent)] opacity-50" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-700">
                 Rotinas programadas
               </p>
               <h1
-                className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl"
+                className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl lg:text-5xl"
                 onPointerDown={handleDiagnosticsPressStart}
                 onPointerUp={handleDiagnosticsPressEnd}
                 onPointerLeave={handleDiagnosticsPressEnd}
@@ -478,42 +489,58 @@ export function MaintenancePlansPage() {
           </div>
 
           <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <Layers className="h-4 w-4 text-emerald-600" />
-                Total de planos
+            <div className="plans-reveal rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+              <div className="flex items-center justify-between">
+                <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
+                  <Layers className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                  total
+                </span>
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-4 text-2xl font-semibold text-slate-900">
                 {planSummary.total}
               </p>
               <p className="mt-1 text-xs text-slate-500">Visao geral</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                Ativos
+            <div className="plans-reveal plans-reveal-delay-1 rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+              <div className="flex items-center justify-between">
+                <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
+                  <CheckCircle2 className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                  ativos
+                </span>
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-4 text-2xl font-semibold text-slate-900">
                 {planSummary.active}
               </p>
               <p className="mt-1 text-xs text-slate-500">Em execucao</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <CalendarClock className="h-4 w-4 text-amber-600" />
-                Preventivos
+            <div className="plans-reveal plans-reveal-delay-2 rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+              <div className="flex items-center justify-between">
+                <div className="rounded-2xl bg-amber-100 p-2 text-amber-700">
+                  <CalendarClock className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                  preventivos
+                </span>
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-4 text-2xl font-semibold text-slate-900">
                 {planSummary.preventive}
               </p>
               <p className="mt-1 text-xs text-slate-500">Rotinas recorrentes</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <Activity className="h-4 w-4 text-rose-600" />
-                Corretivos
+            <div className="plans-reveal plans-reveal-delay-3 rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+              <div className="flex items-center justify-between">
+                <div className="rounded-2xl bg-rose-100 p-2 text-rose-700">
+                  <Activity className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                  corretivos
+                </span>
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-4 text-2xl font-semibold text-slate-900">
                 {planSummary.corrective}
               </p>
               <p className="mt-1 text-xs text-slate-500">Sob demanda</p>
@@ -522,9 +549,10 @@ export function MaintenancePlansPage() {
         </section>
 
         {!selectedPlant && (
-          <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-10 text-center">
+          <div className="relative overflow-hidden rounded-[28px] border border-dashed border-slate-200 bg-[linear-gradient(135deg,#ffffff,#f1f5f9)] p-10 text-center shadow-sm">
+            <div className="absolute left-1/2 top-0 h-1 w-32 -translate-x-1/2 rounded-full bg-[color:var(--plans-accent)]/50" />
             <AlertCircle className="mx-auto mb-4 h-10 w-10 text-slate-400" />
-            <h2 className="text-xl font-semibold text-slate-900 mb-2">
+            <h2 className="mb-2 text-xl font-semibold text-slate-900">
               Selecione uma fabrica
             </h2>
             <p className="text-sm text-slate-600">
@@ -534,10 +562,16 @@ export function MaintenancePlansPage() {
         )}
 
         {showForm && (
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">
-              {editingPlan ? 'Editar plano' : 'Novo plano'}
-            </h2>
+          <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_20px_60px_-45px_rgba(15,118,110,0.5)]">
+            <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--plans-accent),var(--plans-accent-2))]" />
+            <div className="mb-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+                Detalhes do plano
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-slate-900">
+                {editingPlan ? 'Editar plano' : 'Novo plano'}
+              </h2>
+            </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Ativo</label>
@@ -667,9 +701,11 @@ export function MaintenancePlansPage() {
         )}
 
         {error && (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-rose-600" />
+              <div className="rounded-full bg-rose-100 p-2 text-rose-600">
+                <AlertCircle className="h-4 w-4" />
+              </div>
               <p className="text-sm text-rose-800">{error}</p>
             </div>
           </div>
@@ -707,7 +743,7 @@ export function MaintenancePlansPage() {
         )}
 
         {loading && (
-          <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center">
+          <div className="rounded-[28px] border border-slate-200 bg-white/90 p-12 text-center shadow-sm">
             <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-slate-400" />
             <p className="text-sm text-slate-600">Carregando planos...</p>
           </div>
@@ -716,9 +752,9 @@ export function MaintenancePlansPage() {
         {!loading && selectedPlant && (
           <section className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
             <div className="space-y-6">
-              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="rounded-[28px] border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="flex flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="flex flex-1 items-center gap-3 rounded-full border border-slate-200 bg-[color:var(--plans-surface)] px-4 py-3">
                     <Search className="h-4 w-4 text-slate-500" />
                     <input
                       className="w-full bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
@@ -728,7 +764,7 @@ export function MaintenancePlansPage() {
                     />
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600">
                       <SlidersHorizontal className="h-4 w-4" />
                       <select
                         className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none"
@@ -740,7 +776,7 @@ export function MaintenancePlansPage() {
                         <option value="corretiva">Corretiva</option>
                       </select>
                     </div>
-                    <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600">
                       <Clock3 className="h-4 w-4" />
                       <select
                         className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none"
@@ -758,7 +794,7 @@ export function MaintenancePlansPage() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 {filteredPlans.length === 0 && (
-                  <div className="col-span-full rounded-3xl border border-dashed border-slate-200 bg-white p-10 text-center">
+                  <div className="col-span-full rounded-[28px] border border-dashed border-slate-200 bg-[linear-gradient(135deg,#ffffff,#f1f5f9)] p-10 text-center shadow-sm">
                     <p className="text-sm font-semibold text-slate-700">
                       Nenhum plano encontrado
                     </p>
@@ -770,17 +806,19 @@ export function MaintenancePlansPage() {
                 {filteredPlans.map((plan) => (
                   <article
                     key={plan.id}
-                    className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-slate-300 hover:shadow-md"
+                    className="group relative overflow-hidden rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-30px_rgba(15,118,110,0.35)] transition hover:-translate-y-1 hover:shadow-[0_25px_55px_-35px_rgba(15,118,110,0.55)]"
                   >
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="absolute left-0 top-0 h-full w-1 bg-[linear-gradient(180deg,var(--plans-accent),#34d399)]" />
+                    <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-100/60 opacity-0 blur-2xl transition group-hover:opacity-100" />
+                    <div className="relative flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[color:var(--plans-accent)]">
                           {plan.type}
                         </p>
                         <h3 className="mt-2 text-lg font-semibold text-slate-900">
                           {plan.name}
                         </h3>
-                        <p className="mt-2 text-xs text-slate-500">
+                        <p className="mt-2 text-sm text-slate-600">
                           {plan.description || 'Sem descricao'}
                         </p>
                       </div>
@@ -813,12 +851,12 @@ export function MaintenancePlansPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-slate-600">
+                    <div className="mt-5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--plans-surface)] px-3 py-1 text-slate-600">
                         <CalendarClock className="h-3.5 w-3.5" />
                         {frequencyLabel(plan)}
                       </span>
-                      <span className="inline-flex items-center gap-1">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1">
                         <Layers className="h-3.5 w-3.5" />
                         {plan.asset_name || 'Sem ativo'}
                       </span>
@@ -829,7 +867,8 @@ export function MaintenancePlansPage() {
             </div>
 
             <aside className="space-y-6">
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-sm">
+                <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--plans-accent),#34d399)]" />
                 <h3 className="text-sm font-semibold text-slate-900">Ativos com mais planos</h3>
                 <div className="mt-4 space-y-3">
                   {assetHighlights.length === 0 && (
@@ -838,7 +877,7 @@ export function MaintenancePlansPage() {
                   {assetHighlights.map((asset) => (
                     <div
                       key={asset.name}
-                      className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2"
+                      className="flex items-center justify-between rounded-2xl border border-slate-100 bg-[color:var(--plans-surface)] px-3 py-2"
                     >
                       <span className="text-xs font-semibold text-slate-700">
                         {asset.name}
@@ -851,7 +890,8 @@ export function MaintenancePlansPage() {
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 text-slate-800 shadow-sm">
+              <div className="relative overflow-hidden rounded-[28px] border border-emerald-200 bg-[linear-gradient(135deg,#ecfdf3,#ffffff)] p-6 text-slate-800 shadow-[0_20px_60px_-45px_rgba(16,185,129,0.6)]">
+                <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-200/50 blur-2xl" />
                 <h3 className="text-sm font-semibold">Dica de controle</h3>
                 <p className="mt-2 text-xs text-slate-600">
                   Garanta que planos preventivos estejam ativos para reduzir paragens
