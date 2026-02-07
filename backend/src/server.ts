@@ -60,6 +60,12 @@ async function startServer() {
       });
     }, 5 * 60 * 1000);
 
+    setInterval(() => {
+      NotificationService.checkLowStockAll().catch((error) => {
+        logger.warn('Low stock check failed:', error instanceof Error ? error.message : error);
+      });
+    }, 10 * 60 * 1000);
+
     // Graceful shutdown
     process.on('SIGTERM', () => {
       logger.info('SIGTERM received, shutting down gracefully...');

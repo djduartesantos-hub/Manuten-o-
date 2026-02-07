@@ -6,6 +6,7 @@ export const createSparePartSchema = z.object({
   name: z.string().min(3, 'Nome mínimo 3 caracteres').max(200),
   description: z.string().max(2000).optional(),
   unit_cost: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Formato decimal inválido').optional(),
+  min_stock: z.number().int().min(0, 'Stock mínimo deve ser 0 ou maior').optional(),
   supplier_id: z.string().uuid('Supplier ID deve ser UUID').optional(),
 });
 
@@ -14,6 +15,7 @@ export const updateSparePartSchema = z.object({
   name: z.string().min(3).max(200).optional(),
   description: z.string().max(2000).optional(),
   unit_cost: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+  min_stock: z.number().int().min(0).optional(),
   supplier_id: z.string().uuid().optional(),
 });
 

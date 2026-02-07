@@ -308,6 +308,7 @@ export const spareParts = pgTable(
     name: text('name').notNull(),
     description: text('description'),
     unit_cost: decimal('unit_cost', { precision: 15, scale: 2 }),
+    min_stock: integer('min_stock').default(0),
     supplier_id: uuid('supplier_id').references(() => suppliers.id, {
       onDelete: 'set null',
     }),

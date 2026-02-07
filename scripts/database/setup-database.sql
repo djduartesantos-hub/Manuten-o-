@@ -269,6 +269,7 @@ CREATE TABLE spare_parts (
   name TEXT NOT NULL,
   description TEXT,
   unit_cost DECIMAL(15, 2),
+  min_stock INTEGER DEFAULT 0,
   supplier_id UUID REFERENCES suppliers(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,

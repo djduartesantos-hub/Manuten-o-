@@ -21,6 +21,7 @@ interface SparePart {
   name: string;
   description?: string | null;
   unit_cost?: string | null;
+  min_stock?: number | null;
   supplier_id?: string | null;
   supplier_name?: string | null;
 }
@@ -31,6 +32,7 @@ interface StockMovement {
   quantity: number;
   unit_cost?: string | null;
   created_at?: string;
+  spare_part_id?: string | null;
   spare_part?: {
     code: string;
     name: string;
@@ -149,6 +151,19 @@ export function SparePartsPage() {
     movementTypeFilter,
     movements,
   ]);
+
+  const stockByPart = useMemo(() => {
+    return movements.reduce<Record<string, number>>((acc, movement) => {
+      if (!movement.spare_part_id) return acc;
+      const current = acc[movement.spare_part_id] || 0;
+      const delta =
+        movement.type === 'entrada' || movement.type === 'ajuste'
+          ? movement.quantity
+          : -movement.quantity;
+      acc[movement.spare_part_id] = current + delta;
+      return acc;
+    }, {});
+  }, [movements]);
 
   const filteredParts = useMemo(() => {
     const normalizedSearch = partSearch.trim().toLowerCase();
@@ -415,6 +430,12 @@ export function SparePartsPage() {
                           Custo
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                          Stock
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                          Minimo
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                           Fornecedor
                         </th>
                       </tr>
@@ -427,7 +448,12 @@ export function SparePartsPage() {
                           </td>
                         </tr>
                       )}
-                      {visibleParts.map((part) => (
+                      {visibleParts.map((part) => {
+                        const currentStock = stockByPart[part.id] ?? 0;
+                        const minStock = part.min_stock ?? 0;
+                        const isLow = minStock > 0 && currentStock < minStock;
+
+                        return (
                         <tr key={part.id} className="transition hover:bg-amber-50/40">
                           <td className="px-6 py-4 text-sm font-medium text-slate-900">
                             {part.code}
@@ -437,10 +463,24 @@ export function SparePartsPage() {
                             {part.unit_cost ? `€ ${part.unit_cost}` : '-'}
                           </td>
                           <td className="px-6 py-4 text-sm text-slate-700">
+                            <span className={isLow ? 'text-rose-600 font-semibold' : undefined}>
+                              {currentStock}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-slate-700">
+                            {minStock || '-'}
+                            {isLow && (
+                              <span className="ml-2 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                                Baixo
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-slate-700">
                             {part.supplier_name || '-'}
                           </td>
                         </tr>
-                      ))}
+                      );
+                      })}
                     </tbody>
                   </table>
                 </div>

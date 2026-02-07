@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { Response } from 'express';
 import { SparePartService } from '../services/sparepart.service.js';
+import { NotificationService } from '../services/notification.service.js';
 import { AuthenticatedRequest } from '../types/index.js';
 import {
   createSparePartSchema,
@@ -249,6 +250,14 @@ export async function createStockMovement(req: AuthenticatedRequest, res: Respon
       userId,
       validation.data
     );
+
+    NotificationService.checkLowStockForPart(
+      req.tenantId!,
+      validation.data.plant_id,
+      validation.data.spare_part_id,
+    ).catch((error) => {
+      console.warn('Low stock check failed:', error);
+    });
 
     res.status(201).json({
       success: true,

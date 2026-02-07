@@ -52,6 +52,7 @@ export class SparePartService {
         name: spareParts.name,
         description: spareParts.description,
         unit_cost: spareParts.unit_cost,
+        min_stock: spareParts.min_stock,
         supplier_id: spareParts.supplier_id,
         supplier_name: suppliers.name,
         created_at: spareParts.created_at,
@@ -95,6 +96,7 @@ export class SparePartService {
         name: spareParts.name,
         description: spareParts.description,
         unit_cost: spareParts.unit_cost,
+        min_stock: spareParts.min_stock,
         supplier_id: spareParts.supplier_id,
         supplier_name: suppliers.name,
         created_at: spareParts.created_at,
@@ -142,6 +144,7 @@ export class SparePartService {
         name: input.name,
         description: input.description,
         unit_cost: input.unit_cost ? parseFloat(input.unit_cost).toString() : undefined,
+        min_stock: input.min_stock ?? 0,
         supplier_id: input.supplier_id,
       })
       .returning();
@@ -186,6 +189,7 @@ export class SparePartService {
         unit_cost: input.unit_cost
           ? parseFloat(input.unit_cost).toString()
           : part.unit_cost,
+        min_stock: input.min_stock ?? part.min_stock,
         supplier_id: input.supplier_id ?? part.supplier_id,
         updated_at: new Date(),
       })
