@@ -98,6 +98,42 @@ async function publicApiCall<T = any>(endpoint: string, options: RequestInit = {
   return result.data as T;
 }
 
+export async function getApiHealth(): Promise<{
+  ok: boolean;
+  status: number;
+  message: string;
+}> {
+  const controller = new AbortController();
+  const timeoutMs = 8000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  let response: Response;
+
+  try {
+    response = await fetch('/health', {
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+    });
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      return { ok: false, status: 0, message: 'Timeout' };
+    }
+    return { ok: false, status: 0, message: error?.message || 'Falha' };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    return { ok: false, status: response.status, message: `HTTP ${response.status}` };
+  }
+
+  try {
+    const data = await response.json();
+    return { ok: true, status: response.status, message: data?.message || 'OK' };
+  } catch {
+    return { ok: true, status: response.status, message: 'OK' };
+  }
+}
+
 export async function login(
   username: string,
   password: string,

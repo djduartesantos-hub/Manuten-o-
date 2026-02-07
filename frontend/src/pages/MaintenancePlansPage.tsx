@@ -14,7 +14,12 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { useAppStore } from '../context/store';
-import { getAssets, getMaintenancePlans, createMaintenancePlan } from '../services/api';
+import {
+  getAssets,
+  getApiHealth,
+  getMaintenancePlans,
+  createMaintenancePlan,
+} from '../services/api';
 import { DiagnosticsPanel } from '../components/DiagnosticsPanel';
 
 interface AssetOption {
@@ -58,6 +63,11 @@ export function MaintenancePlansPage() {
     durationMs: 0,
     lastUpdatedAt: '',
     lastError: '',
+  });
+  const [apiDiagnostics, setApiDiagnostics] = useState({
+    status: 'idle',
+    lastUpdatedAt: '',
+    lastMessage: '',
   });
 
   const [form, setForm] = useState({
@@ -185,6 +195,20 @@ export function MaintenancePlansPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const checkHealth = async () => {
+      setApiDiagnostics((prev) => ({ ...prev, status: 'loading' }));
+      const result = await getApiHealth();
+      setApiDiagnostics({
+        status: result.ok ? 'ok' : 'error',
+        lastUpdatedAt: new Date().toLocaleTimeString(),
+        lastMessage: result.message,
+      });
+    };
+
+    checkHealth();
+  }, [selectedPlant]);
 
   useEffect(() => {
     loadData();
@@ -507,7 +531,16 @@ export function MaintenancePlansPage() {
               { label: 'Tempo planos', value: `${plansDiagnostics.durationMs}ms` },
               { label: 'Ativos', value: assetsDiagnostics.status },
               { label: 'Tempo ativos', value: `${assetsDiagnostics.durationMs}ms` },
-              { label: 'Erro', value: plansDiagnostics.lastError || assetsDiagnostics.lastError || '-' },
+              {
+                label: 'Online',
+                value: typeof navigator !== 'undefined' && navigator.onLine ? 'sim' : 'nao',
+              },
+              { label: 'API', value: apiDiagnostics.status },
+              { label: 'API msg', value: apiDiagnostics.lastMessage || '-' },
+              {
+                label: 'Erro',
+                value: plansDiagnostics.lastError || assetsDiagnostics.lastError || '-',
+              },
             ]}
           />
         )}

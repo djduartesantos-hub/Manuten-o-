@@ -14,7 +14,13 @@ import {
   Save,
 } from 'lucide-react';
 import { useAppStore } from '../context/store';
-import { createWorkOrder, getAssets, getWorkOrders, updateWorkOrder } from '../services/api';
+import {
+  createWorkOrder,
+  getAssets,
+  getApiHealth,
+  getWorkOrders,
+  updateWorkOrder,
+} from '../services/api';
 import { DiagnosticsPanel } from '../components/DiagnosticsPanel';
 
 interface AssetOption {
@@ -88,6 +94,11 @@ export function WorkOrdersPage() {
     durationMs: 0,
     lastUpdatedAt: '',
     lastError: '',
+  });
+  const [apiDiagnostics, setApiDiagnostics] = useState({
+    status: 'idle',
+    lastUpdatedAt: '',
+    lastMessage: '',
   });
   const [form, setForm] = useState<WorkOrderFormState>({
     asset_id: '',
@@ -266,6 +277,20 @@ export function WorkOrdersPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const checkHealth = async () => {
+      setApiDiagnostics((prev) => ({ ...prev, status: 'loading' }));
+      const result = await getApiHealth();
+      setApiDiagnostics({
+        status: result.ok ? 'ok' : 'error',
+        lastUpdatedAt: new Date().toLocaleTimeString(),
+        lastMessage: result.message,
+      });
+    };
+
+    checkHealth();
+  }, [selectedPlant]);
 
   useEffect(() => {
     loadData();
@@ -584,6 +609,12 @@ export function WorkOrdersPage() {
               { label: 'Tempo ordens', value: `${ordersDiagnostics.durationMs}ms` },
               { label: 'Ativos', value: assetsDiagnostics.status },
               { label: 'Tempo ativos', value: `${assetsDiagnostics.durationMs}ms` },
+              {
+                label: 'Online',
+                value: typeof navigator !== 'undefined' && navigator.onLine ? 'sim' : 'nao',
+              },
+              { label: 'API', value: apiDiagnostics.status },
+              { label: 'API msg', value: apiDiagnostics.lastMessage || '-' },
               {
                 label: 'Erro',
                 value: ordersDiagnostics.lastError || assetsDiagnostics.lastError || '-',

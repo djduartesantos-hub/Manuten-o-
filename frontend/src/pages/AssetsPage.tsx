@@ -24,6 +24,7 @@ import {
   deleteAsset,
   getAssetCategories,
   getAssets,
+  getApiHealth,
   updateAsset,
 } from '../services/api';
 
@@ -71,6 +72,11 @@ export function AssetsPage() {
     durationMs: 0,
     lastUpdatedAt: '',
     lastError: '',
+  });
+  const [apiDiagnostics, setApiDiagnostics] = useState({
+    status: 'idle',
+    lastUpdatedAt: '',
+    lastMessage: '',
   });
   const [form, setForm] = useState({
     code: '',
@@ -279,6 +285,20 @@ export function AssetsPage() {
   }, [selectedPlant, searchQuery]);
 
   useEffect(() => {
+    const checkHealth = async () => {
+      setApiDiagnostics((prev) => ({ ...prev, status: 'loading' }));
+      const result = await getApiHealth();
+      setApiDiagnostics({
+        status: result.ok ? 'ok' : 'error',
+        lastUpdatedAt: new Date().toLocaleTimeString(),
+        lastMessage: result.message,
+      });
+    };
+
+    checkHealth();
+  }, [selectedPlant]);
+
+  useEffect(() => {
     loadCategories();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlant]);
@@ -482,6 +502,12 @@ export function AssetsPage() {
               { label: 'Estado', value: assetsDiagnostics.status },
               { label: 'Tempo', value: `${assetsDiagnostics.durationMs}ms` },
               { label: 'Atualizado', value: assetsDiagnostics.lastUpdatedAt || '-' },
+              {
+                label: 'Online',
+                value: typeof navigator !== 'undefined' && navigator.onLine ? 'sim' : 'nao',
+              },
+              { label: 'API', value: apiDiagnostics.status },
+              { label: 'API msg', value: apiDiagnostics.lastMessage || '-' },
               { label: 'Erro', value: assetsDiagnostics.lastError || '-' },
             ]}
           />
