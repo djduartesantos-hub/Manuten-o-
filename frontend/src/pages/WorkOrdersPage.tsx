@@ -21,9 +21,11 @@ import { useAppStore } from '../context/store';
 import { useAuth } from '../hooks/useAuth';
 import {
   createWorkOrder,
+  createStockMovement,
   deleteWorkOrder,
   getAssets,
   getApiHealth,
+  getSpareParts,
   getWorkOrders,
   updateWorkOrder,
 } from '../services/api';
@@ -33,6 +35,13 @@ interface AssetOption {
   id: string;
   code: string;
   name: string;
+}
+
+interface SparePartOption {
+  id: string;
+  code: string;
+  name: string;
+  unit_cost?: string | null;
 }
 
 interface WorkOrder {
@@ -97,6 +106,9 @@ export function WorkOrdersPage() {
   const diagnosticsTimerRef = useRef<number | null>(null);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [assets, setAssets] = useState<AssetOption[]>([]);
+  const [spareParts, setSpareParts] = useState<SparePartOption[]>([]);
+  const [partsLoading, setPartsLoading] = useState(false);
+  const [partsError, setPartsError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
@@ -139,6 +151,14 @@ export function WorkOrdersPage() {
     notes: '',
     completed_at: '',
   });
+  const [usageForm, setUsageForm] = useState({
+    spare_part_id: '',
+    quantity: 1,
+    unit_cost: '',
+    notes: '',
+  });
+  const [usageSaving, setUsageSaving] = useState(false);
+  const [usageMessage, setUsageMessage] = useState<string | null>(null);
   const [templates, setTemplates] = useState<
     Array<{ name: string; data: WorkOrderFormState }>
   >([]);
@@ -305,6 +325,25 @@ export function WorkOrdersPage() {
     }
   };
 
+  const loadSpareParts = async () => {
+    if (!selectedPlant || !selectedPlant.trim()) {
+      setSpareParts([]);
+      setPartsError(null);
+      return;
+    }
+    setPartsLoading(true);
+    setPartsError(null);
+    try {
+      const data = await getSpareParts(selectedPlant);
+      setSpareParts(data || []);
+    } catch (err: any) {
+      setSpareParts([]);
+      setPartsError(err.message || 'Erro ao carregar pecas');
+    } finally {
+      setPartsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const checkHealth = async () => {
       if (!diagnosticsEnabled) return;
@@ -324,6 +363,11 @@ export function WorkOrdersPage() {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlant, statusFilter, searchTerm]);
+
+  useEffect(() => {
+    loadSpareParts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlant]);
 
   const handleDiagnosticsPressStart = () => {
     if (typeof window === 'undefined') return;
@@ -435,6 +479,8 @@ export function WorkOrdersPage() {
 
   const handleStartEdit = (order: WorkOrder) => {
     setEditingOrder(order);
+    setUsageForm({ spare_part_id: '', quantity: 1, unit_cost: '', notes: '' });
+    setUsageMessage(null);
     setUpdateForm({
       status: order.status || 'aberta',
       priority: order.priority || 'media',
@@ -443,6 +489,50 @@ export function WorkOrdersPage() {
       notes: order.notes || '',
       completed_at: toDateTimeLocal(order.completed_at),
     });
+  };
+
+  const handleAddUsedPart = async () => {
+    if (!selectedPlant || !editingOrder) return;
+    if (editingOrder.status !== 'em_curso') {
+      setUsageMessage('Apenas ordens em curso podem registar pecas usadas.');
+      return;
+    }
+    if (!usageForm.spare_part_id) {
+      setUsageMessage('Selecione a peca utilizada.');
+      return;
+    }
+    if (!usageForm.quantity || Number(usageForm.quantity) <= 0) {
+      setUsageMessage('Indique uma quantidade valida.');
+      return;
+    }
+    if (!editingPermissions?.canOperateOrder) {
+      setUsageMessage('Sem permissao para registar pecas nesta ordem.');
+      return;
+    }
+
+    setUsageSaving(true);
+    setUsageMessage(null);
+    try {
+      const baseNote = `Ordem ${editingOrder.id} - ${editingOrder.title}`;
+      const notes = usageForm.notes.trim()
+        ? `${baseNote} | ${usageForm.notes.trim()}`
+        : baseNote;
+
+      await createStockMovement(selectedPlant, {
+        spare_part_id: usageForm.spare_part_id,
+        type: 'saida',
+        quantity: Number(usageForm.quantity),
+        unit_cost: usageForm.unit_cost || undefined,
+        notes,
+      });
+
+      setUsageForm({ spare_part_id: '', quantity: 1, unit_cost: '', notes: '' });
+      setUsageMessage('Movimento registado com sucesso.');
+    } catch (err: any) {
+      setUsageMessage(err.message || 'Erro ao registar peca utilizada.');
+    } finally {
+      setUsageSaving(false);
+    }
   };
 
   const handleUpdate = async () => {
@@ -1146,6 +1236,110 @@ export function WorkOrdersPage() {
                 >
                   Fechar
                 </button>
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  Pecas utilizadas
+                </p>
+                <p className="mt-2 text-sm text-slate-600">
+                  Registe as pecas consumidas nesta ordem para atualizar o stock.
+                </p>
+
+                {editingOrder.status !== 'em_curso' && (
+                  <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                    Esta funcionalidade fica disponivel apos iniciar a ordem.
+                  </div>
+                )}
+
+                {editingOrder.status === 'em_curso' && (
+                  <div className="mt-4 space-y-4">
+                    {partsError && (
+                      <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                        {partsError}
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Peca
+                        </label>
+                        <select
+                          className="input"
+                          value={usageForm.spare_part_id}
+                          onChange={(event) =>
+                            setUsageForm({ ...usageForm, spare_part_id: event.target.value })
+                          }
+                          disabled={partsLoading || !editingPermissions?.canOperateOrder}
+                        >
+                          <option value="">Selecionar...</option>
+                          {spareParts.map((part) => (
+                            <option key={part.id} value={part.id}>
+                              {part.code} - {part.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Quantidade
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          className="input"
+                          value={usageForm.quantity}
+                          onChange={(event) =>
+                            setUsageForm({
+                              ...usageForm,
+                              quantity: Number(event.target.value),
+                            })
+                          }
+                          disabled={!editingPermissions?.canOperateOrder}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Custo unitario (opcional)
+                        </label>
+                        <input
+                          className="input"
+                          value={usageForm.unit_cost}
+                          onChange={(event) =>
+                            setUsageForm({ ...usageForm, unit_cost: event.target.value })
+                          }
+                          disabled={!editingPermissions?.canOperateOrder}
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Notas (opcional)
+                        </label>
+                        <input
+                          className="input"
+                          value={usageForm.notes}
+                          onChange={(event) =>
+                            setUsageForm({ ...usageForm, notes: event.target.value })
+                          }
+                          disabled={!editingPermissions?.canOperateOrder}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        className="btn-primary"
+                        onClick={handleAddUsedPart}
+                        disabled={usageSaving || !editingPermissions?.canOperateOrder}
+                      >
+                        {usageSaving ? 'A registar...' : 'Registar peca usada'}
+                      </button>
+                      {usageMessage && (
+                        <span className="text-xs text-slate-500">{usageMessage}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
