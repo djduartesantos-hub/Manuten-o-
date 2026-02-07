@@ -16,7 +16,7 @@ import {
   Users,
   Settings,
   Building2,
-  Database,
+  ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../context/store';
