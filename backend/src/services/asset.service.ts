@@ -32,10 +32,6 @@ export class AssetService {
         ),
       with: {
         category: true,
-        workOrders: {
-          limit: 5,
-          orderBy: (fields: any) => [desc(fields.created_at)],
-        },
       },
       orderBy: (fields: any) => [desc(fields.created_at)],
       limit: 100,
