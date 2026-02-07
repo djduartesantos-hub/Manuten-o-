@@ -8,7 +8,6 @@ import {
   LayoutGrid,
   List,
   Loader2,
-  Pencil,
   Plus,
   RefreshCcw,
   Search,
@@ -946,185 +945,195 @@ export function WorkOrdersPage() {
         )}
 
         {selectedPlant && editingOrder && (
-          <div className="rounded-[28px] border border-slate-200 bg-white/90 p-6 shadow-[0_20px_40px_-30px_rgba(15,23,42,0.45)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-700">
-              Detalhes da ordem
-            </p>
-            <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">
-                  {editingOrder.title}
-                </h2>
-                <p className="mt-1 text-xs text-slate-500">
-                  {editingOrder.asset
-                    ? `${editingOrder.asset.code} - ${editingOrder.asset.name}`
-                    : 'Sem ativo'}
-                </p>
-              </div>
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                  statusBadgeClass[editingOrder.status] || 'bg-slate-100 text-slate-700'
-                }`}
-              >
-                {statusLabels[editingOrder.status] || editingOrder.status}
-              </span>
-            </div>
-
-            {editingPermissions?.isAssignedToOther &&
-              !editingPermissions?.canEditOrder &&
-              !editingPermissions?.canOperateOrder && (
-              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
-                Esta ordem esta atribuida a outro utilizador. Apenas leitura.
-              </div>
-            )}
-
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-                <p className="font-semibold text-slate-700">Responsavel</p>
-                <p className="mt-1">
-                  {editingOrder.assignedUser
-                    ? `${editingOrder.assignedUser.first_name} ${editingOrder.assignedUser.last_name}`
-                    : 'Nao atribuido'}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-                <p className="font-semibold text-slate-700">Prioridade</p>
-                <p className="mt-1">{updateForm.priority}</p>
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Prioridade</label>
-                <select
-                  className="input"
-                  value={updateForm.priority}
-                  onChange={(event) =>
-                    setUpdateForm({ ...updateForm, priority: event.target.value })
-                  }
-                  disabled={!editingPermissions?.canEditOrder}
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+            <div
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+              onClick={() => setEditingOrder(null)}
+            />
+            <div
+              className="relative w-full max-w-3xl overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]"
+              role="dialog"
+              aria-modal="true"
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-700">
+                Detalhes da ordem
+              </p>
+              <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    {editingOrder.title}
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {editingOrder.asset
+                      ? `${editingOrder.asset.code} - ${editingOrder.asset.name}`
+                      : 'Sem ativo'}
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    statusBadgeClass[editingOrder.status] || 'bg-slate-100 text-slate-700'
+                  }`}
                 >
-                  <option value="baixa">Baixa</option>
-                  <option value="media">Media</option>
-                  <option value="alta">Alta</option>
-                  <option value="critica">Critica</option>
-                </select>
+                  {statusLabels[editingOrder.status] || editingOrder.status}
+                </span>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Data e hora planeada
-                </label>
-                <input
-                  type="datetime-local"
-                  className="input"
-                  value={updateForm.scheduled_date}
-                  onChange={(event) =>
-                    setUpdateForm({ ...updateForm, scheduled_date: event.target.value })
-                  }
-                  disabled={!editingPermissions?.canEditOrder}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Horas reais
-                </label>
-                <input
-                  className="input"
-                  value={updateForm.actual_hours}
-                  onChange={(event) =>
-                    setUpdateForm({ ...updateForm, actual_hours: event.target.value })
-                  }
-                  disabled={!editingPermissions?.canOperateOrder}
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Notas</label>
-                <textarea
-                  className="input min-h-[96px]"
-                  value={updateForm.notes}
-                  onChange={(event) => setUpdateForm({ ...updateForm, notes: event.target.value })}
-                  disabled={!editingPermissions?.canOperateOrder}
-                />
-              </div>
-            </div>
-
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              {(editingPermissions?.canEditOrder || editingPermissions?.canOperateOrder) && (
-                <button onClick={handleUpdate} className="btn-primary" disabled={updating}>
-                  {updating ? 'A atualizar...' : 'Guardar alteracoes'}
-                </button>
+              {editingPermissions?.isAssignedToOther &&
+                !editingPermissions?.canEditOrder &&
+                !editingPermissions?.canOperateOrder && (
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
+                  Esta ordem esta atribuida a outro utilizador. Apenas leitura.
+                </div>
               )}
-              {editingPermissions?.canDeleteOrder && (
+
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                  <p className="font-semibold text-slate-700">Responsavel</p>
+                  <p className="mt-1">
+                    {editingOrder.assignedUser
+                      ? `${editingOrder.assignedUser.first_name} ${editingOrder.assignedUser.last_name}`
+                      : 'Nao atribuido'}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                  <p className="font-semibold text-slate-700">Prioridade</p>
+                  <p className="mt-1">{updateForm.priority}</p>
+                </div>
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Prioridade</label>
+                  <select
+                    className="input"
+                    value={updateForm.priority}
+                    onChange={(event) =>
+                      setUpdateForm({ ...updateForm, priority: event.target.value })
+                    }
+                    disabled={!editingPermissions?.canEditOrder}
+                  >
+                    <option value="baixa">Baixa</option>
+                    <option value="media">Media</option>
+                    <option value="alta">Alta</option>
+                    <option value="critica">Critica</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Data e hora planeada
+                  </label>
+                  <input
+                    type="datetime-local"
+                    className="input"
+                    value={updateForm.scheduled_date}
+                    onChange={(event) =>
+                      setUpdateForm({ ...updateForm, scheduled_date: event.target.value })
+                    }
+                    disabled={!editingPermissions?.canEditOrder}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Horas reais
+                  </label>
+                  <input
+                    className="input"
+                    value={updateForm.actual_hours}
+                    onChange={(event) =>
+                      setUpdateForm({ ...updateForm, actual_hours: event.target.value })
+                    }
+                    disabled={!editingPermissions?.canOperateOrder}
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Notas</label>
+                  <textarea
+                    className="input min-h-[96px]"
+                    value={updateForm.notes}
+                    onChange={(event) => setUpdateForm({ ...updateForm, notes: event.target.value })}
+                    disabled={!editingPermissions?.canOperateOrder}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                {(editingPermissions?.canEditOrder || editingPermissions?.canOperateOrder) && (
+                  <button onClick={handleUpdate} className="btn-primary" disabled={updating}>
+                    {updating ? 'A atualizar...' : 'Guardar alteracoes'}
+                  </button>
+                )}
+                {editingPermissions?.canDeleteOrder && (
+                  <button
+                    onClick={handleDeleteOrder}
+                    className="btn-secondary text-rose-600"
+                    disabled={updating}
+                  >
+                    Eliminar
+                  </button>
+                )}
                 <button
-                  onClick={handleDeleteOrder}
-                  className="btn-secondary text-rose-600"
+                  onClick={() => setEditingOrder(null)}
+                  className="btn-secondary"
                   disabled={updating}
                 >
-                  Eliminar
+                  Fechar
                 </button>
-              )}
-              <button
-                onClick={() => setEditingOrder(null)}
-                className="btn-secondary"
-                disabled={updating}
-              >
-                Voltar
-              </button>
-            </div>
+              </div>
 
-            <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                Acoes
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {(editingOrder.status === 'aberta' || editingOrder.status === 'atribuida') &&
-                  editingPermissions?.canAssumeOrder && (
-                    <>
-                      {editingOrder.status === 'aberta' && (
+              <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  Acoes
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {(editingOrder.status === 'aberta' || editingOrder.status === 'atribuida') &&
+                    editingPermissions?.canAssumeOrder && (
+                      <>
+                        {editingOrder.status === 'aberta' && (
+                          <button
+                            onClick={handleAssignWait}
+                            className="btn-secondary"
+                            disabled={updating}
+                          >
+                            Aguardar
+                          </button>
+                        )}
                         <button
-                          onClick={handleAssignWait}
+                          onClick={handleStartOrder}
+                          className="btn-primary"
+                          disabled={updating}
+                        >
+                          Iniciar
+                        </button>
+                      </>
+                    )}
+                  {editingOrder.status === 'em_curso' &&
+                    editingPermissions?.canOperateOrder && (
+                      <>
+                        <button
+                          onClick={handlePauseOrder}
                           className="btn-secondary"
                           disabled={updating}
                         >
-                          Aguardar
+                          Pausar
                         </button>
-                      )}
-                      <button
-                        onClick={handleStartOrder}
-                        className="btn-primary"
-                        disabled={updating}
-                      >
-                        Iniciar
-                      </button>
-                    </>
+                        <button
+                          onClick={handleFinishOrder}
+                          className="btn-primary"
+                          disabled={updating}
+                        >
+                          Terminar
+                        </button>
+                      </>
+                    )}
+                  {!editingPermissions?.canAssumeOrder && (
+                    <span className="text-xs text-slate-500">
+                      Esta ordem esta atribuida a outro utilizador.
+                    </span>
                   )}
-                {editingOrder.status === 'em_curso' &&
-                  editingPermissions?.canOperateOrder && (
-                    <>
-                      <button
-                        onClick={handlePauseOrder}
-                        className="btn-secondary"
-                        disabled={updating}
-                      >
-                        Pausar
-                      </button>
-                      <button
-                        onClick={handleFinishOrder}
-                        className="btn-primary"
-                        disabled={updating}
-                      >
-                        Terminar
-                      </button>
-                    </>
-                  )}
-                {!editingPermissions?.canAssumeOrder && (
-                  <span className="text-xs text-slate-500">
-                    Esta ordem esta atribuida a outro utilizador.
-                  </span>
-                )}
+                </div>
               </div>
             </div>
           </div>
@@ -1250,14 +1259,14 @@ export function WorkOrdersPage() {
                             Status
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">
-                            Acoes
+                            Abrir
                           </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 bg-white">
                         {workOrders.length === 0 && (
                           <tr>
-                            <td colSpan={8} className="px-6 py-8 text-center text-slate-500">
+                            <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
                               Nenhuma ordem encontrada
                             </td>
                           </tr>
@@ -1278,7 +1287,19 @@ export function WorkOrdersPage() {
                           );
 
                           return (
-                            <tr key={order.id} className="group hover:bg-emerald-50/40">
+                            <tr
+                              key={order.id}
+                              className="group cursor-pointer transition-all duration-200 hover:bg-emerald-50/60 hover:shadow-[0_14px_30px_-22px_rgba(15,23,42,0.45)] focus-within:bg-emerald-50/60"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => handleStartEdit(order)}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                  event.preventDefault();
+                                  handleStartEdit(order);
+                                }
+                              }}
+                            >
                               <td className="px-6 py-4">
                                 <div className="text-sm font-semibold text-slate-900">
                                   {order.title}
@@ -1327,14 +1348,8 @@ export function WorkOrdersPage() {
                                   {statusLabels[order.status] || order.status}
                                 </span>
                               </td>
-                              <td className="px-6 py-4">
-                                <button
-                                  className="btn-secondary inline-flex items-center gap-2"
-                                  onClick={() => handleStartEdit(order)}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                  {isReadOnly ? 'Ver' : 'Atualizar'}
-                                </button>
+                              <td className="px-6 py-4 text-xs font-semibold text-emerald-700">
+                                {isReadOnly ? 'Ver' : 'Clique para abrir'}
                               </td>
                             </tr>
                           );
@@ -1376,7 +1391,16 @@ export function WorkOrdersPage() {
                             return (
                               <div
                                 key={order.id}
-                                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_12px_26px_-20px_rgba(15,23,42,0.35)]"
+                                className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_12px_26px_-20px_rgba(15,23,42,0.35)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => handleStartEdit(order)}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    handleStartEdit(order);
+                                  }
+                                }}
                               >
                                 <p className="text-sm font-semibold text-slate-900">
                                   {order.title}
@@ -1407,13 +1431,9 @@ export function WorkOrdersPage() {
                                     </span>
                                   )}
                                 </div>
-                                <button
-                                  className="btn-secondary mt-4 inline-flex items-center gap-2"
-                                  onClick={() => handleStartEdit(order)}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                  Atualizar
-                                </button>
+                                <div className="mt-4 text-xs font-semibold text-emerald-700">
+                                  Clique para abrir
+                                </div>
                               </div>
                             );
                           })}
