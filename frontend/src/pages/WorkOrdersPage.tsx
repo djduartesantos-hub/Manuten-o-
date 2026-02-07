@@ -1333,6 +1333,8 @@ export function WorkOrdersPage() {
                               slaDate.getTime() <= Date.now() + 24 * 60 * 60 * 1000
                             : false;
                           const createdDate = order.created_at ? new Date(order.created_at) : null;
+                          const responsibleDate =
+                            order.started_at || order.updated_at || order.created_at || null;
                           const canEdit =
                             isAdmin || isManager || order.created_by === userId;
                           const canOperate = isAdmin || order.assigned_to === userId;
@@ -1361,6 +1363,15 @@ export function WorkOrdersPage() {
                                 <div className="text-xs text-slate-500">
                                   {order.description || 'Sem descricao'}
                                 </div>
+                                <div className="mt-2 text-[11px] text-slate-500">
+                                  <span className="font-semibold text-slate-600">Criado por:</span>{' '}
+                                  {order.createdByUser
+                                    ? `${order.createdByUser.first_name} ${order.createdByUser.last_name}`
+                                    : 'Nao informado'}
+                                </div>
+                                <div className="text-[11px] text-slate-400">
+                                  {formatDateTime(order.created_at)}
+                                </div>
                               </td>
                               <td className="px-6 py-4 text-sm text-slate-700">
                                 {order.asset ? `${order.asset.code} - ${order.asset.name}` : '-'}
@@ -1369,6 +1380,9 @@ export function WorkOrdersPage() {
                                 {order.assignedUser
                                   ? `${order.assignedUser.first_name} ${order.assignedUser.last_name}`
                                   : 'Nao atribuido'}
+                                <div className="mt-1 text-[11px] text-slate-400">
+                                  {formatDateTime(responsibleDate)}
+                                </div>
                               </td>
                               <td className="px-6 py-4 text-sm text-slate-700">
                                 {createdDate ? createdDate.toLocaleString() : '-'}
@@ -1441,6 +1455,8 @@ export function WorkOrdersPage() {
                             const createdDate = order.created_at
                               ? new Date(order.created_at)
                               : null;
+                            const responsibleDate =
+                              order.started_at || order.updated_at || order.created_at || null;
 
                             return (
                               <div
@@ -1467,6 +1483,21 @@ export function WorkOrdersPage() {
                                 <p className="mt-1 text-xs text-slate-400">
                                   {createdDate ? createdDate.toLocaleString() : '-'}
                                 </p>
+                                <div className="mt-2 text-[11px] text-slate-500">
+                                  <span className="font-semibold text-slate-600">Criado por:</span>{' '}
+                                  {order.createdByUser
+                                    ? `${order.createdByUser.first_name} ${order.createdByUser.last_name}`
+                                    : 'Nao informado'}
+                                </div>
+                                <div className="mt-1 text-[11px] text-slate-500">
+                                  <span className="font-semibold text-slate-600">Responsavel:</span>{' '}
+                                  {order.assignedUser
+                                    ? `${order.assignedUser.first_name} ${order.assignedUser.last_name}`
+                                    : 'Nao atribuido'}
+                                </div>
+                                <div className="text-[11px] text-slate-400">
+                                  {formatDateTime(responsibleDate)}
+                                </div>
                                 <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                                   <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-700">
                                     {order.priority || 'n/a'}
