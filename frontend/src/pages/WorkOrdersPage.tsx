@@ -26,6 +26,7 @@ import {
   getAssets,
   getApiHealth,
   getSpareParts,
+  getStockMovementsByPlant,
   getWorkOrders,
   updateWorkOrder,
 } from '../services/api';
@@ -42,6 +43,19 @@ interface SparePartOption {
   code: string;
   name: string;
   unit_cost?: string | null;
+}
+
+interface StockMovement {
+  id: string;
+  type: string;
+  quantity: number;
+  unit_cost?: string | null;
+  created_at?: string;
+  notes?: string | null;
+  spare_part?: {
+    code: string;
+    name: string;
+  } | null;
 }
 
 interface WorkOrder {
@@ -159,6 +173,9 @@ export function WorkOrdersPage() {
   });
   const [usageSaving, setUsageSaving] = useState(false);
   const [usageMessage, setUsageMessage] = useState<string | null>(null);
+  const [orderMovements, setOrderMovements] = useState<StockMovement[]>([]);
+  const [orderMovementsLoading, setOrderMovementsLoading] = useState(false);
+  const [orderMovementsError, setOrderMovementsError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<
     Array<{ name: string; data: WorkOrderFormState }>
   >([]);
@@ -344,6 +361,26 @@ export function WorkOrdersPage() {
     }
   };
 
+  const loadOrderMovements = async (workOrderId: string) => {
+    if (!selectedPlant) return;
+
+    setOrderMovementsLoading(true);
+    setOrderMovementsError(null);
+    try {
+      const data = await getStockMovementsByPlant(selectedPlant);
+      const marker = `Ordem ${workOrderId}`;
+      const filtered = (data || []).filter((movement: StockMovement) =>
+        (movement.notes || '').includes(marker),
+      );
+      setOrderMovements(filtered);
+    } catch (err: any) {
+      setOrderMovements([]);
+      setOrderMovementsError(err.message || 'Erro ao carregar movimentos da ordem');
+    } finally {
+      setOrderMovementsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const checkHealth = async () => {
       if (!diagnosticsEnabled) return;
@@ -481,6 +518,8 @@ export function WorkOrdersPage() {
     setEditingOrder(order);
     setUsageForm({ spare_part_id: '', quantity: 1, unit_cost: '', notes: '' });
     setUsageMessage(null);
+    setOrderMovements([]);
+    setOrderMovementsError(null);
     setUpdateForm({
       status: order.status || 'aberta',
       priority: order.priority || 'media',
@@ -490,6 +529,12 @@ export function WorkOrdersPage() {
       completed_at: toDateTimeLocal(order.completed_at),
     });
   };
+
+  useEffect(() => {
+    if (!editingOrder || !selectedPlant) return;
+    loadOrderMovements(editingOrder.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingOrder, selectedPlant]);
 
   const handleAddUsedPart = async () => {
     if (!selectedPlant || !editingOrder) return;
@@ -528,6 +573,7 @@ export function WorkOrdersPage() {
 
       setUsageForm({ spare_part_id: '', quantity: 1, unit_cost: '', notes: '' });
       setUsageMessage('Movimento registado com sucesso.');
+      await loadOrderMovements(editingOrder.id);
     } catch (err: any) {
       setUsageMessage(err.message || 'Erro ao registar peca utilizada.');
     } finally {
@@ -1340,6 +1386,74 @@ export function WorkOrdersPage() {
                     </div>
                   </div>
                 )}
+
+                <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                      Registos desta ordem
+                    </p>
+                    {orderMovements.length > 0 && (
+                      <span className="text-xs font-semibold text-slate-600">
+                        {orderMovements.length} movimentos
+                      </span>
+                    )}
+                  </div>
+
+                  {orderMovementsLoading && (
+                    <p className="mt-3 text-xs text-slate-500">A carregar movimentos...</p>
+                  )}
+                  {orderMovementsError && (
+                    <p className="mt-3 text-xs text-rose-600">{orderMovementsError}</p>
+                  )}
+                  {!orderMovementsLoading && !orderMovementsError && orderMovements.length === 0 && (
+                    <p className="mt-3 text-xs text-slate-500">
+                      Ainda nao ha pecas registadas nesta ordem.
+                    </p>
+                  )}
+
+                  {orderMovements.length > 0 && (
+                    <div className="mt-3 overflow-x-auto">
+                      <table className="min-w-full divide-y divide-slate-200 text-xs">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-semibold text-slate-500">
+                              Peca
+                            </th>
+                            <th className="px-3 py-2 text-left font-semibold text-slate-500">
+                              Quantidade
+                            </th>
+                            <th className="px-3 py-2 text-left font-semibold text-slate-500">
+                              Custo
+                            </th>
+                            <th className="px-3 py-2 text-left font-semibold text-slate-500">
+                              Data
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {orderMovements.map((movement) => (
+                            <tr key={movement.id}>
+                              <td className="px-3 py-2 text-slate-700">
+                                {movement.spare_part
+                                  ? `${movement.spare_part.code} - ${movement.spare_part.name}`
+                                  : '-'}
+                              </td>
+                              <td className="px-3 py-2 text-slate-700">
+                                {movement.quantity}
+                              </td>
+                              <td className="px-3 py-2 text-slate-700">
+                                {movement.unit_cost ? `€ ${movement.unit_cost}` : '-'}
+                              </td>
+                              <td className="px-3 py-2 text-slate-500">
+                                {formatShortDateTime(movement.created_at)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
