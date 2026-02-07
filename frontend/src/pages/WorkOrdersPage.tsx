@@ -1361,6 +1361,23 @@ export function WorkOrdersPage() {
                   </div>
                 </div>
 
+                {diagnosticsEnabled && (
+                  <DiagnosticsPanel
+                    title="Diagnostico da ordem"
+                    rows={[
+                      { label: 'Planta', value: selectedPlant || '-' },
+                      { label: 'Ordem', value: editingOrder.id },
+                      { label: 'Status', value: editingOrder.status || '-' },
+                      { label: 'Tarefas', value: tasksLoading ? 'a carregar' : 'ok' },
+                      { label: 'Erro tarefas', value: tasksError || '-' },
+                      { label: 'Auditoria', value: auditLoading ? 'a carregar' : 'ok' },
+                      { label: 'Erro auditoria', value: auditError || '-' },
+                      { label: 'Movimentos', value: orderMovementsLoading ? 'a carregar' : 'ok' },
+                      { label: 'Erro movimentos', value: orderMovementsError || '-' },
+                    ]}
+                  />
+                )}
+
                 {editingPermissions?.isAssignedToOther &&
                   !editingPermissions?.canEditOrder &&
                   !editingPermissions?.canOperateOrder && (
