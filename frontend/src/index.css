@@ -134,3 +134,40 @@ body {
   animation: dash-float 6s ease-in-out infinite;
 }
 
+@keyframes search-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes search-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.search-reveal {
+  animation: search-fade-up 0.6s ease both;
+}
+
+.search-reveal-delay-1 {
+  animation-delay: 0.08s;
+}
+
+.search-reveal-delay-2 {
+  animation-delay: 0.16s;
+}
+
+.search-float {
+  animation: search-float 6s ease-in-out infinite;
+}
+
