@@ -14,5 +14,6 @@ router.get('/:plantId/work-orders', WorkOrderController.list);
 router.post('/:plantId/work-orders', WorkOrderController.create);
 router.get('/:plantId/work-orders/:workOrderId', WorkOrderController.get);
 router.put('/:plantId/work-orders/:workOrderId', WorkOrderController.update);
+router.delete('/:plantId/work-orders/:workOrderId', WorkOrderController.remove);
 
 export default router;

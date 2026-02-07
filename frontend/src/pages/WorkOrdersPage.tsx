@@ -16,8 +16,10 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { useAppStore } from '../context/store';
+import { useAuth } from '../hooks/useAuth';
 import {
   createWorkOrder,
+  deleteWorkOrder,
   getAssets,
   getApiHealth,
   getWorkOrders,
@@ -36,6 +38,8 @@ interface WorkOrder {
   title: string;
   description?: string | null;
   status: string;
+  assigned_to?: string | null;
+  created_by?: string | null;
   priority?: string | null;
   estimated_hours?: string | null;
   actual_hours?: string | null;
@@ -49,6 +53,7 @@ interface WorkOrder {
     name: string;
   } | null;
   assignedUser?: {
+    id?: string;
     first_name: string;
     last_name: string;
   } | null;
@@ -74,6 +79,7 @@ interface WorkOrderUpdateState {
 
 export function WorkOrdersPage() {
   const { selectedPlant } = useAppStore();
+  const { user } = useAuth();
   const diagnosticsEnabled = useMemo(() => {
     if (typeof window === 'undefined') return false;
     const params = new URLSearchParams(window.location.search);
@@ -127,6 +133,10 @@ export function WorkOrdersPage() {
   const [templates, setTemplates] = useState<
     Array<{ name: string; data: WorkOrderFormState }>
   >([]);
+  const userId = user?.id || '';
+  const userRole = user?.role || '';
+  const isAdmin = userRole === 'admin_empresa' || userRole === 'superadmin';
+  const isManager = userRole === 'gestor_manutencao';
 
   useEffect(() => {
     const saved = localStorage.getItem('workOrdersFilters');
@@ -393,23 +403,158 @@ export function WorkOrdersPage() {
 
   const handleUpdate = async () => {
     if (!selectedPlant || !editingOrder) return;
+    const canEditOrder = isAdmin || isManager || editingOrder.created_by === userId;
+    const canOperateOrder = isAdmin || editingOrder.assigned_to === userId;
+
+    if (!canEditOrder && !canOperateOrder) {
+      setError('Sem permissao para atualizar esta ordem');
+      return;
+    }
+
     setUpdating(true);
     setError(null);
 
     try {
-      await updateWorkOrder(selectedPlant, editingOrder.id, {
-        status: updateForm.status,
-        priority: updateForm.priority,
-        scheduled_date: updateForm.scheduled_date || undefined,
-        actual_hours: updateForm.actual_hours || undefined,
-        notes: updateForm.notes || undefined,
-        completed_at: updateForm.completed_at || undefined,
-      });
+      const payload: Record<string, any> = {};
+      if (canEditOrder) {
+        payload.priority = updateForm.priority;
+        payload.scheduled_date = updateForm.scheduled_date || undefined;
+      }
+      if (canOperateOrder) {
+        payload.actual_hours = updateForm.actual_hours || undefined;
+        payload.notes = updateForm.notes || undefined;
+      }
+
+      if (Object.keys(payload).length === 0) {
+        setError('Sem campos para atualizar');
+        return;
+      }
+
+      await updateWorkOrder(selectedPlant, editingOrder.id, payload);
 
       setEditingOrder(null);
       await loadData();
     } catch (err: any) {
       setError(err.message || 'Erro ao atualizar ordem');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleAssignWait = async () => {
+    if (!selectedPlant || !editingOrder || !userId) return;
+    if (editingOrder.assigned_to && editingOrder.assigned_to !== userId && !isAdmin) {
+      setError('Ordem atribuida a outro utilizador');
+      return;
+    }
+
+    setUpdating(true);
+    setError(null);
+
+    try {
+      await updateWorkOrder(selectedPlant, editingOrder.id, {
+        status: 'atribuida',
+        assigned_to: editingOrder.assigned_to || userId,
+      });
+      setEditingOrder(null);
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao atualizar ordem');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleStartOrder = async () => {
+    if (!selectedPlant || !editingOrder || !userId) return;
+    if (editingOrder.assigned_to && editingOrder.assigned_to !== userId && !isAdmin) {
+      setError('Ordem atribuida a outro utilizador');
+      return;
+    }
+
+    setUpdating(true);
+    setError(null);
+
+    try {
+      await updateWorkOrder(selectedPlant, editingOrder.id, {
+        status: 'em_curso',
+        assigned_to: editingOrder.assigned_to || userId,
+        started_at: new Date().toISOString(),
+      });
+      setEditingOrder(null);
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao iniciar ordem');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handlePauseOrder = async () => {
+    if (!selectedPlant || !editingOrder || !userId) return;
+    if (!isAdmin && editingOrder.assigned_to !== userId) {
+      setError('Apenas o responsavel pode pausar a ordem');
+      return;
+    }
+
+    setUpdating(true);
+    setError(null);
+
+    try {
+      await updateWorkOrder(selectedPlant, editingOrder.id, {
+        status: 'atribuida',
+      });
+      setEditingOrder(null);
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao pausar ordem');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleFinishOrder = async () => {
+    if (!selectedPlant || !editingOrder || !userId) return;
+    if (!isAdmin && editingOrder.assigned_to !== userId) {
+      setError('Apenas o responsavel pode terminar a ordem');
+      return;
+    }
+
+    setUpdating(true);
+    setError(null);
+
+    try {
+      await updateWorkOrder(selectedPlant, editingOrder.id, {
+        status: 'concluida',
+        completed_at: new Date().toISOString(),
+      });
+      setEditingOrder(null);
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao terminar ordem');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeleteOrder = async () => {
+    if (!selectedPlant || !editingOrder) return;
+    const canDelete = isAdmin || editingOrder.created_by === userId;
+    if (!canDelete) {
+      setError('Sem permissao para eliminar esta ordem');
+      return;
+    }
+    if (!window.confirm('Eliminar esta ordem de trabalho?')) return;
+
+    setUpdating(true);
+    setError(null);
+
+    try {
+      await deleteWorkOrder(selectedPlant, editingOrder.id);
+      setEditingOrder(null);
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao eliminar ordem');
     } finally {
       setUpdating(false);
     }
@@ -524,6 +669,27 @@ export function WorkOrdersPage() {
       return acc;
     }, {});
   }, [workOrders]);
+
+  const editingPermissions = useMemo(() => {
+    if (!editingOrder) return null;
+    const isAssignedToUser = editingOrder.assigned_to === userId;
+    const isAssignedToOther = Boolean(
+      editingOrder.assigned_to && editingOrder.assigned_to !== userId,
+    );
+    const canEditOrder = isAdmin || isManager || editingOrder.created_by === userId;
+    const canOperateOrder = isAdmin || isAssignedToUser;
+    const canAssumeOrder = isAdmin || !editingOrder.assigned_to || isAssignedToUser;
+    const canDeleteOrder = isAdmin || editingOrder.created_by === userId;
+
+    return {
+      isAssignedToUser,
+      isAssignedToOther,
+      canEditOrder,
+      canOperateOrder,
+      canAssumeOrder,
+      canDeleteOrder,
+    };
+  }, [editingOrder, isAdmin, isManager, userId]);
 
   return (
     <MainLayout>
@@ -782,29 +948,52 @@ export function WorkOrdersPage() {
         {selectedPlant && editingOrder && (
           <div className="rounded-[28px] border border-slate-200 bg-white/90 p-6 shadow-[0_20px_40px_-30px_rgba(15,23,42,0.45)]">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-700">
-              Atualizar ordem
+              Detalhes da ordem
             </p>
-            <h2 className="mt-2 text-lg font-semibold text-slate-900">
-              {editingOrder.title}
-            </h2>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                <select
-                  className="input"
-                  value={updateForm.status}
-                  onChange={(event) =>
-                    setUpdateForm({ ...updateForm, status: event.target.value })
-                  }
-                >
-                  <option value="aberta">Aberta</option>
-                  <option value="atribuida">Atribuida</option>
-                  <option value="em_curso">Em curso</option>
-                  <option value="concluida">Concluida</option>
-                  <option value="cancelada">Cancelada</option>
-                </select>
+                <h2 className="text-lg font-semibold text-slate-900">
+                  {editingOrder.title}
+                </h2>
+                <p className="mt-1 text-xs text-slate-500">
+                  {editingOrder.asset
+                    ? `${editingOrder.asset.code} - ${editingOrder.asset.name}`
+                    : 'Sem ativo'}
+                </p>
               </div>
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  statusBadgeClass[editingOrder.status] || 'bg-slate-100 text-slate-700'
+                }`}
+              >
+                {statusLabels[editingOrder.status] || editingOrder.status}
+              </span>
+            </div>
 
+            {editingPermissions?.isAssignedToOther &&
+              !editingPermissions?.canEditOrder &&
+              !editingPermissions?.canOperateOrder && (
+              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
+                Esta ordem esta atribuida a outro utilizador. Apenas leitura.
+              </div>
+            )}
+
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                <p className="font-semibold text-slate-700">Responsavel</p>
+                <p className="mt-1">
+                  {editingOrder.assignedUser
+                    ? `${editingOrder.assignedUser.first_name} ${editingOrder.assignedUser.last_name}`
+                    : 'Nao atribuido'}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                <p className="font-semibold text-slate-700">Prioridade</p>
+                <p className="mt-1">{updateForm.priority}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Prioridade</label>
                 <select
@@ -813,6 +1002,7 @@ export function WorkOrdersPage() {
                   onChange={(event) =>
                     setUpdateForm({ ...updateForm, priority: event.target.value })
                   }
+                  disabled={!editingPermissions?.canEditOrder}
                 >
                   <option value="baixa">Baixa</option>
                   <option value="media">Media</option>
@@ -832,6 +1022,7 @@ export function WorkOrdersPage() {
                   onChange={(event) =>
                     setUpdateForm({ ...updateForm, scheduled_date: event.target.value })
                   }
+                  disabled={!editingPermissions?.canEditOrder}
                 />
               </div>
 
@@ -845,20 +1036,7 @@ export function WorkOrdersPage() {
                   onChange={(event) =>
                     setUpdateForm({ ...updateForm, actual_hours: event.target.value })
                   }
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Data e hora de conclusao
-                </label>
-                <input
-                  type="datetime-local"
-                  className="input"
-                  value={updateForm.completed_at}
-                  onChange={(event) =>
-                    setUpdateForm({ ...updateForm, completed_at: event.target.value })
-                  }
+                  disabled={!editingPermissions?.canOperateOrder}
                 />
               </div>
 
@@ -868,21 +1046,86 @@ export function WorkOrdersPage() {
                   className="input min-h-[96px]"
                   value={updateForm.notes}
                   onChange={(event) => setUpdateForm({ ...updateForm, notes: event.target.value })}
+                  disabled={!editingPermissions?.canOperateOrder}
                 />
               </div>
             </div>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <button onClick={handleUpdate} className="btn-primary" disabled={updating}>
-                {updating ? 'A atualizar...' : 'Guardar alteracoes'}
-              </button>
+              {(editingPermissions?.canEditOrder || editingPermissions?.canOperateOrder) && (
+                <button onClick={handleUpdate} className="btn-primary" disabled={updating}>
+                  {updating ? 'A atualizar...' : 'Guardar alteracoes'}
+                </button>
+              )}
+              {editingPermissions?.canDeleteOrder && (
+                <button
+                  onClick={handleDeleteOrder}
+                  className="btn-secondary text-rose-600"
+                  disabled={updating}
+                >
+                  Eliminar
+                </button>
+              )}
               <button
                 onClick={() => setEditingOrder(null)}
                 className="btn-secondary"
                 disabled={updating}
               >
-                Cancelar
+                Voltar
               </button>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                Acoes
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {(editingOrder.status === 'aberta' || editingOrder.status === 'atribuida') &&
+                  editingPermissions?.canAssumeOrder && (
+                    <>
+                      {editingOrder.status === 'aberta' && (
+                        <button
+                          onClick={handleAssignWait}
+                          className="btn-secondary"
+                          disabled={updating}
+                        >
+                          Aguardar
+                        </button>
+                      )}
+                      <button
+                        onClick={handleStartOrder}
+                        className="btn-primary"
+                        disabled={updating}
+                      >
+                        Iniciar
+                      </button>
+                    </>
+                  )}
+                {editingOrder.status === 'em_curso' &&
+                  editingPermissions?.canOperateOrder && (
+                    <>
+                      <button
+                        onClick={handlePauseOrder}
+                        className="btn-secondary"
+                        disabled={updating}
+                      >
+                        Pausar
+                      </button>
+                      <button
+                        onClick={handleFinishOrder}
+                        className="btn-primary"
+                        disabled={updating}
+                      >
+                        Terminar
+                      </button>
+                    </>
+                  )}
+                {!editingPermissions?.canAssumeOrder && (
+                  <span className="text-xs text-slate-500">
+                    Esta ordem esta atribuida a outro utilizador.
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -1027,6 +1270,12 @@ export function WorkOrdersPage() {
                               slaDate.getTime() <= Date.now() + 24 * 60 * 60 * 1000
                             : false;
                           const createdDate = order.created_at ? new Date(order.created_at) : null;
+                          const canEdit =
+                            isAdmin || isManager || order.created_by === userId;
+                          const canOperate = isAdmin || order.assigned_to === userId;
+                          const isReadOnly = Boolean(
+                            order.assigned_to && order.assigned_to !== userId && !canEdit && !canOperate,
+                          );
 
                           return (
                             <tr key={order.id} className="group hover:bg-emerald-50/40">
@@ -1084,7 +1333,7 @@ export function WorkOrdersPage() {
                                   onClick={() => handleStartEdit(order)}
                                 >
                                   <Pencil className="h-4 w-4" />
-                                  Atualizar
+                                  {isReadOnly ? 'Ver' : 'Atualizar'}
                                 </button>
                               </td>
                             </tr>

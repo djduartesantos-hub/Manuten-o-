@@ -5,6 +5,14 @@ import { logger } from '../config/logger.js';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 
 export class WorkOrderController {
+  private static isAdmin(role?: string) {
+    return role === 'superadmin' || role === 'admin_empresa';
+  }
+
+  private static isManager(role?: string) {
+    return role === 'gestor_manutencao';
+  }
+
   static async list(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { plantId } = req.params;
@@ -132,6 +140,8 @@ export class WorkOrderController {
       const { plantId } = req.params;
       const tenantId = req.tenantId;
       const updates = req.body;
+      const userId = req.user?.userId;
+      const role = req.user?.role;
 
       if (!tenantId || !workOrderId || !plantId) {
         res.status(400).json({
@@ -139,6 +149,81 @@ export class WorkOrderController {
           error: 'Work order ID is required',
         });
         return;
+      }
+
+      const existing = await WorkOrderService.getWorkOrderById(tenantId, workOrderId, plantId);
+
+      if (!existing) {
+        res.status(404).json({
+          success: false,
+          error: 'Work order not found',
+        });
+        return;
+      }
+
+      const isAdmin = WorkOrderController.isAdmin(role);
+      const isManager = WorkOrderController.isManager(role);
+      const isCreator = Boolean(userId && existing.created_by === userId);
+
+      const editFields = [
+        'title',
+        'description',
+        'priority',
+        'scheduled_date',
+        'estimated_hours',
+        'asset_id',
+        'plan_id',
+      ];
+      const operationalFields = [
+        'status',
+        'actual_hours',
+        'completed_at',
+        'notes',
+        'assigned_to',
+        'started_at',
+      ];
+
+      const wantsEditFields = editFields.some((field) => Object.prototype.hasOwnProperty.call(updates, field));
+      const wantsOperational = operationalFields.some((field) => Object.prototype.hasOwnProperty.call(updates, field));
+
+      if (wantsEditFields && !(isAdmin || isManager || isCreator)) {
+        res.status(403).json({
+          success: false,
+          error: 'Sem permissao para editar esta ordem',
+        });
+        return;
+      }
+
+      if (wantsOperational) {
+        const updatedAssigned = updates.assigned_to ?? existing.assigned_to;
+        const isAssignedUser = Boolean(userId && updatedAssigned === userId);
+
+        if (existing.assigned_to && existing.assigned_to !== userId && !isAdmin) {
+          res.status(403).json({
+            success: false,
+            error: 'Ordem atribuida a outro utilizador',
+          });
+          return;
+        }
+
+        if (updates.assigned_to && updates.assigned_to !== existing.assigned_to) {
+          const isSelfAssign = Boolean(!existing.assigned_to && userId && updates.assigned_to === userId);
+          if (!isAdmin && !isSelfAssign) {
+            res.status(403).json({
+              success: false,
+              error: 'Sem permissao para atribuir esta ordem',
+            });
+            return;
+          }
+        }
+
+        if (!isAdmin && !isAssignedUser) {
+          res.status(403).json({
+            success: false,
+            error: 'Somente o responsavel pode atualizar o estado',
+          });
+          return;
+        }
       }
 
       const workOrder = await WorkOrderService.updateWorkOrder(
@@ -181,6 +266,58 @@ export class WorkOrderController {
       res.status(500).json({
         success: false,
         error: 'Failed to update work order',
+      });
+    }
+  }
+
+  static async remove(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { workOrderId } = req.params;
+      const { plantId } = req.params;
+      const tenantId = req.tenantId;
+      const userId = req.user?.userId;
+      const role = req.user?.role;
+
+      if (!tenantId || !workOrderId || !plantId) {
+        res.status(400).json({
+          success: false,
+          error: 'Work order ID is required',
+        });
+        return;
+      }
+
+      const existing = await WorkOrderService.getWorkOrderById(tenantId, workOrderId, plantId);
+
+      if (!existing) {
+        res.status(404).json({
+          success: false,
+          error: 'Work order not found',
+        });
+        return;
+      }
+
+      const isAdmin = WorkOrderController.isAdmin(role);
+      const isCreator = Boolean(userId && existing.created_by === userId);
+
+      if (!isAdmin && !isCreator) {
+        res.status(403).json({
+          success: false,
+          error: 'Sem permissao para eliminar esta ordem',
+        });
+        return;
+      }
+
+      await WorkOrderService.deleteWorkOrder(tenantId, workOrderId, plantId);
+
+      res.json({
+        success: true,
+        data: { id: workOrderId },
+      });
+    } catch (error) {
+      logger.error('Delete work order error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to delete work order',
       });
     }
   }

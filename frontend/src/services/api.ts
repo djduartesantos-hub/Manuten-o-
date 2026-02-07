@@ -176,6 +176,12 @@ export async function updateWorkOrder(plantId: string, workOrderId: string, data
   });
 }
 
+export async function deleteWorkOrder(plantId: string, workOrderId: string) {
+  return apiCall(`/${plantId}/work-orders/${workOrderId}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function getDashboardMetrics(plantId: string) {
   return apiCall(`/dashboard/${plantId}/metrics`);
 }

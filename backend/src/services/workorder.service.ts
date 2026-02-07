@@ -188,6 +188,12 @@ export class WorkOrderService {
         : null;
     }
 
+    if (Object.prototype.hasOwnProperty.call(normalized, 'started_at')) {
+      normalized.started_at = normalized.started_at
+        ? new Date(normalized.started_at)
+        : null;
+    }
+
     if (Object.prototype.hasOwnProperty.call(normalized, 'actual_hours')) {
       normalized.actual_hours = normalized.actual_hours || null;
     }
@@ -253,6 +259,36 @@ export class WorkOrderService {
     }
 
     return updated;
+  }
+
+  static async deleteWorkOrder(tenantId: string, workOrderId: string, plantId?: string) {
+    const existing = await db.query.workOrders.findFirst({
+      where: (fields: any, { eq, and }: any) => {
+        const conditions = [eq(fields.tenant_id, tenantId), eq(fields.id, workOrderId)];
+
+        if (plantId) {
+          conditions.push(eq(fields.plant_id, plantId));
+        }
+
+        return and(...conditions);
+      },
+    });
+
+    if (!existing) {
+      throw new Error('Work order not found');
+    }
+
+    await db
+      .delete(workOrders)
+      .where(
+        and(
+          eq(workOrders.tenant_id, tenantId),
+          eq(workOrders.id, workOrderId),
+          ...(plantId ? [eq(workOrders.plant_id, plantId)] : []),
+        ),
+      );
+
+    await this.invalidateWorkOrderCache(tenantId, existing.plant_id, workOrderId);
   }
 
   static async getPlantWorkOrders(
