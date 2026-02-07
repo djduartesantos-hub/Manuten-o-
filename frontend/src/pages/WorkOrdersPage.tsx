@@ -171,6 +171,7 @@ export function WorkOrdersPage() {
     unit_cost: '',
     notes: '',
   });
+  const [usagePartSearch, setUsagePartSearch] = useState('');
   const [usageSaving, setUsageSaving] = useState(false);
   const [usageMessage, setUsageMessage] = useState<string | null>(null);
   const [orderMovements, setOrderMovements] = useState<StockMovement[]>([]);
@@ -518,6 +519,7 @@ export function WorkOrdersPage() {
     setEditingOrder(order);
     setUsageForm({ spare_part_id: '', quantity: 1, unit_cost: '', notes: '' });
     setUsageMessage(null);
+    setUsagePartSearch('');
     setOrderMovements([]);
     setOrderMovementsError(null);
     setUpdateForm({
@@ -580,6 +582,15 @@ export function WorkOrdersPage() {
       setUsageSaving(false);
     }
   };
+
+  const filteredUsageParts = useMemo(() => {
+    const query = usagePartSearch.trim().toLowerCase();
+    if (!query) return spareParts;
+    return spareParts.filter((part) => {
+      const label = `${part.code} ${part.name}`.toLowerCase();
+      return label.includes(query);
+    });
+  }, [spareParts, usagePartSearch]);
 
   const handleUpdate = async () => {
     if (!selectedPlant || !editingOrder) return;
@@ -1310,6 +1321,13 @@ export function WorkOrdersPage() {
                         <label className="block text-sm font-medium text-slate-700 mb-1">
                           Peca
                         </label>
+                        <input
+                          className="input mb-2"
+                          placeholder="Pesquisar peca"
+                          value={usagePartSearch}
+                          onChange={(event) => setUsagePartSearch(event.target.value)}
+                          disabled={partsLoading || !editingPermissions?.canOperateOrder}
+                        />
                         <select
                           className="input"
                           value={usageForm.spare_part_id}
@@ -1319,12 +1337,17 @@ export function WorkOrdersPage() {
                           disabled={partsLoading || !editingPermissions?.canOperateOrder}
                         >
                           <option value="">Selecionar...</option>
-                          {spareParts.map((part) => (
+                          {filteredUsageParts.map((part) => (
                             <option key={part.id} value={part.id}>
                               {part.code} - {part.name}
                             </option>
                           ))}
                         </select>
+                        {!partsLoading && filteredUsageParts.length === 0 && (
+                          <p className="mt-2 text-xs text-slate-500">
+                            Nenhuma peca encontrada.
+                          </p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">
