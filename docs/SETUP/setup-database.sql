@@ -90,6 +90,7 @@ CREATE INDEX plants_tenant_code_idx ON plants(tenant_id, code);
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL,
+  username TEXT NOT NULL,
   email TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   first_name TEXT NOT NULL,
@@ -101,10 +102,12 @@ CREATE TABLE users (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   deleted_at TIMESTAMPTZ,
+  UNIQUE(tenant_id, username),
   UNIQUE(tenant_id, email)
 );
 
 CREATE INDEX users_tenant_id_idx ON users(tenant_id);
+CREATE INDEX users_tenant_username_idx ON users(tenant_id, username);
 CREATE INDEX users_tenant_email_idx ON users(tenant_id, email);
 
 -- User Plants (N:N relationship)
@@ -393,10 +396,11 @@ VALUES (
 -- Email: admin@cmms.com
 -- Password: Admin@123456
 INSERT INTO users (
-  id, tenant_id, email, password_hash, first_name, last_name, role, is_active
+  id, tenant_id, username, email, password_hash, first_name, last_name, role, is_active
 ) VALUES (
   '550e8400-e29b-41d4-a716-446655440003',
   '550e8400-e29b-41d4-a716-446655440000',
+  'admin',
   'admin@cmms.com',
   '$2b$10$n9J3.iMXsL/TtdN1eUyEqu3DKXWXVh/D.5hRKKf1qf8uKKJgfOJly',
   'Admin',

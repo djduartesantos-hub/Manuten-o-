@@ -4,7 +4,6 @@ import { bootstrapDatabase } from '../services/api';
 
 interface BootstrapResult {
   tenantId: string;
-  tenantSlug: string;
   loginUrl: string;
   migrations: string[];
   seed: {
@@ -17,22 +16,17 @@ interface BootstrapResult {
     };
     note: string;
   };
+  adminUsername: string;
   adminEmail: string;
   passwordHint: string;
 }
 
 export function SetupInitPage() {
-  const [tenantSlug, setTenantSlug] = useState('demo');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<BootstrapResult | null>(null);
 
   const handleBootstrap = async () => {
-    if (!tenantSlug.trim()) {
-      setError('Tenant slug obrigatorio.');
-      return;
-    }
-
     if (!confirm('Isto vai APAGAR TODOS os dados e recriar a base de dados. Continuar?')) {
       return;
     }
@@ -46,7 +40,7 @@ export function SetupInitPage() {
     setResult(null);
 
     try {
-      const data = await bootstrapDatabase(tenantSlug.trim().toLowerCase());
+      const data = await bootstrapDatabase();
       setResult(data as BootstrapResult);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao iniciar setup');
@@ -69,14 +63,6 @@ export function SetupInitPage() {
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <label className="block text-sm font-medium text-slate-700">Tenant slug</label>
-          <input
-            className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-900 focus:border-primary-500 focus:outline-none"
-            value={tenantSlug}
-            onChange={(event) => setTenantSlug(event.target.value)}
-            placeholder="demo"
-          />
-
           <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="button"
@@ -106,9 +92,9 @@ export function SetupInitPage() {
                 Setup concluido
               </div>
               <div className="mt-3 grid gap-2 text-sm text-emerald-900">
-                <div>Tenant: {result.tenantSlug}</div>
                 <div>Login: {result.loginUrl}</div>
-                <div>Admin: {result.adminEmail}</div>
+                <div>Admin: {result.adminUsername}</div>
+                <div>Email: {result.adminEmail}</div>
                 <div>Senha: {result.passwordHint}</div>
               </div>
               <div className="mt-3 text-xs text-emerald-800">

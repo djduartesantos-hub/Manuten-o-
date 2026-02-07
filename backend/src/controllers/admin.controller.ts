@@ -70,6 +70,14 @@ export async function createPlant(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({ success: false, error: 'Name and code are required' });
     }
 
+    const existingCount = await db.execute(
+      sql`SELECT COUNT(*) AS total FROM plants WHERE tenant_id = ${tenantId}`,
+    );
+
+    if (Number(existingCount.rows[0]?.total || 0) > 0) {
+      return res.status(400).json({ success: false, error: 'Single plant mode: creation disabled' });
+    }
+
     const existing = await db.query.plants.findFirst({
       where: (fields: any, { eq, and }: any) =>
         and(eq(fields.tenant_id, tenantId), eq(fields.code, code)),
@@ -200,6 +208,7 @@ export async function listUsers(req: AuthenticatedRequest, res: Response) {
     const result = await db.execute(sql`
       SELECT
         u.id,
+        u.username,
         u.email,
         u.first_name,
         u.last_name,
@@ -223,13 +232,13 @@ export async function listUsers(req: AuthenticatedRequest, res: Response) {
 export async function createUser(req: AuthenticatedRequest, res: Response) {
   try {
     const tenantId = req.tenantId;
-    const { email, password, first_name, last_name, role, plant_ids, is_active } = req.body || {};
+    const { username, email, password, first_name, last_name, role, plant_ids, is_active } = req.body || {};
 
     if (!tenantId) {
       return res.status(400).json({ success: false, error: 'Tenant ID is required' });
     }
 
-    if (!email || !password || !first_name || !last_name) {
+    if (!username || !email || !password || !first_name || !last_name) {
       return res.status(400).json({ success: false, error: 'Missing required fields' });
     }
 
@@ -242,12 +251,22 @@ export async function createUser(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({ success: false, error: 'At least one plant is required' });
     }
 
+    const normalizedUsername = String(username).trim().toLowerCase();
     const existing = await db.query.users.findFirst({
+      where: (fields: any, { eq, and }: any) =>
+        and(eq(fields.tenant_id, tenantId), eq(fields.username, normalizedUsername)),
+    });
+
+    if (existing) {
+      return res.status(409).json({ success: false, error: 'Username already exists' });
+    }
+
+    const existingEmail = await db.query.users.findFirst({
       where: (fields: any, { eq, and }: any) =>
         and(eq(fields.tenant_id, tenantId), eq(fields.email, email)),
     });
 
-    if (existing) {
+    if (existingEmail) {
       return res.status(409).json({ success: false, error: 'Email already exists' });
     }
 
@@ -266,6 +285,7 @@ export async function createUser(req: AuthenticatedRequest, res: Response) {
       .values({
         id: uuidv4(),
         tenant_id: tenantId,
+        username: normalizedUsername,
         email,
         password_hash: passwordHash,
         first_name,
@@ -293,7 +313,7 @@ export async function updateUser(req: AuthenticatedRequest, res: Response) {
   try {
     const tenantId = req.tenantId;
     const { userId } = req.params;
-    const { first_name, last_name, role, password, plant_ids, is_active } = req.body || {};
+    const { username, first_name, last_name, role, password, plant_ids, is_active } = req.body || {};
 
     if (!tenantId || !userId) {
       return res.status(400).json({ success: false, error: 'User ID is required' });
@@ -312,6 +332,25 @@ export async function updateUser(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({ success: false, error: 'Invalid role' });
     }
 
+    let normalizedUsername: string | undefined;
+    if (username) {
+      normalizedUsername = String(username).trim().toLowerCase();
+      if (!normalizedUsername) {
+        return res.status(400).json({ success: false, error: 'Invalid username' });
+      }
+
+      if (normalizedUsername !== user.username) {
+        const duplicate = await db.query.users.findFirst({
+          where: (fields: any, { eq, and }: any) =>
+            and(eq(fields.tenant_id, tenantId), eq(fields.username, normalizedUsername)),
+        });
+
+        if (duplicate) {
+          return res.status(409).json({ success: false, error: 'Username already exists' });
+        }
+      }
+    }
+
     let passwordHash: string | undefined;
     if (password) {
       passwordHash = await bcrypt.hash(password, 10);
@@ -320,6 +359,7 @@ export async function updateUser(req: AuthenticatedRequest, res: Response) {
     const [updated] = await db
       .update(users)
       .set({
+        username: normalizedUsername ?? user.username,
         first_name: first_name ?? user.first_name,
         last_name: last_name ?? user.last_name,
         role: role ?? user.role,

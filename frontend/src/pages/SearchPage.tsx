@@ -17,8 +17,8 @@ interface SearchResult {
 }
 
 export function SearchPage() {
-  const { selectedPlant, tenantSlug } = useAppStore();
-  const basePath = tenantSlug ? `/t/${tenantSlug}` : '';
+  const { selectedPlant } = useAppStore();
+  const basePath = '';
   const [query, setQuery] = useState('');
   const [type, setType] = useState<'all' | 'orders' | 'assets'>('all');
   const [status, setStatus] = useState('');

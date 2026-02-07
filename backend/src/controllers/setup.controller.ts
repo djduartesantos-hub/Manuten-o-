@@ -134,7 +134,7 @@ export class SetupController {
     // Check what already exists
     const existingPlant = await db.execute(sql`SELECT id FROM plants WHERE id = ${demoPlantId}`);
     const existingAdmin = await db.execute(sql`SELECT id FROM users WHERE id = ${demoAdminId}`);
-    const existingTech = await db.execute(sql`SELECT id FROM users WHERE email = 'tech@cmms.com'`);
+    const existingTech = await db.execute(sql`SELECT id FROM users WHERE username = 'tech'`);
     const existingCategory = await db.execute(
       sql`SELECT id FROM asset_categories WHERE id = ${demoCategoryId}`,
     );
@@ -178,6 +178,7 @@ export class SetupController {
         .values({
           id: demoAdminId,
           tenant_id: tenantId,
+          username: 'admin',
           email: 'admin@cmms.com',
           password_hash: passwordHash,
           first_name: 'Admin',
@@ -197,6 +198,7 @@ export class SetupController {
         .values({
           id: demoTechId,
           tenant_id: tenantId,
+          username: 'tech',
           email: 'tech@cmms.com',
           password_hash: techPasswordHash,
           first_name: 'Tecnico',
@@ -396,6 +398,7 @@ export class SetupController {
 
       // Get admin credentials from environment or use defaults
       const adminEmail = process.env.ADMIN_EMAIL || 'admin@cmms.com';
+      const adminUsername = process.env.ADMIN_USERNAME || 'admin';
       const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123456';
 
       if (!tenantId) {
@@ -429,6 +432,7 @@ export class SetupController {
       await db.insert(users).values({
         id: adminId,
         tenant_id: tenantId,
+        username: adminUsername,
         email: adminEmail,
         password_hash: passwordHash,
         first_name: 'Admin',
@@ -449,6 +453,7 @@ export class SetupController {
         message: 'Database initialized successfully with admin user',
         data: {
           adminEmail,
+          adminUsername,
           plantId,
           note: 'You can now login with the admin credentials',
         },
@@ -640,9 +645,8 @@ END $$;`
    */
   static async bootstrapAll(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const rawSlug = typeof req.body?.tenantSlug === 'string' ? req.body.tenantSlug : '';
-      const tenantSlug = (rawSlug || DEFAULT_TENANT_SLUG).trim().toLowerCase();
-      const tenantId = tenantSlug === DEFAULT_TENANT_SLUG ? DEFAULT_TENANT_ID : uuidv4();
+      const tenantSlug = DEFAULT_TENANT_SLUG;
+      const tenantId = DEFAULT_TENANT_ID;
 
       await SetupController.clearAllInternal(true);
 
@@ -656,9 +660,10 @@ END $$;`
         data: {
           tenantId,
           tenantSlug,
-          loginUrl: `/t/${tenantSlug}/login`,
+          loginUrl: '/login',
           migrations,
           seed: seedResult,
+          adminUsername: 'admin',
           adminEmail: 'admin@cmms.com',
           passwordHint: 'Admin@123456',
         },

@@ -1132,11 +1132,9 @@ function DocumentsLibrarySettings() {
       formData.append('title', file.name);
       formData.append('file', file);
 
-      const tenantSlug = localStorage.getItem('tenantSlug');
-      if (!tenantSlug) throw new Error('Tenant slug requerido');
       const token = localStorage.getItem('token');
 
-      const response = await fetch(`/api/t/${tenantSlug}/alerts/documents`, {
+      const response = await fetch('/api/alerts/documents', {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData,
@@ -1425,7 +1423,7 @@ function PermissionsSettings() {
 }
 
 function ManagementSettings() {
-  const { selectedPlant, tenantSlug } = useAppStore();
+  const { selectedPlant } = useAppStore();
   const [plants, setPlants] = React.useState<any[]>([]);
   const [users, setUsers] = React.useState<any[]>([]);
   const [roles, setRoles] = React.useState<Array<{ value: string; label: string }>>([]);
@@ -1451,6 +1449,7 @@ function ManagementSettings() {
   });
 
   const [newUser, setNewUser] = React.useState({
+    username: '',
     email: '',
     password: '',
     first_name: '',
@@ -1530,6 +1529,8 @@ function ManagementSettings() {
     }
   };
 
+  const singlePlantLocked = plants.length > 0;
+
   const handleStartPlantEdit = (plant: any) => {
     setEditingPlantId(plant.id);
     setPlantForm({
@@ -1574,7 +1575,7 @@ function ManagementSettings() {
   };
 
   const handleCreateUser = async () => {
-    if (!newUser.email || !newUser.password || !newUser.first_name || !newUser.last_name) {
+    if (!newUser.username || !newUser.email || !newUser.password || !newUser.first_name || !newUser.last_name) {
       setError('Preencha os campos obrigatorios do utilizador');
       return;
     }
@@ -1589,6 +1590,7 @@ function ManagementSettings() {
     try {
       await createAdminUser(newUser);
       setNewUser({
+        username: '',
         email: '',
         password: '',
         first_name: '',
@@ -1707,11 +1709,16 @@ function ManagementSettings() {
           <button
             className="btn-primary inline-flex items-center gap-2"
             onClick={handleCreatePlant}
-            disabled={saving}
+            disabled={saving || singlePlantLocked}
           >
             <Plus className="h-4 w-4" />
             Criar planta
           </button>
+          {singlePlantLocked && (
+            <p className="text-xs text-slate-500">
+              Modo de fabrica unica ativo. A criacao de novas plantas esta bloqueada.
+            </p>
+          )}
 
           <div className="space-y-3">
             {loading && <p className="text-sm text-slate-500">Carregando plantas...</p>}
@@ -1829,7 +1836,7 @@ function ManagementSettings() {
               <h3 className="text-lg font-semibold text-slate-900">Equipamentos</h3>
               <p className="text-sm text-slate-500">Resumo por planta selecionada</p>
             </div>
-            <a className="text-sm text-primary-600" href={tenantSlug ? `/t/${tenantSlug}/assets` : '/'}>
+            <a className="text-sm text-primary-600" href="/assets">
               Ver lista
             </a>
           </div>
@@ -1889,6 +1896,12 @@ function ManagementSettings() {
             placeholder="Apelido"
             value={newUser.last_name}
             onChange={(event) => setNewUser({ ...newUser, last_name: event.target.value })}
+          />
+          <input
+            className="input"
+            placeholder="Username"
+            value={newUser.username}
+            onChange={(event) => setNewUser({ ...newUser, username: event.target.value })}
           />
           <input
             className="input"
@@ -1960,7 +1973,8 @@ function ManagementSettings() {
                   <p className="text-sm font-semibold text-slate-900">
                     {user.first_name} {user.last_name}
                   </p>
-                  <p className="text-xs text-slate-500">{user.email}</p>
+                  <p className="text-xs text-slate-500">{user.username}</p>
+                  <p className="text-xs text-slate-400">{user.email}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">

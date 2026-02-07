@@ -64,6 +64,7 @@ async function seed() {
     await db.insert(users).values({
       id: adminId,
       tenant_id: tenantId,
+      username: 'admin',
       email: 'admin@cmms.com',
       password_hash: passwordHash,
       first_name: 'Admin',
@@ -79,6 +80,7 @@ async function seed() {
     await db.insert(users).values({
       id: technicianId,
       tenant_id: tenantId,
+      username: 'tech',
       email: 'tech@cmms.com',
       password_hash: techPasswordHash,
       first_name: 'Tecnico',

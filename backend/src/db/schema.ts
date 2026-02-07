@@ -87,6 +87,7 @@ export const users = pgTable(
     id: uuid('id').defaultRandom().primaryKey(),
     tenant_id: uuid('tenant_id')
       .notNull(),
+    username: text('username').notNull(),
     email: text('email').notNull(),
     password_hash: text('password_hash').notNull(),
     first_name: text('first_name').notNull(),
@@ -100,6 +101,7 @@ export const users = pgTable(
     deleted_at: timestamp('deleted_at', { withTimezone: true }),
   },
   (table) => ({
+    usernameIdx: uniqueIndex('users_tenant_username_idx').on(table.tenant_id, table.username),
     emailIdx: uniqueIndex('users_tenant_email_idx').on(table.tenant_id, table.email),
     tenantIdIdx: index('users_tenant_id_idx').on(table.tenant_id),
   }),

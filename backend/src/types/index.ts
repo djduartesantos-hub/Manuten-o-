@@ -23,7 +23,8 @@ export enum MaintenanceType {
 export interface JWTPayload {
   userId: string;
   tenantId: string;
-  email: string;
+  username: string;
+  email?: string;
   role: UserRole;
   plantIds?: string[];
 }

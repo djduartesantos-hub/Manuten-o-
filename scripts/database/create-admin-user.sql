@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS plants (
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL,
+  username TEXT NOT NULL,
   email TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   first_name TEXT NOT NULL,
@@ -364,6 +365,7 @@ CREATE INDEX IF NOT EXISTS plants_tenant_id_idx ON plants(tenant_id);
 CREATE UNIQUE INDEX IF NOT EXISTS plants_tenant_code_idx ON plants(tenant_id, code);
 
 -- Índices para Users
+CREATE UNIQUE INDEX IF NOT EXISTS users_tenant_username_idx ON users(tenant_id, username);
 CREATE UNIQUE INDEX IF NOT EXISTS users_tenant_email_idx ON users(tenant_id, email);
 CREATE INDEX IF NOT EXISTS users_tenant_id_idx ON users(tenant_id);
 
@@ -486,6 +488,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO users (
   id,
   tenant_id,
+  username,
   email,
   password_hash,
   first_name,
@@ -496,6 +499,7 @@ INSERT INTO users (
 VALUES (
   '00000001-0000-0000-0000-000000000001',
   '550e8400-e29b-41d4-a716-446655440000',
+  'admin',
   'admin@cmms.com',
   '$2b$10$c57Lm28L2e39MhBqtvoFze.NpWUAA5epwrtlgp7xMZ.jmcpqoBCay',
   'Admin',
@@ -503,7 +507,7 @@ VALUES (
   'superadmin',
   true
 )
-ON CONFLICT (tenant_id, email) DO NOTHING;
+ON CONFLICT (tenant_id, username) DO NOTHING;
 
 -- Vincular Admin à Planta
 INSERT INTO user_plants (
@@ -525,6 +529,7 @@ ON CONFLICT DO NOTHING;
 -- Mostrar usuários criados
 SELECT
   u.id,
+  u.username,
   u.email,
   u.first_name,
   u.last_name,
@@ -547,6 +552,7 @@ ORDER BY u.created_at DESC;
 --    Localizado em: backend/src/config/constants.ts
 --
 -- 2. CREDENCIAIS PADRÃO:
+--    Username: admin
 --    Email: admin@cmms.com
 --    Senha: Admin@123456
 --    Role: superadmin

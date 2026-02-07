@@ -1,5 +1,5 @@
 import { db } from '../config/database.js';
-import { users, userPlants, plants, tenants } from '../db/schema.js';
+import { users, userPlants, plants } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { comparePasswords, hashPassword } from '../auth/jwt.js';
 
@@ -14,27 +14,13 @@ export class AuthService {
 
     return roleAliases[role] || role;
   }
-  static async findUserByEmail(tenantId: string, email: string) {
+  static async findUserByUsername(tenantId: string, username: string) {
+    const normalized = username.trim().toLowerCase();
     const user = await db.query.users.findFirst({
       where: (fields: any, { eq, and }: any) =>
-        and(eq(fields.tenant_id, tenantId), eq(fields.email, email)),
+        and(eq(fields.tenant_id, tenantId), eq(fields.username, normalized)),
     });
     return user;
-  }
-
-  static async findTenantBySlug(slug: string) {
-    const normalizedSlug = slug.trim().toLowerCase();
-    if (!normalizedSlug) return null;
-
-    const tenant = await db.query.tenants.findFirst({
-      where: (fields: any, { eq }: any) => eq(fields.slug, normalizedSlug),
-    });
-
-    if (!tenant || tenant.deleted_at || tenant.is_active === false) {
-      return null;
-    }
-
-    return tenant;
   }
 
   static async findUserById(userId: string) {
@@ -44,28 +30,6 @@ export class AuthService {
     return user;
   }
 
-  static async findTenantsByEmail(email: string) {
-    const normalized = email.trim().toLowerCase();
-
-    const rows = await db
-      .select({
-        id: tenants.id,
-        slug: tenants.slug,
-        name: tenants.name,
-      })
-      .from(users)
-      .innerJoin(tenants, eq(users.tenant_id, tenants.id))
-      .where(eq(users.email, normalized));
-
-    const unique = new Map<string, { id: string; slug: string; name: string }>();
-    for (const row of rows) {
-      if (!unique.has(row.slug)) {
-        unique.set(row.slug, row);
-      }
-    }
-
-    return Array.from(unique.values());
-  }
 
   /**
    * Get user's plant IDs - loads from user_plants relationship or all plants for admin roles
@@ -96,10 +60,10 @@ export class AuthService {
 
   static async validateCredentials(
     tenantId: string,
-    email: string,
+    username: string,
     password: string,
   ) {
-    const user = await this.findUserByEmail(tenantId, email);
+    const user = await this.findUserByUsername(tenantId, username);
 
     if (!user || !user.is_active) {
       return null;
@@ -118,19 +82,22 @@ export class AuthService {
 
   static async createUser(data: {
     tenant_id: string;
-    email: string;
+    username: string;
+    email?: string;
     password: string;
     first_name: string;
     last_name: string;
     role: string;
     phone?: string;
   }) {
+    const normalizedUsername = data.username.trim().toLowerCase();
     const passwordHash = await hashPassword(data.password);
 
     const [user] = await db
       .insert(users)
       .values({
         ...data,
+        username: normalizedUsername,
         password_hash: passwordHash,
       })
       .returning();

@@ -3,57 +3,23 @@ import { AuthenticatedRequest } from '../types/index.js';
 import { AuthService } from '../services/auth.service.js';
 import { generateToken, generateRefreshToken } from '../auth/jwt.js';
 import { logger } from '../config/logger.js';
+import { DEFAULT_TENANT_ID } from '../config/constants.js';
 
 export class AuthController {
-  static async listTenants(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const email = typeof req.query?.email === 'string' ? req.query.email : '';
-
-      if (!email.trim()) {
-        res.status(400).json({
-          success: false,
-          error: 'Email is required',
-        });
-        return;
-      }
-
-      const tenants = await AuthService.findTenantsByEmail(email);
-
-      res.json({
-        success: true,
-        data: tenants,
-      });
-    } catch (error) {
-      logger.error('List tenants error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to load tenants',
-      });
-    }
-  }
   static async login(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const { email, password } = req.body;
+      const { username, password } = req.body;
 
-      if (!email || !password) {
+      if (!username || !password) {
         res.status(400).json({
           success: false,
-          error: 'Email and password are required',
+          error: 'Username and password are required',
         });
         return;
       }
 
-      const tenantId = req.tenantId;
-
-      if (!tenantId) {
-        res.status(400).json({
-          success: false,
-          error: 'Tenant is required',
-        });
-        return;
-      }
-
-      const user = await AuthService.validateCredentials(tenantId, email, password);
+      const tenantId = req.tenantId || DEFAULT_TENANT_ID;
+      const user = await AuthService.validateCredentials(tenantId, username, password);
 
       if (!user) {
         res.status(401).json({
@@ -68,6 +34,7 @@ export class AuthController {
       const payload: any = {
         userId: user.id,
         tenantId: user.tenant_id,
+        username: user.username,
         email: user.email,
         role: user.role,
         plantIds: plantIds || [],
@@ -83,6 +50,7 @@ export class AuthController {
           refreshToken,
           user: {
             id: user.id,
+            username: user.username,
             email: user.email,
             firstName: user.first_name,
             lastName: user.last_name,
@@ -132,6 +100,7 @@ export class AuthController {
       const payload: any = {
         userId: user.id,
         tenantId: user.tenant_id,
+        username: user.username,
         email: user.email,
         role: user.role,
         plantIds: plantIds || [],

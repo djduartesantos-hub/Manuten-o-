@@ -7,7 +7,6 @@ import {
   runMigrations,
   seedDemoData,
 } from '../services/api';
-import { useAppStore } from '../context/store';
 
 interface DatabaseStatus {
   connected: boolean;
@@ -46,7 +45,6 @@ interface MigrationResult {
 }
 
 export function DatabaseUpdatePage() {
-  const { tenantSlug } = useAppStore();
   const [status, setStatus] = useState<DatabaseStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -170,9 +168,6 @@ export function DatabaseUpdatePage() {
         <p className="text-gray-600 mt-2">
           Aplicar migracoes e gerir o estado da base de dados
         </p>
-        <p className="text-xs text-gray-500 mt-2">
-          Tenant atual: <span className="font-semibold">{tenantSlug || 'indefinido'}</span>
-        </p>
       </div>
 
       <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
@@ -254,7 +249,7 @@ export function DatabaseUpdatePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button
             onClick={handleInitialize}
-            disabled={loading || !tenantSlug}
+            disabled={loading}
             className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-400 transition"
           >
             <Server className="w-4 h-4" />

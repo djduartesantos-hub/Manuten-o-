@@ -36,6 +36,7 @@ interface Plant {
 
 interface AdminUser {
   id: string;
+  username?: string;
   email: string;
   first_name: string;
   last_name: string;
@@ -131,6 +132,11 @@ export function PlantsPage() {
   );
 
   const handleCreatePlant = async () => {
+    if (plants.length > 0) {
+      setError('Modo de fabrica unica ativo. Nao e possivel criar novas plantas.');
+      return;
+    }
+
     if (!newPlant.name.trim() || !newPlant.code.trim()) {
       setError('Nome e codigo da planta sao obrigatorios');
       return;
@@ -397,11 +403,16 @@ export function PlantsPage() {
             <button
               className="btn-primary inline-flex items-center gap-2"
               onClick={handleCreatePlant}
-              disabled={saving || !canEdit}
+              disabled={saving || !canEdit || plants.length > 0}
             >
               <Plus className="h-4 w-4" />
               Criar planta
             </button>
+            {plants.length > 0 && (
+              <p className="text-xs text-slate-500">
+                Modo de fabrica unica ativo. A criacao de novas plantas esta bloqueada.
+              </p>
+            )}
           </section>
 
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">

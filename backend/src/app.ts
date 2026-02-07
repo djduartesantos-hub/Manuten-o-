@@ -4,10 +4,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import authRoutes from './routes/auth.routes.js';
-import authPublicRoutes from './routes/auth.public.routes.js';
 import tenantRoutes from './routes/tenant.routes.js';
 import workOrderRoutes from './routes/workorder.routes.js';
 import assetRoutes from './routes/asset.routes.js';
+import assetCategoryRoutes from './routes/asset-category.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import maintenanceRoutes from './routes/maintenance.routes.js';
 import sparePartRoutes from './routes/sparepart.routes.js';
@@ -42,23 +42,23 @@ export function createApp(): Express {
 
   // Routes
   app.use('/api/setup', setupPublicRoutes);
-  app.use('/api/auth', authPublicRoutes);
-  app.use('/api/t/:tenantSlug/auth', authRoutes);
+  app.use('/api/auth', authRoutes);
 
-  app.use('/api/t/:tenantSlug', tenantSlugMiddleware);
-  app.use('/api/t/:tenantSlug', tenantRoutes);
-  app.use('/api/t/:tenantSlug', workOrderRoutes);
-  app.use('/api/t/:tenantSlug', assetRoutes);
-  app.use('/api/t/:tenantSlug', maintenanceRoutes);
-  app.use('/api/t/:tenantSlug', sparePartRoutes);
-  app.use('/api/t/:tenantSlug', supplierRoutes);
-  app.use('/api/t/:tenantSlug/dashboard', dashboardRoutes);
-  app.use('/api/t/:tenantSlug/alerts', alertRoutes);
-  app.use('/api/t/:tenantSlug/search', searchRoutes);
-  app.use('/api/t/:tenantSlug/jobs', jobsRoutes);
-  app.use('/api/t/:tenantSlug/setup', setupRoutes);
-  app.use('/api/t/:tenantSlug/debug', debugRoutes);
-  app.use('/api/t/:tenantSlug/admin', adminRoutes);
+  app.use('/api', tenantSlugMiddleware);
+  app.use('/api', tenantRoutes);
+  app.use('/api', workOrderRoutes);
+  app.use('/api', assetRoutes);
+  app.use('/api', assetCategoryRoutes);
+  app.use('/api', maintenanceRoutes);
+  app.use('/api', sparePartRoutes);
+  app.use('/api', supplierRoutes);
+  app.use('/api/dashboard', dashboardRoutes);
+  app.use('/api/alerts', alertRoutes);
+  app.use('/api/search', searchRoutes);
+  app.use('/api/jobs', jobsRoutes);
+  app.use('/api/setup', setupRoutes);
+  app.use('/api/debug', debugRoutes);
+  app.use('/api/admin', adminRoutes);
 
   // Health check
   app.get('/health', (_req, res) => {

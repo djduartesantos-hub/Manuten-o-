@@ -2,11 +2,8 @@ import { z } from 'zod';
 
 // Auth Schemas
 export const LoginSchema = z.object({
-  email: z.string().email('Email inválido'),
+  username: z.string().min(3, 'Username mínimo 3 caracteres'),
   password: z.string().min(6, 'Password mínimo 6 caracteres'),
-  // tenant_id and tenant_slug are not required in single-tenant mode
-  tenant_id: z.string().optional(),
-  tenant_slug: z.string().optional(),
 });
 
 export const RefreshTokenSchema = z.object({
@@ -189,6 +186,7 @@ export type UpdateWorkOrderInput = z.infer<typeof UpdateWorkOrderSchema>;
 export type CreateAssetInput = z.infer<typeof CreateAssetSchema>;
 export type UpdateAssetInput = z.infer<typeof UpdateAssetSchema>;
 export type CreateAssetCategoryInput = z.infer<typeof CreateAssetCategorySchema>;
+export type UpdateAssetCategoryInput = z.infer<typeof UpdateAssetCategorySchema>;
 export type CreateMaintenancePlanInput = z.infer<typeof CreateMaintenancePlanSchema>;
 export type CreateSparePartInput = z.infer<typeof CreateSparePartSchema>;
 export type CreateSupplierInput = z.infer<typeof CreateSupplierSchema>;

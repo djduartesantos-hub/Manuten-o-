@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Database, AlertCircle, CheckCircle, Trash2, RefreshCw, Server } from 'lucide-react';
 import { getSetupStatus, seedDemoData, clearAllData, initializeDatabase } from '../services/api';
-import { useAppStore } from '../context/store';
 
 interface DatabaseStatus {
   connected: boolean;
@@ -36,7 +35,6 @@ interface DatabaseStatus {
 }
 
 export function AdminSetupPage() {
-  const { tenantSlug } = useAppStore();
   const [status, setStatus] = useState<DatabaseStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -154,9 +152,6 @@ export function AdminSetupPage() {
         <p className="text-gray-600 mt-2">
           Gerir a base de dados e dados demonstrativos do sistema
         </p>
-        <p className="text-xs text-gray-500 mt-2">
-          Tenant atual: <span className="font-semibold">{tenantSlug || 'indefinido'}</span>
-        </p>
       </div>
 
       {/* Status Card */}
@@ -169,7 +164,7 @@ export function AdminSetupPage() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={handleInitialize}
-              disabled={loading || !tenantSlug}
+              disabled={loading}
               className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-400 transition"
             >
               <Server className="w-4 h-4" />

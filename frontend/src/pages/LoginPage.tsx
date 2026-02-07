@@ -1,61 +1,22 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { listTenantsByEmail, login as apiLogin } from '../services/api';
+import { login as apiLogin } from '../services/api';
 import { AlertCircle, Eye, EyeOff, Sparkles } from 'lucide-react';
-import { useAppStore } from '../context/store';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { tenantSlug } = useParams();
   const { setAuth, isAuthenticated } = useAuth();
-  const { setTenantSlug } = useAppStore();
-  const storedSlug = (localStorage.getItem('tenantSlug') || '').trim().toLowerCase();
-  const [tenantSlugInput, setTenantSlugInput] = React.useState(
-    tenantSlug?.trim().toLowerCase() || storedSlug || ''
-  );
-  const [email, setEmail] = React.useState('admin@cmms.com');
+  const [username, setUsername] = React.useState('admin');
   const [password, setPassword] = React.useState('Admin@123456');
   const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
-  const [tenantOptions, setTenantOptions] = React.useState<
-    Array<{ id: string; slug: string; name: string }>
-  >([]);
-  const [loadingTenants, setLoadingTenants] = React.useState(false);
-
   React.useEffect(() => {
     if (isAuthenticated) {
-      const slug = tenantSlug?.trim().toLowerCase() || storedSlug || tenantSlugInput;
-      if (slug) {
-        navigate(`/t/${slug}/dashboard`, { replace: true });
-      }
+      navigate('/dashboard', { replace: true });
     }
-  }, [isAuthenticated, navigate, storedSlug, tenantSlug, tenantSlugInput]);
-
-  const handleLoadTenants = async () => {
-    setError('');
-    setLoadingTenants(true);
-    try {
-      const tenants = await listTenantsByEmail(email);
-      setTenantOptions(tenants || []);
-
-      if (!tenants || tenants.length === 0) {
-        setTenantSlugInput('');
-        setError('Nenhuma empresa encontrada para este email.');
-        return { status: 'none' as const };
-      } else if (tenants.length === 1) {
-        setTenantSlugInput(tenants[0].slug);
-        return { status: 'single' as const, tenant: tenants[0] };
-      }
-      return { status: 'multiple' as const };
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar empresas');
-      return { status: 'error' as const };
-    } finally {
-      setLoadingTenants(false);
-    }
-  };
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,22 +24,9 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      let resolvedSlug = (tenantSlug || tenantSlugInput).trim().toLowerCase();
-
-      if (!resolvedSlug) {
-        const lookup = await handleLoadTenants();
-        if (lookup?.status === 'single') {
-          resolvedSlug = lookup.tenant.slug;
-        } else {
-          setError('Selecione a empresa antes de entrar.');
-          return;
-        }
-      }
-
-      const result = await apiLogin(resolvedSlug, email, password);
+      const result = await apiLogin(username.trim().toLowerCase(), password);
       setAuth(result.user, result.token, result.refreshToken);
-      setTenantSlug(resolvedSlug);
-      navigate(`/t/${resolvedSlug}/dashboard`);
+      navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -101,7 +49,7 @@ export function LoginPage() {
             CMMS Enterprise
           </h1>
           <p className="mt-4 text-base text-slate-600">
-            Operacoes de manutencao, ativos e equipas num unico cockpit. Escolha a empresa, entre e
+            Operacoes de manutencao, ativos e equipas num unico cockpit. Entre com seu username e
             acompanhe a performance em tempo real.
           </p>
           <div className="mt-8 grid gap-4 text-sm text-slate-600">
@@ -118,7 +66,7 @@ export function LoginPage() {
           <div className="w-full rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
             <div className="mb-6">
               <h2 className="text-2xl font-semibold text-slate-900 font-display">Entrar</h2>
-              <p className="text-sm text-slate-500">Indique a empresa e as suas credenciais.</p>
+              <p className="text-sm text-slate-500">Indique as suas credenciais.</p>
             </div>
 
             {error && (
@@ -130,48 +78,17 @@ export function LoginPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-xs font-medium text-slate-500 uppercase tracking-[0.2em]">
-                  Email
+                <label htmlFor="username" className="block text-xs font-medium text-slate-500 uppercase tracking-[0.2em]">
+                  Username
                 </label>
                 <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-amber-400 focus:outline-none"
                   required
                 />
-                <div className="mt-3 flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={handleLoadTenants}
-                    disabled={loadingTenants}
-                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600 hover:border-amber-300 hover:text-slate-800 disabled:text-slate-400"
-                  >
-                    {loadingTenants ? 'A procurar...' : 'Escolher empresa'}
-                  </button>
-                  <span className="text-xs text-slate-500">Necessario para selecionar a empresa.</span>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="tenant" className="block text-xs font-medium text-slate-500 uppercase tracking-[0.2em]">
-                  Empresa
-                </label>
-                <select
-                  id="tenant"
-                  value={tenantSlugInput}
-                  onChange={(e) => setTenantSlugInput(e.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-amber-400 focus:outline-none"
-                  required
-                >
-                  <option value="">Selecione a empresa</option>
-                  {tenantOptions.map((tenant) => (
-                    <option key={tenant.id} value={tenant.slug}>
-                      {tenant.name} ({tenant.slug})
-                    </option>
-                  ))}
-                </select>
               </div>
 
               <div>
@@ -208,9 +125,8 @@ export function LoginPage() {
 
             <div className="mt-6 rounded-2xl border border-amber-200/60 bg-amber-50/70 p-4 text-xs text-amber-900">
               <p className="font-semibold">Demo rapido</p>
-              <p>Email: admin@cmms.com</p>
+              <p>Username: admin</p>
               <p>Senha: Admin@123456</p>
-              <p>Empresa: demo</p>
             </div>
           </div>
         </div>
