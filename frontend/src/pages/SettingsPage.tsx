@@ -1600,6 +1600,28 @@ function ManagementSettings() {
     loadAssets();
   }, [selectedPlant]);
 
+  React.useEffect(() => {
+    if (!plantModalOpen && !userModalOpen && !activeDbTool) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (plantModalOpen) {
+        setPlantModalOpen(false);
+        setEditingPlantId(null);
+      }
+      if (userModalOpen) {
+        setUserModalOpen(false);
+        setEditingUserId(null);
+      }
+      if (activeDbTool) {
+        setActiveDbTool(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeDbTool, plantModalOpen, userModalOpen]);
+
   const handleCreatePlant = async () => {
     if (!newPlant.name || !newPlant.code) {
       setError('Nome e codigo da planta sao obrigatorios');
