@@ -12,7 +12,7 @@ export function MainLayout({ children, wide = false }: MainLayoutProps) {
       <Header />
       <main
         className={
-          wide ? 'mx-auto w-full max-w-[92rem] px-4 py-6' : 'container-custom'
+          wide ? 'mx-auto w-full max-w-[98rem] px-4 py-6' : 'container-custom'
         }
       >
         {children}
