@@ -1517,6 +1517,10 @@ function ManagementSettings() {
   const [activeDbTool, setActiveDbTool] = React.useState<
     'setup' | 'migrations' | 'bootstrap' | null
   >(null);
+  const [plantModalOpen, setPlantModalOpen] = React.useState(false);
+  const [plantModalMode, setPlantModalMode] = React.useState<'create' | 'edit'>('create');
+  const [userModalOpen, setUserModalOpen] = React.useState(false);
+  const [userModalMode, setUserModalMode] = React.useState<'create' | 'edit'>('create');
 
   const [newPlant, setNewPlant] = React.useState({
     name: '',
@@ -1608,6 +1612,7 @@ function ManagementSettings() {
       await createAdminPlant(newPlant);
       setNewPlant({ name: '', code: '', city: '', country: '' });
       await loadAdminData();
+      setPlantModalOpen(false);
     } catch (err: any) {
       setError(err.message || 'Erro ao criar planta');
     } finally {
@@ -1627,6 +1632,8 @@ function ManagementSettings() {
       country: plant.country || '',
       is_active: plant.is_active ?? true,
     });
+    setPlantModalMode('edit');
+    setPlantModalOpen(true);
   };
 
   const handleUpdatePlant = async () => {
@@ -1638,6 +1645,7 @@ function ManagementSettings() {
       await updateAdminPlant(editingPlantId, plantForm);
       setEditingPlantId(null);
       await loadAdminData();
+      setPlantModalOpen(false);
     } catch (err: any) {
       setError(err.message || 'Erro ao atualizar planta');
     } finally {
@@ -1685,6 +1693,7 @@ function ManagementSettings() {
         plant_ids: [],
       });
       await loadAdminData();
+      setUserModalOpen(false);
     } catch (err: any) {
       setError(err.message || 'Erro ao criar utilizador');
     } finally {
@@ -1701,6 +1710,8 @@ function ManagementSettings() {
       is_active: user.is_active ?? true,
       plant_ids: user.plant_ids || [],
     });
+    setUserModalMode('edit');
+    setUserModalOpen(true);
   };
 
   const handleUpdateUser = async () => {
@@ -1717,6 +1728,7 @@ function ManagementSettings() {
       await updateAdminUser(editingUserId, userForm);
       setEditingUserId(null);
       await loadAdminData();
+      setUserModalOpen(false);
     } catch (err: any) {
       setError(err.message || 'Erro ao atualizar utilizador');
     } finally {
@@ -1805,67 +1817,29 @@ function ManagementSettings() {
               <h3 className="text-lg font-semibold text-slate-900">Plantas</h3>
               <p className="text-sm text-slate-500">Cadastre e organize instalacoes</p>
             </div>
-            <Building2 className="h-5 w-5 text-slate-400" />
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                Nome da planta
-              </label>
-              <input
-                className="input"
-                value={newPlant.name}
-                onChange={(event) => setNewPlant({ ...newPlant, name: event.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                Codigo
-              </label>
-              <input
-                className="input"
-                value={newPlant.code}
-                onChange={(event) => setNewPlant({ ...newPlant, code: event.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                Cidade
-              </label>
-              <input
-                className="input"
-                value={newPlant.city}
-                onChange={(event) => setNewPlant({ ...newPlant, city: event.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                Pais
-              </label>
-              <input
-                className="input"
-                value={newPlant.country}
-                onChange={(event) => setNewPlant({ ...newPlant, country: event.target.value })}
-              />
+            <div className="flex items-center gap-2">
+              <button
+                className="btn-secondary inline-flex items-center gap-2"
+                onClick={() => {
+                  setPlantModalMode('create');
+                  setNewPlant({ name: '', code: '', city: '', country: '' });
+                  setPlantModalOpen(true);
+                }}
+                disabled={saving || singlePlantLocked}
+              >
+                <Plus className="h-4 w-4" />
+                Nova planta
+              </button>
+              <Building2 className="h-5 w-5 text-slate-400" />
             </div>
           </div>
-
-          <button
-            className="btn-primary inline-flex items-center gap-2"
-            onClick={handleCreatePlant}
-            disabled={saving || singlePlantLocked}
-          >
-            <Plus className="h-4 w-4" />
-            Criar planta
-          </button>
           {singlePlantLocked && (
             <p className="text-xs text-slate-500">
               Modo de fabrica unica ativo. A criacao de novas plantas esta bloqueada.
             </p>
           )}
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {loading && <p className="text-sm text-slate-500">Carregando plantas...</p>}
             {!loading && plants.length === 0 && (
               <p className="text-sm text-slate-500">Nenhuma planta cadastrada.</p>
@@ -1873,7 +1847,7 @@ function ManagementSettings() {
             {plants.map((plant) => (
               <div
                 key={plant.id}
-                className="rounded-2xl border border-slate-100 bg-slate-50 p-4"
+                className="rounded-[22px] border border-slate-200 bg-white/90 p-4 shadow-[0_12px_26px_-20px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -1908,68 +1882,6 @@ function ManagementSettings() {
                     </button>
                   </div>
                 </div>
-
-                {editingPlantId === plant.id && (
-                  <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <input
-                      className="input"
-                      value={plantForm.name}
-                      onChange={(event) =>
-                        setPlantForm({ ...plantForm, name: event.target.value })
-                      }
-                      placeholder="Nome"
-                    />
-                    <input
-                      className="input"
-                      value={plantForm.code}
-                      onChange={(event) =>
-                        setPlantForm({ ...plantForm, code: event.target.value })
-                      }
-                      placeholder="Codigo"
-                    />
-                    <input
-                      className="input"
-                      value={plantForm.city}
-                      onChange={(event) =>
-                        setPlantForm({ ...plantForm, city: event.target.value })
-                      }
-                      placeholder="Cidade"
-                    />
-                    <input
-                      className="input"
-                      value={plantForm.country}
-                      onChange={(event) =>
-                        setPlantForm({ ...plantForm, country: event.target.value })
-                      }
-                      placeholder="Pais"
-                    />
-                    <label className="flex items-center gap-2 text-xs text-slate-600">
-                      <input
-                        type="checkbox"
-                        checked={plantForm.is_active}
-                        onChange={(event) =>
-                          setPlantForm({ ...plantForm, is_active: event.target.checked })
-                        }
-                      />
-                      Planta ativa
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="btn-primary"
-                        onClick={handleUpdatePlant}
-                        disabled={saving}
-                      >
-                        Guardar
-                      </button>
-                      <button
-                        className="btn-secondary"
-                        onClick={() => setEditingPlantId(null)}
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -1999,17 +1911,19 @@ function ManagementSettings() {
                 <p className="text-xs text-slate-500">Total</p>
                 <p className="text-2xl font-semibold text-slate-900">{assets.length}</p>
               </div>
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {assets.slice(0, 5).map((asset) => (
                   <div
                     key={asset.id}
-                    className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white px-3 py-2"
+                    className="rounded-[20px] border border-slate-200 bg-white/90 p-3 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.3)] transition hover:-translate-y-1 hover:shadow-[0_16px_32px_-22px_rgba(15,23,42,0.4)]"
                   >
                     <div>
                       <p className="text-sm font-medium text-slate-900">{asset.name}</p>
                       <p className="text-xs text-slate-500">{asset.code}</p>
                     </div>
-                    <span className="text-xs text-slate-500">{asset.status || 'ativo'}</span>
+                    <span className="mt-2 inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">
+                      {asset.status || 'ativo'}
+                    </span>
                   </div>
                 ))}
                 {assets.length === 0 && (
@@ -2028,93 +1942,40 @@ function ManagementSettings() {
             <h3 className="text-lg font-semibold text-slate-900">Utilizadores e roles</h3>
             <p className="text-sm text-slate-500">Crie contas e distribua acessos</p>
           </div>
-          <Users className="h-5 w-5 text-slate-400" />
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <input
-            className="input"
-            placeholder="Nome"
-            value={newUser.first_name}
-            onChange={(event) => setNewUser({ ...newUser, first_name: event.target.value })}
-          />
-          <input
-            className="input"
-            placeholder="Apelido"
-            value={newUser.last_name}
-            onChange={(event) => setNewUser({ ...newUser, last_name: event.target.value })}
-          />
-          <input
-            className="input"
-            placeholder="Username"
-            value={newUser.username}
-            onChange={(event) => setNewUser({ ...newUser, username: event.target.value })}
-          />
-          <input
-            className="input"
-            placeholder="Email"
-            value={newUser.email}
-            onChange={(event) => setNewUser({ ...newUser, email: event.target.value })}
-          />
-          <input
-            className="input"
-            placeholder="Password temporaria"
-            value={newUser.password}
-            onChange={(event) => setNewUser({ ...newUser, password: event.target.value })}
-          />
-          <select
-            className="input"
-            value={newUser.role}
-            onChange={(event) => setNewUser({ ...newUser, role: event.target.value })}
-          >
-            {roles.map((role) => (
-              <option key={role.value} value={role.value}>
-                {role.label}
-              </option>
-            ))}
-          </select>
-          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
-            <p className="text-xs font-semibold text-slate-500">Plantas</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {plants.map((plant) => (
-                <button
-                  key={plant.id}
-                  type="button"
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    newUser.plant_ids.includes(plant.id)
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-white text-slate-600'
-                  }`}
-                  onClick={() =>
-                    setNewUser({
-                      ...newUser,
-                      plant_ids: togglePlantSelection(newUser.plant_ids, plant.id),
-                    })
-                  }
-                >
-                  {plant.code}
-                </button>
-              ))}
-            </div>
+          <div className="flex items-center gap-2">
+            <button
+              className="btn-secondary inline-flex items-center gap-2"
+              onClick={() => {
+                setUserModalMode('create');
+                setNewUser({
+                  username: '',
+                  email: '',
+                  password: '',
+                  first_name: '',
+                  last_name: '',
+                  role: 'tecnico',
+                  plant_ids: [],
+                });
+                setUserModalOpen(true);
+              }}
+              disabled={saving}
+            >
+              <Plus className="h-4 w-4" />
+              Novo utilizador
+            </button>
+            <Users className="h-5 w-5 text-slate-400" />
           </div>
         </div>
-
-        <button
-          className="btn-primary inline-flex items-center gap-2"
-          onClick={handleCreateUser}
-          disabled={saving}
-        >
-          <Plus className="h-4 w-4" />
-          Criar utilizador
-        </button>
-
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {loading && <p className="text-sm text-slate-500">Carregando utilizadores...</p>}
           {!loading && users.length === 0 && (
             <p className="text-sm text-slate-500">Nenhum utilizador encontrado.</p>
           )}
           {users.map((user) => (
-            <div key={user.id} className="rounded-2xl border border-slate-100 p-4">
+            <div
+              key={user.id}
+              className="rounded-[22px] border border-slate-200 bg-white/90 p-4 shadow-[0_12px_26px_-20px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-slate-900">
@@ -2144,84 +2005,294 @@ function ManagementSettings() {
                   </button>
                 </div>
               </div>
-
-              {editingUserId === user.id && (
-                <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <input
-                    className="input"
-                    value={userForm.first_name}
-                    onChange={(event) =>
-                      setUserForm({ ...userForm, first_name: event.target.value })
-                    }
-                    placeholder="Nome"
-                  />
-                  <input
-                    className="input"
-                    value={userForm.last_name}
-                    onChange={(event) =>
-                      setUserForm({ ...userForm, last_name: event.target.value })
-                    }
-                    placeholder="Apelido"
-                  />
-                  <select
-                    className="input"
-                    value={userForm.role}
-                    onChange={(event) => setUserForm({ ...userForm, role: event.target.value })}
-                  >
-                    {roles.map((role) => (
-                      <option key={role.value} value={role.value}>
-                        {role.label}
-                      </option>
-                    ))}
-                  </select>
-                  <label className="flex items-center gap-2 text-xs text-slate-600">
-                    <input
-                      type="checkbox"
-                      checked={userForm.is_active}
-                      onChange={(event) =>
-                        setUserForm({ ...userForm, is_active: event.target.checked })
-                      }
-                    />
-                    Utilizador ativo
-                  </label>
-                  <div className="md:col-span-2 rounded-2xl border border-slate-100 bg-slate-50 p-3">
-                    <p className="text-xs font-semibold text-slate-500">Plantas</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {plants.map((plant) => (
-                        <button
-                          key={plant.id}
-                          type="button"
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                            userForm.plant_ids.includes(plant.id)
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-white text-slate-600'
-                          }`}
-                          onClick={() =>
-                            setUserForm({
-                              ...userForm,
-                              plant_ids: togglePlantSelection(userForm.plant_ids, plant.id),
-                            })
-                          }
-                        >
-                          {plant.code}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 md:col-span-2">
-                    <button className="btn-primary" onClick={handleUpdateUser} disabled={saving}>
-                      Guardar
-                    </button>
-                    <button className="btn-secondary" onClick={() => setEditingUserId(null)}>
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           ))}
         </div>
       </div>
+
+      {plantModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => {
+              setPlantModalOpen(false);
+              setEditingPlantId(null);
+            }}
+          />
+          <div className="relative w-full max-w-2xl overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+            <button
+              onClick={() => {
+                setPlantModalOpen(false);
+                setEditingPlantId(null);
+              }}
+              className="absolute right-4 top-4 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              Fechar
+            </button>
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700">
+              {plantModalMode === 'create' ? 'Nova planta' : 'Editar planta'}
+            </p>
+            <h3 className="mt-2 text-lg font-semibold text-slate-900">
+              {plantModalMode === 'create' ? 'Criar planta' : 'Atualizar dados'}
+            </h3>
+
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  Nome da planta
+                </label>
+                <input
+                  className="input"
+                  value={plantModalMode === 'create' ? newPlant.name : plantForm.name}
+                  onChange={(event) =>
+                    plantModalMode === 'create'
+                      ? setNewPlant({ ...newPlant, name: event.target.value })
+                      : setPlantForm({ ...plantForm, name: event.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  Codigo
+                </label>
+                <input
+                  className="input"
+                  value={plantModalMode === 'create' ? newPlant.code : plantForm.code}
+                  onChange={(event) =>
+                    plantModalMode === 'create'
+                      ? setNewPlant({ ...newPlant, code: event.target.value })
+                      : setPlantForm({ ...plantForm, code: event.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  Cidade
+                </label>
+                <input
+                  className="input"
+                  value={plantModalMode === 'create' ? newPlant.city : plantForm.city}
+                  onChange={(event) =>
+                    plantModalMode === 'create'
+                      ? setNewPlant({ ...newPlant, city: event.target.value })
+                      : setPlantForm({ ...plantForm, city: event.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  Pais
+                </label>
+                <input
+                  className="input"
+                  value={plantModalMode === 'create' ? newPlant.country : plantForm.country}
+                  onChange={(event) =>
+                    plantModalMode === 'create'
+                      ? setNewPlant({ ...newPlant, country: event.target.value })
+                      : setPlantForm({ ...plantForm, country: event.target.value })
+                  }
+                />
+              </div>
+              {plantModalMode === 'edit' && (
+                <label className="flex items-center gap-2 text-xs text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={plantForm.is_active}
+                    onChange={(event) =>
+                      setPlantForm({ ...plantForm, is_active: event.target.checked })
+                    }
+                  />
+                  Planta ativa
+                </label>
+              )}
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              {plantModalMode === 'create' ? (
+                <button
+                  className="btn-primary"
+                  onClick={handleCreatePlant}
+                  disabled={saving || singlePlantLocked}
+                >
+                  Criar planta
+                </button>
+              ) : (
+                <button
+                  className="btn-primary"
+                  onClick={handleUpdatePlant}
+                  disabled={saving}
+                >
+                  Guardar alteracoes
+                </button>
+              )}
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  setPlantModalOpen(false);
+                  setEditingPlantId(null);
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {userModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => {
+              setUserModalOpen(false);
+              setEditingUserId(null);
+            }}
+          />
+          <div className="relative w-full max-w-2xl overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+            <button
+              onClick={() => {
+                setUserModalOpen(false);
+                setEditingUserId(null);
+              }}
+              className="absolute right-4 top-4 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              Fechar
+            </button>
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700">
+              {userModalMode === 'create' ? 'Novo utilizador' : 'Editar utilizador'}
+            </p>
+            <h3 className="mt-2 text-lg font-semibold text-slate-900">
+              {userModalMode === 'create' ? 'Criar conta' : 'Atualizar conta'}
+            </h3>
+
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <input
+                className="input"
+                placeholder="Nome"
+                value={userModalMode === 'create' ? newUser.first_name : userForm.first_name}
+                onChange={(event) =>
+                  userModalMode === 'create'
+                    ? setNewUser({ ...newUser, first_name: event.target.value })
+                    : setUserForm({ ...userForm, first_name: event.target.value })
+                }
+              />
+              <input
+                className="input"
+                placeholder="Apelido"
+                value={userModalMode === 'create' ? newUser.last_name : userForm.last_name}
+                onChange={(event) =>
+                  userModalMode === 'create'
+                    ? setNewUser({ ...newUser, last_name: event.target.value })
+                    : setUserForm({ ...userForm, last_name: event.target.value })
+                }
+              />
+              {userModalMode === 'create' && (
+                <>
+                  <input
+                    className="input"
+                    placeholder="Username"
+                    value={newUser.username}
+                    onChange={(event) => setNewUser({ ...newUser, username: event.target.value })}
+                  />
+                  <input
+                    className="input"
+                    placeholder="Email"
+                    value={newUser.email}
+                    onChange={(event) => setNewUser({ ...newUser, email: event.target.value })}
+                  />
+                  <input
+                    className="input"
+                    placeholder="Password temporaria"
+                    value={newUser.password}
+                    onChange={(event) => setNewUser({ ...newUser, password: event.target.value })}
+                  />
+                </>
+              )}
+              <select
+                className="input"
+                value={userModalMode === 'create' ? newUser.role : userForm.role}
+                onChange={(event) =>
+                  userModalMode === 'create'
+                    ? setNewUser({ ...newUser, role: event.target.value })
+                    : setUserForm({ ...userForm, role: event.target.value })
+                }
+              >
+                {roles.map((role) => (
+                  <option key={role.value} value={role.value}>
+                    {role.label}
+                  </option>
+                ))}
+              </select>
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 md:col-span-2">
+                <p className="text-xs font-semibold text-slate-500">Plantas</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {plants.map((plant) => {
+                    const selectedIds =
+                      userModalMode === 'create' ? newUser.plant_ids : userForm.plant_ids;
+                    return (
+                      <button
+                        key={plant.id}
+                        type="button"
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          selectedIds.includes(plant.id)
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-white text-slate-600'
+                        }`}
+                        onClick={() =>
+                          userModalMode === 'create'
+                            ? setNewUser({
+                                ...newUser,
+                                plant_ids: togglePlantSelection(newUser.plant_ids, plant.id),
+                              })
+                            : setUserForm({
+                                ...userForm,
+                                plant_ids: togglePlantSelection(userForm.plant_ids, plant.id),
+                              })
+                        }
+                      >
+                        {plant.code}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {userModalMode === 'edit' && (
+                <label className="flex items-center gap-2 text-xs text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={userForm.is_active}
+                    onChange={(event) =>
+                      setUserForm({ ...userForm, is_active: event.target.checked })
+                    }
+                  />
+                  Utilizador ativo
+                </label>
+              )}
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              {userModalMode === 'create' ? (
+                <button className="btn-primary" onClick={handleCreateUser} disabled={saving}>
+                  Criar utilizador
+                </button>
+              ) : (
+                <button className="btn-primary" onClick={handleUpdateUser} disabled={saving}>
+                  Guardar alteracoes
+                </button>
+              )}
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  setUserModalOpen(false);
+                  setEditingUserId(null);
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {activeDbTool && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
