@@ -4,6 +4,7 @@ import {
   AlertCircle,
   AlertTriangle,
   CheckCircle2,
+  Clock,
   Download,
   LayoutGrid,
   List,
@@ -13,6 +14,8 @@ import {
   Search,
   Save,
   SlidersHorizontal,
+  User,
+  UserCheck,
 } from 'lucide-react';
 import { useAppStore } from '../context/store';
 import { useAuth } from '../hooks/useAuth';
@@ -420,6 +423,14 @@ export function WorkOrdersPage() {
   const formatDateTime = (value?: string | null) => {
     if (!value) return '-';
     return new Date(value).toLocaleString();
+  };
+
+  const formatShortDateTime = (value?: string | null) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    const datePart = date.toLocaleDateString();
+    const timePart = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `${datePart} ${timePart}`;
   };
 
   const handleStartEdit = (order: WorkOrder) => {
@@ -1363,29 +1374,38 @@ export function WorkOrdersPage() {
                                 <div className="text-xs text-slate-500">
                                   {order.description || 'Sem descricao'}
                                 </div>
-                                <div className="mt-2 text-[11px] text-slate-500">
-                                  <span className="font-semibold text-slate-600">Criado por:</span>{' '}
-                                  {order.createdByUser
-                                    ? `${order.createdByUser.first_name} ${order.createdByUser.last_name}`
-                                    : 'Nao informado'}
-                                </div>
-                                <div className="text-[11px] text-slate-400">
-                                  {formatDateTime(order.created_at)}
+                                <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+                                  <span className="inline-flex items-center gap-1">
+                                    <User className="h-3 w-3 text-emerald-600" />
+                                    {order.createdByUser
+                                      ? `${order.createdByUser.first_name} ${order.createdByUser.last_name}`
+                                      : 'Nao informado'}
+                                  </span>
+                                  <span className="inline-flex items-center gap-1 text-slate-400">
+                                    <Clock className="h-3 w-3" />
+                                    {formatShortDateTime(order.created_at)}
+                                  </span>
                                 </div>
                               </td>
                               <td className="px-6 py-4 text-sm text-slate-700">
                                 {order.asset ? `${order.asset.code} - ${order.asset.name}` : '-'}
                               </td>
                               <td className="px-6 py-4 text-sm text-slate-700">
-                                {order.assignedUser
-                                  ? `${order.assignedUser.first_name} ${order.assignedUser.last_name}`
-                                  : 'Nao atribuido'}
-                                <div className="mt-1 text-[11px] text-slate-400">
-                                  {formatDateTime(responsibleDate)}
+                                <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+                                  <span className="inline-flex items-center gap-1">
+                                    <UserCheck className="h-3 w-3 text-sky-600" />
+                                    {order.assignedUser
+                                      ? `${order.assignedUser.first_name} ${order.assignedUser.last_name}`
+                                      : 'Nao atribuido'}
+                                  </span>
+                                  <span className="inline-flex items-center gap-1 text-slate-400">
+                                    <Clock className="h-3 w-3" />
+                                    {formatShortDateTime(responsibleDate)}
+                                  </span>
                                 </div>
                               </td>
                               <td className="px-6 py-4 text-sm text-slate-700">
-                                {createdDate ? createdDate.toLocaleString() : '-'}
+                                {formatShortDateTime(order.created_at)}
                               </td>
                               <td className="px-6 py-4 text-sm text-slate-700">
                                 {slaDate ? (
@@ -1480,23 +1500,29 @@ export function WorkOrdersPage() {
                                     ? `${order.asset.code} - ${order.asset.name}`
                                     : 'Sem ativo'}
                                 </p>
-                                <p className="mt-1 text-xs text-slate-400">
-                                  {createdDate ? createdDate.toLocaleString() : '-'}
-                                </p>
-                                <div className="mt-2 text-[11px] text-slate-500">
-                                  <span className="font-semibold text-slate-600">Criado por:</span>{' '}
-                                  {order.createdByUser
-                                    ? `${order.createdByUser.first_name} ${order.createdByUser.last_name}`
-                                    : 'Nao informado'}
+                                <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+                                  <span className="inline-flex items-center gap-1">
+                                    <User className="h-3 w-3 text-emerald-600" />
+                                    {order.createdByUser
+                                      ? `${order.createdByUser.first_name} ${order.createdByUser.last_name}`
+                                      : 'Nao informado'}
+                                  </span>
+                                  <span className="inline-flex items-center gap-1 text-slate-400">
+                                    <Clock className="h-3 w-3" />
+                                    {formatShortDateTime(order.created_at)}
+                                  </span>
                                 </div>
-                                <div className="mt-1 text-[11px] text-slate-500">
-                                  <span className="font-semibold text-slate-600">Responsavel:</span>{' '}
-                                  {order.assignedUser
-                                    ? `${order.assignedUser.first_name} ${order.assignedUser.last_name}`
-                                    : 'Nao atribuido'}
-                                </div>
-                                <div className="text-[11px] text-slate-400">
-                                  {formatDateTime(responsibleDate)}
+                                <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+                                  <span className="inline-flex items-center gap-1">
+                                    <UserCheck className="h-3 w-3 text-sky-600" />
+                                    {order.assignedUser
+                                      ? `${order.assignedUser.first_name} ${order.assignedUser.last_name}`
+                                      : 'Nao atribuido'}
+                                  </span>
+                                  <span className="inline-flex items-center gap-1 text-slate-400">
+                                    <Clock className="h-3 w-3" />
+                                    {formatShortDateTime(responsibleDate)}
+                                  </span>
                                 </div>
                                 <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                                   <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-700">
