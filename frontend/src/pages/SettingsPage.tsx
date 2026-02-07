@@ -2512,7 +2512,7 @@ function ManagementSettings() {
           <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
             <button
               onClick={() => setActiveAdminPanel(null)}
-              className="absolute right-4 top-4 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+              className="absolute right-6 top-6 z-10 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
             >
               Fechar
             </button>
@@ -2532,7 +2532,7 @@ function ManagementSettings() {
           <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
             <button
               onClick={() => setActiveAdminPanel(null)}
-              className="absolute right-4 top-4 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+              className="absolute right-6 top-6 z-10 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
             >
               Fechar
             </button>

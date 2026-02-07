@@ -46,6 +46,7 @@ export function SparePartsPage() {
   const [movementTypeFilter, setMovementTypeFilter] = useState('all');
   const [movementStartDate, setMovementStartDate] = useState('');
   const [movementEndDate, setMovementEndDate] = useState('');
+  const [movementSearch, setMovementSearch] = useState('');
 
   const movementSummary = useMemo(() => {
     return movements.reduce(
@@ -82,9 +83,20 @@ export function SparePartsPage() {
   }, [selectedPlant]);
 
   const filteredMovements = useMemo(() => {
+    const normalizedSearch = movementSearch.trim().toLowerCase();
+
     return movements.filter((movement) => {
       if (movementTypeFilter !== 'all' && movement.type !== movementTypeFilter) {
         return false;
+      }
+
+      if (normalizedSearch) {
+        const partLabel = movement.spare_part
+          ? `${movement.spare_part.code} ${movement.spare_part.name}`.toLowerCase()
+          : '';
+        if (!partLabel.includes(normalizedSearch)) {
+          return false;
+        }
       }
 
       if (!movement.created_at) return true;
@@ -103,7 +115,7 @@ export function SparePartsPage() {
 
       return true;
     });
-  }, [movementEndDate, movementStartDate, movementTypeFilter, movements]);
+  }, [movementEndDate, movementSearch, movementStartDate, movementTypeFilter, movements]);
 
 
   return (
@@ -260,6 +272,12 @@ export function SparePartsPage() {
                       <p className="text-sm text-slate-500">Ultimos registos da planta</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        className="input h-9 w-full sm:w-56"
+                        placeholder="Pesquisar peça"
+                        value={movementSearch}
+                        onChange={(event) => setMovementSearch(event.target.value)}
+                      />
                       <select
                         className="input h-9"
                         value={movementTypeFilter}
@@ -288,6 +306,7 @@ export function SparePartsPage() {
                           setMovementTypeFilter('all');
                           setMovementStartDate('');
                           setMovementEndDate('');
+                          setMovementSearch('');
                         }}
                       >
                         Limpar
