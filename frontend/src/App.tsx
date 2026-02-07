@@ -28,25 +28,40 @@ import { SetupInitPage } from './pages/SetupInitPage';
 import './index.css';
 
 function App() {
-  const { isAuthenticated, user } = useAuth();
-  const {
-    selectedPlant,
-    setSelectedPlant,
-    setPlants,
-  } = useAppStore();
+  const { isAuthenticated } = useAuth();
+  const { selectedPlant, setSelectedPlant, setPlants } = useAppStore();
 
-  // Fetch plants for authenticated user and auto-select first
   React.useEffect(() => {
     const loadPlants = async () => {
       if (!isAuthenticated) return;
-      
+
       try {
         const plants = await getUserPlants();
-        console.log('Loaded plants:', plants);
-        
-        if (!plants || plants.length === 0) {
-          console.warn('No plants found for user');
-          setPlants([]);
+        const safePlants = Array.isArray(plants) ? plants : [];
+        setPlants(safePlants);
+
+        if (safePlants.length > 0) {
+          const hasSelected =
+            !!selectedPlant && safePlants.some((plant) => plant.id === selectedPlant);
+
+          if (!hasSelected) {
+            setSelectedPlant(safePlants[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading plants:', error);
+        setPlants([]);
+      }
+    };
+
+    loadPlants();
+  }, [isAuthenticated, selectedPlant, setPlants, setSelectedPlant]);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SocketProvider>
+        <BrowserRouter>
+          <Routes>
             <Route
               path="/"
               element={
@@ -59,7 +74,7 @@ function App() {
                 isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />
               }
             />
-        }
+            <Route path="/setup" element={<SetupInitPage />} />
             <Route
               path="/dashboard"
               element={
@@ -158,38 +173,11 @@ function App() {
             />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
-
-        const hasSelectedPlant = !!selectedPlant && plants.some((plant) => plant.id === selectedPlant);
-
-        // Auto-select first plant if none selected or stored selection is invalid
-        if (!hasSelectedPlant) {
-          console.log('Auto-selecting first plant:', plants[0].id);
-          setSelectedPlant(plants[0].id);
-        }
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="admin/setup"
-        element={
-          <ProtectedRoute>
-            <AdminSetupPage />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="admin/database"
-        element={
-          <ProtectedRoute requiredRoles={['superadmin']}>
-            <DatabaseUpdatePage />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route path="unauthorized" element={<div>Unauthorized</div>} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+        </BrowserRouter>
+        <Toaster position="top-right" />
+      </SocketProvider>
+    </QueryClientProvider>
   );
 }
+
+export default App;

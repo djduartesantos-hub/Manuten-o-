@@ -83,7 +83,7 @@ export class AuthService {
   static async createUser(data: {
     tenant_id: string;
     username: string;
-    email?: string;
+    email: string;
     password: string;
     first_name: string;
     last_name: string;
@@ -96,9 +96,14 @@ export class AuthService {
     const [user] = await db
       .insert(users)
       .values({
-        ...data,
+        tenant_id: data.tenant_id,
         username: normalizedUsername,
+        email: data.email,
         password_hash: passwordHash,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        role: data.role,
+        phone: data.phone,
       })
       .returning();
 
