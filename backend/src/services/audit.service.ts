@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '../config/database.js';
 import { auditLogs, users } from '../db/schema.js';
 
@@ -36,6 +36,12 @@ export class AuditService {
     entityId: string,
     limit = 25,
   ) {
+    const tableCheck = await db.execute(sql`SELECT to_regclass('public.audit_logs') AS name`);
+    const tableName = (tableCheck as any)?.rows?.[0]?.name;
+    if (!tableName) {
+      return [];
+    }
+
     const rows = await db
       .select({
         id: auditLogs.id,
