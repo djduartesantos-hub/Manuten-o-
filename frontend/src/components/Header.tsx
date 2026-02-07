@@ -43,6 +43,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [openDropdown, setOpenDropdown] = React.useState<string | null>(null);
   const location = useLocation();
+  const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.trim() || 'U';
 
   const navSections: NavSection[] = [
     {
@@ -157,17 +158,19 @@ export function Header() {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
+    <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/80 shadow-[0_10px_40px_-30px_rgba(15,23,42,0.4)] backdrop-blur">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to="/dashboard" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
-              <span className="text-white font-bold text-xl">⚙️</span>
+          <Link to="/dashboard" className="flex items-center gap-3 group">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0f766e,#38bdf8)] text-white shadow-md transition-all group-hover:-translate-y-0.5 group-hover:shadow-lg">
+              <span className="text-base font-semibold tracking-tight">M</span>
             </div>
             <div className="hidden sm:block">
-              <span className="font-bold text-xl text-gray-900">CMMS</span>
-              <span className="block text-xs text-gray-500 leading-tight">Enterprise</span>
+              <span className="text-lg font-semibold text-slate-900">Manutencao</span>
+              <span className="block text-xs uppercase tracking-[0.3em] text-slate-400">
+                Ops Hub
+              </span>
             </div>
           </Link>
 
@@ -183,10 +186,10 @@ export function Header() {
                   <button
                     onClick={() => setOpenDropdown(isOpen ? null : section.title)}
                     onMouseEnter={() => setOpenDropdown(section.title)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all ${
                       hasActiveItem || isOpen
-                        ? 'bg-primary-50 text-primary-700'
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                        ? 'bg-[color:var(--nav-accent,rgba(15,118,110,0.12))] text-emerald-700'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                   >
                     {SectionIcon && <SectionIcon className="w-4 h-4" />}
@@ -199,9 +202,10 @@ export function Header() {
                   {/* Dropdown Menu */}
                   {isOpen && (
                     <div
-                      className="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
+                      className="absolute top-full left-0 mt-2 w-56 rounded-2xl border border-slate-200 bg-white/95 py-2 shadow-xl backdrop-blur"
                       onMouseLeave={() => setOpenDropdown(null)}
                     >
+                      <div className="mx-3 mb-2 h-1 rounded-full bg-[linear-gradient(90deg,#0f766e,#38bdf8)]" />
                       {section.items.map((item) => {
                         const ItemIcon = item.icon;
                         return (
@@ -211,13 +215,15 @@ export function Header() {
                             onClick={() => setOpenDropdown(null)}
                             className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
                               item.active
-                                ? 'bg-primary-50 text-primary-700 font-medium'
-                                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                                ? 'bg-emerald-50 text-emerald-700 font-semibold'
+                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                             }`}
                           >
                             {ItemIcon && (
                               <ItemIcon
-                                className={`w-4 h-4 ${item.active ? 'text-primary-600' : 'text-gray-400'}`}
+                                className={`w-4 h-4 ${
+                                  item.active ? 'text-emerald-600' : 'text-slate-400'
+                                }`}
                               />
                             )}
                             <span>{item.label}</span>
@@ -237,7 +243,7 @@ export function Header() {
             {plants.length > 0 && (
               <div className="hidden sm:flex items-center">
                 <select
-                  className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 font-medium hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-200"
                   value={selectedPlant || ''}
                   onChange={(event) => setSelectedPlant(event.target.value)}
                 >
@@ -253,32 +259,37 @@ export function Header() {
             {/* Socket Connection Status */}
             <div className="hidden sm:flex items-center">
               {isConnected ? (
-                <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
-                  <Wifi className="w-4 h-4 text-green-600" />
-                  <span className="text-xs text-green-700 font-medium">Conectado</span>
+                <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2">
+                  <Wifi className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs font-semibold text-emerald-700">Conectado</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
-                  <WifiOff className="w-4 h-4 text-red-600" />
-                  <span className="text-xs text-red-700 font-medium">Desconectado</span>
+                <div className="flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-2">
+                  <WifiOff className="w-4 h-4 text-rose-600" />
+                  <span className="text-xs font-semibold text-rose-700">Desconectado</span>
                 </div>
               )}
             </div>
 
             {/* User Menu */}
-            <div className="flex items-center gap-3 pl-3 border-l border-gray-200">
-              <div className="hidden sm:block text-right">
-                <p className="text-sm font-semibold text-gray-900">
+            <div className="flex items-center gap-3 border-l border-slate-200 pl-3">
+              <div className="hidden sm:flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700">
+                  {initials}
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-slate-900">
                   {user?.firstName} {user?.lastName}
-                </p>
-                <p className="text-xs text-gray-500 capitalize">
-                  {user?.role?.replace(/_/g, ' ')}
-                </p>
+                  </p>
+                  <p className="text-xs capitalize text-slate-500">
+                    {user?.role?.replace(/_/g, ' ')}
+                  </p>
+                </div>
               </div>
 
               <button
                 onClick={handleLogout}
-                className="p-2 hover:bg-red-50 text-gray-600 hover:text-red-600 rounded-lg transition-colors"
+                className="rounded-full border border-transparent p-2 text-slate-500 transition hover:border-rose-100 hover:bg-rose-50 hover:text-rose-600"
                 title="Terminar sessão"
               >
                 <LogOut className="w-5 h-5" />
@@ -288,12 +299,12 @@ export function Header() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="md:hidden rounded-full p-2 transition-colors hover:bg-slate-100"
             >
               {mobileMenuOpen ? (
-                <X className="w-5 h-5 text-gray-700" />
+                <X className="w-5 h-5 text-slate-700" />
               ) : (
-                <Menu className="w-5 h-5 text-gray-700" />
+                <Menu className="w-5 h-5 text-slate-700" />
               )}
             </button>
           </div>
@@ -301,15 +312,15 @@ export function Header() {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <nav className="md:hidden py-4 border-t border-gray-200 bg-gray-50">
+          <nav className="md:hidden border-t border-slate-200 bg-white/90 py-4">
             {/* Mobile Plant Selector */}
             {plants.length > 0 && (
               <div className="mb-4 px-4">
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
                   Planta
                 </label>
                 <select
-                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-200"
                   value={selectedPlant || ''}
                   onChange={(event) => setSelectedPlant(event.target.value)}
                 >
@@ -325,14 +336,14 @@ export function Header() {
             {/* Mobile Connection Status */}
             <div className="px-4 mb-4">
               {isConnected ? (
-                <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
-                  <Wifi className="w-4 h-4 text-green-600" />
-                  <span className="text-xs text-green-700 font-medium">Conectado</span>
+                <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2">
+                  <Wifi className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs font-semibold text-emerald-700">Conectado</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
-                  <WifiOff className="w-4 h-4 text-red-600" />
-                  <span className="text-xs text-red-700 font-medium">Desconectado</span>
+                <div className="flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-2">
+                  <WifiOff className="w-4 h-4 text-rose-600" />
+                  <span className="text-xs font-semibold text-rose-700">Desconectado</span>
                 </div>
               )}
             </div>
@@ -343,8 +354,8 @@ export function Header() {
               return (
                 <div key={section.title} className="mb-4">
                   <div className="flex items-center gap-2 px-4 mb-2">
-                    {SectionIcon && <SectionIcon className="w-4 h-4 text-gray-400" />}
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    {SectionIcon && <SectionIcon className="w-4 h-4 text-slate-400" />}
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                       {section.title}
                     </p>
                   </div>
@@ -356,15 +367,17 @@ export function Header() {
                           key={item.href}
                           to={item.href}
                           onClick={() => setMobileMenuOpen(false)}
-                          className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                          className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-colors ${
                             item.active
-                              ? 'bg-primary-100 text-primary-700 shadow-sm'
-                              : 'text-gray-700 hover:bg-white hover:text-gray-900'
+                              ? 'bg-emerald-100 text-emerald-700 shadow-sm'
+                              : 'text-slate-600 hover:bg-white hover:text-slate-900'
                           }`}
                         >
                           {ItemIcon && (
                             <ItemIcon
-                              className={`w-4 h-4 ${item.active ? 'text-primary-600' : 'text-gray-400'}`}
+                              className={`w-4 h-4 ${
+                                item.active ? 'text-emerald-600' : 'text-slate-400'
+                              }`}
                             />
                           )}
                           <span>{item.label}</span>
