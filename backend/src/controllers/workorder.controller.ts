@@ -179,6 +179,7 @@ export class WorkOrderController {
         'actual_hours',
         'completed_at',
         'notes',
+        'work_performed',
         'assigned_to',
         'started_at',
       ];

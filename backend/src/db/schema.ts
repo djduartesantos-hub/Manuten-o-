@@ -260,6 +260,7 @@ export const workOrders = pgTable(
     estimated_hours: decimal('estimated_hours', { precision: 8, scale: 2 }),
     actual_hours: decimal('actual_hours', { precision: 8, scale: 2 }),
     notes: text('notes'),
+    work_performed: text('work_performed'),
     sla_deadline: timestamp('sla_deadline', { withTimezone: true }),
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true })

@@ -216,6 +216,7 @@ CREATE TABLE work_orders (
   estimated_hours DECIMAL(8, 2),
   actual_hours DECIMAL(8, 2),
   notes TEXT,
+  work_performed TEXT,
   sla_deadline TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL

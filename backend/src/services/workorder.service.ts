@@ -206,6 +206,10 @@ export class WorkOrderService {
       normalized.notes = normalized.notes || null;
     }
 
+    if (Object.prototype.hasOwnProperty.call(normalized, 'work_performed')) {
+      normalized.work_performed = normalized.work_performed || null;
+    }
+
     if (Object.prototype.hasOwnProperty.call(normalized, 'previous_status')) {
       delete normalized.previous_status;
     }

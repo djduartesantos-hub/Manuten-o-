@@ -75,6 +75,7 @@ interface WorkOrder {
   started_at?: string | null;
   completed_at?: string | null;
   notes?: string | null;
+  work_performed?: string | null;
   asset?: {
     code: string;
     name: string;
@@ -105,6 +106,7 @@ interface WorkOrderUpdateState {
   priority: string;
   scheduled_date: string;
   actual_hours: string;
+  work_performed: string;
   notes: string;
   completed_at: string;
 }
@@ -162,6 +164,7 @@ export function WorkOrdersPage() {
     priority: 'media',
     scheduled_date: '',
     actual_hours: '',
+    work_performed: '',
     notes: '',
     completed_at: '',
   });
@@ -527,6 +530,7 @@ export function WorkOrdersPage() {
       priority: order.priority || 'media',
       scheduled_date: toDateTimeLocal(order.scheduled_date),
       actual_hours: order.actual_hours || '',
+      work_performed: order.work_performed || '',
       notes: order.notes || '',
       completed_at: toDateTimeLocal(order.completed_at),
     });
@@ -613,6 +617,7 @@ export function WorkOrdersPage() {
       }
       if (canOperateOrder) {
         payload.actual_hours = updateForm.actual_hours || undefined;
+        payload.work_performed = updateForm.work_performed || undefined;
         payload.notes = updateForm.notes || undefined;
       }
 
@@ -1137,13 +1142,13 @@ export function WorkOrdersPage() {
         )}
 
         {selectedPlant && editingOrder && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+          <div className="fixed inset-0 z-50 flex items-start justify-center px-4 py-8">
             <div
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
               onClick={() => setEditingOrder(null)}
             />
             <div
-              className="relative w-full max-w-3xl overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]"
+              className="relative w-full max-w-5xl max-h-[88vh] overflow-y-auto rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]"
               role="dialog"
               aria-modal="true"
             >
@@ -1266,8 +1271,21 @@ export function WorkOrdersPage() {
                   </label>
                   <textarea
                     className="input min-h-[96px]"
+                    value={updateForm.work_performed}
+                    onChange={(event) =>
+                      setUpdateForm({ ...updateForm, work_performed: event.target.value })
+                    }
+                    disabled={!editingPermissions?.canOperateOrder}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Notas</label>
+                  <textarea
+                    className="input min-h-[96px]"
                     value={updateForm.notes}
-                    onChange={(event) => setUpdateForm({ ...updateForm, notes: event.target.value })}
+                    onChange={(event) =>
+                      setUpdateForm({ ...updateForm, notes: event.target.value })
+                    }
                     disabled={!editingPermissions?.canOperateOrder}
                   />
                 </div>
