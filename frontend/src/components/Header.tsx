@@ -152,6 +152,24 @@ export function Header() {
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
           <nav className="md:hidden py-4 border-t border-gray-200">
+            {plants.length > 0 && (
+              <div className="mb-3 px-3">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
+                  Planta
+                </label>
+                <select
+                  className="w-full px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-700"
+                  value={selectedPlant || ''}
+                  onChange={(event) => setSelectedPlant(event.target.value)}
+                >
+                  {plants.map((plant) => (
+                    <option key={plant.id} value={plant.id}>
+                      {plant.code} - {plant.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             {navItems.map((item) => (
               <Link
                 key={item.href}
