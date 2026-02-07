@@ -1685,15 +1685,6 @@ function ManagementSettings() {
           </div>
           {singlePlantLocked && (
             <p className="text-xs text-slate-500">
-                setNewUser({
-                  username: '',
-                  email: '',
-                  password: '',
-                  first_name: '',
-                  last_name: '',
-                  role: 'tecnico',
-                  plant_ids: [],
-                });
               Modo de fabrica unica ativo. A criacao de novas plantas esta bloqueada.
             </p>
           )}
@@ -1805,93 +1796,38 @@ function ManagementSettings() {
             <h3 className="text-lg font-semibold text-slate-900">Utilizadores e roles</h3>
             <p className="text-sm text-slate-500">Crie contas e distribua acessos</p>
           </div>
-          <Users className="h-5 w-5 text-slate-400" />
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <input
-            className="input"
-            placeholder="Nome"
-            value={newUser.first_name}
-            onChange={(event) => setNewUser({ ...newUser, first_name: event.target.value })}
-          />
-          <input
-            className="input"
-            placeholder="Apelido"
-            value={newUser.last_name}
-            onChange={(event) => setNewUser({ ...newUser, last_name: event.target.value })}
-          />
-          <input
-            className="input"
-            placeholder="Username"
-            value={newUser.username}
-            onChange={(event) => setNewUser({ ...newUser, username: event.target.value })}
-          />
-          <input
-            className="input"
-            placeholder="Email"
-            value={newUser.email}
-            onChange={(event) => setNewUser({ ...newUser, email: event.target.value })}
-          />
-          <input
-            className="input"
-            placeholder="Password temporaria"
-            value={newUser.password}
-            onChange={(event) => setNewUser({ ...newUser, password: event.target.value })}
-          />
-          <select
-            className="input"
-            value={newUser.role}
-            onChange={(event) => setNewUser({ ...newUser, role: event.target.value })}
+          <button
+            className="btn-secondary inline-flex items-center gap-2"
+            onClick={() => {
+              setUserModalMode('create');
+              setNewUser({
+                username: '',
+                email: '',
+                password: '',
+                first_name: '',
+                last_name: '',
+                role: 'tecnico',
+                plant_ids: [],
+              });
+              setUserModalOpen(true);
+            }}
+            disabled={saving}
           >
-            {roles.map((role) => (
-              <option key={role.value} value={role.value}>
-                {role.label}
-              </option>
-            ))}
-          </select>
-          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
-            <p className="text-xs font-semibold text-slate-500">Plantas</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {plants.map((plant) => (
-                <button
-                  key={plant.id}
-                  type="button"
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    newUser.plant_ids.includes(plant.id)
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-white text-slate-600'
-                  }`}
-                  onClick={() =>
-                    setNewUser({
-                      ...newUser,
-                      plant_ids: togglePlantSelection(newUser.plant_ids, plant.id),
-                    })
-                  }
-                >
-                  {plant.code}
-                </button>
-              ))}
-            </div>
-          </div>
+            <Plus className="h-4 w-4" />
+            Novo utilizador
+          </button>
         </div>
 
-        <button
-          className="btn-primary inline-flex items-center gap-2"
-          onClick={handleCreateUser}
-          disabled={saving}
-        >
-          <Plus className="h-4 w-4" />
-          Criar utilizador
-        </button>
-
-        <div className="space-y-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           {loading && <p className="text-sm text-slate-500">Carregando utilizadores...</p>}
           {!loading && users.length === 0 && (
             <p className="text-sm text-slate-500">Nenhum utilizador encontrado.</p>
           )}
           {users.map((user) => (
-            <div key={user.id} className="rounded-2xl border border-slate-100 p-4">
+            <div
+              key={user.id}
+              className="rounded-[22px] border border-slate-200 bg-white/90 p-4 shadow-[0_12px_26px_-20px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-slate-900">
@@ -1921,80 +1857,6 @@ function ManagementSettings() {
                   </button>
                 </div>
               </div>
-
-              {editingUserId === user.id && (
-                <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <input
-                    className="input"
-                    value={userForm.first_name}
-                    onChange={(event) =>
-                      setUserForm({ ...userForm, first_name: event.target.value })
-                    }
-                    placeholder="Nome"
-                  />
-                  <input
-                    className="input"
-                    value={userForm.last_name}
-                    onChange={(event) =>
-                      setUserForm({ ...userForm, last_name: event.target.value })
-                    }
-                    placeholder="Apelido"
-                  />
-                  <select
-                    className="input"
-                    value={userForm.role}
-                    onChange={(event) => setUserForm({ ...userForm, role: event.target.value })}
-                  >
-                    {roles.map((role) => (
-                      <option key={role.value} value={role.value}>
-                        {role.label}
-                      </option>
-                    ))}
-                  </select>
-                  <label className="flex items-center gap-2 text-xs text-slate-600">
-                    <input
-                      type="checkbox"
-                      checked={userForm.is_active}
-                      onChange={(event) =>
-                        setUserForm({ ...userForm, is_active: event.target.checked })
-                      }
-                    />
-                    Utilizador ativo
-                  </label>
-                  <div className="md:col-span-2 rounded-2xl border border-slate-100 bg-slate-50 p-3">
-                    <p className="text-xs font-semibold text-slate-500">Plantas</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {plants.map((plant) => (
-                        <button
-                          key={plant.id}
-                          type="button"
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                            userForm.plant_ids.includes(plant.id)
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-white text-slate-600'
-                          }`}
-                          onClick={() =>
-                            setUserForm({
-                              ...userForm,
-                              plant_ids: togglePlantSelection(userForm.plant_ids, plant.id),
-                            })
-                          }
-                        >
-                          {plant.code}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 md:col-span-2">
-                    <button className="btn-primary" onClick={handleUpdateUser} disabled={saving}>
-                      Guardar
-                    </button>
-                    <button className="btn-secondary" onClick={() => setEditingUserId(null)}>
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           ))}
         </div>
