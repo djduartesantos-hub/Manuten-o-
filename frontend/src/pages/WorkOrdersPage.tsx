@@ -519,94 +519,93 @@ export function WorkOrdersPage() {
   return (
     <MainLayout>
       <div className="space-y-8 font-display">
-        <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-sky-50 p-8 shadow-sm">
-          <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-sky-200/50 blur-3xl" />
-          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-emerald-200/40 blur-3xl" />
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
-                Fluxo de manutencao
+        <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#ffffff_0%,_#f8fafc_45%,_#ecfeff_100%)] p-8 shadow-[0_26px_60px_-40px_rgba(15,23,42,0.45)]">
+          <div className="absolute -right-14 -top-20 h-56 w-56 rounded-full bg-emerald-200/60 blur-3xl" />
+          <div className="absolute left-10 top-10 h-12 w-12 rotate-12 rounded-2xl border border-emerald-200/70 bg-white/70 shadow-sm" />
+          <div className="absolute bottom-6 right-12 h-16 w-16 rounded-full border border-slate-200/70 bg-white/70" />
+          <div className="relative grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-700">
+                Sala de comando
               </p>
               <h1
-                className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl"
+                className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl"
                 onPointerDown={handleDiagnosticsPressStart}
                 onPointerUp={handleDiagnosticsPressEnd}
                 onPointerLeave={handleDiagnosticsPressEnd}
               >
-                Ordens de trabalho em tempo real
+                Ordens em movimento e decisao rapida
               </h1>
-              <p className="mt-2 max-w-2xl text-sm text-slate-600">
-                Centralize solicitacoes, prioridades e SLAs com uma visao completa do
-                andamento da equipe.
+              <p className="max-w-2xl text-sm text-slate-600">
+                Controle operacoes com clareza: prioridades, SLA e progresso lado a lado.
               </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => setShowCreate((value) => !value)}
+                  className="btn-primary inline-flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Nova ordem
+                </button>
+                <button
+                  onClick={exportCsv}
+                  className="btn-secondary inline-flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Exportar CSV
+                </button>
+                <button
+                  onClick={loadData}
+                  className="btn-secondary inline-flex items-center gap-2"
+                  disabled={loading}
+                >
+                  <RefreshCcw className="h-4 w-4" />
+                  Atualizar
+                </button>
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => setShowCreate((value) => !value)}
-                className="btn-primary inline-flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Nova ordem
-              </button>
-              <button
-                onClick={exportCsv}
-                className="btn-secondary inline-flex items-center gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Exportar CSV
-              </button>
-              <button
-                onClick={loadData}
-                className="btn-secondary inline-flex items-center gap-2"
-                disabled={loading}
-              >
-                <RefreshCcw className="h-4 w-4" />
-                Atualizar
-              </button>
-            </div>
-          </div>
-
-          <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <List className="h-4 w-4 text-sky-600" />
-                Total de ordens
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
+                <div className="flex items-center gap-3 text-sm text-slate-600">
+                  <List className="h-4 w-4 text-emerald-600" />
+                  Total de ordens
+                </div>
+                <p className="mt-3 text-2xl font-semibold text-slate-900">
+                  {statusSummary.total}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">Fila completa</p>
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
-                {statusSummary.total}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">Fila completa</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
-                Abertas
+              <div className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
+                <div className="flex items-center gap-3 text-sm text-slate-600">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  Abertas
+                </div>
+                <p className="mt-3 text-2xl font-semibold text-slate-900">
+                  {statusSummary.aberta}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">Aguardando inicio</p>
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
-                {statusSummary.aberta}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">Aguardando inicio</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <RefreshCcw className="h-4 w-4 text-sky-600" />
-                Em curso
+              <div className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
+                <div className="flex items-center gap-3 text-sm text-slate-600">
+                  <RefreshCcw className="h-4 w-4 text-cyan-600" />
+                  Em curso
+                </div>
+                <p className="mt-3 text-2xl font-semibold text-slate-900">
+                  {statusSummary.em_curso}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">Execucao ativa</p>
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
-                {statusSummary.em_curso}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">Execucao ativa</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                Concluidas
+              <div className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
+                <div className="flex items-center gap-3 text-sm text-slate-600">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  Concluidas
+                </div>
+                <p className="mt-3 text-2xl font-semibold text-slate-900">
+                  {statusSummary.concluida}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">Finalizadas</p>
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
-                {statusSummary.concluida}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">Finalizadas</p>
             </div>
           </div>
 
@@ -664,8 +663,17 @@ export function WorkOrdersPage() {
         )}
 
         {selectedPlant && showCreate && (
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Nova ordem</h2>
+          <div className="rounded-[28px] border border-slate-200 bg-white/90 p-6 shadow-[0_20px_40px_-30px_rgba(15,23,42,0.45)]">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700">
+                  Nova ordem
+                </p>
+                <h2 className="mt-2 text-lg font-semibold text-slate-900">
+                  Registrar intervencao
+                </h2>
+              </div>
+            </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Ativo</label>
@@ -739,7 +747,7 @@ export function WorkOrdersPage() {
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-3">
+            <div className="mt-6 flex flex-wrap items-center gap-3">
               <button onClick={handleCreate} className="btn-primary" disabled={creating}>
                 {creating ? 'A criar...' : 'Criar ordem'}
               </button>
@@ -763,9 +771,12 @@ export function WorkOrdersPage() {
         )}
 
         {selectedPlant && editingOrder && (
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">
-              Atualizar ordem: {editingOrder.title}
+          <div className="rounded-[28px] border border-slate-200 bg-white/90 p-6 shadow-[0_20px_40px_-30px_rgba(15,23,42,0.45)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-700">
+              Atualizar ordem
+            </p>
+            <h2 className="mt-2 text-lg font-semibold text-slate-900">
+              {editingOrder.title}
             </h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
@@ -852,7 +863,7 @@ export function WorkOrdersPage() {
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-3">
+            <div className="mt-6 flex flex-wrap items-center gap-3">
               <button onClick={handleUpdate} className="btn-primary" disabled={updating}>
                 {updating ? 'A atualizar...' : 'Guardar alteracoes'}
               </button>
@@ -870,9 +881,9 @@ export function WorkOrdersPage() {
         {selectedPlant && (
           <section className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
             <div className="space-y-6">
-              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="rounded-[28px] border border-slate-200 bg-white/80 p-5 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="flex flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="flex flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
                     <input
                       className="w-full bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
                       placeholder="Pesquisar por titulo, ativo ou descricao"
@@ -894,13 +905,13 @@ export function WorkOrdersPage() {
                     </select>
                     <div className="flex items-center gap-1">
                       <button
-                        className={`btn-secondary ${viewMode === 'table' ? 'bg-gray-200' : ''}`}
+                        className={`btn-secondary ${viewMode === 'table' ? 'bg-emerald-50 text-emerald-700' : ''}`}
                         onClick={() => setViewMode('table')}
                       >
                         <List className="h-4 w-4" />
                       </button>
                       <button
-                        className={`btn-secondary ${viewMode === 'kanban' ? 'bg-gray-200' : ''}`}
+                        className={`btn-secondary ${viewMode === 'kanban' ? 'bg-emerald-50 text-emerald-700' : ''}`}
                         onClick={() => setViewMode('kanban')}
                       >
                         <LayoutGrid className="h-4 w-4" />
@@ -910,7 +921,7 @@ export function WorkOrdersPage() {
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
                 <div className="flex flex-col gap-2 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h2 className="text-lg font-semibold text-slate-900">Ordens</h2>
@@ -1062,7 +1073,10 @@ export function WorkOrdersPage() {
                 {!loading && !error && viewMode === 'kanban' && (
                   <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
                     {Object.keys(statusLabels).map((statusKey) => (
-                      <div key={statusKey} className="rounded-2xl bg-slate-50 p-4">
+                      <div
+                        key={statusKey}
+                        className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
+                      >
                         <div className="mb-3 flex items-center justify-between">
                           <h3 className="text-sm font-semibold text-slate-700">
                             {statusLabels[statusKey]}
@@ -1086,7 +1100,10 @@ export function WorkOrdersPage() {
                               : null;
 
                             return (
-                              <div key={order.id} className="rounded-2xl bg-white p-4 shadow-sm">
+                              <div
+                                key={order.id}
+                                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_12px_26px_-20px_rgba(15,23,42,0.35)]"
+                              >
                                 <p className="text-sm font-semibold text-slate-900">
                                   {order.title}
                                 </p>
@@ -1135,7 +1152,7 @@ export function WorkOrdersPage() {
             </div>
 
             <aside className="space-y-6">
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
                 <h3 className="text-sm font-semibold text-slate-900">Prioridades</h3>
                 <div className="mt-4 space-y-3">
                   {Object.keys(prioritySummary).length === 0 && (
@@ -1155,7 +1172,7 @@ export function WorkOrdersPage() {
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-slate-800 shadow-sm">
+              <div className="rounded-[28px] border border-amber-200 bg-amber-50 p-6 text-slate-800 shadow-[0_18px_40px_-30px_rgba(120,53,15,0.35)]">
                 <h3 className="text-sm font-semibold">SLA em risco</h3>
                 <p className="mt-2 text-xs text-slate-600">
                   Monitore ordens em atraso ou prestes a vencer para evitar impactos
@@ -1172,7 +1189,7 @@ export function WorkOrdersPage() {
               </div>
 
               {templates.length > 0 && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
                   <h3 className="text-sm font-semibold text-slate-900">Templates guardados</h3>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {templates.map((template) => (
