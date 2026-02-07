@@ -309,7 +309,7 @@ export function MaintenancePlansPage() {
     setError(null);
 
     try {
-      await createMaintenancePlan(selectedPlant, {
+      const createdPlan = await createMaintenancePlan(selectedPlant, {
         ...form,
         frequency_value: Number(form.frequency_value),
         meter_threshold: form.meter_threshold || undefined,
@@ -326,6 +326,12 @@ export function MaintenancePlansPage() {
         is_active: true,
       });
       setShowCreate(false);
+      if (createdPlan) {
+        setPlans((prev) => {
+          const exists = prev.some((plan) => plan.id === createdPlan.id);
+          return exists ? prev : [createdPlan, ...prev];
+        });
+      }
       await loadData();
     } catch (err: any) {
       setError(err.message || 'Erro ao criar plano');
