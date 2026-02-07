@@ -279,6 +279,23 @@ export async function createMaintenancePlan(plantId: string, data: any) {
   });
 }
 
+export async function updateMaintenancePlan(
+  plantId: string,
+  planId: string,
+  data: any,
+) {
+  return apiCall(`/${plantId}/plans/${planId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteMaintenancePlan(plantId: string, planId: string) {
+  return apiCall(`/${plantId}/plans/${planId}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function getSpareParts(plantId: string) {
   return apiCall(`/${plantId}/spareparts`);
 }

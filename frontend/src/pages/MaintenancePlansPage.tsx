@@ -8,10 +8,12 @@ import {
   Clock3,
   Layers,
   Loader2,
+  Pencil,
   Plus,
   RefreshCcw,
   Search,
   SlidersHorizontal,
+  Trash2,
 } from 'lucide-react';
 import { useAppStore } from '../context/store';
 import {
@@ -19,6 +21,8 @@ import {
   getApiHealth,
   getMaintenancePlans,
   createMaintenancePlan,
+  updateMaintenancePlan,
+  deleteMaintenancePlan,
 } from '../services/api';
 import { DiagnosticsPanel } from '../components/DiagnosticsPanel';
 
@@ -30,6 +34,7 @@ interface AssetOption {
 
 interface MaintenancePlan {
   id: string;
+  asset_id: string;
   name: string;
   description?: string | null;
   type: string;
@@ -55,6 +60,9 @@ export function MaintenancePlansPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<MaintenancePlan | null>(null);
+  const [updating, setUpdating] = useState(false);
+  const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -90,6 +98,7 @@ export function MaintenancePlansPage() {
     meter_threshold: '',
     is_active: true,
   });
+  const showForm = showCreate || Boolean(editingPlan);
 
   const loadData = async () => {
     setLoading(true);
@@ -348,6 +357,80 @@ export function MaintenancePlansPage() {
     }
   };
 
+  const handleEditStart = (plan: MaintenancePlan) => {
+    setEditingPlan(plan);
+    setShowCreate(false);
+    setForm({
+      asset_id: plan.asset_id,
+      name: plan.name,
+      description: plan.description || '',
+      type: plan.type,
+      frequency_type: plan.frequency_type,
+      frequency_value: plan.frequency_value,
+      meter_threshold: plan.meter_threshold || '',
+      is_active: plan.is_active,
+    });
+  };
+
+  const handleUpdate = async () => {
+    if (!editingPlan || !selectedPlant) return;
+    if (!form.asset_id || !form.name) {
+      setError('Selecione o ativo e preencha o nome');
+      return;
+    }
+
+    setUpdating(true);
+    setError(null);
+
+    try {
+      const updatedPlan = await updateMaintenancePlan(selectedPlant, editingPlan.id, {
+        ...form,
+        frequency_value: Number(form.frequency_value),
+        meter_threshold: form.meter_threshold || undefined,
+      });
+
+      if (updatedPlan) {
+        setPlans((prev) =>
+          prev.map((plan) => (plan.id === updatedPlan.id ? updatedPlan : plan)),
+        );
+      }
+      setEditingPlan(null);
+      setForm({
+        asset_id: '',
+        name: '',
+        description: '',
+        type: 'preventiva',
+        frequency_type: 'days',
+        frequency_value: 30,
+        meter_threshold: '',
+        is_active: true,
+      });
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao atualizar plano');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDelete = async (plan: MaintenancePlan) => {
+    if (!selectedPlant) return;
+    if (!window.confirm('Eliminar este plano de manutencao?')) return;
+
+    setDeletingPlanId(plan.id);
+    setError(null);
+
+    try {
+      await deleteMaintenancePlan(selectedPlant, plan.id);
+      setPlans((prev) => prev.filter((item) => item.id !== plan.id));
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao eliminar plano');
+    } finally {
+      setDeletingPlanId(null);
+    }
+  };
+
   return (
     <MainLayout>
       <div className="space-y-8 font-display">
@@ -374,7 +457,10 @@ export function MaintenancePlansPage() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <button
-                onClick={() => setShowCreate((value) => !value)}
+                onClick={() => {
+                  setShowCreate((value) => !value);
+                  setEditingPlan(null);
+                }}
                 className="btn-primary inline-flex items-center gap-2"
               >
                 <Plus className="h-4 w-4" />
@@ -447,9 +533,11 @@ export function MaintenancePlansPage() {
           </div>
         )}
 
-        {showCreate && (
+        {showForm && (
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Novo plano</h2>
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">
+              {editingPlan ? 'Editar plano' : 'Novo plano'}
+            </h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Ativo</label>
@@ -541,13 +629,36 @@ export function MaintenancePlansPage() {
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button onClick={handleCreate} className="btn-primary" disabled={creating}>
-                {creating ? 'A criar...' : 'Criar plano'}
-              </button>
+              {editingPlan ? (
+                <button
+                  onClick={handleUpdate}
+                  className="btn-primary"
+                  disabled={updating}
+                >
+                  {updating ? 'A atualizar...' : 'Guardar alteracoes'}
+                </button>
+              ) : (
+                <button onClick={handleCreate} className="btn-primary" disabled={creating}>
+                  {creating ? 'A criar...' : 'Criar plano'}
+                </button>
+              )}
               <button
-                onClick={() => setShowCreate(false)}
+                onClick={() => {
+                  setShowCreate(false);
+                  setEditingPlan(null);
+                  setForm({
+                    asset_id: '',
+                    name: '',
+                    description: '',
+                    type: 'preventiva',
+                    frequency_type: 'days',
+                    frequency_value: 30,
+                    meter_threshold: '',
+                    is_active: true,
+                  });
+                }}
                 className="btn-secondary"
-                disabled={creating}
+                disabled={creating || updating}
               >
                 Cancelar
               </button>
@@ -673,15 +784,34 @@ export function MaintenancePlansPage() {
                           {plan.description || 'Sem descricao'}
                         </p>
                       </div>
-                      <span
-                        className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
-                          plan.is_active
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-slate-100 text-slate-700'
-                        }`}
-                      >
-                        {plan.is_active ? 'Ativo' : 'Inativo'}
-                      </span>
+                      <div className="flex flex-col items-end gap-2">
+                        <span
+                          className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
+                            plan.is_active
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          {plan.is_active ? 'Ativo' : 'Inativo'}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="btn-secondary inline-flex items-center gap-2"
+                            onClick={() => handleEditStart(plan)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Editar
+                          </button>
+                          <button
+                            className="btn-secondary inline-flex items-center gap-2 text-rose-600"
+                            onClick={() => handleDelete(plan)}
+                            disabled={deletingPlanId === plan.id}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            {deletingPlanId === plan.id ? 'A eliminar...' : 'Eliminar'}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                     <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                       <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-slate-600">
