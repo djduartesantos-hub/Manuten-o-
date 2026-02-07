@@ -174,6 +174,31 @@ export class WorkOrderService {
     data: Partial<any>,
     plantId?: string,
   ) {
+    const normalized: Record<string, any> = { ...data };
+
+    if (Object.prototype.hasOwnProperty.call(normalized, 'scheduled_date')) {
+      normalized.scheduled_date = normalized.scheduled_date
+        ? new Date(normalized.scheduled_date)
+        : null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(normalized, 'completed_at')) {
+      normalized.completed_at = normalized.completed_at
+        ? new Date(normalized.completed_at)
+        : null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(normalized, 'actual_hours')) {
+      normalized.actual_hours = normalized.actual_hours || null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(normalized, 'notes')) {
+      normalized.notes = normalized.notes || null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(normalized, 'previous_status')) {
+      delete normalized.previous_status;
+    }
     const existing = await db.query.workOrders.findFirst({
       where: (fields: any, { eq, and }: any) => {
         const conditions = [eq(fields.tenant_id, tenantId), eq(fields.id, workOrderId)];
@@ -193,7 +218,7 @@ export class WorkOrderService {
     const [updated] = await db
       .update(workOrders)
       .set({
-        ...data,
+        ...normalized,
         updated_at: new Date(),
       })
       .where(
