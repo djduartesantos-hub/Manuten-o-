@@ -121,17 +121,8 @@ export class WorkOrderService {
       logger.warn('Cache read error, continuing with DB query:', cacheError);
     }
 
-    const workOrder = await db.query.workOrders.findFirst({
-      where: (fields: any, { eq, and }: any) => {
-        const conditions = [eq(fields.tenant_id, tenantId), eq(fields.id, workOrderId)];
-
-        if (plantId) {
-          conditions.push(eq(fields.plant_id, plantId));
-        }
-
-        return and(...conditions);
-      },
-      with: {
+    const runQuery = async (includeExtras: boolean) => {
+      const withRelations: Record<string, any> = {
         asset: {
           with: {
             category: true,
@@ -152,10 +143,35 @@ export class WorkOrderService {
             last_name: true,
           },
         },
-        tasks: true,
-        attachments: true,
-      },
-    });
+      };
+
+      if (includeExtras) {
+        withRelations.tasks = true;
+        withRelations.attachments = true;
+      }
+
+      return db.query.workOrders.findFirst({
+        where: (fields: any, { eq, and }: any) => {
+          const conditions = [eq(fields.tenant_id, tenantId), eq(fields.id, workOrderId)];
+
+          if (plantId) {
+            conditions.push(eq(fields.plant_id, plantId));
+          }
+
+          return and(...conditions);
+        },
+        with: withRelations,
+      });
+    };
+
+    let workOrder: any | null = null;
+
+    try {
+      workOrder = await runQuery(true);
+    } catch (error) {
+      logger.warn('Work order relation load failed, retrying without extras:', error);
+      workOrder = await runQuery(false);
+    }
 
     if (workOrder) {
       try {
