@@ -17,7 +17,7 @@ export async function apiCall<T = any>(
   const token = localStorage.getItem('token');
   const url = `${API_BASE_URL}${endpoint}`;
   const controller = new AbortController();
-  const timeoutMs = 15000;
+  const timeoutMs = 30000;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   const headers: any = {
@@ -29,13 +29,22 @@ export async function apiCall<T = any>(
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-    signal: controller.signal,
-  });
+  let response: Response;
 
-  clearTimeout(timeoutId);
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+      signal: options.signal ?? controller.signal,
+    });
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      throw new Error('Tempo limite da requisicao. Verifique a ligacao e tente novamente.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const error = await response.json();
@@ -53,18 +62,27 @@ export async function apiCall<T = any>(
 
 async function publicApiCall<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const controller = new AbortController();
-  const timeoutMs = 15000;
+  const timeoutMs = 30000;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  const response = await fetch(endpoint, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    signal: controller.signal,
-  });
+  let response: Response;
 
-  clearTimeout(timeoutId);
+  try {
+    response = await fetch(endpoint, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      signal: options.signal ?? controller.signal,
+    });
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      throw new Error('Tempo limite da requisicao. Verifique a ligacao e tente novamente.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const error = await response.json();

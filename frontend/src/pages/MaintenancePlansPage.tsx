@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../context/store';
 import { getAssets, getMaintenancePlans, createMaintenancePlan } from '../services/api';
+import { DiagnosticsPanel } from '../components/DiagnosticsPanel';
 
 interface AssetOption {
   id: string;
@@ -46,6 +47,18 @@ export function MaintenancePlansPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [plansDiagnostics, setPlansDiagnostics] = useState({
+    status: 'idle',
+    durationMs: 0,
+    lastUpdatedAt: '',
+    lastError: '',
+  });
+  const [assetsDiagnostics, setAssetsDiagnostics] = useState({
+    status: 'idle',
+    durationMs: 0,
+    lastUpdatedAt: '',
+    lastError: '',
+  });
 
   const [form, setForm] = useState({
     asset_id: '',
@@ -65,36 +78,103 @@ export function MaintenancePlansPage() {
     if (!selectedPlant || !selectedPlant.trim()) {
       setPlans([]);
       setAssets([]);
+      setPlansDiagnostics({
+        status: 'idle',
+        durationMs: 0,
+        lastUpdatedAt: '',
+        lastError: '',
+      });
+      setAssetsDiagnostics({
+        status: 'idle',
+        durationMs: 0,
+        lastUpdatedAt: '',
+        lastError: '',
+      });
       setLoading(false);
       return;
     }
 
     try {
-      const [plansResult, assetsResult] = await Promise.allSettled([
-        getMaintenancePlans(selectedPlant),
-        getAssets(selectedPlant),
+      setPlansDiagnostics((prev) => ({
+        ...prev,
+        status: 'loading',
+        lastError: '',
+      }));
+      setAssetsDiagnostics((prev) => ({
+        ...prev,
+        status: 'loading',
+        lastError: '',
+      }));
+
+      const measure = async <T,>(action: () => Promise<T>) => {
+        const startedAt = performance.now();
+        try {
+          const value = await action();
+          return {
+            status: 'ok' as const,
+            value,
+            durationMs: Math.round(performance.now() - startedAt),
+          };
+        } catch (error: any) {
+          return {
+            status: 'error' as const,
+            error,
+            durationMs: Math.round(performance.now() - startedAt),
+          };
+        }
+      };
+
+      const [plansResult, assetsResult] = await Promise.all([
+        measure(() => getMaintenancePlans(selectedPlant)),
+        measure(() => getAssets(selectedPlant)),
       ]);
 
-      if (plansResult.status === 'fulfilled') {
+      if (plansResult.status === 'ok') {
         setPlans(plansResult.value || []);
+        setPlansDiagnostics({
+          status: 'ok',
+          durationMs: plansResult.durationMs,
+          lastUpdatedAt: new Date().toLocaleTimeString(),
+          lastError: '',
+        });
       } else {
+        const message = plansResult.error?.message || 'Erro ao carregar planos';
         setPlans([]);
+        setPlansDiagnostics({
+          status: 'error',
+          durationMs: plansResult.durationMs,
+          lastUpdatedAt: new Date().toLocaleTimeString(),
+          lastError: message,
+        });
       }
 
-      if (assetsResult.status === 'fulfilled') {
+      if (assetsResult.status === 'ok') {
         setAssets(assetsResult.value || []);
+        setAssetsDiagnostics({
+          status: 'ok',
+          durationMs: assetsResult.durationMs,
+          lastUpdatedAt: new Date().toLocaleTimeString(),
+          lastError: '',
+        });
       } else {
+        const message = assetsResult.error?.message || 'Erro ao carregar equipamentos';
         setAssets([]);
+        setAssetsDiagnostics({
+          status: 'error',
+          durationMs: assetsResult.durationMs,
+          lastUpdatedAt: new Date().toLocaleTimeString(),
+          lastError: message,
+        });
       }
 
-      if (plansResult.status === 'rejected' || assetsResult.status === 'rejected') {
+      if (plansResult.status === 'error' || assetsResult.status === 'error') {
         const planMessage =
-          plansResult.status === 'rejected'
-            ? plansResult.reason?.message || 'Erro ao carregar planos'
+          plansResult.status === 'error'
+            ? plansResult.error?.message || 'Erro ao carregar planos'
             : null;
         const assetMessage =
-          assetsResult.status === 'rejected'
-            ? assetsResult.reason?.message || 'Erro ao carregar equipamentos'
+          assetsResult.status === 'error'
+            ? assetsResult.error?.message || 'Erro ao carregar equipamentos'
             : null;
 
         setError(planMessage || assetMessage);
@@ -416,6 +496,20 @@ export function MaintenancePlansPage() {
               <p className="text-sm text-rose-800">{error}</p>
             </div>
           </div>
+        )}
+
+        {selectedPlant && (
+          <DiagnosticsPanel
+            title="Planos e ativos"
+            rows={[
+              { label: 'Planta', value: selectedPlant || '-' },
+              { label: 'Planos', value: plansDiagnostics.status },
+              { label: 'Tempo planos', value: `${plansDiagnostics.durationMs}ms` },
+              { label: 'Ativos', value: assetsDiagnostics.status },
+              { label: 'Tempo ativos', value: `${assetsDiagnostics.durationMs}ms` },
+              { label: 'Erro', value: plansDiagnostics.lastError || assetsDiagnostics.lastError || '-' },
+            ]}
+          />
         )}
 
         {loading && (

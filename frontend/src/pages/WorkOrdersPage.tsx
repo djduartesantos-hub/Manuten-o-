@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../context/store';
 import { createWorkOrder, getAssets, getWorkOrders, updateWorkOrder } from '../services/api';
+import { DiagnosticsPanel } from '../components/DiagnosticsPanel';
 
 interface AssetOption {
   id: string;
@@ -76,6 +77,18 @@ export function WorkOrdersPage() {
   const [creating, setCreating] = useState(false);
   const [editingOrder, setEditingOrder] = useState<WorkOrder | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [ordersDiagnostics, setOrdersDiagnostics] = useState({
+    status: 'idle',
+    durationMs: 0,
+    lastUpdatedAt: '',
+    lastError: '',
+  });
+  const [assetsDiagnostics, setAssetsDiagnostics] = useState({
+    status: 'idle',
+    durationMs: 0,
+    lastUpdatedAt: '',
+    lastError: '',
+  });
   const [form, setForm] = useState<WorkOrderFormState>({
     asset_id: '',
     title: '',
@@ -140,23 +153,113 @@ export function WorkOrdersPage() {
   );
 
   const loadData = async () => {
-    if (!selectedPlant || !selectedPlant.trim()) return;
+    if (!selectedPlant || !selectedPlant.trim()) {
+      setOrdersDiagnostics({
+        status: 'idle',
+        durationMs: 0,
+        lastUpdatedAt: '',
+        lastError: '',
+      });
+      setAssetsDiagnostics({
+        status: 'idle',
+        durationMs: 0,
+        lastUpdatedAt: '',
+        lastError: '',
+      });
+      return;
+    }
     setLoading(true);
     setError(null);
+    setOrdersDiagnostics((prev) => ({
+      ...prev,
+      status: 'loading',
+      lastError: '',
+    }));
+    setAssetsDiagnostics((prev) => ({
+      ...prev,
+      status: 'loading',
+      lastError: '',
+    }));
+
+    const measure = async <T,>(action: () => Promise<T>) => {
+      const startedAt = performance.now();
+      try {
+        const value = await action();
+        return {
+          status: 'ok' as const,
+          value,
+          durationMs: Math.round(performance.now() - startedAt),
+        };
+      } catch (error: any) {
+        return {
+          status: 'error' as const,
+          error,
+          durationMs: Math.round(performance.now() - startedAt),
+        };
+      }
+    };
+
     try {
-      const [orders, assetsData] = await Promise.all([
-        getWorkOrders(selectedPlant, statusFilter || undefined),
-        getAssets(selectedPlant),
+      const [ordersResult, assetsResult] = await Promise.all([
+        measure(() => getWorkOrders(selectedPlant, statusFilter || undefined)),
+        measure(() => getAssets(selectedPlant)),
       ]);
 
-      const normalizedOrders = (orders || []).filter((order: WorkOrder) => {
-        if (!searchTerm) return true;
-        const haystack = `${order.title} ${order.description || ''} ${order.asset?.code || ''} ${order.asset?.name || ''}`.toLowerCase();
-        return haystack.includes(searchTerm.toLowerCase());
-      });
+      if (ordersResult.status === 'ok') {
+        const normalizedOrders = (ordersResult.value || []).filter((order: WorkOrder) => {
+          if (!searchTerm) return true;
+          const haystack = `${order.title} ${order.description || ''} ${order.asset?.code || ''} ${order.asset?.name || ''}`.toLowerCase();
+          return haystack.includes(searchTerm.toLowerCase());
+        });
+        setWorkOrders(normalizedOrders);
+        setOrdersDiagnostics({
+          status: 'ok',
+          durationMs: ordersResult.durationMs,
+          lastUpdatedAt: new Date().toLocaleTimeString(),
+          lastError: '',
+        });
+      } else {
+        const message =
+          ordersResult.error?.message || 'Erro ao carregar ordens de trabalho';
+        setWorkOrders([]);
+        setOrdersDiagnostics({
+          status: 'error',
+          durationMs: ordersResult.durationMs,
+          lastUpdatedAt: new Date().toLocaleTimeString(),
+          lastError: message,
+        });
+      }
 
-      setWorkOrders(normalizedOrders);
-      setAssets(assetsData || []);
+      if (assetsResult.status === 'ok') {
+        setAssets(assetsResult.value || []);
+        setAssetsDiagnostics({
+          status: 'ok',
+          durationMs: assetsResult.durationMs,
+          lastUpdatedAt: new Date().toLocaleTimeString(),
+          lastError: '',
+        });
+      } else {
+        const message = assetsResult.error?.message || 'Erro ao carregar equipamentos';
+        setAssets([]);
+        setAssetsDiagnostics({
+          status: 'error',
+          durationMs: assetsResult.durationMs,
+          lastUpdatedAt: new Date().toLocaleTimeString(),
+          lastError: message,
+        });
+      }
+
+      if (ordersResult.status === 'error' || assetsResult.status === 'error') {
+        const ordersMessage =
+          ordersResult.status === 'error'
+            ? ordersResult.error?.message || 'Erro ao carregar ordens de trabalho'
+            : null;
+        const assetsMessage =
+          assetsResult.status === 'error'
+            ? assetsResult.error?.message || 'Erro ao carregar equipamentos'
+            : null;
+        setError(ordersMessage || assetsMessage);
+      }
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar ordens de trabalho');
     } finally {
@@ -471,6 +574,23 @@ export function WorkOrdersPage() {
             </div>
           )}
         </section>
+
+        {selectedPlant && (
+          <DiagnosticsPanel
+            title="Ordens e ativos"
+            rows={[
+              { label: 'Planta', value: selectedPlant || '-' },
+              { label: 'Ordens', value: ordersDiagnostics.status },
+              { label: 'Tempo ordens', value: `${ordersDiagnostics.durationMs}ms` },
+              { label: 'Ativos', value: assetsDiagnostics.status },
+              { label: 'Tempo ativos', value: `${assetsDiagnostics.durationMs}ms` },
+              {
+                label: 'Erro',
+                value: ordersDiagnostics.lastError || assetsDiagnostics.lastError || '-',
+              },
+            ]}
+          />
+        )}
 
         {!selectedPlant && (
           <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-10 text-center">
