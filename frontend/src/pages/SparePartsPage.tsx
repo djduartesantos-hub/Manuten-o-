@@ -55,6 +55,10 @@ export function SparePartsPage() {
   const [partSupplierSearch, setPartSupplierSearch] = useState('');
   const [partMinCost, setPartMinCost] = useState('');
   const [partMaxCost, setPartMaxCost] = useState('');
+  const [partSort, setPartSort] = useState('name_asc');
+  const [movementSort, setMovementSort] = useState('date_desc');
+  const [partsVisibleCount, setPartsVisibleCount] = useState(20);
+  const [movementsVisibleCount, setMovementsVisibleCount] = useState(20);
 
   const movementSummary = useMemo(() => {
     return movements.reduce(
@@ -170,6 +174,79 @@ export function SparePartsPage() {
       return true;
     });
   }, [partMaxCost, partMinCost, partSearch, partSupplierSearch, parts]);
+
+  const sortedParts = useMemo(() => {
+    const items = [...filteredParts];
+    const numericCost = (value?: string | null) =>
+      value === null || value === undefined || value === '' ? null : Number(value);
+
+    switch (partSort) {
+      case 'code_asc':
+        return items.sort((a, b) => a.code.localeCompare(b.code));
+      case 'code_desc':
+        return items.sort((a, b) => b.code.localeCompare(a.code));
+      case 'cost_asc':
+        return items.sort((a, b) => {
+          const aCost = numericCost(a.unit_cost) ?? Number.POSITIVE_INFINITY;
+          const bCost = numericCost(b.unit_cost) ?? Number.POSITIVE_INFINITY;
+          return aCost - bCost;
+        });
+      case 'cost_desc':
+        return items.sort((a, b) => {
+          const aCost = numericCost(a.unit_cost) ?? Number.NEGATIVE_INFINITY;
+          const bCost = numericCost(b.unit_cost) ?? Number.NEGATIVE_INFINITY;
+          return bCost - aCost;
+        });
+      case 'name_desc':
+        return items.sort((a, b) => b.name.localeCompare(a.name));
+      case 'name_asc':
+      default:
+        return items.sort((a, b) => a.name.localeCompare(b.name));
+    }
+  }, [filteredParts, partSort]);
+
+  const sortedMovements = useMemo(() => {
+    const items = [...filteredMovements];
+    const numericCost = (value?: string | null) =>
+      value === null || value === undefined || value === '' ? null : Number(value);
+
+    switch (movementSort) {
+      case 'date_asc':
+        return items.sort((a, b) =>
+          new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime(),
+        );
+      case 'qty_desc':
+        return items.sort((a, b) => b.quantity - a.quantity);
+      case 'qty_asc':
+        return items.sort((a, b) => a.quantity - b.quantity);
+      case 'cost_desc':
+        return items.sort((a, b) => {
+          const aCost = numericCost(a.unit_cost) ?? Number.NEGATIVE_INFINITY;
+          const bCost = numericCost(b.unit_cost) ?? Number.NEGATIVE_INFINITY;
+          return bCost - aCost;
+        });
+      case 'cost_asc':
+        return items.sort((a, b) => {
+          const aCost = numericCost(a.unit_cost) ?? Number.POSITIVE_INFINITY;
+          const bCost = numericCost(b.unit_cost) ?? Number.POSITIVE_INFINITY;
+          return aCost - bCost;
+        });
+      case 'date_desc':
+      default:
+        return items.sort((a, b) =>
+          new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
+        );
+    }
+  }, [filteredMovements, movementSort]);
+
+  const visibleParts = useMemo(
+    () => sortedParts.slice(0, partsVisibleCount),
+    [partsVisibleCount, sortedParts],
+  );
+  const visibleMovements = useMemo(
+    () => sortedMovements.slice(0, movementsVisibleCount),
+    [movementsVisibleCount, sortedMovements],
+  );
 
 
   return (
@@ -297,6 +374,18 @@ export function SparePartsPage() {
                     />
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <select
+                      className="input h-9"
+                      value={partSort}
+                      onChange={(event) => setPartSort(event.target.value)}
+                    >
+                      <option value="name_asc">Nome (A-Z)</option>
+                      <option value="name_desc">Nome (Z-A)</option>
+                      <option value="code_asc">Codigo (A-Z)</option>
+                      <option value="code_desc">Codigo (Z-A)</option>
+                      <option value="cost_asc">Custo (baixo-alto)</option>
+                      <option value="cost_desc">Custo (alto-baixo)</option>
+                    </select>
                     <button
                       className="btn-secondary h-9"
                       onClick={() => {
@@ -304,6 +393,8 @@ export function SparePartsPage() {
                         setPartSupplierSearch('');
                         setPartMinCost('');
                         setPartMaxCost('');
+                        setPartSort('name_asc');
+                        setPartsVisibleCount(20);
                       }}
                     >
                       Limpar filtros
@@ -336,7 +427,7 @@ export function SparePartsPage() {
                           </td>
                         </tr>
                       )}
-                      {filteredParts.map((part) => (
+                      {visibleParts.map((part) => (
                         <tr key={part.id} className="transition hover:bg-amber-50/40">
                           <td className="px-6 py-4 text-sm font-medium text-slate-900">
                             {part.code}
@@ -353,6 +444,17 @@ export function SparePartsPage() {
                     </tbody>
                   </table>
                 </div>
+                </div>
+                {sortedParts.length > visibleParts.length && (
+                  <div className="border-t border-slate-100 p-4">
+                    <button
+                      className="btn-secondary w-full"
+                      onClick={() => setPartsVisibleCount((count) => count + 20)}
+                    >
+                      Carregar mais
+                    </button>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -407,6 +509,18 @@ export function SparePartsPage() {
                         <option value="saida">Saida</option>
                         <option value="ajuste">Ajuste</option>
                       </select>
+                      <select
+                        className="input h-9"
+                        value={movementSort}
+                        onChange={(event) => setMovementSort(event.target.value)}
+                      >
+                        <option value="date_desc">Data (recente)</option>
+                        <option value="date_asc">Data (antigo)</option>
+                        <option value="qty_desc">Quantidade (maior)</option>
+                        <option value="qty_asc">Quantidade (menor)</option>
+                        <option value="cost_desc">Custo (alto-baixo)</option>
+                        <option value="cost_asc">Custo (baixo-alto)</option>
+                      </select>
                       <input
                         type="date"
                         className="input h-9"
@@ -430,6 +544,8 @@ export function SparePartsPage() {
                           setMovementMaxQty('');
                           setMovementMinCost('');
                           setMovementMaxCost('');
+                          setMovementSort('date_desc');
+                          setMovementsVisibleCount(20);
                         }}
                       >
                         Limpar
@@ -463,7 +579,7 @@ export function SparePartsPage() {
                           </td>
                         </tr>
                       )}
-                      {filteredMovements.map((movement) => (
+                      {visibleMovements.map((movement) => (
                         <tr key={movement.id} className="transition hover:bg-amber-50/40">
                           <td className="px-6 py-4 text-sm text-slate-700">
                             {movement.spare_part
@@ -496,6 +612,16 @@ export function SparePartsPage() {
                     </tbody>
                   </table>
                 </div>
+                {sortedMovements.length > visibleMovements.length && (
+                  <div className="border-t border-slate-100 p-4">
+                    <button
+                      className="btn-secondary w-full"
+                      onClick={() => setMovementsVisibleCount((count) => count + 20)}
+                    >
+                      Carregar mais
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </>
