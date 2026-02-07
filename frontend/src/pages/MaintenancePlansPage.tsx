@@ -561,6 +561,8 @@ export function MaintenancePlansPage() {
             title="Planos e ativos"
             rows={[
               { label: 'Planta', value: selectedPlant || '-' },
+              { label: 'Qtd planos', value: String(plans.length) },
+              { label: 'Qtd ativos', value: String(assets.length) },
               { label: 'Planos', value: plansDiagnostics.status },
               { label: 'Tempo planos', value: `${plansDiagnostics.durationMs}ms` },
               { label: 'Ativos', value: assetsDiagnostics.status },
