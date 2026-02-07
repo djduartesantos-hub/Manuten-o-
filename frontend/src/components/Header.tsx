@@ -15,7 +15,6 @@ import {
   Wrench,
   Users,
   Settings,
-  Building2,
   ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -121,16 +120,6 @@ export function Header() {
           active: location.pathname === '/settings',
           icon: Settings,
         },
-        ...(user?.role === 'admin_empresa' || user?.role === 'superadmin'
-          ? [
-              {
-                label: 'Plantas',
-                href: '/plants',
-                active: location.pathname === '/plants',
-                icon: Building2,
-              },
-            ]
-          : []),
         ...(user?.role === 'superadmin' ? [] : []),
       ],
     },

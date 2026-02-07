@@ -3,7 +3,6 @@ import { MainLayout } from '../layouts/MainLayout';
 import { useAppStore } from '../context/store';
 import {
   apiCall,
-  createAdminPlant,
   createAdminUser,
   deactivateAdminPlant,
   getAdminPlants,
@@ -33,6 +32,7 @@ import {
 import { AdminSetupPage } from './AdminSetupPage';
 import { DatabaseUpdatePage } from './DatabaseUpdatePage';
 import { SetupInitPage } from './SetupInitPage';
+import { PlantsPage } from './PlantsPage';
 
 type SettingTab =
   | 'general'
@@ -1517,17 +1517,14 @@ function ManagementSettings() {
   const [activeDbTool, setActiveDbTool] = React.useState<
     'setup' | 'migrations' | 'bootstrap' | null
   >(null);
+  const [activeAdminPanel, setActiveAdminPanel] = React.useState<'plants' | null>(null);
   const [plantModalOpen, setPlantModalOpen] = React.useState(false);
-  const [plantModalMode, setPlantModalMode] = React.useState<'create' | 'edit'>('create');
   const [userModalOpen, setUserModalOpen] = React.useState(false);
   const [userModalMode, setUserModalMode] = React.useState<'create' | 'edit'>('create');
-
-  const [newPlant, setNewPlant] = React.useState({
-    name: '',
-    code: '',
-    city: '',
-    country: '',
-  });
+  const [plantUsersModalOpen, setPlantUsersModalOpen] = React.useState(false);
+  const [plantUsersPlant, setPlantUsersPlant] = React.useState<any | null>(null);
+  const [plantUsersSelection, setPlantUsersSelection] = React.useState<string[]>([]);
+  const [plantUsersSaving, setPlantUsersSaving] = React.useState(false);
   const [editingPlantId, setEditingPlantId] = React.useState<string | null>(null);
   const [plantForm, setPlantForm] = React.useState({
     name: '',
@@ -1601,7 +1598,15 @@ function ManagementSettings() {
   }, [selectedPlant]);
 
   React.useEffect(() => {
-    if (!plantModalOpen && !userModalOpen && !activeDbTool) return;
+    if (
+      !plantModalOpen &&
+      !userModalOpen &&
+      !activeDbTool &&
+      !activeAdminPanel &&
+      !plantUsersModalOpen
+    ) {
+      return;
+    }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
@@ -1613,34 +1618,21 @@ function ManagementSettings() {
         setUserModalOpen(false);
         setEditingUserId(null);
       }
+      if (plantUsersModalOpen) {
+        setPlantUsersModalOpen(false);
+        setPlantUsersPlant(null);
+      }
       if (activeDbTool) {
         setActiveDbTool(null);
+      }
+      if (activeAdminPanel) {
+        setActiveAdminPanel(null);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeDbTool, plantModalOpen, userModalOpen]);
-
-  const handleCreatePlant = async () => {
-    if (!newPlant.name || !newPlant.code) {
-      setError('Nome e codigo da planta sao obrigatorios');
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-    try {
-      await createAdminPlant(newPlant);
-      setNewPlant({ name: '', code: '', city: '', country: '' });
-      await loadAdminData();
-      setPlantModalOpen(false);
-    } catch (err: any) {
-      setError(err.message || 'Erro ao criar planta');
-    } finally {
-      setSaving(false);
-    }
-  };
+  }, [activeAdminPanel, activeDbTool, plantModalOpen, plantUsersModalOpen, userModalOpen]);
 
   const singlePlantLocked = plants.length > 0;
 
@@ -1654,8 +1646,67 @@ function ManagementSettings() {
       country: plant.country || '',
       is_active: plant.is_active ?? true,
     });
-    setPlantModalMode('edit');
     setPlantModalOpen(true);
+  };
+
+  const handleOpenPlantUsers = (plant: any) => {
+    const assignedIds = users
+      .filter((user) => Array.isArray(user.plant_ids) && user.plant_ids.includes(plant.id))
+      .map((user) => user.id);
+    setPlantUsersPlant(plant);
+    setPlantUsersSelection(assignedIds);
+    setPlantUsersModalOpen(true);
+  };
+
+  const togglePlantUser = (userId: string) => {
+    setPlantUsersSelection((current) =>
+      current.includes(userId) ? current.filter((id) => id !== userId) : [...current, userId],
+    );
+  };
+
+  const handleSavePlantUsers = async () => {
+    if (!plantUsersPlant) return;
+
+    setPlantUsersSaving(true);
+    setError(null);
+    const plantId = plantUsersPlant.id;
+
+    try {
+      const updates = users
+        .map((user) => {
+          const currentIds = Array.isArray(user.plant_ids) ? user.plant_ids : [];
+          const shouldHave = plantUsersSelection.includes(user.id);
+          const hasPlant = currentIds.includes(plantId);
+
+          if (shouldHave === hasPlant) {
+            return null;
+          }
+
+          const nextIds = shouldHave
+            ? [...currentIds, plantId]
+            : currentIds.filter((id: string) => id !== plantId);
+
+          return updateAdminUser(user.id, {
+            first_name: user.first_name || '',
+            last_name: user.last_name || '',
+            role: user.role || 'tecnico',
+            is_active: user.is_active ?? true,
+            plant_ids: nextIds,
+          });
+        })
+        .filter(Boolean) as Promise<any>[];
+
+      if (updates.length > 0) {
+        await Promise.all(updates);
+      }
+      await loadAdminData();
+      setPlantUsersModalOpen(false);
+      setPlantUsersPlant(null);
+    } catch (err: any) {
+      setError(err.message || 'Erro ao atualizar utilizadores da planta');
+    } finally {
+      setPlantUsersSaving(false);
+    }
   };
 
   const handleUpdatePlant = async () => {
@@ -1779,6 +1830,15 @@ function ManagementSettings() {
     },
   ];
 
+  const adminPanels = [
+    {
+      id: 'plants' as const,
+      title: 'Plantas',
+      description: 'Gestao completa de plantas e atribuicoes.',
+      icon: Building2,
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -1831,29 +1891,47 @@ function ManagementSettings() {
         </div>
       </div>
 
+      <div className="rounded-[28px] border border-slate-200 bg-white/95 p-5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">Menu administrativo</h3>
+            <p className="text-sm text-slate-500">Aceda as paginas de gestao.</p>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          {adminPanels.map((panel) => {
+            const Icon = panel.icon;
+            return (
+              <button
+                key={panel.id}
+                onClick={() => setActiveAdminPanel(panel.id)}
+                className="group rounded-[22px] border border-slate-200 bg-white p-4 text-left shadow-[0_12px_24px_-20px_rgba(15,23,42,0.4)] transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{panel.title}</p>
+                    <p className="mt-1 text-xs text-slate-500">{panel.description}</p>
+                  </div>
+                  <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 transition group-hover:bg-emerald-100">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                </div>
+                <div className="mt-3 text-xs font-semibold text-emerald-700">Abrir</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-5 shadow-sm space-y-6">
           <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-slate-900">Plantas</h3>
-              <p className="text-sm text-slate-500">Cadastre e organize instalacoes</p>
+              <h3 className="text-lg font-semibold text-slate-900">Plantas & utilizadores</h3>
+              <p className="text-sm text-slate-500">Associe utilizadores a cada planta</p>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                className="btn-secondary inline-flex items-center gap-2"
-                onClick={() => {
-                  setPlantModalMode('create');
-                  setNewPlant({ name: '', code: '', city: '', country: '' });
-                  setPlantModalOpen(true);
-                }}
-                disabled={saving || singlePlantLocked}
-              >
-                <Plus className="h-4 w-4" />
-                Nova planta
-              </button>
-              <Building2 className="h-5 w-5 text-slate-400" />
-            </div>
+            <Building2 className="h-5 w-5 text-slate-400" />
           </div>
           {singlePlantLocked && (
             <p className="text-xs text-slate-500">
@@ -1866,46 +1944,83 @@ function ManagementSettings() {
             {!loading && plants.length === 0 && (
               <p className="text-sm text-slate-500">Nenhuma planta cadastrada.</p>
             )}
-            {plants.map((plant) => (
-              <div
-                key={plant.id}
-                className="rounded-[22px] border border-slate-200 bg-white/90 p-4 shadow-[0_12px_26px_-20px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">
-                      {plant.code} - {plant.name}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {plant.city || 'Cidade'} · {plant.country || 'Pais'}
-                    </p>
+            {plants.map((plant) => {
+              const assignedUsers = users.filter(
+                (user) => Array.isArray(user.plant_ids) && user.plant_ids.includes(plant.id),
+              );
+              const visibleUsers = assignedUsers.slice(0, 4);
+              const remainingUsers = assignedUsers.length - visibleUsers.length;
+
+              return (
+                <div
+                  key={plant.id}
+                  className="rounded-[22px] border border-slate-200 bg-white/90 p-4 shadow-[0_12px_26px_-20px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {plant.code} - {plant.name}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {plant.city || 'Cidade'} · {plant.country || 'Pais'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          plant.is_active
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {plant.is_active ? 'Ativa' : 'Inativa'}
+                      </span>
+                      <button
+                        className="text-xs text-slate-500 hover:text-slate-700"
+                        onClick={() => handleStartPlantEdit(plant)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        className="text-xs text-rose-500 hover:text-rose-600"
+                        onClick={() => handleDeactivatePlant(plant.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        plant.is_active
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-slate-200 text-slate-600'
-                      }`}
-                    >
-                      {plant.is_active ? 'Ativa' : 'Inativa'}
-                    </span>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    {visibleUsers.length === 0 && (
+                      <span className="text-xs text-slate-400">
+                        Sem utilizadores atribuídos.
+                      </span>
+                    )}
+                    {visibleUsers.map((user) => (
+                      <span
+                        key={user.id}
+                        className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"
+                      >
+                        {user.first_name} {user.last_name}
+                      </span>
+                    ))}
+                    {remainingUsers > 0 && (
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">
+                        +{remainingUsers}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
                     <button
-                      className="text-xs text-slate-500 hover:text-slate-700"
-                      onClick={() => handleStartPlantEdit(plant)}
+                      className="btn-secondary"
+                      onClick={() => handleOpenPlantUsers(plant)}
                     >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button
-                      className="text-xs text-rose-500 hover:text-rose-600"
-                      onClick={() => handleDeactivatePlant(plant.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
+                      Atribuir utilizadores
                     </button>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -2052,10 +2167,10 @@ function ManagementSettings() {
               Fechar
             </button>
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700">
-              {plantModalMode === 'create' ? 'Nova planta' : 'Editar planta'}
+              Editar planta
             </p>
             <h3 className="mt-2 text-lg font-semibold text-slate-900">
-              {plantModalMode === 'create' ? 'Criar planta' : 'Atualizar dados'}
+              Atualizar dados
             </h3>
 
             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -2065,12 +2180,8 @@ function ManagementSettings() {
                 </label>
                 <input
                   className="input"
-                  value={plantModalMode === 'create' ? newPlant.name : plantForm.name}
-                  onChange={(event) =>
-                    plantModalMode === 'create'
-                      ? setNewPlant({ ...newPlant, name: event.target.value })
-                      : setPlantForm({ ...plantForm, name: event.target.value })
-                  }
+                  value={plantForm.name}
+                  onChange={(event) => setPlantForm({ ...plantForm, name: event.target.value })}
                 />
               </div>
               <div>
@@ -2079,12 +2190,8 @@ function ManagementSettings() {
                 </label>
                 <input
                   className="input"
-                  value={plantModalMode === 'create' ? newPlant.code : plantForm.code}
-                  onChange={(event) =>
-                    plantModalMode === 'create'
-                      ? setNewPlant({ ...newPlant, code: event.target.value })
-                      : setPlantForm({ ...plantForm, code: event.target.value })
-                  }
+                  value={plantForm.code}
+                  onChange={(event) => setPlantForm({ ...plantForm, code: event.target.value })}
                 />
               </div>
               <div>
@@ -2093,12 +2200,8 @@ function ManagementSettings() {
                 </label>
                 <input
                   className="input"
-                  value={plantModalMode === 'create' ? newPlant.city : plantForm.city}
-                  onChange={(event) =>
-                    plantModalMode === 'create'
-                      ? setNewPlant({ ...newPlant, city: event.target.value })
-                      : setPlantForm({ ...plantForm, city: event.target.value })
-                  }
+                  value={plantForm.city}
+                  onChange={(event) => setPlantForm({ ...plantForm, city: event.target.value })}
                 />
               </div>
               <div>
@@ -2107,46 +2210,26 @@ function ManagementSettings() {
                 </label>
                 <input
                   className="input"
-                  value={plantModalMode === 'create' ? newPlant.country : plantForm.country}
-                  onChange={(event) =>
-                    plantModalMode === 'create'
-                      ? setNewPlant({ ...newPlant, country: event.target.value })
-                      : setPlantForm({ ...plantForm, country: event.target.value })
-                  }
+                  value={plantForm.country}
+                  onChange={(event) => setPlantForm({ ...plantForm, country: event.target.value })}
                 />
               </div>
-              {plantModalMode === 'edit' && (
-                <label className="flex items-center gap-2 text-xs text-slate-600">
-                  <input
-                    type="checkbox"
-                    checked={plantForm.is_active}
-                    onChange={(event) =>
-                      setPlantForm({ ...plantForm, is_active: event.target.checked })
-                    }
-                  />
-                  Planta ativa
-                </label>
-              )}
+              <label className="flex items-center gap-2 text-xs text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={plantForm.is_active}
+                  onChange={(event) =>
+                    setPlantForm({ ...plantForm, is_active: event.target.checked })
+                  }
+                />
+                Planta ativa
+              </label>
             </div>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              {plantModalMode === 'create' ? (
-                <button
-                  className="btn-primary"
-                  onClick={handleCreatePlant}
-                  disabled={saving || singlePlantLocked}
-                >
-                  Criar planta
-                </button>
-              ) : (
-                <button
-                  className="btn-primary"
-                  onClick={handleUpdatePlant}
-                  disabled={saving}
-                >
-                  Guardar alteracoes
-                </button>
-              )}
+              <button className="btn-primary" onClick={handleUpdatePlant} disabled={saving}>
+                Guardar alteracoes
+              </button>
               <button
                 className="btn-secondary"
                 onClick={() => {
@@ -2316,6 +2399,79 @@ function ManagementSettings() {
         </div>
       )}
 
+      {plantUsersModalOpen && plantUsersPlant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => {
+              setPlantUsersModalOpen(false);
+              setPlantUsersPlant(null);
+            }}
+          />
+          <div className="relative w-full max-w-3xl overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+            <button
+              onClick={() => {
+                setPlantUsersModalOpen(false);
+                setPlantUsersPlant(null);
+              }}
+              className="absolute right-4 top-4 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              Fechar
+            </button>
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700">
+              Atribuir utilizadores
+            </p>
+            <h3 className="mt-2 text-lg font-semibold text-slate-900">
+              {plantUsersPlant.code} - {plantUsersPlant.name}
+            </h3>
+
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+              {users.map((user) => (
+                <label
+                  key={user.id}
+                  className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 text-sm shadow-sm"
+                >
+                  <div>
+                    <p className="font-medium text-slate-900">
+                      {user.first_name} {user.last_name}
+                    </p>
+                    <p className="text-xs text-slate-500">{user.email}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={plantUsersSelection.includes(user.id)}
+                    onChange={() => togglePlantUser(user.id)}
+                    className="h-4 w-4 rounded border-slate-300"
+                  />
+                </label>
+              ))}
+              {users.length === 0 && (
+                <p className="text-sm text-slate-500">Nenhum utilizador encontrado.</p>
+              )}
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <button
+                className="btn-primary"
+                onClick={handleSavePlantUsers}
+                disabled={plantUsersSaving}
+              >
+                Guardar atribuicoes
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  setPlantUsersModalOpen(false);
+                  setPlantUsersPlant(null);
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeDbTool && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
           <div
@@ -2333,6 +2489,26 @@ function ManagementSettings() {
               {activeDbTool === 'setup' && <AdminSetupPage embedded />}
               {activeDbTool === 'migrations' && <DatabaseUpdatePage embedded />}
               {activeDbTool === 'bootstrap' && <SetupInitPage embedded />}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeAdminPanel === 'plants' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setActiveAdminPanel(null)}
+          />
+          <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+            <button
+              onClick={() => setActiveAdminPanel(null)}
+              className="absolute right-4 top-4 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              Fechar
+            </button>
+            <div className="max-h-[80vh] overflow-y-auto pr-1">
+              <PlantsPage embedded />
             </div>
           </div>
         </div>

@@ -52,7 +52,7 @@ const normalizeCoord = (value: string) => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
-export function PlantsPage() {
+export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { user } = useAuth();
   const [plants, setPlants] = useState<Plant[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -281,9 +281,8 @@ export function PlantsPage() {
 
   const canEdit = allowedRoles.has(user?.role || '');
 
-  return (
-    <MainLayout>
-      <div className="space-y-8 font-display">
+  const content = (
+    <div className="space-y-8 font-display">
         <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-emerald-50 p-8 shadow-sm">
           <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-emerald-200/40 blur-3xl" />
           <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-lime-200/40 blur-3xl" />
@@ -674,7 +673,12 @@ export function PlantsPage() {
             </div>
           </section>
         )}
-      </div>
-    </MainLayout>
+    </div>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <MainLayout>{content}</MainLayout>;
 }
