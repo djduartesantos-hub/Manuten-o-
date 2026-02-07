@@ -295,6 +295,21 @@ CREATE TABLE stock_movements (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
+-- Notification Rules
+CREATE TABLE IF NOT EXISTS notification_rules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL,
+  event_type TEXT NOT NULL,
+  channels TEXT[] DEFAULT ARRAY['in_app'],
+  recipients TEXT[] DEFAULT ARRAY['assigned','creator','managers','plant_users'],
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  UNIQUE(tenant_id, event_type)
+);
+
+CREATE INDEX notification_rules_tenant_idx ON notification_rules(tenant_id);
+
 CREATE INDEX stock_movements_tenant_id_idx ON stock_movements(tenant_id);
 CREATE INDEX stock_movements_plant_id_idx ON stock_movements(plant_id);
 

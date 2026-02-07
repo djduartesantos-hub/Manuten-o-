@@ -236,6 +236,9 @@ export const CacheKeys = {
   alertConfigs: (tenantId: string, assetId?: string) =>
     `alerts:${tenantId}:${assetId || 'all'}`,
   alertsHistory: (tenantId: string) => `alerts-history:${tenantId}`,
+
+  // Notifications
+  notificationRules: (tenantId: string) => `notification-rules:${tenantId}`,
   
   // Maintenance Plans
   maintenancePlan: (tenantId: string, planId: string) => `plan:${tenantId}:${planId}`,
@@ -257,6 +260,7 @@ export const CacheTTL = {
   ASSETS: 5 * 60, // 5 minutes
   WORK_ORDERS: 2 * 60, // 2 minutes
   ALERTS: 2 * 60, // 2 minutes
+  NOTIFICATIONS: 2 * 60, // 2 minutes
   PLANS: 10 * 60, // 10 minutes
   DOCUMENTS: 5 * 60, // 5 minutes
   SESSION: 24 * 60 * 60, // 24 hours

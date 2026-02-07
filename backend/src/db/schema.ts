@@ -673,6 +673,28 @@ export const alertsHistory = pgTable(
   }),
 );
 
+// Notification Rules
+export const notificationRules = pgTable(
+  'notification_rules',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id')
+      .notNull(),
+    event_type: text('event_type').notNull(),
+    channels: text('channels').array().default(['in_app']),
+    recipients: text('recipients').array().default(['assigned', 'creator', 'managers', 'plant_users']),
+    is_active: boolean('is_active').default(true),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantEventIdx: uniqueIndex('notification_rules_tenant_event_idx').on(
+      table.tenant_id,
+      table.event_type,
+    ),
+  }),
+);
+
 // Asset Documents (Manuais, esquemas, certificados)
 export const assetDocuments = pgTable(
   'asset_documents',

@@ -529,3 +529,14 @@ export async function bootstrapDatabase() {
     method: 'POST',
   });
 }
+
+export async function getNotificationRules() {
+  return apiCall('/notifications/rules');
+}
+
+export async function updateNotificationRules(rules: any[]) {
+  return apiCall('/notifications/rules', {
+    method: 'PUT',
+    body: JSON.stringify({ rules }),
+  });
+}

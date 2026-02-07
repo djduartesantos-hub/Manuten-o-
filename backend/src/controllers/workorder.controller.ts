@@ -306,6 +306,7 @@ export class WorkOrderController {
         await NotificationService.notifyWorkOrderEvent({
           tenantId,
           plantId,
+          eventType: 'work_order_status_changed',
           assignedTo: workOrder.assigned_to,
           createdBy: workOrder.created_by,
           title: 'Mudanca de estado',
@@ -319,6 +320,7 @@ export class WorkOrderController {
         await NotificationService.notifyWorkOrderEvent({
           tenantId,
           plantId,
+          eventType: 'work_order_assigned',
           assignedTo: updates.assigned_to,
           createdBy: workOrder.created_by,
           title: 'Ordem atribuida',

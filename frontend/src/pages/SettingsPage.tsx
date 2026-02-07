@@ -9,8 +9,10 @@ import {
   getAdminRoles,
   getAdminUsers,
   getAssets,
+  getNotificationRules,
   updateAdminPlant,
   updateAdminUser,
+  updateNotificationRules,
 } from '../services/api';
 import {
   Bell,
@@ -178,6 +180,10 @@ function AlertsSettings() {
   const [alerts, setAlerts] = React.useState<any[]>([]);
   const [assets, setAssets] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [notificationRules, setNotificationRules] = React.useState<any[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = React.useState(false);
+  const [notificationsSaving, setNotificationsSaving] = React.useState(false);
+  const [notificationsError, setNotificationsError] = React.useState('');
   const [showForm, setShowForm] = React.useState(false);
   const [editingAlert, setEditingAlert] = React.useState<any>(null);
   const [formData, setFormData] = React.useState({
@@ -195,6 +201,7 @@ function AlertsSettings() {
   React.useEffect(() => {
     fetchAlerts();
     fetchAssets();
+    fetchNotificationRules();
   }, []);
 
   const fetchAlerts = async () => {
@@ -219,6 +226,67 @@ function AlertsSettings() {
       setAssets(data || []);
     } catch (error) {
       console.error('Failed to fetch assets:', error);
+    }
+  };
+
+  const fetchNotificationRules = async () => {
+    try {
+      setNotificationsLoading(true);
+      setNotificationsError('');
+      const data = await getNotificationRules();
+      const rules = Array.isArray(data) ? data : (data?.data || []);
+      const merged = notificationEvents.map((event) =>
+        rules.find((rule: any) => rule.event_type === event.value) || {
+          event_type: event.value,
+          channels: ['in_app', 'socket'],
+          recipients: ['assigned', 'creator', 'managers', 'plant_users'],
+          is_active: true,
+        },
+      );
+      setNotificationRules(merged);
+    } catch (error) {
+      console.error('Failed to fetch notification rules:', error);
+      setNotificationsError('Falha ao carregar regras de notificacao');
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  const updateRule = (eventType: string, patch: Record<string, any>) => {
+    setNotificationRules((prev) =>
+      prev.some((rule: any) => rule.event_type === eventType)
+        ? prev.map((rule: any) =>
+            rule.event_type === eventType ? { ...rule, ...patch } : rule,
+          )
+        : [...prev, { event_type: eventType, channels: ['in_app'], recipients: [], is_active: true, ...patch }],
+    );
+  };
+
+  const toggleRuleArrayValue = (eventType: string, key: 'channels' | 'recipients', value: string) => {
+    setNotificationRules((prev) =>
+      prev.some((rule: any) => rule.event_type === eventType)
+        ? prev.map((rule: any) => {
+            if (rule.event_type !== eventType) return rule;
+            const list = Array.isArray(rule[key]) ? rule[key] : [];
+            const next = list.includes(value)
+              ? list.filter((item: string) => item !== value)
+              : [...list, value];
+            return { ...rule, [key]: next };
+          })
+        : [...prev, { event_type: eventType, channels: key === 'channels' ? [value] : ['in_app'], recipients: key === 'recipients' ? [value] : [], is_active: true }],
+    );
+  };
+
+  const handleSaveNotificationRules = async () => {
+    try {
+      setNotificationsSaving(true);
+      setNotificationsError('');
+      await updateNotificationRules(notificationRules);
+    } catch (error) {
+      console.error('Failed to save notification rules:', error);
+      setNotificationsError('Falha ao salvar regras de notificacao');
+    } finally {
+      setNotificationsSaving(false);
     }
   };
 
@@ -296,6 +364,41 @@ function AlertsSettings() {
     'supervisor',
     'tecnico',
     'leitor',
+  ];
+
+  const notificationEvents = [
+    {
+      value: 'work_order_status_changed',
+      label: 'Mudanca de estado da ordem',
+      description: 'Quando a ordem muda de status',
+    },
+    {
+      value: 'work_order_assigned',
+      label: 'Atribuicao de responsavel',
+      description: 'Quando uma ordem recebe responsavel',
+    },
+    {
+      value: 'sla_overdue',
+      label: 'Atraso de SLA',
+      description: 'Quando uma ordem passa o prazo de SLA',
+    },
+    {
+      value: 'stock_low',
+      label: 'Stock minimo',
+      description: 'Quando o stock fica abaixo do minimo',
+    },
+  ];
+
+  const channelOptions = [
+    { value: 'in_app', label: 'In-app' },
+    { value: 'socket', label: 'Socket' },
+  ];
+
+  const recipientOptions = [
+    { value: 'assigned', label: 'Responsavel' },
+    { value: 'creator', label: 'Criador' },
+    { value: 'managers', label: 'Gestores e admins' },
+    { value: 'plant_users', label: 'Utilizadores da planta' },
   ];
 
   return (
@@ -574,6 +677,121 @@ function AlertsSettings() {
               </div>
             </div>
           ))
+        )}
+      </div>
+
+      <div className="mt-10 rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+              Notificacoes do sistema
+            </p>
+            <h3 className="mt-2 text-lg font-semibold text-slate-900">Quando, como e para quem</h3>
+            <p className="mt-1 text-sm text-slate-600">
+              Ajuste os canais e os destinatarios das notificacoes operacionais.
+            </p>
+          </div>
+          <button
+            className="inline-flex items-center gap-2 rounded-full bg-[color:var(--settings-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
+            onClick={handleSaveNotificationRules}
+            disabled={notificationsSaving || notificationsLoading}
+          >
+            {notificationsSaving ? 'A guardar...' : 'Guardar regras'}
+          </button>
+        </div>
+
+        {notificationsError && (
+          <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-700">
+            {notificationsError}
+          </div>
+        )}
+
+        {notificationsLoading ? (
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-white/80 py-10 text-center text-sm text-slate-500">
+            A carregar regras...
+          </div>
+        ) : (
+          <div className="mt-6 space-y-4">
+            {notificationEvents.map((event) => {
+              const rule = notificationRules.find(
+                (item: any) => item.event_type === event.value,
+              ) || {
+                event_type: event.value,
+                channels: ['in_app', 'socket'],
+                recipients: ['assigned', 'creator', 'managers', 'plant_users'],
+                is_active: true,
+              };
+
+              return (
+                <div
+                  key={event.value}
+                  className="rounded-[22px] border border-slate-200 bg-[color:var(--settings-surface)]/70 p-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{event.label}</p>
+                      <p className="mt-1 text-xs text-slate-500">{event.description}</p>
+                    </div>
+                    <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600">
+                      <input
+                        type="checkbox"
+                        checked={rule.is_active !== false}
+                        onChange={(e) => updateRule(event.value, { is_active: e.target.checked })}
+                        className="rounded border-slate-300"
+                      />
+                      Ativo
+                    </label>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                        Canais
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {channelOptions.map((option) => (
+                          <label
+                            key={option.value}
+                            className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={rule.channels?.includes(option.value)}
+                              onChange={() => toggleRuleArrayValue(event.value, 'channels', option.value)}
+                              className="rounded border-slate-300"
+                            />
+                            {option.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                        Destinatarios
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {recipientOptions.map((option) => (
+                          <label
+                            key={option.value}
+                            className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={rule.recipients?.includes(option.value)}
+                              onChange={() => toggleRuleArrayValue(event.value, 'recipients', option.value)}
+                              className="rounded border-slate-300"
+                            />
+                            {option.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

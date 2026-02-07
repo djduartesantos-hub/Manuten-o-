@@ -1,12 +1,130 @@
 import { and, eq, inArray, lt, sql } from 'drizzle-orm';
 import { db } from '../config/database.js';
-import { spareParts, stockMovements, userPlants, workOrders } from '../db/schema.js';
-import { RedisService } from './redis.service.js';
+import { notificationRules, spareParts, stockMovements, userPlants, workOrders } from '../db/schema.js';
+import { CacheKeys, CacheTTL, RedisService } from './redis.service.js';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 
 const MANAGER_ROLES = ['gestor_manutencao', 'admin_empresa', 'superadmin'];
+const DEFAULT_RULES = [
+  {
+    event_type: 'work_order_status_changed',
+    channels: ['in_app', 'socket'],
+    recipients: ['assigned', 'creator', 'managers', 'plant_users'],
+    is_active: true,
+  },
+  {
+    event_type: 'work_order_assigned',
+    channels: ['in_app', 'socket'],
+    recipients: ['assigned', 'creator', 'managers'],
+    is_active: true,
+  },
+  {
+    event_type: 'sla_overdue',
+    channels: ['in_app', 'socket'],
+    recipients: ['assigned', 'creator', 'managers', 'plant_users'],
+    is_active: true,
+  },
+  {
+    event_type: 'stock_low',
+    channels: ['in_app', 'socket'],
+    recipients: ['managers', 'plant_users'],
+    is_active: true,
+  },
+];
+
+type NotificationRule = {
+  id?: string;
+  event_type: string;
+  channels: string[];
+  recipients: string[];
+  is_active: boolean;
+};
 
 export class NotificationService {
+  static async getRules(tenantId: string): Promise<NotificationRule[]> {
+    try {
+      const cacheKey = CacheKeys.notificationRules(tenantId);
+      const cached = await RedisService.getJSON<NotificationRule[]>(cacheKey);
+      if (cached) return cached;
+    } catch {
+      // ignore cache errors
+    }
+
+    const existing = await db.query.notificationRules.findMany({
+      where: (fields: any, { eq }: any) => eq(fields.tenant_id, tenantId),
+    });
+
+    if (existing.length === 0) {
+      const now = new Date();
+      const inserted = await db
+        .insert(notificationRules)
+        .values(
+          DEFAULT_RULES.map((rule) => ({
+            tenant_id: tenantId,
+            event_type: rule.event_type,
+            channels: rule.channels,
+            recipients: rule.recipients,
+            is_active: rule.is_active,
+            created_at: now,
+            updated_at: now,
+          })),
+        )
+        .returning();
+      try {
+        await RedisService.setJSON(CacheKeys.notificationRules(tenantId), inserted, CacheTTL.NOTIFICATIONS);
+      } catch {
+        // ignore cache errors
+      }
+      return inserted as NotificationRule[];
+    }
+
+    try {
+      await RedisService.setJSON(CacheKeys.notificationRules(tenantId), existing, CacheTTL.NOTIFICATIONS);
+    } catch {
+      // ignore cache errors
+    }
+    return existing as NotificationRule[];
+  }
+
+  static async getRule(tenantId: string, eventType: string): Promise<NotificationRule | null> {
+    const rules = await NotificationService.getRules(tenantId);
+    return rules.find((rule) => rule.event_type === eventType) || null;
+  }
+
+  static shouldSend(rule: NotificationRule | null) {
+    if (!rule || !rule.is_active) return false;
+    return rule.channels?.includes('in_app') || rule.channels?.includes('socket') || false;
+  }
+
+  static getRecipients(rule: NotificationRule | null, data: {
+    plantId: string;
+    assignedTo?: string | null;
+    createdBy?: string | null;
+  }) {
+    const recipients = rule?.recipients || [];
+    const result: { userIds: string[]; includeManagers: boolean } = {
+      userIds: [],
+      includeManagers: false,
+    };
+
+    if (recipients.includes('assigned') && data.assignedTo) {
+      result.userIds.push(data.assignedTo);
+    }
+
+    if (recipients.includes('creator') && data.createdBy) {
+      result.userIds.push(data.createdBy);
+    }
+
+    if (recipients.includes('plant_users')) {
+      result.userIds.push('__plant_users__');
+    }
+
+    if (recipients.includes('managers')) {
+      result.includeManagers = true;
+    }
+
+    return result;
+  }
   static async getPlantUserIds(plantId: string): Promise<string[]> {
     const rows = await db.query.userPlants.findMany({
       where: (fields: any, { eq }: any) => eq(fields.plant_id, plantId),
@@ -45,6 +163,7 @@ export class NotificationService {
   static async notifyWorkOrderEvent(data: {
     tenantId: string;
     plantId: string;
+    eventType: string;
     assignedTo?: string | null;
     createdBy?: string | null;
     title: string;
@@ -52,16 +171,21 @@ export class NotificationService {
     type?: 'info' | 'success' | 'warning' | 'error';
     workOrderId: string;
   }) {
-    const plantUserIds = await NotificationService.getPlantUserIds(data.plantId);
-    const recipients = [
-      ...plantUserIds,
-      data.assignedTo,
-      data.createdBy,
-    ].filter(Boolean) as string[];
+    const rule = await NotificationService.getRule(data.tenantId, data.eventType);
+    if (!NotificationService.shouldSend(rule)) return;
+
+    const recipients = NotificationService.getRecipients(rule, data);
+    const plantUserIds = recipients.userIds.includes('__plant_users__')
+      ? await NotificationService.getPlantUserIds(data.plantId)
+      : [];
+
+    const userIds = recipients.userIds
+      .filter((value) => value !== '__plant_users__')
+      .concat(plantUserIds);
 
     NotificationService.emitNotification(
       data.tenantId,
-      recipients,
+      userIds,
       {
         title: data.title,
         message: data.message,
@@ -69,7 +193,7 @@ export class NotificationService {
         entity: 'work-order',
         entityId: data.workOrderId,
       },
-      true,
+      recipients.includeManagers,
     );
   }
 
@@ -82,10 +206,22 @@ export class NotificationService {
     quantity: number;
     minStock: number;
   }) {
-    const plantUserIds = await NotificationService.getPlantUserIds(data.plantId);
+    const rule = await NotificationService.getRule(data.tenantId, 'stock_low');
+    if (!NotificationService.shouldSend(rule)) return;
+
+    const recipients = NotificationService.getRecipients(rule, {
+      plantId: data.plantId,
+    });
+    const plantUserIds = recipients.userIds.includes('__plant_users__')
+      ? await NotificationService.getPlantUserIds(data.plantId)
+      : [];
+    const userIds = recipients.userIds
+      .filter((value) => value !== '__plant_users__')
+      .concat(plantUserIds);
+
     NotificationService.emitNotification(
       data.tenantId,
-      plantUserIds,
+      userIds,
       {
         title: 'Stock minimo',
         message: `Peca ${data.code} - ${data.name} abaixo do minimo (${data.quantity}/${data.minStock}).`,
@@ -93,7 +229,7 @@ export class NotificationService {
         entity: 'spare-part',
         entityId: data.sparePartId,
       },
-      true,
+      recipients.includeManagers,
     );
   }
 
@@ -108,6 +244,8 @@ export class NotificationService {
     });
 
     for (const order of rows) {
+      const rule = await NotificationService.getRule(order.tenant_id, 'sla_overdue');
+      if (!NotificationService.shouldSend(rule)) continue;
       const cacheKey = `sla-overdue:${order.id}`;
       const alreadyNotified = await RedisService.exists(cacheKey);
       if (alreadyNotified) continue;
@@ -117,6 +255,7 @@ export class NotificationService {
       await NotificationService.notifyWorkOrderEvent({
         tenantId: order.tenant_id,
         plantId: order.plant_id,
+        eventType: 'sla_overdue',
         assignedTo: order.assigned_to,
         createdBy: order.created_by,
         title: 'SLA em atraso',

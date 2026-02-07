@@ -243,6 +243,21 @@ CREATE TABLE IF NOT EXISTS stock_movements (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
+-- Tabela: Notification Rules
+CREATE TABLE IF NOT EXISTS notification_rules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL,
+  event_type TEXT NOT NULL,
+  channels TEXT[] DEFAULT ARRAY['in_app'],
+  recipients TEXT[] DEFAULT ARRAY['assigned','creator','managers','plant_users'],
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  UNIQUE(tenant_id, event_type)
+);
+
+CREATE INDEX notification_rules_tenant_idx ON notification_rules(tenant_id);
+
 -- Tabela: Meter Readings
 CREATE TABLE IF NOT EXISTS meter_readings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
