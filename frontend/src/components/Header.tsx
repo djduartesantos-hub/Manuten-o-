@@ -90,7 +90,7 @@ export function Header() {
           {/* Right Side */}
           <div className="flex items-center space-x-4">
             {/* Plant Selector */}
-            {plants.length > 1 && (
+            {plants.length > 0 && (
               <div className="hidden sm:flex items-center text-sm text-gray-600">
                 <select
                   className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-700"

@@ -47,6 +47,8 @@ function App() {
           if (!hasSelected) {
             setSelectedPlant(safePlants[0].id);
           }
+        } else {
+          setSelectedPlant('');
         }
       } catch (error) {
         console.error('Error loading plants:', error);
