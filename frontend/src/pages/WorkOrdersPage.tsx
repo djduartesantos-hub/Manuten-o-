@@ -490,6 +490,13 @@ export function WorkOrdersPage() {
     concluida: 'Concluída',
     cancelada: 'Cancelada',
   };
+  const statusBadgeClass: Record<string, string> = {
+    aberta: 'bg-amber-100 text-amber-800',
+    atribuida: 'bg-blue-100 text-blue-700',
+    em_curso: 'bg-emerald-100 text-emerald-700',
+    concluida: 'bg-slate-200 text-slate-700',
+    cancelada: 'bg-rose-100 text-rose-700',
+  };
 
   const statusSummary = useMemo(() => {
     const counts = {
@@ -881,9 +888,10 @@ export function WorkOrdersPage() {
         {selectedPlant && (
           <section className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
             <div className="space-y-6">
-              <div className="rounded-[28px] border border-slate-200 bg-white/80 p-5 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
+              <div className="rounded-[28px] border border-slate-200 bg-gradient-to-r from-white via-white to-emerald-50/60 p-5 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                    <Search className="h-4 w-4 text-emerald-600" />
                     <input
                       className="w-full bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
                       placeholder="Pesquisar por titulo, ativo ou descricao"
@@ -892,26 +900,37 @@ export function WorkOrdersPage() {
                     />
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <select
-                      className="input text-xs font-semibold"
-                      value={statusFilter}
-                      onChange={(event) => setStatusFilter(event.target.value)}
-                    >
-                      {statusOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="flex items-center gap-1">
+                    <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">
+                      <SlidersHorizontal className="h-4 w-4 text-emerald-600" />
+                      <select
+                        className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none"
+                        value={statusFilter}
+                        onChange={(event) => setStatusFilter(event.target.value)}
+                      >
+                        {statusOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1">
                       <button
-                        className={`btn-secondary ${viewMode === 'table' ? 'bg-emerald-50 text-emerald-700' : ''}`}
+                        className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                          viewMode === 'table'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
                         onClick={() => setViewMode('table')}
                       >
                         <List className="h-4 w-4" />
                       </button>
                       <button
-                        className={`btn-secondary ${viewMode === 'kanban' ? 'bg-emerald-50 text-emerald-700' : ''}`}
+                        className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                          viewMode === 'kanban'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
                         onClick={() => setViewMode('kanban')}
                       >
                         <LayoutGrid className="h-4 w-4" />
@@ -1008,7 +1027,7 @@ export function WorkOrdersPage() {
                           const createdDate = order.created_at ? new Date(order.created_at) : null;
 
                           return (
-                            <tr key={order.id}>
+                            <tr key={order.id} className="group hover:bg-emerald-50/40">
                               <td className="px-6 py-4">
                                 <div className="text-sm font-semibold text-slate-900">
                                   {order.title}
@@ -1049,7 +1068,11 @@ export function WorkOrdersPage() {
                                 {order.priority || 'n/a'}
                               </td>
                               <td className="px-6 py-4">
-                                <span className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700">
+                                <span
+                                  className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                                    statusBadgeClass[order.status] || 'bg-slate-100 text-slate-700'
+                                  }`}
+                                >
                                   {statusLabels[order.status] || order.status}
                                 </span>
                               </td>
@@ -1153,38 +1176,42 @@ export function WorkOrdersPage() {
 
             <aside className="space-y-6">
               <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
-                <h3 className="text-sm font-semibold text-slate-900">Prioridades</h3>
+                <h3 className="text-sm font-semibold text-slate-900">Mapa de prioridades</h3>
                 <div className="mt-4 space-y-3">
                   {Object.keys(prioritySummary).length === 0 && (
                     <p className="text-xs text-slate-500">Sem dados suficientes.</p>
                   )}
                   {Object.entries(prioritySummary).map(([priority, count]) => (
-                    <div
-                      key={priority}
-                      className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2"
-                    >
-                      <span className="text-xs font-semibold text-slate-700">{priority}</span>
-                      <span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-600">
-                        {count}
-                      </span>
+                    <div key={priority} className="space-y-2">
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                        <span>{priority}</span>
+                        <span>{count}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-slate-100">
+                        <div
+                          className="h-2 rounded-full bg-emerald-500"
+                          style={{ width: `${Math.min((count / Math.max(1, workOrders.length)) * 100, 100)}%` }}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
               <div className="rounded-[28px] border border-amber-200 bg-amber-50 p-6 text-slate-800 shadow-[0_18px_40px_-30px_rgba(120,53,15,0.35)]">
-                <h3 className="text-sm font-semibold">SLA em risco</h3>
+                <h3 className="text-sm font-semibold">Radar de SLA</h3>
                 <p className="mt-2 text-xs text-slate-600">
-                  Monitore ordens em atraso ou prestes a vencer para evitar impactos
-                  na disponibilidade.
+                  Controle rapido das ordens que podem comprometer disponibilidade.
                 </p>
-                <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                  <span className="rounded-full bg-white px-3 py-1 font-semibold text-rose-700">
-                    {alertSummary.overdue} em atraso
-                  </span>
-                  <span className="rounded-full bg-white px-3 py-1 font-semibold text-amber-700">
-                    {alertSummary.dueSoon} a vencer
-                  </span>
+                <div className="mt-4 grid gap-3 text-xs">
+                  <div className="flex items-center justify-between rounded-2xl bg-white/70 px-3 py-2">
+                    <span className="font-semibold text-rose-700">Em atraso</span>
+                    <span className="text-rose-700">{alertSummary.overdue}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-2xl bg-white/70 px-3 py-2">
+                    <span className="font-semibold text-amber-700">A vencer</span>
+                    <span className="text-amber-700">{alertSummary.dueSoon}</span>
+                  </div>
                 </div>
               </div>
 
