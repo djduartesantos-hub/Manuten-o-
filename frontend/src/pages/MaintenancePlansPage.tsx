@@ -70,6 +70,10 @@ export function MaintenancePlansPage() {
     lastUpdatedAt: '',
     lastError: '',
   });
+  const [lastCreatedPlan, setLastCreatedPlan] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [apiDiagnostics, setApiDiagnostics] = useState({
     status: 'idle',
     lastUpdatedAt: '',
@@ -327,6 +331,10 @@ export function MaintenancePlansPage() {
       });
       setShowCreate(false);
       if (createdPlan) {
+        setLastCreatedPlan({
+          id: createdPlan.id,
+          name: createdPlan.name,
+        });
         setPlans((prev) => {
           const exists = prev.some((plan) => plan.id === createdPlan.id);
           return exists ? prev : [createdPlan, ...prev];
@@ -563,6 +571,12 @@ export function MaintenancePlansPage() {
               { label: 'Planta', value: selectedPlant || '-' },
               { label: 'Qtd planos', value: String(plans.length) },
               { label: 'Qtd ativos', value: String(assets.length) },
+              {
+                label: 'Ultimo criado',
+                value: lastCreatedPlan
+                  ? `${lastCreatedPlan.name} (${lastCreatedPlan.id})`
+                  : '-',
+              },
               { label: 'Planos', value: plansDiagnostics.status },
               { label: 'Tempo planos', value: `${plansDiagnostics.durationMs}ms` },
               { label: 'Ativos', value: assetsDiagnostics.status },
