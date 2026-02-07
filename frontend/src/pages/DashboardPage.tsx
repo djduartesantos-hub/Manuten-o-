@@ -76,32 +76,32 @@ export function DashboardPage() {
       {
         key: 'aberta',
         label: 'Abertas',
-        tone: 'border-amber-200 bg-amber-50/60',
-        dot: 'bg-amber-400',
+        tone: 'border-amber-400/30 bg-amber-500/10 text-amber-200',
+        dot: 'bg-amber-300',
       },
       {
         key: 'atribuida',
         label: 'Atribuidas',
-        tone: 'border-sky-200 bg-sky-50/60',
-        dot: 'bg-sky-400',
+        tone: 'border-sky-400/30 bg-sky-500/10 text-sky-200',
+        dot: 'bg-sky-300',
       },
       {
         key: 'em_curso',
         label: 'Em curso',
-        tone: 'border-emerald-200 bg-emerald-50/60',
-        dot: 'bg-emerald-400',
+        tone: 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200',
+        dot: 'bg-emerald-300',
       },
       {
         key: 'concluida',
         label: 'Concluidas',
-        tone: 'border-slate-200 bg-slate-50/70',
-        dot: 'bg-slate-400',
+        tone: 'border-slate-400/30 bg-slate-500/10 text-slate-200',
+        dot: 'bg-slate-300',
       },
       {
         key: 'cancelada',
         label: 'Canceladas',
-        tone: 'border-rose-200 bg-rose-50/60',
-        dot: 'bg-rose-400',
+        tone: 'border-rose-400/30 bg-rose-500/10 text-rose-200',
+        dot: 'bg-rose-300',
       },
     ],
     [],
@@ -194,36 +194,36 @@ export function DashboardPage() {
         key: 'aberta',
         label: 'Abertas',
         count: metrics?.open_orders ?? 0,
-        tone: 'border-amber-200/70 bg-amber-50/70 text-amber-800',
-        bar: 'bg-amber-400/80',
+        tone: 'border-amber-400/30 bg-amber-500/10 text-amber-200',
+        bar: 'bg-amber-300/80',
       },
       {
         key: 'atribuida',
         label: 'Atribuidas',
         count: metrics?.assigned_orders ?? 0,
-        tone: 'border-sky-200/70 bg-sky-50/70 text-sky-800',
-        bar: 'bg-sky-400/80',
+        tone: 'border-sky-400/30 bg-sky-500/10 text-sky-200',
+        bar: 'bg-sky-300/80',
       },
       {
         key: 'em_curso',
         label: 'Em curso',
         count: metrics?.in_progress ?? 0,
-        tone: 'border-emerald-200/70 bg-emerald-50/70 text-emerald-800',
-        bar: 'bg-emerald-400/80',
+        tone: 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200',
+        bar: 'bg-emerald-300/80',
       },
       {
         key: 'concluida',
         label: 'Concluidas',
         count: metrics?.completed ?? 0,
-        tone: 'border-slate-200/70 bg-slate-50/70 text-slate-700',
-        bar: 'bg-slate-400/80',
+        tone: 'border-slate-400/30 bg-slate-500/10 text-slate-200',
+        bar: 'bg-slate-300/80',
       },
       {
         key: 'cancelada',
         label: 'Canceladas',
         count: metrics?.cancelled ?? 0,
-        tone: 'border-rose-200/70 bg-rose-50/70 text-rose-700',
-        bar: 'bg-rose-400/80',
+        tone: 'border-rose-400/30 bg-rose-500/10 text-rose-200',
+        bar: 'bg-rose-300/80',
       },
     ],
     [metrics],
@@ -295,148 +295,155 @@ export function DashboardPage() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout wide>
       <div
-        className="relative space-y-10 rounded-[32px] bg-[linear-gradient(180deg,#e2e8f0_0%,#f8fafc_45%,#e8edf3_100%)] p-6 font-display text-[color:var(--dash-ink)] sm:p-8"
+        className="relative w-full space-y-10 rounded-[32px] bg-[linear-gradient(180deg,#0b1220_0%,#0f172a_45%,#111827_100%)] p-6 font-display text-[color:var(--dash-ink)] sm:p-8"
         style={
           {
             '--dash-accent': '#0f766e',
             '--dash-accent-2': '#f59e0b',
-            '--dash-ink': '#0b1220',
-            '--dash-surface': '#f1f5f9',
-            '--dash-surface-2': '#e2e8f0',
+            '--dash-ink': '#e2e8f0',
+            '--dash-muted': '#94a3b8',
+            '--dash-panel': 'rgba(15,23,42,0.78)',
+            '--dash-panel-2': 'rgba(30,41,59,0.7)',
+            '--dash-border': 'rgba(148,163,184,0.25)',
+            '--dash-surface': 'rgba(30,41,59,0.65)',
+            '--dash-surface-2': 'rgba(15,23,42,0.72)',
           } as CSSProperties
         }
       >
-        <section className="relative overflow-hidden rounded-[36px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#ecfeff_0%,_#ffffff_55%,_#fef9c3_120%)] p-8 shadow-[0_32px_80px_-55px_rgba(15,118,110,0.45)] lg:p-10">
-          <div className="absolute -left-20 top-4 h-40 w-40 rounded-full bg-emerald-200/60 blur-3xl dash-float" />
-          <div className="absolute -right-24 -top-16 h-64 w-64 rounded-full bg-amber-200/60 blur-3xl dash-float" />
-          <div className="absolute bottom-6 right-8 h-20 w-20 rounded-3xl border border-white/70 bg-white/70 shadow-sm" />
+        <section className="relative overflow-hidden rounded-[36px] border border-[color:var(--dash-border)] bg-[radial-gradient(circle_at_top,_#1f2937_0%,_#0b1220_55%,_#0f172a_100%)] p-8 shadow-[0_32px_80px_-55px_rgba(15,23,42,0.75)] lg:p-10">
+          <div className="absolute -left-20 top-4 h-40 w-40 rounded-full bg-emerald-500/20 blur-3xl dash-float" />
+          <div className="absolute -right-24 -top-16 h-64 w-64 rounded-full bg-amber-400/20 blur-3xl dash-float" />
+          <div className="absolute bottom-6 right-8 h-20 w-20 rounded-3xl border border-white/10 bg-white/5 shadow-sm" />
 
           <div className="relative grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div className="space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-300">
                 Painel vivo
               </p>
-              <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl lg:text-5xl">
+              <h1 className="text-3xl font-semibold text-[color:var(--dash-ink)] sm:text-4xl lg:text-5xl">
                 Dashboard da manutencao
               </h1>
-              <p className="max-w-2xl text-sm text-slate-600">
+              <p className="max-w-2xl text-sm text-[color:var(--dash-muted)]">
                 Bem-vindo, {user?.firstName}! Visibilidade total de backlog, SLA e
                 operacao em tempo real.
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
-                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50/80 px-3 py-1 text-emerald-700">
+                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-emerald-200">
                   SLA {kpis?.sla_compliance ?? 0}%
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-amber-200/70 bg-amber-50/80 px-3 py-1 text-amber-700">
+                <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-amber-200">
                   Backlog {kpis?.backlog ?? 0}
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-slate-600">
+                <span className="inline-flex items-center gap-2 rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-3 py-1 text-[color:var(--dash-muted)]">
                   MTTR {kpis?.mttr ?? 0}h
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-slate-600">
+                <span className="inline-flex items-center gap-2 rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-3 py-1 text-[color:var(--dash-muted)]">
                   MTBF {kpis?.mtbf ?? 0}h
                 </span>
               </div>
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-4 shadow-sm">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                <div className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
                     Efetividade
                   </p>
-                  <p className="mt-2 text-3xl font-semibold text-slate-900">
+                  <p className="mt-2 text-3xl font-semibold text-[color:var(--dash-ink)]">
                     {completionRate}%
                   </p>
-                  <p className="text-xs text-slate-500">Ordens concluidas</p>
+                  <p className="text-xs text-[color:var(--dash-muted)]">Ordens concluidas</p>
                 </div>
-                <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-4 shadow-sm">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                <div className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
                     Pressao de backlog
                   </p>
-                  <p className="mt-2 text-3xl font-semibold text-slate-900">
+                  <p className="mt-2 text-3xl font-semibold text-[color:var(--dash-ink)]">
                     {backlogShare}%
                   </p>
-                  <p className="text-xs text-slate-500">Participacao no total</p>
+                  <p className="text-xs text-[color:var(--dash-muted)]">Participacao no total</p>
                 </div>
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="dash-reveal rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
-                <div className="flex items-center justify-between">
-                  <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
-                    <BarChart3 className="h-4 w-4" />
+            <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="dash-reveal rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur">
+                  <div className="flex items-center justify-between">
+                    <div className="rounded-2xl bg-emerald-500/15 p-2 text-emerald-200">
+                      <BarChart3 className="h-4 w-4" />
+                    </div>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                      total
+                    </span>
                   </div>
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-                    total
-                  </span>
+                  <p className="mt-4 text-2xl font-semibold text-[color:var(--dash-ink)]">
+                    {metrics?.total_orders ?? 0}
+                  </p>
+                  <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Ordens registradas</p>
                 </div>
-                <p className="mt-4 text-2xl font-semibold text-slate-900">
-                  {metrics?.total_orders ?? 0}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">Ordens registradas</p>
-              </div>
-              <div className="dash-reveal dash-reveal-delay-1 rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
-                <div className="flex items-center justify-between">
-                  <div className="rounded-2xl bg-amber-100 p-2 text-amber-700">
-                    <AlertCircle className="h-4 w-4" />
+                <div className="dash-reveal dash-reveal-delay-1 rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur">
+                  <div className="flex items-center justify-between">
+                    <div className="rounded-2xl bg-amber-500/15 p-2 text-amber-200">
+                      <AlertCircle className="h-4 w-4" />
+                    </div>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                      abertas
+                    </span>
                   </div>
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-                    abertas
-                  </span>
+                  <p className="mt-4 text-2xl font-semibold text-[color:var(--dash-ink)]">
+                    {metrics?.open_orders ?? 0}
+                  </p>
+                  <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Aguardando inicio</p>
                 </div>
-                <p className="mt-4 text-2xl font-semibold text-slate-900">
-                  {metrics?.open_orders ?? 0}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">Aguardando inicio</p>
-              </div>
-              <div className="dash-reveal dash-reveal-delay-2 rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
-                <div className="flex items-center justify-between">
-                  <div className="rounded-2xl bg-sky-100 p-2 text-sky-700">
-                    <Clock className="h-4 w-4" />
+                <div className="dash-reveal dash-reveal-delay-2 rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur">
+                  <div className="flex items-center justify-between">
+                    <div className="rounded-2xl bg-sky-500/15 p-2 text-sky-200">
+                      <Clock className="h-4 w-4" />
+                    </div>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                      atribuicao
+                    </span>
                   </div>
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-                    atribuicao
-                  </span>
+                  <p className="mt-4 text-2xl font-semibold text-[color:var(--dash-ink)]">
+                    {metrics?.assigned_orders ?? 0}
+                  </p>
+                  <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Em fila de equipa</p>
                 </div>
-                <p className="mt-4 text-2xl font-semibold text-slate-900">
-                  {metrics?.assigned_orders ?? 0}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">Em fila de equipa</p>
-              </div>
-              <div className="dash-reveal dash-reveal-delay-3 rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
-                <div className="flex items-center justify-between">
-                  <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
-                    <Activity className="h-4 w-4" />
+                <div className="dash-reveal dash-reveal-delay-3 rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur">
+                  <div className="flex items-center justify-between">
+                    <div className="rounded-2xl bg-emerald-500/15 p-2 text-emerald-200">
+                      <Activity className="h-4 w-4" />
+                    </div>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                      execucao
+                    </span>
                   </div>
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-                    execucao
-                  </span>
+                  <p className="mt-4 text-2xl font-semibold text-[color:var(--dash-ink)]">
+                    {metrics?.in_progress ?? 0}
+                  </p>
+                  <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Ordens em curso</p>
                 </div>
-                <p className="mt-4 text-2xl font-semibold text-slate-900">
-                  {metrics?.in_progress ?? 0}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">Ordens em curso</p>
               </div>
-              <div className="rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm sm:col-span-2">
+
+              <div className="rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
                     Alertas recentes
                   </p>
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-[10px] text-[color:var(--dash-muted)]">
                     {alerts.length} itens
                   </span>
                 </div>
                 <div className="mt-3 space-y-2">
                   {alerts.length === 0 && (
-                    <div className="rounded-2xl border border-dashed border-slate-200 bg-[color:var(--dash-surface)] px-4 py-4 text-center text-xs text-slate-500">
+                    <div className="rounded-2xl border border-dashed border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-4 py-4 text-center text-xs text-[color:var(--dash-muted)]">
                       Nenhum alerta recente
                     </div>
                   )}
                   {alerts.slice(0, 3).map((alert) => (
                     <div
                       key={alert.id}
-                      className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] px-4 py-3 text-xs text-slate-600"
+                      className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] px-4 py-3 text-xs text-[color:var(--dash-muted)]"
                     >
                       <div className="flex items-center justify-between">
                         <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
@@ -444,19 +451,20 @@ export function DashboardPage() {
                         }`}>
                           {alert.severity}
                         </span>
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-[10px] text-[color:var(--dash-muted)]">
                           {formatDateTime(alert.created_at)}
                         </span>
                       </div>
-                      <p className="mt-2 text-sm font-semibold text-slate-800">
+                      <p className="mt-2 text-sm font-semibold text-[color:var(--dash-ink)]">
                         {alert.message}
                       </p>
                     </div>
                   ))}
                 </div>
               </div>
+
               <button
-                className="sm:col-span-2 inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-[color:var(--dash-surface)]"
+                className="lg:col-span-2 inline-flex items-center justify-center gap-2 rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2 text-sm font-semibold text-[color:var(--dash-ink)] shadow-sm transition hover:bg-[color:var(--dash-panel)]"
                 onClick={loadData}
               >
                 <RefreshCcw className="h-4 w-4" />
@@ -478,9 +486,9 @@ export function DashboardPage() {
         )}
 
         {loading && (
-          <div className="rounded-[28px] border border-slate-200 bg-white/90 p-12 text-center shadow-sm">
-            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-            <p className="text-sm text-slate-600">Carregando dados...</p>
+          <div className="rounded-[28px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-12 text-center shadow-sm">
+            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
+            <p className="text-sm text-[color:var(--dash-muted)]">Carregando dados...</p>
           </div>
         )}
 
@@ -495,39 +503,41 @@ export function DashboardPage() {
                   return (
                     <div
                       key={item.key}
-                      className={`dash-reveal rounded-[22px] border px-4 py-3 shadow-sm ${item.tone}`}
+                      className={`dash-reveal rounded-[20px] border px-3 py-2.5 shadow-sm ${item.tone}`}
                       style={{ animationDelay: `${index * 0.06}s` }}
                     >
                       <div className="flex items-center justify-between text-xs font-semibold">
                         <span>{item.label}</span>
                         <span>{item.count}</span>
                       </div>
-                      <div className="mt-3 h-1.5 w-full rounded-full bg-white/70">
+                      <div className="mt-3 h-1.5 w-full rounded-full bg-[color:var(--dash-surface)]">
                         <div
                           className={`h-1.5 rounded-full ${item.bar}`}
                           style={{ width: `${percent}%` }}
                         />
                       </div>
-                      <p className="mt-2 text-[11px] text-slate-500">{percent}% do total</p>
+                      <p className="mt-2 text-[11px] text-[color:var(--dash-muted)]">
+                        {percent}% do total
+                      </p>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-sm">
+              <div className="relative overflow-hidden rounded-[28px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
                 <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent),var(--dash-accent-2))]" />
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-lg font-semibold text-slate-900">Fluxo das ordens</h2>
-                    <p className="text-xs text-slate-500">Arraste para atualizar o estado</p>
+                    <h2 className="text-lg font-semibold text-[color:var(--dash-ink)]">Fluxo das ordens</h2>
+                    <p className="text-xs text-[color:var(--dash-muted)]">Arraste para atualizar o estado</p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                      <Activity className="h-3.5 w-3.5 text-emerald-600" />
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-[color:var(--dash-muted)]">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] px-3 py-1">
+                      <Activity className="h-3.5 w-3.5 text-emerald-300" />
                       {metrics.in_progress} em curso
                     </span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                      <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] px-3 py-1">
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-300" />
                       {metrics.open_orders} abertas
                     </span>
                   </div>
@@ -548,11 +558,11 @@ export function DashboardPage() {
                       onDrop={() => handleDrop(column.key)}
                     >
                       <div className="mb-3 flex items-center justify-between">
-                        <div className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600">
+                        <div className="inline-flex items-center gap-2 text-xs font-semibold text-[color:var(--dash-muted)]">
                           <span className={`h-2.5 w-2.5 rounded-full ${column.dot}`} />
                           {column.label}
                         </div>
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-[color:var(--dash-muted)]">
                           {(groupedOrders[column.key] || []).length}
                         </span>
                       </div>
@@ -563,16 +573,16 @@ export function DashboardPage() {
                             draggable
                             onDragStart={() => handleDragStart(order.id)}
                             onDragEnd={handleDragEnd}
-                            className={`rounded-[18px] border border-slate-200 bg-white/90 p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_16px_26px_-20px_rgba(15,23,42,0.45)] ${
+                            className={`rounded-[18px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_16px_26px_-20px_rgba(15,23,42,0.65)] ${
                               draggingOrderId === order.id ? 'opacity-50' : ''
                             }`}
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div>
-                                <p className="text-sm font-semibold text-slate-900">
+                                <p className="text-sm font-semibold text-[color:var(--dash-ink)]">
                                   {order.title}
                                 </p>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-xs text-[color:var(--dash-muted)]">
                                   {order.asset
                                     ? `${order.asset.code} - ${order.asset.name}`
                                     : 'Sem ativo'}
@@ -586,16 +596,16 @@ export function DashboardPage() {
                                 {order.priority || 'media'}
                               </span>
                             </div>
-                            <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
+                            <div className="mt-3 flex items-center justify-between text-[11px] text-[color:var(--dash-muted)]">
                               <span>{formatDateTime(order.created_at)}</span>
-                              <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] text-slate-600">
+                              <span className="rounded-full bg-slate-800/70 px-2 py-1 text-[10px] text-[color:var(--dash-muted)]">
                                 #{order.id.slice(0, 6)}
                               </span>
                             </div>
                           </div>
                         ))}
                         {(groupedOrders[column.key] || []).length === 0 && (
-                          <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 px-3 py-6 text-center text-xs text-slate-400">
+                          <div className="rounded-2xl border border-dashed border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-3 py-6 text-center text-xs text-[color:var(--dash-muted)]">
                             Sem ordens
                           </div>
                         )}
@@ -606,39 +616,41 @@ export function DashboardPage() {
               </div>
 
               {kpis && (
-                <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-sm">
+                <div className="relative overflow-hidden rounded-[28px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
                   <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,#38bdf8,var(--dash-accent))]" />
-                  <h2 className="text-lg font-semibold text-slate-900">Indicadores-chave</h2>
+                  <h2 className="text-lg font-semibold text-[color:var(--dash-ink)]">Indicadores-chave</h2>
                   <div className="mt-6 grid gap-4 md:grid-cols-4">
-                    <div className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                    <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
                         MTTR
                       </p>
-                      <p className="mt-2 text-2xl font-semibold text-slate-900">
+                      <p className="mt-2 text-2xl font-semibold text-[color:var(--dash-ink)]">
                         {kpis.mttr}h
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                    <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
                         MTBF
                       </p>
-                      <p className="mt-2 text-2xl font-semibold text-slate-900">
+                      <p className="mt-2 text-2xl font-semibold text-[color:var(--dash-ink)]">
                         {kpis.mtbf}h
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                    <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
                         SLA cumprido
                       </p>
-                      <p className="mt-2 text-2xl font-semibold text-slate-900">
+                      <p className="mt-2 text-2xl font-semibold text-[color:var(--dash-ink)]">
                         {kpis.sla_compliance}%
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                    <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
                         Backlog
                       </p>
-                      <p className="mt-2 text-2xl font-semibold text-slate-900">{kpis.backlog}</p>
+                      <p className="mt-2 text-2xl font-semibold text-[color:var(--dash-ink)]">
+                        {kpis.backlog}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -646,25 +658,25 @@ export function DashboardPage() {
             </div>
 
             <aside className="space-y-6">
-              <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-sm">
+              <div className="relative overflow-hidden rounded-[28px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
                 <div className="absolute right-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent-2),var(--dash-accent))]" />
-                <h3 className="text-sm font-semibold text-slate-900">Foco imediato</h3>
-                <p className="mt-2 text-xs text-slate-500">
+                <h3 className="text-sm font-semibold text-[color:var(--dash-ink)]">Foco imediato</h3>
+                <p className="mt-2 text-xs text-[color:var(--dash-muted)]">
                   Ordens com maior prioridade em andamento.
                 </p>
                 <div className="mt-4 space-y-3">
                   {urgentOrders.length === 0 && (
-                    <div className="rounded-2xl border border-dashed border-slate-200 bg-[color:var(--dash-surface-2)] px-4 py-6 text-center text-xs text-slate-500">
+                    <div className="rounded-2xl border border-dashed border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] px-4 py-6 text-center text-xs text-[color:var(--dash-muted)]">
                       Sem prioridades criticas no momento.
                     </div>
                   )}
                   {urgentOrders.map((order) => (
                     <div
                       key={order.id}
-                      className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] px-4 py-3 text-xs text-slate-600"
+                      className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-4 py-3 text-xs text-[color:var(--dash-muted)]"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-slate-900">
+                        <p className="text-sm font-semibold text-[color:var(--dash-ink)]">
                           {order.title}
                         </p>
                         <span
@@ -675,12 +687,12 @@ export function DashboardPage() {
                           {order.priority || 'media'}
                         </span>
                       </div>
-                      <p className="mt-1 text-[11px] text-slate-500">
+                      <p className="mt-1 text-[11px] text-[color:var(--dash-muted)]">
                         {order.asset
                           ? `${order.asset.code} - ${order.asset.name}`
                           : 'Sem ativo'}
                       </p>
-                      <p className="mt-2 text-[11px] text-slate-400">
+                      <p className="mt-2 text-[11px] text-[color:var(--dash-muted)]">
                         {formatDateTime(order.created_at)}
                       </p>
                     </div>
@@ -688,23 +700,23 @@ export function DashboardPage() {
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-[28px] border border-emerald-200 bg-[linear-gradient(135deg,#ecfdf3,#ffffff)] p-6 text-slate-800 shadow-[0_20px_60px_-45px_rgba(16,185,129,0.6)]">
-                <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-200/50 blur-2xl" />
+              <div className="relative overflow-hidden rounded-[28px] border border-emerald-400/20 bg-[linear-gradient(135deg,#0f172a,#111827)] p-6 text-[color:var(--dash-ink)] shadow-[0_20px_60px_-45px_rgba(16,185,129,0.45)]">
+                <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-400/20 blur-2xl" />
                 <h3 className="text-sm font-semibold">Top ativos</h3>
-                <p className="mt-2 text-xs text-slate-600">
+                <p className="mt-2 text-xs text-[color:var(--dash-muted)]">
                   Equipamentos com mais ordens recentes.
                 </p>
                 <div className="mt-4 space-y-3">
                   {topAssets.length === 0 && (
-                    <p className="text-xs text-slate-500">Sem dados suficientes.</p>
+                    <p className="text-xs text-[color:var(--dash-muted)]">Sem dados suficientes.</p>
                   )}
                   {topAssets.map((asset) => (
                     <div
                       key={asset.label}
-                      className="flex items-center justify-between rounded-2xl bg-white/80 px-3 py-2 text-xs"
+                      className="flex items-center justify-between rounded-2xl bg-emerald-500/10 px-3 py-2 text-xs"
                     >
-                      <span className="font-semibold text-slate-700">{asset.label}</span>
-                      <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700">
+                      <span className="font-semibold text-[color:var(--dash-ink)]">{asset.label}</span>
+                      <span className="rounded-full bg-emerald-500/20 px-2 py-1 text-[10px] font-semibold text-emerald-200">
                         {asset.count}
                       </span>
                     </div>
