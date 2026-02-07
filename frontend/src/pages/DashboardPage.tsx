@@ -13,7 +13,6 @@ import {
   AlertCircle,
   Activity,
   Clock,
-  CheckCircle,
   AlertTriangle,
   BarChart3,
   RefreshCcw,
@@ -181,6 +180,76 @@ export function DashboardPage() {
     baixa: 'bg-slate-100 text-slate-600',
   };
 
+  const totalOrders = metrics?.total_orders ?? 0;
+  const completionRate = totalOrders
+    ? Math.round(((metrics?.completed ?? 0) / totalOrders) * 100)
+    : 0;
+  const backlogShare = totalOrders
+    ? Math.round(((kpis?.backlog ?? 0) / totalOrders) * 100)
+    : 0;
+
+  const statusSummary = React.useMemo(
+    () => [
+      {
+        key: 'aberta',
+        label: 'Abertas',
+        count: metrics?.open_orders ?? 0,
+        tone: 'border-amber-200/70 bg-amber-50/70 text-amber-800',
+        bar: 'bg-amber-400/80',
+      },
+      {
+        key: 'atribuida',
+        label: 'Atribuidas',
+        count: metrics?.assigned_orders ?? 0,
+        tone: 'border-sky-200/70 bg-sky-50/70 text-sky-800',
+        bar: 'bg-sky-400/80',
+      },
+      {
+        key: 'em_curso',
+        label: 'Em curso',
+        count: metrics?.in_progress ?? 0,
+        tone: 'border-emerald-200/70 bg-emerald-50/70 text-emerald-800',
+        bar: 'bg-emerald-400/80',
+      },
+      {
+        key: 'concluida',
+        label: 'Concluidas',
+        count: metrics?.completed ?? 0,
+        tone: 'border-slate-200/70 bg-slate-50/70 text-slate-700',
+        bar: 'bg-slate-400/80',
+      },
+      {
+        key: 'cancelada',
+        label: 'Canceladas',
+        count: metrics?.cancelled ?? 0,
+        tone: 'border-rose-200/70 bg-rose-50/70 text-rose-700',
+        bar: 'bg-rose-400/80',
+      },
+    ],
+    [metrics],
+  );
+
+  const urgentOrders = React.useMemo(() => {
+    const weight: Record<string, number> = {
+      critica: 3,
+      alta: 2,
+      media: 1,
+      baixa: 0,
+    };
+
+    return [...orders]
+      .filter((order) => order.status !== 'concluida' && order.status !== 'cancelada')
+      .sort((a, b) => {
+        const left = weight[a.priority || 'media'] ?? 0;
+        const right = weight[b.priority || 'media'] ?? 0;
+        if (left !== right) return right - left;
+        const leftDate = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const rightDate = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return rightDate - leftDate;
+      })
+      .slice(0, 4);
+  }, [orders]);
+
   const handleDragStart = (orderId: string) => {
     setDraggingOrderId(orderId);
   };
@@ -232,94 +301,130 @@ export function DashboardPage() {
         style={
           {
             '--dash-accent': '#0f766e',
-            '--dash-accent-2': '#38bdf8',
+            '--dash-accent-2': '#f59e0b',
             '--dash-ink': '#0f172a',
             '--dash-surface': '#f8fafc',
+            '--dash-surface-2': '#f1f5f9',
           } as CSSProperties
         }
       >
-        <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#ecfeff,_#ffffff_60%)] p-8 shadow-[0_28px_80px_-60px_rgba(15,118,110,0.5)]">
-          <div className="absolute -right-12 -top-20 h-56 w-56 rounded-full bg-emerald-200/60 blur-3xl dash-float" />
-          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-sky-200/50 blur-3xl dash-float" />
-          <div className="absolute right-12 top-10 h-2 w-20 rounded-full bg-[color:var(--dash-accent)] opacity-50" />
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700">
-                Panorama operacional
+        <section className="relative overflow-hidden rounded-[36px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#ecfeff_0%,_#ffffff_55%,_#fef9c3_120%)] p-8 shadow-[0_32px_80px_-55px_rgba(15,118,110,0.45)] lg:p-10">
+          <div className="absolute -left-20 top-4 h-40 w-40 rounded-full bg-emerald-200/60 blur-3xl dash-float" />
+          <div className="absolute -right-24 -top-16 h-64 w-64 rounded-full bg-amber-200/60 blur-3xl dash-float" />
+          <div className="absolute bottom-6 right-8 h-20 w-20 rounded-3xl border border-white/70 bg-white/70 shadow-sm" />
+
+          <div className="relative grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-700">
+                Painel vivo
               </p>
-              <h1 className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl lg:text-5xl">
+              <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl lg:text-5xl">
                 Dashboard da manutencao
               </h1>
-              <p className="mt-2 max-w-2xl text-sm text-slate-600">
-                Bem-vindo, {user?.firstName}! Acompanhe prioridades, backlog e
-                desempenho em tempo real.
+              <p className="max-w-2xl text-sm text-slate-600">
+                Bem-vindo, {user?.firstName}! Visibilidade total de backlog, SLA e
+                operacao em tempo real.
               </p>
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50/80 px-3 py-1 text-emerald-700">
+                  SLA {kpis?.sla_compliance ?? 0}%
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full border border-amber-200/70 bg-amber-50/80 px-3 py-1 text-amber-700">
+                  Backlog {kpis?.backlog ?? 0}
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-slate-600">
+                  MTTR {kpis?.mttr ?? 0}h
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-slate-600">
+                  MTBF {kpis?.mtbf ?? 0}h
+                </span>
+              </div>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-[22px] border border-slate-200/70 bg-white/85 p-4 shadow-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                    Efetividade
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-900">
+                    {completionRate}%
+                  </p>
+                  <p className="text-xs text-slate-500">Ordens concluidas</p>
+                </div>
+                <div className="rounded-[22px] border border-slate-200/70 bg-white/85 p-4 shadow-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                    Pressao de backlog
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-900">
+                    {backlogShare}%
+                  </p>
+                  <p className="text-xs text-slate-500">Participacao no total</p>
+                </div>
+              </div>
             </div>
-            <button
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-[color:var(--dash-surface)]"
-              onClick={loadData}
-            >
-              <RefreshCcw className="h-4 w-4" />
-              Recarregar
-            </button>
-          </div>
 
-          <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="dash-reveal rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
-              <div className="flex items-center justify-between">
-                <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
-                  <BarChart3 className="h-4 w-4" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="dash-reveal rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+                <div className="flex items-center justify-between">
+                  <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
+                    <BarChart3 className="h-4 w-4" />
+                  </div>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                    total
+                  </span>
                 </div>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-                  total
-                </span>
+                <p className="mt-4 text-2xl font-semibold text-slate-900">
+                  {metrics?.total_orders ?? 0}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">Ordens registradas</p>
               </div>
-              <p className="mt-4 text-2xl font-semibold text-slate-900">
-                {metrics?.total_orders ?? 0}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">Resumo geral</p>
-            </div>
-            <div className="dash-reveal dash-reveal-delay-1 rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
-              <div className="flex items-center justify-between">
-                <div className="rounded-2xl bg-amber-100 p-2 text-amber-700">
-                  <Clock className="h-4 w-4" />
+              <div className="dash-reveal dash-reveal-delay-1 rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+                <div className="flex items-center justify-between">
+                  <div className="rounded-2xl bg-amber-100 p-2 text-amber-700">
+                    <AlertCircle className="h-4 w-4" />
+                  </div>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                    abertas
+                  </span>
                 </div>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-                  execucao
-                </span>
+                <p className="mt-4 text-2xl font-semibold text-slate-900">
+                  {metrics?.open_orders ?? 0}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">Aguardando inicio</p>
               </div>
-              <p className="mt-4 text-2xl font-semibold text-slate-900">
-                {metrics?.in_progress ?? 0}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">Em progresso</p>
-            </div>
-            <div className="dash-reveal dash-reveal-delay-2 rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
-              <div className="flex items-center justify-between">
-                <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
-                  <CheckCircle className="h-4 w-4" />
+              <div className="dash-reveal dash-reveal-delay-2 rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+                <div className="flex items-center justify-between">
+                  <div className="rounded-2xl bg-sky-100 p-2 text-sky-700">
+                    <Clock className="h-4 w-4" />
+                  </div>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                    atribuicao
+                  </span>
                 </div>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-                  concluidas
-                </span>
+                <p className="mt-4 text-2xl font-semibold text-slate-900">
+                  {metrics?.assigned_orders ?? 0}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">Em fila de equipa</p>
               </div>
-              <p className="mt-4 text-2xl font-semibold text-slate-900">
-                {metrics?.completed ?? 0}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">Finalizadas hoje</p>
-            </div>
-            <div className="dash-reveal dash-reveal-delay-3 rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
-              <div className="flex items-center justify-between">
-                <div className="rounded-2xl bg-rose-100 p-2 text-rose-700">
-                  <AlertTriangle className="h-4 w-4" />
+              <div className="dash-reveal dash-reveal-delay-3 rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+                <div className="flex items-center justify-between">
+                  <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
+                    <Activity className="h-4 w-4" />
+                  </div>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                    execucao
+                  </span>
                 </div>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-                  backlog
-                </span>
+                <p className="mt-4 text-2xl font-semibold text-slate-900">
+                  {metrics?.in_progress ?? 0}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">Ordens em curso</p>
               </div>
-              <p className="mt-4 text-2xl font-semibold text-slate-900">
-                {kpis?.backlog ?? 0}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">Pendentes</p>
+              <button
+                className="sm:col-span-2 inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-[color:var(--dash-surface)]"
+                onClick={loadData}
+              >
+                <RefreshCcw className="h-4 w-4" />
+                Recarregar painel
+              </button>
             </div>
           </div>
         </section>
@@ -345,14 +450,41 @@ export function DashboardPage() {
         {!loading && metrics && (
           <section className="grid gap-6 xl:grid-cols-[1.6fr_0.8fr]">
             <div className="space-y-6">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                {statusSummary.map((item, index) => {
+                  const percent = totalOrders
+                    ? Math.round((item.count / totalOrders) * 100)
+                    : 0;
+                  return (
+                    <div
+                      key={item.key}
+                      className={`dash-reveal rounded-[22px] border px-4 py-3 shadow-sm ${item.tone}`}
+                      style={{ animationDelay: `${index * 0.06}s` }}
+                    >
+                      <div className="flex items-center justify-between text-xs font-semibold">
+                        <span>{item.label}</span>
+                        <span>{item.count}</span>
+                      </div>
+                      <div className="mt-3 h-1.5 w-full rounded-full bg-white/70">
+                        <div
+                          className={`h-1.5 rounded-full ${item.bar}`}
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                      <p className="mt-2 text-[11px] text-slate-500">{percent}% do total</p>
+                    </div>
+                  );
+                })}
+              </div>
+
               <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-sm">
-                <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent),#34d399)]" />
+                <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent),var(--dash-accent-2))]" />
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-lg font-semibold text-slate-900">Ordens por status</h2>
+                    <h2 className="text-lg font-semibold text-slate-900">Fluxo das ordens</h2>
                     <p className="text-xs text-slate-500">Arraste para atualizar o estado</p>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                     <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
                       <Activity className="h-3.5 w-3.5 text-emerald-600" />
                       {metrics.in_progress} em curso
@@ -364,11 +496,11 @@ export function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="mt-6 flex gap-4 overflow-x-auto pb-2">
+                <div className="mt-6 grid gap-4 lg:grid-cols-5">
                   {statusColumns.map((column) => (
                     <div
                       key={column.key}
-                      className={`min-w-[250px] flex-1 rounded-[22px] border p-4 transition ${column.tone} ${
+                      className={`flex min-h-[320px] flex-col rounded-[22px] border p-4 transition ${column.tone} ${
                         dragOverStatus === column.key ? 'ring-2 ring-emerald-400/60' : ''
                       }`}
                       onDragOver={(event) => {
@@ -394,7 +526,7 @@ export function DashboardPage() {
                             draggable
                             onDragStart={() => handleDragStart(order.id)}
                             onDragEnd={handleDragEnd}
-                            className={`rounded-[18px] border border-slate-200 bg-white/90 p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_14px_24px_-20px_rgba(15,23,42,0.4)] ${
+                            className={`rounded-[18px] border border-slate-200 bg-white/90 p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_16px_26px_-20px_rgba(15,23,42,0.45)] ${
                               draggingOrderId === order.id ? 'opacity-50' : ''
                             }`}
                           >
@@ -426,7 +558,7 @@ export function DashboardPage() {
                           </div>
                         ))}
                         {(groupedOrders[column.key] || []).length === 0 && (
-                          <div className="rounded-2xl border border-dashed border-slate-200 bg-white/60 px-3 py-6 text-center text-xs text-slate-400">
+                          <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 px-3 py-6 text-center text-xs text-slate-400">
                             Sem ordens
                           </div>
                         )}
@@ -477,6 +609,48 @@ export function DashboardPage() {
             </div>
 
             <aside className="space-y-6">
+              <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-sm">
+                <div className="absolute right-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent-2),var(--dash-accent))]" />
+                <h3 className="text-sm font-semibold text-slate-900">Foco imediato</h3>
+                <p className="mt-2 text-xs text-slate-500">
+                  Ordens com maior prioridade em andamento.
+                </p>
+                <div className="mt-4 space-y-3">
+                  {urgentOrders.length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-[color:var(--dash-surface-2)] px-4 py-6 text-center text-xs text-slate-500">
+                      Sem prioridades criticas no momento.
+                    </div>
+                  )}
+                  {urgentOrders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] px-4 py-3 text-xs text-slate-600"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-slate-900">
+                          {order.title}
+                        </p>
+                        <span
+                          className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
+                            priorityBadge[order.priority || 'media'] || 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {order.priority || 'media'}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        {order.asset
+                          ? `${order.asset.code} - ${order.asset.name}`
+                          : 'Sem ativo'}
+                      </p>
+                      <p className="mt-2 text-[11px] text-slate-400">
+                        {formatDateTime(order.created_at)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-sm">
                 <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent),#34d399)]" />
                 <h3 className="text-sm font-semibold text-slate-900">Alertas recentes</h3>
