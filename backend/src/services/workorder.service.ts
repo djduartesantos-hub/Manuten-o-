@@ -333,6 +333,13 @@ export class WorkOrderService {
             last_name: true,
           },
         },
+        createdByUser: {
+          columns: {
+            id: true,
+            first_name: true,
+            last_name: true,
+          },
+        },
       },
       orderBy: (fields: any) => [desc(fields.created_at)],
       limit: 100,

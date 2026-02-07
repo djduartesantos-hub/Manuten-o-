@@ -43,8 +43,10 @@ interface WorkOrder {
   estimated_hours?: string | null;
   actual_hours?: string | null;
   created_at?: string;
+  updated_at?: string;
   sla_deadline?: string | null;
   scheduled_date?: string | null;
+  started_at?: string | null;
   completed_at?: string | null;
   notes?: string | null;
   asset?: {
@@ -52,6 +54,11 @@ interface WorkOrder {
     name: string;
   } | null;
   assignedUser?: {
+    id?: string;
+    first_name: string;
+    last_name: string;
+  } | null;
+  createdByUser?: {
     id?: string;
     first_name: string;
     last_name: string;
@@ -332,6 +339,17 @@ export function WorkOrdersPage() {
   };
 
   useEffect(() => {
+    if (!editingOrder) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setEditingOrder(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editingOrder]);
+
+  useEffect(() => {
     const handleRealtimeUpdate = () => {
       loadData();
     };
@@ -342,6 +360,17 @@ export function WorkOrdersPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlant, statusFilter, searchTerm]);
+
+  useEffect(() => {
+    if (!editingOrder) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setEditingOrder(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editingOrder]);
 
   const handleCreate = async () => {
     if (!selectedPlant) return;
@@ -386,6 +415,11 @@ export function WorkOrdersPage() {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
       date.getHours(),
     )}:${pad(date.getMinutes())}`;
+  };
+
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return '-';
+    return new Date(value).toLocaleString();
   };
 
   const handleStartEdit = (order: WorkOrder) => {
@@ -955,6 +989,12 @@ export function WorkOrdersPage() {
               role="dialog"
               aria-modal="true"
             >
+              <button
+                onClick={() => setEditingOrder(null)}
+                className="absolute right-4 top-4 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+              >
+                Fechar
+              </button>
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-700">
                 Detalhes da ordem
               </p>
@@ -988,11 +1028,25 @@ export function WorkOrdersPage() {
 
               <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                  <p className="font-semibold text-slate-700">Criado por</p>
+                  <p className="mt-1">
+                    {editingOrder.createdByUser
+                      ? `${editingOrder.createdByUser.first_name} ${editingOrder.createdByUser.last_name}`
+                      : 'Nao informado'}
+                  </p>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    {formatDateTime(editingOrder.created_at)}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
                   <p className="font-semibold text-slate-700">Responsavel</p>
                   <p className="mt-1">
                     {editingOrder.assignedUser
                       ? `${editingOrder.assignedUser.first_name} ${editingOrder.assignedUser.last_name}`
                       : 'Nao atribuido'}
+                  </p>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    {formatDateTime(editingOrder.started_at || editingOrder.updated_at || editingOrder.created_at)}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
