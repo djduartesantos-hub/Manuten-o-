@@ -114,7 +114,31 @@ export class MaintenanceService {
       query = query.where(conditions[0]);
     }
 
-    const plans = await query.orderBy(desc(maintenancePlans.created_at));
+    let plans = await query.orderBy(desc(maintenancePlans.created_at));
+
+    if (plans.length === 0) {
+      const fallbackQuery = db
+        .select({
+          id: maintenancePlans.id,
+          tenant_id: maintenancePlans.tenant_id,
+          asset_id: maintenancePlans.asset_id,
+          name: maintenancePlans.name,
+          description: maintenancePlans.description,
+          type: maintenancePlans.type,
+          frequency_type: maintenancePlans.frequency_type,
+          frequency_value: maintenancePlans.frequency_value,
+          meter_threshold: maintenancePlans.meter_threshold,
+          is_active: maintenancePlans.is_active,
+          asset_name: assets.name,
+          created_at: maintenancePlans.created_at,
+          updated_at: maintenancePlans.updated_at,
+        })
+        .from(maintenancePlans)
+        .leftJoin(assets, eq(maintenancePlans.asset_id, assets.id))
+        .where(eq(maintenancePlans.tenant_id, tenant_id));
+
+      plans = await fallbackQuery.orderBy(desc(maintenancePlans.created_at));
+    }
 
     if (!hasFilters && plans.length > 0) {
       try {
