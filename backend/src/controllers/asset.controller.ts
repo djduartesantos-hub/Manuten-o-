@@ -7,7 +7,6 @@ import { logger } from '../config/logger.js';
 import { ZodError } from 'zod';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 import { db } from '../config/database.js';
-import { plants } from '../db/schema.js';
 
 const resolvePlantId = async (req: AuthenticatedRequest, tenantId?: string) => {
   const direct = (req.plantId as string) || (req.params?.plantId as string);
@@ -37,8 +36,8 @@ export class AssetController {
    */
   static async list(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const plantId = await resolvePlantId(req, tenantId);
       const tenantId = req.tenantId as string;
+      const plantId = await resolvePlantId(req, tenantId);
       const { search, category } = req.query;
 
       logger.info('AssetController.list:', {
@@ -104,9 +103,9 @@ export class AssetController {
    */
   static async get(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
+      const tenantId = req.tenantId as string;
       const { id } = req.params;
       const plantId = await resolvePlantId(req, tenantId);
-      const tenantId = req.tenantId as string;
 
       if (!tenantId || !plantId || !id) {
         res.status(400).json({
@@ -145,8 +144,8 @@ export class AssetController {
    */
   static async create(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const plantId = await resolvePlantId(req, tenantId);
       const tenantId = req.tenantId as string;
+      const plantId = await resolvePlantId(req, tenantId);
 
       if (!tenantId || !plantId) {
         res.status(400).json({
@@ -214,9 +213,9 @@ export class AssetController {
    */
   static async update(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
+      const tenantId = req.tenantId as string;
       const { id } = req.params;
       const plantId = await resolvePlantId(req, tenantId);
-      const tenantId = req.tenantId as string;
 
       if (!tenantId || !plantId || !id) {
         res.status(400).json({
@@ -284,9 +283,9 @@ export class AssetController {
    */
   static async delete(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
+      const tenantId = req.tenantId as string;
       const { id } = req.params;
       const plantId = await resolvePlantId(req, tenantId);
-      const tenantId = req.tenantId as string;
 
       if (!tenantId || !plantId || !id) {
         res.status(400).json({
@@ -317,8 +316,8 @@ export class AssetController {
    */
   static async getDueForMaintenance(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const plantId = await resolvePlantId(req, tenantId);
       const tenantId = req.tenantId as string;
+      const plantId = await resolvePlantId(req, tenantId);
 
       if (!tenantId || !plantId) {
         res.status(400).json({
