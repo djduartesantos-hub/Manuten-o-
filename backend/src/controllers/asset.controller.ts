@@ -13,7 +13,7 @@ export class AssetController {
    */
   static async list(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const plantId = req.plantId as string;
+      const plantId = (req.plantId as string) || (req.params.plantId as string);
       const tenantId = req.tenantId as string;
       const { search, category } = req.query;
 
@@ -81,7 +81,7 @@ export class AssetController {
   static async get(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const plantId = req.plantId as string;
+      const plantId = (req.plantId as string) || (req.params.plantId as string);
       const tenantId = req.tenantId as string;
 
       if (!tenantId || !plantId || !id) {
@@ -121,7 +121,7 @@ export class AssetController {
    */
   static async create(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const plantId = req.plantId as string;
+      const plantId = (req.plantId as string) || (req.params.plantId as string);
       const tenantId = req.tenantId as string;
 
       if (!tenantId || !plantId) {
@@ -191,7 +191,7 @@ export class AssetController {
   static async update(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const plantId = req.plantId as string;
+      const plantId = (req.plantId as string) || (req.params.plantId as string);
       const tenantId = req.tenantId as string;
 
       if (!tenantId || !plantId || !id) {
@@ -261,7 +261,7 @@ export class AssetController {
   static async delete(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const plantId = req.plantId as string;
+      const plantId = (req.plantId as string) || (req.params.plantId as string);
       const tenantId = req.tenantId as string;
 
       if (!tenantId || !plantId || !id) {
@@ -293,7 +293,7 @@ export class AssetController {
    */
   static async getDueForMaintenance(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const plantId = req.plantId as string;
+      const plantId = (req.plantId as string) || (req.params.plantId as string);
       const tenantId = req.tenantId as string;
 
       if (!tenantId || !plantId) {
