@@ -11,7 +11,9 @@ import {
   Pencil,
   Plus,
   RefreshCcw,
+  Search,
   Save,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { useAppStore } from '../context/store';
 import {
