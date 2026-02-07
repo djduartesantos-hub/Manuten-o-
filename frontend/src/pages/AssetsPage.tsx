@@ -1,5 +1,5 @@
 import { MainLayout } from '../layouts/MainLayout';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   Boxes,
@@ -59,6 +59,7 @@ export function AssetsPage() {
     const params = new URLSearchParams(window.location.search);
     return params.get('diag') === '1' || localStorage.getItem('diagnostics') === '1';
   }, []);
+  const diagnosticsTimerRef = useRef<number | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -304,6 +305,22 @@ export function AssetsPage() {
     checkHealth();
   }, [diagnosticsEnabled, selectedPlant]);
 
+  const handleDiagnosticsPressStart = () => {
+    if (typeof window === 'undefined') return;
+    diagnosticsTimerRef.current = window.setTimeout(() => {
+      const next = localStorage.getItem('diagnostics') === '1' ? '0' : '1';
+      localStorage.setItem('diagnostics', next);
+      window.location.reload();
+    }, 2000);
+  };
+
+  const handleDiagnosticsPressEnd = () => {
+    if (diagnosticsTimerRef.current) {
+      window.clearTimeout(diagnosticsTimerRef.current);
+      diagnosticsTimerRef.current = null;
+    }
+  };
+
   useEffect(() => {
     loadCategories();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -393,7 +410,12 @@ export function AssetsPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
                 Inventario de ativos
               </p>
-              <h1 className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl">
+              <h1
+                className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl"
+                onPointerDown={handleDiagnosticsPressStart}
+                onPointerUp={handleDiagnosticsPressEnd}
+                onPointerLeave={handleDiagnosticsPressEnd}
+              >
                 Equipamentos com visao operacional
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-slate-600">

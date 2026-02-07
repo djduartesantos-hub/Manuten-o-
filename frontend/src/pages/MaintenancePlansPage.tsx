@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MainLayout } from '../layouts/MainLayout';
 import {
   Activity,
@@ -48,6 +48,7 @@ export function MaintenancePlansPage() {
     const params = new URLSearchParams(window.location.search);
     return params.get('diag') === '1' || localStorage.getItem('diagnostics') === '1';
   }, []);
+  const diagnosticsTimerRef = useRef<number | null>(null);
   const [plans, setPlans] = useState<MaintenancePlan[]>([]);
   const [assets, setAssets] = useState<AssetOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -221,6 +222,22 @@ export function MaintenancePlansPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlant]);
 
+  const handleDiagnosticsPressStart = () => {
+    if (typeof window === 'undefined') return;
+    diagnosticsTimerRef.current = window.setTimeout(() => {
+      const next = localStorage.getItem('diagnostics') === '1' ? '0' : '1';
+      localStorage.setItem('diagnostics', next);
+      window.location.reload();
+    }, 2000);
+  };
+
+  const handleDiagnosticsPressEnd = () => {
+    if (diagnosticsTimerRef.current) {
+      window.clearTimeout(diagnosticsTimerRef.current);
+      diagnosticsTimerRef.current = null;
+    }
+  };
+
   const filteredPlans = useMemo(() => {
     return plans.filter((plan) => {
       if (typeFilter !== 'all' && plan.type !== typeFilter) return false;
@@ -328,7 +345,12 @@ export function MaintenancePlansPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
                 Rotinas programadas
               </p>
-              <h1 className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl">
+              <h1
+                className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl"
+                onPointerDown={handleDiagnosticsPressStart}
+                onPointerUp={handleDiagnosticsPressEnd}
+                onPointerLeave={handleDiagnosticsPressEnd}
+              >
                 Planos de manutencao em destaque
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-slate-600">
