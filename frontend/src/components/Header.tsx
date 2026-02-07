@@ -167,7 +167,7 @@ export function Header() {
             </div>
             <div className="hidden sm:block">
               <span className="font-bold text-xl text-gray-900">CMMS</span>
-              <span className="block text-xs text-gray-500 -mt-1">Enterprise</span>
+              <span className="block text-xs text-gray-500 leading-tight">Enterprise</span>
             </div>
           </Link>
 
@@ -271,7 +271,9 @@ export function Header() {
                 <p className="text-sm font-semibold text-gray-900">
                   {user?.firstName} {user?.lastName}
                 </p>
-                <p className="text-xs text-gray-500 capitalize">{user?.role?.replace('_', ' ')}</p>
+                <p className="text-xs text-gray-500 capitalize">
+                  {user?.role?.replace(/_/g, ' ')}
+                </p>
               </div>
 
               <button
