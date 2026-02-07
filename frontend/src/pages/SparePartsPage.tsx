@@ -43,6 +43,9 @@ export function SparePartsPage() {
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [movementTypeFilter, setMovementTypeFilter] = useState('all');
+  const [movementStartDate, setMovementStartDate] = useState('');
+  const [movementEndDate, setMovementEndDate] = useState('');
 
   const movementSummary = useMemo(() => {
     return movements.reduce(
@@ -60,7 +63,7 @@ export function SparePartsPage() {
     setLoading(true);
     setError(null);
     try {
-      const [partsData, movementsData, suppliersData] = await Promise.all([
+      const [partsData, movementsData] = await Promise.all([
         selectedPlant ? getSpareParts(selectedPlant) : Promise.resolve([]),
         selectedPlant ? getStockMovementsByPlant(selectedPlant) : Promise.resolve([]),
       ]);
@@ -77,6 +80,30 @@ export function SparePartsPage() {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlant]);
+
+  const filteredMovements = useMemo(() => {
+    return movements.filter((movement) => {
+      if (movementTypeFilter !== 'all' && movement.type !== movementTypeFilter) {
+        return false;
+      }
+
+      if (!movement.created_at) return true;
+
+      const movementDate = new Date(movement.created_at);
+
+      if (movementStartDate) {
+        const startDate = new Date(`${movementStartDate}T00:00:00`);
+        if (movementDate < startDate) return false;
+      }
+
+      if (movementEndDate) {
+        const endDate = new Date(`${movementEndDate}T23:59:59`);
+        if (movementDate > endDate) return false;
+      }
+
+      return true;
+    });
+  }, [movementEndDate, movementStartDate, movementTypeFilter, movements]);
 
 
   return (
@@ -225,8 +252,48 @@ export function SparePartsPage() {
             {movements.length > 0 && (
               <div className="rounded-[28px] border border-slate-200 bg-white/95 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
                 <div className="border-b border-slate-100 p-5">
-                  <h2 className="text-lg font-semibold text-slate-900">Movimentos recentes</h2>
-                  <p className="text-sm text-slate-500">Ultimos registos da planta</p>
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-900">
+                        Movimentos recentes
+                      </h2>
+                      <p className="text-sm text-slate-500">Ultimos registos da planta</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select
+                        className="input h-9"
+                        value={movementTypeFilter}
+                        onChange={(event) => setMovementTypeFilter(event.target.value)}
+                      >
+                        <option value="all">Todos</option>
+                        <option value="entrada">Entrada</option>
+                        <option value="saida">Saida</option>
+                        <option value="ajuste">Ajuste</option>
+                      </select>
+                      <input
+                        type="date"
+                        className="input h-9"
+                        value={movementStartDate}
+                        onChange={(event) => setMovementStartDate(event.target.value)}
+                      />
+                      <input
+                        type="date"
+                        className="input h-9"
+                        value={movementEndDate}
+                        onChange={(event) => setMovementEndDate(event.target.value)}
+                      />
+                      <button
+                        className="btn-secondary h-9"
+                        onClick={() => {
+                          setMovementTypeFilter('all');
+                          setMovementStartDate('');
+                          setMovementEndDate('');
+                        }}
+                      >
+                        Limpar
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-slate-200">
@@ -247,7 +314,14 @@ export function SparePartsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
-                      {movements.map((movement) => (
+                      {filteredMovements.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="px-6 py-6 text-center text-slate-500">
+                            Nenhum movimento encontrado
+                          </td>
+                        </tr>
+                      )}
+                      {filteredMovements.map((movement) => (
                         <tr key={movement.id} className="transition hover:bg-amber-50/40">
                           <td className="px-6 py-4 text-sm text-slate-700">
                             {movement.spare_part
