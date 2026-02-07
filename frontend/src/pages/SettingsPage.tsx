@@ -293,26 +293,35 @@ function AlertsSettings() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Alertas & Notificações</h2>
-          <p className="text-slate-600 mt-1">Configure limites e canais de notificação</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+            Alertas inteligentes
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold text-slate-900">
+            Alertas & Notificacoes
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Configure limites e canais de notificacao.
+          </p>
         </div>
         <button
           onClick={() => {
             setShowForm(!showForm);
             setEditingAlert(null);
           }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center gap-2 rounded-full bg-[color:var(--settings-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
         >
-          + Novo Alerta
+          <Plus className="h-4 w-4" />
+          Novo alerta
         </button>
       </div>
 
       {/* Form */}
       {showForm && (
-        <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="mb-6 overflow-hidden rounded-[24px] border border-slate-200 bg-[color:var(--settings-surface)]/80 shadow-sm">
+          <div className="h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
+          <form onSubmit={handleSubmit} className="space-y-4 p-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Asset */}
               <div>
@@ -323,7 +332,7 @@ function AlertsSettings() {
                   value={formData.asset_id}
                   onChange={(e) => setFormData({ ...formData, asset_id: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
                 >
                   <option value="">Selecionar...</option>
                   {assets.map((asset) => (
@@ -342,7 +351,7 @@ function AlertsSettings() {
                 <select
                   value={formData.alert_type}
                   onChange={(e) => setFormData({ ...formData, alert_type: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
                 >
                   {alertTypes.map((type) => (
                     <option key={type.value} value={type.value}>
@@ -364,7 +373,7 @@ function AlertsSettings() {
                   onChange={(e) =>
                     setFormData({ ...formData, threshold: parseInt(e.target.value) })
                   }
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
                 />
               </div>
 
@@ -376,7 +385,7 @@ function AlertsSettings() {
                 <select
                   value={formData.time_unit}
                   onChange={(e) => setFormData({ ...formData, time_unit: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
                 >
                   <option value="hours">Horas</option>
                   <option value="days">Dias</option>
@@ -396,7 +405,7 @@ function AlertsSettings() {
                   onChange={(e) =>
                     setFormData({ ...formData, escalate_after_hours: parseInt(e.target.value) })
                   }
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
                 />
               </div>
             </div>
@@ -406,9 +415,9 @@ function AlertsSettings() {
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Notificar Roles
               </label>
-              <div className="flex gap-4">
+              <div className="flex flex-wrap gap-4">
                 {roles.map((role) => (
-                  <label key={role} className="flex items-center gap-2">
+                  <label key={role} className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs">
                     <input
                       type="checkbox"
                       checked={formData.notify_roles.includes(role)}
@@ -425,33 +434,33 @@ function AlertsSettings() {
                           });
                         }
                       }}
-                      className="rounded"
+                      className="rounded border-slate-300"
                     />
-                    <span className="capitalize text-sm text-slate-700">{role}</span>
+                    <span className="capitalize text-xs text-slate-700">{role}</span>
                   </label>
                 ))}
               </div>
             </div>
 
             {/* Notification Options */}
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2">
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs">
                 <input
                   type="checkbox"
                   checked={formData.notify_email}
                   onChange={(e) => setFormData({ ...formData, notify_email: e.target.checked })}
-                  className="rounded"
+                  className="rounded border-slate-300"
                 />
-                <span className="text-sm text-slate-700">Email</span>
+                <span className="text-xs text-slate-700">Email</span>
               </label>
-              <label className="flex items-center gap-2">
+              <label className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs">
                 <input
                   type="checkbox"
                   checked={formData.notify_push}
                   onChange={(e) => setFormData({ ...formData, notify_push: e.target.checked })}
-                  className="rounded"
+                  className="rounded border-slate-300"
                 />
-                <span className="text-sm text-slate-700">Push</span>
+                <span className="text-xs text-slate-700">Push</span>
               </label>
             </div>
 
@@ -464,17 +473,17 @@ function AlertsSettings() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input min-h-[96px]"
               />
             </div>
 
             {/* Buttons */}
-            <div className="flex gap-2 pt-2">
+            <div className="flex flex-wrap gap-2 pt-2">
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center justify-center rounded-full bg-[color:var(--settings-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
               >
-                {editingAlert ? 'Atualizar' : 'Criar'} Alerta
+                {editingAlert ? 'Atualizar' : 'Criar'} alerta
               </button>
               <button
                 type="button"
@@ -482,7 +491,7 @@ function AlertsSettings() {
                   setShowForm(false);
                   setEditingAlert(null);
                 }}
-                className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-white"
               >
                 Cancelar
               </button>
@@ -494,17 +503,22 @@ function AlertsSettings() {
       {/* Alerts List */}
       <div className="space-y-3">
         {loading ? (
-          <div className="text-center py-8 text-slate-500">Carregando...</div>
+          <div className="rounded-2xl border border-slate-200 bg-white/80 py-10 text-center text-sm text-slate-500">
+            Carregando...
+          </div>
         ) : alerts.length === 0 ? (
-          <div className="text-center py-8 text-slate-500">
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-[color:var(--settings-surface)] p-10 text-center text-sm text-slate-500">
             Nenhum alerta configurado ainda
           </div>
         ) : (
           alerts.map((alert) => (
-            <div key={alert.id} className="border border-slate-200 rounded-lg p-4 bg-white">
-              <div className="flex justify-between items-start">
+            <div
+              key={alert.id}
+              className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold text-slate-900">
                       {alertTypes.find((t) => t.value === alert.alert_type)?.label}
                     </span>
@@ -512,38 +526,40 @@ function AlertsSettings() {
                       {alert.asset?.name} ({alert.asset?.code})
                     </span>
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-4 text-sm text-slate-600">
+                  <div className="mt-3 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
                     <div>
-                      <span className="font-medium">Limite:</span> {alert.threshold} {alert.time_unit}
+                      <span className="font-medium">Limite:</span> {alert.threshold}{' '}
+                      {alert.time_unit}
                     </div>
                     <div>
-                      <span className="font-medium">Escalar após:</span>{' '}
+                      <span className="font-medium">Escalar apos:</span>{' '}
                       {alert.escalate_after_hours}h
                     </div>
                     <div>
-                      <span className="font-medium">Notificações:</span>{' '}
+                      <span className="font-medium">Notificacoes:</span>{' '}
                       {[alert.notify_email && 'Email', alert.notify_push && 'Push']
                         .filter(Boolean)
                         .join(', ')}
                     </div>
                     <div>
-                      <span className="font-medium">Roles:</span> {alert.notify_roles?.join(', ')}
+                      <span className="font-medium">Roles:</span>{' '}
+                      {alert.notify_roles?.join(', ')}
                     </div>
                   </div>
                   {alert.description && (
                     <p className="mt-2 text-sm text-slate-600 italic">"{alert.description}"</p>
                   )}
                 </div>
-                <div className="flex gap-2 ml-4">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleEdit(alert)}
-                    className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                    className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-[color:var(--settings-surface)]"
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => handleDelete(alert.id)}
-                    className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                    className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
                   >
                     Eliminar
                   </button>
@@ -692,26 +708,35 @@ function PreventiveMaintenanceSettings() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Planos de Manutenção Preventiva</h2>
-          <p className="text-slate-600 mt-1">Crie e gerencie planos de manutenção por equipamento</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+            Rotinas programadas
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold text-slate-900">
+            Planos de Manutencao Preventiva
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Crie e gerencie planos de manutencao por equipamento.
+          </p>
         </div>
         <button
           onClick={() => {
             setShowForm(!showForm);
             setEditingPlan(null);
           }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center gap-2 rounded-full bg-[color:var(--settings-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
         >
-          + Novo Plano
+          <Plus className="h-4 w-4" />
+          Novo plano
         </button>
       </div>
 
       {/* Form */}
       {showForm && (
-        <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="mb-6 overflow-hidden rounded-[24px] border border-slate-200 bg-[color:var(--settings-surface)]/80 shadow-sm">
+          <div className="h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
+          <form onSubmit={handleSubmit} className="space-y-4 p-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Asset */}
               <div>
@@ -722,7 +747,7 @@ function PreventiveMaintenanceSettings() {
                   value={formData.asset_id}
                   onChange={(e) => setFormData({ ...formData, asset_id: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
                 >
                   <option value="">Selecionar...</option>
                   {assets.map((asset) => (
@@ -743,8 +768,8 @@ function PreventiveMaintenanceSettings() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
-                  placeholder="ex: Manutenção Mensal"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="ex: Manutencao mensal"
+                  className="input"
                 />
               </div>
 
@@ -760,7 +785,7 @@ function PreventiveMaintenanceSettings() {
                   onChange={(e) =>
                     setFormData({ ...formData, frequency_value: parseInt(e.target.value) })
                   }
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
                 />
               </div>
 
@@ -772,7 +797,7 @@ function PreventiveMaintenanceSettings() {
                 <select
                   value={formData.frequency_unit}
                   onChange={(e) => setFormData({ ...formData, frequency_unit: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
                 >
                   <option value="days">Dias</option>
                   <option value="hours">Horas de funcionamento</option>
@@ -791,7 +816,7 @@ function PreventiveMaintenanceSettings() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input min-h-[96px]"
               />
             </div>
 
@@ -802,9 +827,9 @@ function PreventiveMaintenanceSettings() {
                 <button
                   type="button"
                   onClick={addTask}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-white"
                 >
-                  + Adicionar Tarefa
+                  + Adicionar tarefa
                 </button>
               </div>
               <div className="space-y-2">
@@ -815,12 +840,12 @@ function PreventiveMaintenanceSettings() {
                       value={task}
                       onChange={(e) => updateTask(idx, e.target.value)}
                       placeholder="Descrever tarefa..."
-                      className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="input"
                     />
                     <button
                       type="button"
                       onClick={() => removeTask(idx)}
-                      className="px-3 py-2 text-red-600 hover:text-red-700 font-medium"
+                      className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
                     >
                       ✕
                     </button>
@@ -830,12 +855,12 @@ function PreventiveMaintenanceSettings() {
             </div>
 
             {/* Buttons */}
-            <div className="flex gap-2 pt-2">
+            <div className="flex flex-wrap gap-2 pt-2">
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center justify-center rounded-full bg-[color:var(--settings-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
               >
-                {editingPlan ? 'Atualizar' : 'Criar'} Plano
+                {editingPlan ? 'Atualizar' : 'Criar'} plano
               </button>
               <button
                 type="button"
@@ -843,7 +868,7 @@ function PreventiveMaintenanceSettings() {
                   setShowForm(false);
                   setEditingPlan(null);
                 }}
-                className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-white"
               >
                 Cancelar
               </button>
@@ -855,25 +880,30 @@ function PreventiveMaintenanceSettings() {
       {/* Plans List */}
       <div className="space-y-3">
         {loading ? (
-          <div className="text-center py-8 text-slate-500">Carregando...</div>
+          <div className="rounded-2xl border border-slate-200 bg-white/80 py-10 text-center text-sm text-slate-500">
+            Carregando...
+          </div>
         ) : plans.length === 0 ? (
-          <div className="text-center py-8 text-slate-500">
-            Nenhum plano de manutenção ainda
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-[color:var(--settings-surface)] p-10 text-center text-sm text-slate-500">
+            Nenhum plano de manutencao ainda
           </div>
         ) : (
           plans.map((plan) => (
-            <div key={plan.id} className="border border-slate-200 rounded-lg p-4 bg-white">
-              <div className="flex justify-between items-start">
+            <div
+              key={plan.id}
+              className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold text-slate-900">{plan.name}</span>
                     <span className="text-sm text-slate-600">
                       {plan.asset?.name} ({plan.asset?.code})
                     </span>
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-4 text-sm text-slate-600">
+                  <div className="mt-3 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
                     <div>
-                      <span className="font-medium">Frequência:</span> A cada{' '}
+                      <span className="font-medium">Frequencia:</span> A cada{' '}
                       {plan.frequency_value} {plan.frequency_unit}
                     </div>
                     <div>
@@ -886,24 +916,24 @@ function PreventiveMaintenanceSettings() {
                   {plan.tasks && plan.tasks.length > 0 && (
                     <div className="mt-3 space-y-1">
                       {plan.tasks.map((task: string, idx: number) => (
-                        <div key={idx} className="text-sm text-slate-600 flex items-start gap-2">
-                          <span className="text-blue-500">•</span>
+                        <div key={idx} className="flex items-start gap-2 text-sm text-slate-600">
+                          <span className="text-emerald-500">•</span>
                           <span>{task}</span>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2 ml-4">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleEdit(plan)}
-                    className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                    className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-[color:var(--settings-surface)]"
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => handleDelete(plan.id)}
-                    className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                    className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
                   >
                     Eliminar
                   </button>
@@ -991,19 +1021,24 @@ function PredictiveWarningsSettings() {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">Alertas Preditivos</h2>
-        <p className="text-slate-600 mt-1">Análise automática de histórico para avisos de risco</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+          Saude operacional
+        </p>
+        <h2 className="mt-2 text-2xl font-semibold text-slate-900">Alertas preditivos</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Analise automatica de historico para avisos de risco.
+        </p>
       </div>
 
       {/* Asset Selector */}
-      <div className="mb-6">
+      <div className="mb-6 rounded-[24px] border border-slate-200 bg-white/90 p-4 shadow-sm">
         <label className="block text-sm font-medium text-slate-700 mb-2">
-          Selecionar Equipamento
+          Selecionar equipamento
         </label>
         <select
           value={selectedAsset}
           onChange={(e) => setSelectedAsset(e.target.value)}
-          className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="input"
         >
           <option value="">-- Selecionar --</option>
           {assets.map((asset) => (
@@ -1016,28 +1051,34 @@ function PredictiveWarningsSettings() {
 
       {/* Warnings Display */}
       {loading ? (
-        <div className="text-center py-8 text-slate-500">Analisando histórico...</div>
+        <div className="rounded-2xl border border-slate-200 bg-white/80 py-10 text-center text-sm text-slate-500">
+          Analisando historico...
+        </div>
       ) : warnings.length === 0 ? (
-        <div className="text-center py-12 bg-green-50 border border-green-200 rounded-lg">
-          <div className="text-4xl mb-2">✅</div>
-          <p className="text-green-800 font-medium">Nenhum risco detectado</p>
-          <p className="text-green-700 text-sm mt-1">Este equipamento está funcionando normalmente</p>
+        <div className="rounded-[24px] border border-emerald-200 bg-[linear-gradient(135deg,#ecfdf3,#ffffff)] p-10 text-center">
+          <div className="text-3xl">✅</div>
+          <p className="mt-2 text-sm font-semibold text-emerald-800">Nenhum risco detectado</p>
+          <p className="mt-1 text-xs text-emerald-700">
+            Este equipamento esta a funcionar normalmente.
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
           {warnings.map((warning, idx) => (
             <div
               key={idx}
-              className={`border-2 rounded-lg p-4 ${getSeverityColor(warning.severity)}`}
+              className={`rounded-[22px] border p-4 shadow-sm ${getSeverityColor(
+                warning.severity,
+              )}`}
             >
               <div className="flex items-start gap-3">
                 <div className="text-2xl">{getSeverityIcon(warning.severity)}</div>
                 <div className="flex-1">
-                  <div className="font-bold">{warning.message}</div>
-                  <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
+                  <div className="font-semibold">{warning.message}</div>
+                  <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
                     {warning.pattern && (
                       <div>
-                        <span className="font-medium">Padrão Detectado:</span> {warning.pattern}
+                        <span className="font-medium">Padrao detectado:</span> {warning.pattern}
                       </div>
                     )}
                     {warning.mtbf && (
@@ -1047,18 +1088,18 @@ function PredictiveWarningsSettings() {
                     )}
                     {warning.failure_rate && (
                       <div>
-                        <span className="font-medium">Taxa Falha:</span> {warning.failure_rate}%
+                        <span className="font-medium">Taxa falha:</span> {warning.failure_rate}%
                       </div>
                     )}
                     {warning.confidence && (
                       <div>
-                        <span className="font-medium">Confiança:</span> {warning.confidence}%
+                        <span className="font-medium">Confianca:</span> {warning.confidence}%
                       </div>
                     )}
                   </div>
                   {warning.recommendation && (
-                    <div className="mt-3 p-2 bg-white bg-opacity-50 rounded">
-                      <span className="font-medium">Recomendação:</span> {warning.recommendation}
+                    <div className="mt-3 rounded-2xl border border-white/60 bg-white/70 p-3 text-sm">
+                      <span className="font-medium">Recomendacao:</span> {warning.recommendation}
                     </div>
                   )}
                 </div>
@@ -1070,24 +1111,24 @@ function PredictiveWarningsSettings() {
 
       {/* Analysis Summary */}
       {selectedAsset && warnings.length > 0 && (
-        <div className="mt-8 grid grid-cols-3 gap-4">
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-center">
-            <div className="text-2xl font-bold text-red-600">
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          <div className="rounded-[20px] border border-rose-200 bg-rose-50/70 p-4 text-center">
+            <div className="text-2xl font-semibold text-rose-600">
               {warnings.filter((w) => w.severity === 'critical').length}
             </div>
-            <div className="text-sm text-red-700">Críticos</div>
+            <div className="text-xs text-rose-700">Criticos</div>
           </div>
-          <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg text-center">
-            <div className="text-2xl font-bold text-orange-600">
+          <div className="rounded-[20px] border border-orange-200 bg-orange-50/70 p-4 text-center">
+            <div className="text-2xl font-semibold text-orange-600">
               {warnings.filter((w) => w.severity === 'high').length}
             </div>
-            <div className="text-sm text-orange-700">Altos</div>
+            <div className="text-xs text-orange-700">Altos</div>
           </div>
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
-            <div className="text-2xl font-bold text-yellow-600">
+          <div className="rounded-[20px] border border-yellow-200 bg-yellow-50/70 p-4 text-center">
+            <div className="text-2xl font-semibold text-yellow-600">
               {warnings.filter((w) => w.severity === 'medium').length}
             </div>
-            <div className="text-sm text-yellow-700">Médios</div>
+            <div className="text-xs text-yellow-700">Medios</div>
           </div>
         </div>
       )}
@@ -1216,19 +1257,26 @@ function DocumentsLibrarySettings() {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">Biblioteca de Documentos</h2>
-        <p className="text-slate-600 mt-1">Manuais, esquemas, certificados e garantias</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+          Documentacao tecnica
+        </p>
+        <h2 className="mt-2 text-2xl font-semibold text-slate-900">
+          Biblioteca de documentos
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Manuais, esquemas, certificados e garantias.
+        </p>
       </div>
 
       {/* Asset Selector */}
-      <div className="mb-6">
+      <div className="mb-6 rounded-[24px] border border-slate-200 bg-white/90 p-4 shadow-sm">
         <label className="block text-sm font-medium text-slate-700 mb-2">
-          Selecionar Equipamento
+          Selecionar equipamento
         </label>
         <select
           value={selectedAsset}
           onChange={(e) => setSelectedAsset(e.target.value)}
-          className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="input"
         >
           <option value="">-- Selecionar --</option>
           {assets.map((asset) => (
@@ -1241,16 +1289,17 @@ function DocumentsLibrarySettings() {
 
       {/* Upload Area */}
       {selectedAsset && (
-        <div className="mb-6 p-6 border-2 border-dashed border-slate-300 rounded-lg bg-slate-50">
+        <div className="relative mb-6 overflow-hidden rounded-[24px] border-2 border-dashed border-slate-200 bg-[color:var(--settings-surface)]/80 p-6">
+          <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <label className="block text-sm font-medium text-slate-700 mb-3">
-                Tipo de Documento
+                Tipo de documento
               </label>
               <select
                 value={documentType}
                 onChange={(e) => setDocumentType(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+                className="input mb-4"
               >
                 <option value="manual">📖 Manual</option>
                 <option value="schema">🔧 Esquema</option>
@@ -1262,15 +1311,12 @@ function DocumentsLibrarySettings() {
                   type="file"
                   onChange={handleFileUpload}
                   disabled={uploading}
-                  className="block w-full text-sm text-slate-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-lg file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-blue-600 file:text-white
-                    hover:file:bg-blue-700"
+                  className="block w-full text-sm text-slate-500 file:mr-4 file:rounded-full file:border-0 file:bg-[color:var(--settings-accent)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:opacity-90"
                 />
               </div>
-              {uploading && <p className="text-sm text-blue-600 mt-2">Enviando...</p>}
+              {uploading && (
+                <p className="mt-2 text-sm text-emerald-600">Enviando...</p>
+              )}
             </div>
           </div>
         </div>
@@ -1279,21 +1325,26 @@ function DocumentsLibrarySettings() {
       {/* Documents List */}
       <div className="space-y-3">
         {loading ? (
-          <div className="text-center py-8 text-slate-500">Carregando...</div>
+          <div className="rounded-2xl border border-slate-200 bg-white/80 py-10 text-center text-sm text-slate-500">
+            Carregando...
+          </div>
         ) : documents.length === 0 ? (
-          <div className="text-center py-12 text-slate-500">
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-[color:var(--settings-surface)] p-10 text-center text-sm text-slate-500">
             {selectedAsset ? 'Nenhum documento para este equipamento' : 'Selecione um equipamento'}
           </div>
         ) : (
           documents.map((doc) => (
-            <div key={doc.id} className="border border-slate-200 rounded-lg overflow-hidden">
+            <div
+              key={doc.id}
+              className="overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm"
+            >
               <button
                 onClick={() => setExpandedDoc(expandedDoc === doc.id ? null : doc.id)}
-                className="w-full p-4 text-left hover:bg-slate-50 transition-colors flex items-center justify-between"
+                className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-[color:var(--settings-surface)]"
               >
-                <div className="flex items-center gap-3 flex-1">
+                <div className="flex flex-1 items-center gap-3">
                   <span className="text-2xl">{getDocumentIcon(doc.document_type)}</span>
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="font-medium text-slate-900 truncate">{doc.title}</div>
                     <div className="text-xs text-slate-600">
                       v{doc.version_number} •{' '}
@@ -1301,18 +1352,18 @@ function DocumentsLibrarySettings() {
                     </div>
                   </div>
                   {isExpired(doc.expires_at) && (
-                    <span className="ml-2 px-2 py-1 text-xs font-semibold bg-red-100 text-red-700 rounded">
+                    <span className="ml-2 rounded-full bg-rose-100 px-2 py-1 text-xs font-semibold text-rose-700">
                       Expirado
                     </span>
                   )}
                   {isExpiring(doc.expires_at) && (
-                    <span className="ml-2 px-2 py-1 text-xs font-semibold bg-yellow-100 text-yellow-700 rounded">
+                    <span className="ml-2 rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">
                       Expira em breve
                     </span>
                   )}
                 </div>
                 <ChevronRight
-                  className={`w-5 h-5 text-slate-400 transition-transform ${
+                  className={`h-5 w-5 text-slate-400 transition-transform ${
                     expandedDoc === doc.id ? 'rotate-90' : ''
                   }`}
                 />
@@ -1320,8 +1371,8 @@ function DocumentsLibrarySettings() {
 
               {/* Expanded Details */}
               {expandedDoc === doc.id && (
-                <div className="border-t border-slate-200 bg-slate-50 p-4 space-y-3">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="space-y-3 border-t border-slate-200 bg-[color:var(--settings-surface)] p-4">
+                  <div className="grid gap-4 text-sm sm:grid-cols-2">
                     <div>
                       <span className="font-medium text-slate-700">Tamanho:</span>
                       <p className="text-slate-600">{(doc.file_size_mb || 0).toFixed(2)} MB</p>
@@ -1346,17 +1397,17 @@ function DocumentsLibrarySettings() {
                     )}
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <a
                       href={doc.file_url}
                       download
-                      className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                      className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-white"
                     >
                       Download
                     </a>
                     <button
                       onClick={() => handleDeleteDocument(doc.id)}
-                      className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                      className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
                     >
                       Eliminar
                     </button>
@@ -1375,37 +1426,43 @@ function PermissionsSettings() {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Permissões & Roles</h2>
-        <p className="text-slate-600">Gerencie o acesso por função de utilizador</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+          Controlo de acesso
+        </p>
+        <h2 className="mt-2 text-2xl font-semibold text-slate-900">Permissoes & roles</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Gerencie o acesso por funcao de utilizador.
+        </p>
       </div>
 
       {/* Permissions Matrix */}
-      <div className="overflow-x-auto">
+      <div className="relative overflow-x-auto rounded-[24px] border border-slate-200 bg-white/95 shadow-sm">
+        <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
         <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
+          <thead className="bg-[color:var(--settings-surface)]">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                 Funcionalidade
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-slate-700 uppercase tracking-wider">
+              <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                 Admin
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-slate-700 uppercase tracking-wider">
+              <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                 Manager
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-slate-700 uppercase tracking-wider">
-                Técnico
+              <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Tecnico
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-slate-700 uppercase tracking-wider">
+              <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                 Visualizador
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-slate-200">
+          <tbody className="divide-y divide-slate-200 bg-white">
             {[
               { feature: 'Criar Equipamentos', permissions: [true, true, false, false] },
-              { feature: 'Editar Configurações', permissions: [true, true, false, false] },
-              { feature: 'Ver Relatórios', permissions: [true, true, true, true] },
+              { feature: 'Editar Configuracoes', permissions: [true, true, false, false] },
+              { feature: 'Ver Relatorios', permissions: [true, true, true, true] },
               { feature: 'Executar Ordens', permissions: [true, true, true, false] },
               { feature: 'Deletar Dados', permissions: [true, false, false, false] },
               { feature: 'Exportar Dados', permissions: [true, true, false, false] },
@@ -1418,8 +1475,8 @@ function PermissionsSettings() {
                 {row.permissions.map((perm, i) => (
                   <td key={i} className="px-6 py-4 text-center">
                     {perm ? (
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100">
-                        <span className="text-green-700 font-bold">✓</span>
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100">
+                        <span className="text-emerald-700 font-bold">✓</span>
                       </span>
                     ) : (
                       <span className="text-slate-300">—</span>
@@ -1432,10 +1489,10 @@ function PermissionsSettings() {
         </table>
       </div>
 
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <p className="text-sm text-blue-800">
-          <strong>Nota:</strong> As permissões são pré-configuradas por role. Customização de roles será
-          disponibilizada em futuras versões.
+      <div className="mt-6 rounded-[20px] border border-emerald-200 bg-[linear-gradient(135deg,#ecfdf3,#ffffff)] p-4">
+        <p className="text-sm text-emerald-800">
+          <strong>Nota:</strong> As permissoes sao pre-configuradas por role. Customizacao de roles
+          sera disponibilizada em futuras versoes.
         </p>
       </div>
     </div>
@@ -1661,20 +1718,24 @@ function ManagementSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900">Gestao administrativa</h2>
-        <p className="text-slate-600 mt-1">
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+          Administracao
+        </p>
+        <h2 className="mt-2 text-2xl font-semibold text-slate-900">Gestao administrativa</h2>
+        <p className="mt-1 text-sm text-slate-600">
           Controle plantas, utilizadores, roles e equipamentos sem sair das configuracoes.
         </p>
       </div>
 
       {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+        <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-700 shadow-sm">
           {error}
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-6">
+        <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-5 shadow-sm space-y-6">
+          <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-slate-900">Plantas</h3>
@@ -1850,13 +1911,14 @@ function ManagementSettings() {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-5">
+        <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-5 shadow-sm space-y-5">
+          <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-slate-900">Equipamentos</h3>
               <p className="text-sm text-slate-500">Resumo por planta selecionada</p>
             </div>
-            <a className="text-sm text-primary-600" href="/assets">
+            <a className="text-sm text-[color:var(--settings-accent)]" href="/assets">
               Ver lista
             </a>
           </div>
@@ -1895,7 +1957,8 @@ function ManagementSettings() {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-6">
+      <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-5 shadow-sm space-y-6">
+        <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-slate-900">Utilizadores e roles</h3>
@@ -1955,7 +2018,7 @@ function ManagementSettings() {
                   type="button"
                   className={`rounded-full px-3 py-1 text-xs font-semibold ${
                     newUser.plant_ids.includes(plant.id)
-                      ? 'bg-blue-100 text-blue-700'
+                      ? 'bg-emerald-100 text-emerald-700'
                       : 'bg-white text-slate-600'
                   }`}
                   onClick={() =>

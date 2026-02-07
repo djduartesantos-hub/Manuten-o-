@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { type CSSProperties } from 'react';
 import { MainLayout } from '../layouts/MainLayout';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../context/store';
@@ -78,16 +78,27 @@ export function DashboardPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-8 font-display">
-        <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-sky-50 p-8 shadow-sm">
-          <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-sky-200/50 blur-3xl" />
-          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-emerald-200/40 blur-3xl" />
+      <div
+        className="relative space-y-10 font-display text-[color:var(--dash-ink)]"
+        style={
+          {
+            '--dash-accent': '#0f766e',
+            '--dash-accent-2': '#38bdf8',
+            '--dash-ink': '#0f172a',
+            '--dash-surface': '#f8fafc',
+          } as CSSProperties
+        }
+      >
+        <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#ecfeff,_#ffffff_60%)] p-8 shadow-[0_28px_80px_-60px_rgba(15,118,110,0.5)]">
+          <div className="absolute -right-12 -top-20 h-56 w-56 rounded-full bg-emerald-200/60 blur-3xl dash-float" />
+          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-sky-200/50 blur-3xl dash-float" />
+          <div className="absolute right-12 top-10 h-2 w-20 rounded-full bg-[color:var(--dash-accent)] opacity-50" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700">
                 Panorama operacional
               </p>
-              <h1 className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl">
+              <h1 className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl lg:text-5xl">
                 Dashboard da manutencao
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-slate-600">
@@ -96,7 +107,7 @@ export function DashboardPage() {
               </p>
             </div>
             <button
-              className="btn-secondary inline-flex items-center gap-2"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-[color:var(--dash-surface)]"
               onClick={loadData}
             >
               <RefreshCcw className="h-4 w-4" />
@@ -105,42 +116,58 @@ export function DashboardPage() {
           </div>
 
           <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <BarChart3 className="h-4 w-4 text-sky-600" />
-                Total de ordens
+            <div className="dash-reveal rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+              <div className="flex items-center justify-between">
+                <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
+                  <BarChart3 className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                  total
+                </span>
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-4 text-2xl font-semibold text-slate-900">
                 {metrics?.total_orders ?? 0}
               </p>
               <p className="mt-1 text-xs text-slate-500">Resumo geral</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <Clock className="h-4 w-4 text-amber-600" />
-                Em progresso
+            <div className="dash-reveal dash-reveal-delay-1 rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+              <div className="flex items-center justify-between">
+                <div className="rounded-2xl bg-amber-100 p-2 text-amber-700">
+                  <Clock className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                  execucao
+                </span>
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-4 text-2xl font-semibold text-slate-900">
                 {metrics?.in_progress ?? 0}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Execucao ativa</p>
+              <p className="mt-1 text-xs text-slate-500">Em progresso</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <CheckCircle className="h-4 w-4 text-emerald-600" />
-                Concluidas
+            <div className="dash-reveal dash-reveal-delay-2 rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+              <div className="flex items-center justify-between">
+                <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
+                  <CheckCircle className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                  concluidas
+                </span>
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-4 text-2xl font-semibold text-slate-900">
                 {metrics?.completed ?? 0}
               </p>
               <p className="mt-1 text-xs text-slate-500">Finalizadas hoje</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <AlertTriangle className="h-4 w-4 text-rose-600" />
-                Backlog
+            <div className="dash-reveal dash-reveal-delay-3 rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+              <div className="flex items-center justify-between">
+                <div className="rounded-2xl bg-rose-100 p-2 text-rose-700">
+                  <AlertTriangle className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                  backlog
+                </span>
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-4 text-2xl font-semibold text-slate-900">
                 {kpis?.backlog ?? 0}
               </p>
               <p className="mt-1 text-xs text-slate-500">Pendentes</p>
@@ -149,17 +176,19 @@ export function DashboardPage() {
         </section>
 
         {error && (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-rose-600" />
+              <div className="rounded-full bg-rose-100 p-2 text-rose-600">
+                <AlertCircle className="h-4 w-4" />
+              </div>
               <p className="text-sm text-rose-800">{error}</p>
             </div>
           </div>
         )}
 
         {loading && (
-          <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center">
-            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
+          <div className="rounded-[28px] border border-slate-200 bg-white/90 p-12 text-center shadow-sm">
+            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
             <p className="text-sm text-slate-600">Carregando dados...</p>
           </div>
         )}
@@ -167,29 +196,30 @@ export function DashboardPage() {
         {!loading && metrics && (
           <section className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
             <div className="space-y-6">
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-sm">
+                <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent),#34d399)]" />
                 <h2 className="text-lg font-semibold text-slate-900">Fluxo das ordens</h2>
                 <div className="mt-6 grid gap-4 md:grid-cols-3">
-                  <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  <div className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                       Abertas
                     </p>
-                    <p className="mt-2 text-3xl font-semibold text-sky-600">
+                    <p className="mt-2 text-3xl font-semibold text-emerald-600">
                       {metrics.open_orders}
                     </p>
-                    <p className="text-xs text-slate-500">Nao atribuídas ainda</p>
+                    <p className="text-xs text-slate-500">Nao atribuidas ainda</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  <div className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                       Atribuidas
                     </p>
-                    <p className="mt-2 text-3xl font-semibold text-violet-600">
+                    <p className="mt-2 text-3xl font-semibold text-sky-600">
                       {metrics.assigned_orders}
                     </p>
                     <p className="text-xs text-slate-500">Aguardando inicio</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  <div className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                       Canceladas
                     </p>
                     <p className="mt-2 text-3xl font-semibold text-rose-600">
@@ -201,31 +231,32 @@ export function DashboardPage() {
               </div>
 
               {kpis && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-sm">
+                  <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,#38bdf8,var(--dash-accent))]" />
                   <h2 className="text-lg font-semibold text-slate-900">Indicadores-chave</h2>
                   <div className="mt-6 grid gap-4 md:grid-cols-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    <div className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                         MTTR
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-slate-900">{kpis.mttr}h</p>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    <div className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                         MTBF
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-slate-900">{kpis.mtbf}</p>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    <div className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                         Disponibilidade
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-slate-900">
                         {kpis.availability}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    <div className="rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                         Backlog
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-slate-900">{kpis.backlog}</p>
@@ -236,33 +267,42 @@ export function DashboardPage() {
             </div>
 
             <aside className="space-y-6">
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-sm">
+                <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent),#34d399)]" />
                 <h3 className="text-sm font-semibold text-slate-900">Sinalizadores</h3>
                 <div className="mt-4 space-y-3 text-xs text-slate-600">
-                  <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2">
+                  <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] px-3 py-2">
                     <span className="inline-flex items-center gap-2">
                       <Activity className="h-3.5 w-3.5 text-emerald-600" />
                       Ordens em curso
                     </span>
                     <span className="font-semibold text-slate-700">{metrics.in_progress}</span>
                   </div>
-                  <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2">
+                  <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] px-3 py-2">
                     <span className="inline-flex items-center gap-2">
                       <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
                       Ordens abertas
                     </span>
                     <span className="font-semibold text-slate-700">{metrics.open_orders}</span>
                   </div>
+                  <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-[color:var(--dash-surface)] px-3 py-2">
+                    <span className="inline-flex items-center gap-2">
+                      <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                      Concluidas
+                    </span>
+                    <span className="font-semibold text-slate-700">{metrics.completed}</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-sky-200 bg-sky-50 p-6 text-slate-800 shadow-sm">
+              <div className="relative overflow-hidden rounded-[28px] border border-emerald-200 bg-[linear-gradient(135deg,#ecfdf3,#ffffff)] p-6 text-slate-800 shadow-[0_20px_60px_-45px_rgba(16,185,129,0.6)]">
+                <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-200/50 blur-2xl" />
                 <h3 className="text-sm font-semibold">Resumo rapido</h3>
                 <p className="mt-2 text-xs text-slate-600">
                   Priorize ordens abertas e em progresso para reduzir o backlog.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                  <span className="rounded-full bg-white px-3 py-1 font-semibold text-sky-700">
+                  <span className="rounded-full bg-white px-3 py-1 font-semibold text-emerald-700">
                     {metrics.open_orders} abertas
                   </span>
                   <span className="rounded-full bg-white px-3 py-1 font-semibold text-amber-700">
