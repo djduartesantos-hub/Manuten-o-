@@ -16,6 +16,13 @@ import {
   AlertTriangle,
   BarChart3,
   RefreshCcw,
+  Search,
+  CheckCircle2,
+  CalendarClock,
+  PauseCircle,
+  Check,
+  Lock,
+  XCircle,
 } from 'lucide-react';
 
 interface Metrics {
@@ -258,6 +265,9 @@ export function DashboardPage() {
         count: metrics?.open_orders ?? 0,
         tone: 'border-amber-200/80 bg-amber-50/70 text-amber-800',
         bar: 'bg-amber-400/80',
+        Icon: AlertTriangle,
+        iconTone: 'bg-amber-100 text-amber-700',
+        description: 'Ordens novas, ainda por iniciar.',
       },
       {
         key: 'em_analise',
@@ -265,20 +275,29 @@ export function DashboardPage() {
         count: metrics?.analysis ?? metrics?.assigned_orders ?? 0,
         tone: 'border-sky-200/80 bg-sky-50/70 text-sky-800',
         bar: 'bg-sky-400/80',
+        Icon: Search,
+        iconTone: 'bg-sky-100 text-sky-700',
+        description: 'Ordens em triagem/validação antes de aprovação.',
       },
       {
         key: 'aprovada',
         label: 'Aprovadas',
         count: metrics?.approved ?? 0,
-        tone: 'border-slate-200/80 bg-slate-50/70 text-slate-700',
-        bar: 'bg-slate-400/80',
+        tone: 'border-indigo-200/80 bg-indigo-50/70 text-indigo-800',
+        bar: 'bg-indigo-400/80',
+        Icon: CheckCircle2,
+        iconTone: 'bg-indigo-100 text-indigo-700',
+        description: 'Ordens aprovadas e prontas para planear.',
       },
       {
         key: 'planeada',
         label: 'Planeadas',
         count: metrics?.planned ?? 0,
-        tone: 'border-slate-200/80 bg-slate-50/70 text-slate-700',
-        bar: 'bg-slate-400/80',
+        tone: 'border-cyan-200/80 bg-cyan-50/70 text-cyan-800',
+        bar: 'bg-cyan-400/80',
+        Icon: CalendarClock,
+        iconTone: 'bg-cyan-100 text-cyan-800',
+        description: 'Ordens com execução planeada/agendada.',
       },
       {
         key: 'em_execucao',
@@ -286,6 +305,9 @@ export function DashboardPage() {
         count: metrics?.execution ?? metrics?.in_progress ?? 0,
         tone: 'border-emerald-200/80 bg-emerald-50/70 text-emerald-800',
         bar: 'bg-emerald-400/80',
+        Icon: Activity,
+        iconTone: 'bg-emerald-100 text-emerald-700',
+        description: 'Ordens atualmente em trabalho no terreno.',
       },
       {
         key: 'em_pausa',
@@ -293,13 +315,19 @@ export function DashboardPage() {
         count: metrics?.paused ?? 0,
         tone: 'border-amber-200/80 bg-amber-50/70 text-amber-800',
         bar: 'bg-amber-400/80',
+        Icon: PauseCircle,
+        iconTone: 'bg-amber-100 text-amber-700',
+        description: 'Ordens paradas (aguarda peças, acesso, etc.).',
       },
       {
         key: 'concluida',
         label: 'Concluidas',
         count: metrics?.completed ?? 0,
-        tone: 'border-slate-200/80 bg-slate-50/70 text-slate-700',
-        bar: 'bg-slate-400/80',
+        tone: 'border-emerald-200/80 bg-emerald-50/70 text-emerald-800',
+        bar: 'bg-emerald-400/80',
+        Icon: Check,
+        iconTone: 'bg-emerald-100 text-emerald-700',
+        description: 'Trabalho concluído; pode seguir para fecho.',
       },
       {
         key: 'fechada',
@@ -307,6 +335,9 @@ export function DashboardPage() {
         count: metrics?.closed ?? 0,
         tone: 'border-slate-200/80 bg-slate-50/70 text-slate-700',
         bar: 'bg-slate-400/80',
+        Icon: Lock,
+        iconTone: 'bg-slate-100 text-slate-600',
+        description: 'Ordens encerradas com dados finais registados.',
       },
       {
         key: 'cancelada',
@@ -314,6 +345,9 @@ export function DashboardPage() {
         count: metrics?.cancelled ?? 0,
         tone: 'border-rose-200/80 bg-rose-50/70 text-rose-700',
         bar: 'bg-rose-400/80',
+        Icon: XCircle,
+        iconTone: 'bg-rose-100 text-rose-700',
+        description: 'Ordens anuladas e fora do fluxo.',
       },
     ],
     [metrics],
@@ -407,16 +441,28 @@ export function DashboardPage() {
                 operacao em tempo real.
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
-                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-emerald-700 dark:text-emerald-300">
+                <span
+                  className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-emerald-700 dark:text-emerald-300"
+                  title="SLA (Service Level Agreement): percentagem de ordens dentro do prazo."
+                >
                   SLA {kpis?.sla_compliance ?? 0}%
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-amber-700 dark:text-amber-300">
+                <span
+                  className="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-amber-700 dark:text-amber-300"
+                  title="Backlog: ordens pendentes (em aberto e em execução/pause/análise conforme regras do KPI)."
+                >
                   Backlog {kpis?.backlog ?? 0}
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 text-sky-700 dark:text-sky-300">
+                <span
+                  className="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 text-sky-700 dark:text-sky-300"
+                  title="MTTR (Mean Time To Repair): tempo médio de reparação."
+                >
                   MTTR {kpis?.mttr ?? 0}h
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-indigo-700 dark:text-indigo-300">
+                <span
+                  className="inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-indigo-700 dark:text-indigo-300"
+                  title="MTBF (Mean Time Between Failures): tempo médio entre falhas."
+                >
                   MTBF {kpis?.mtbf ?? 0}h
                 </span>
               </div>
@@ -482,7 +528,10 @@ export function DashboardPage() {
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2 lg:order-2">
-                <div className="dash-reveal rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur">
+                <div
+                  className="dash-reveal rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur"
+                  title="Total de ordens de trabalho no sistema (planta atual)."
+                >
                   <div className="flex items-center justify-between">
                     <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
                       <BarChart3 className="h-4 w-4" />
@@ -496,7 +545,10 @@ export function DashboardPage() {
                   </p>
                   <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Ordens registradas</p>
                 </div>
-                <div className="dash-reveal dash-reveal-delay-1 rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur">
+                <div
+                  className="dash-reveal dash-reveal-delay-1 rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur"
+                  title="Ordens abertas: criadas e ainda sem execução iniciada."
+                >
                   <div className="flex items-center justify-between">
                     <div className="rounded-2xl bg-amber-100 p-2 text-amber-700">
                       <AlertCircle className="h-4 w-4" />
@@ -510,7 +562,10 @@ export function DashboardPage() {
                   </p>
                   <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Aguardando inicio</p>
                 </div>
-                <div className="dash-reveal dash-reveal-delay-2 rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur">
+                <div
+                  className="dash-reveal dash-reveal-delay-2 rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur"
+                  title="Em análise: ordens em triagem/validação (antigo 'atribuída')."
+                >
                   <div className="flex items-center justify-between">
                     <div className="rounded-2xl bg-sky-100 p-2 text-sky-700">
                       <Clock className="h-4 w-4" />
@@ -524,7 +579,10 @@ export function DashboardPage() {
                   </p>
                   <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Em fila de equipa</p>
                 </div>
-                <div className="dash-reveal dash-reveal-delay-3 rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur">
+                <div
+                  className="dash-reveal dash-reveal-delay-3 rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur"
+                  title="Em execução: ordens com trabalho em curso no terreno."
+                >
                   <div className="flex items-center justify-between">
                     <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
                       <Activity className="h-4 w-4" />
@@ -570,21 +628,28 @@ export function DashboardPage() {
         )}
 
         {!loading && metrics && (
-          <section className="grid gap-6 xl:grid-cols-[1.6fr_0.8fr]">
+          <section className="grid gap-6 xl:grid-cols-[1.8fr_0.6fr]">
             <div className="space-y-6">
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                 {statusSummary.map((item, index) => {
                   const percent = totalOrders
                     ? Math.round((item.count / totalOrders) * 100)
                     : 0;
+                  const Icon = item.Icon;
                   return (
                     <div
                       key={item.key}
                       className={`dash-reveal rounded-[20px] border px-3 py-2.5 shadow-sm ${item.tone}`}
                       style={{ animationDelay: `${index * 0.06}s` }}
+                      title={item.description}
                     >
                       <div className="flex items-center justify-between text-xs font-semibold">
-                        <span>{item.label}</span>
+                        <span className="inline-flex items-center gap-2">
+                          <span className={`inline-flex h-7 w-7 items-center justify-center rounded-2xl ${item.iconTone}`}>
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          {item.label}
+                        </span>
                         <span>{item.count}</span>
                       </div>
                       <div className="mt-3 h-1.5 w-full rounded-full bg-[color:var(--dash-surface)]">
@@ -593,7 +658,7 @@ export function DashboardPage() {
                           style={{ width: `${percent}%` }}
                         />
                       </div>
-                      <p className="mt-2 text-[11px] text-[color:var(--dash-muted)]">
+                      <p className="mt-2 text-[11px] text-[color:var(--dash-ink)] opacity-80">
                         {percent}% do total
                       </p>
                     </div>
@@ -723,33 +788,45 @@ export function DashboardPage() {
                   <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,#38bdf8,var(--dash-accent))]" />
                   <h2 className="text-lg font-semibold text-[color:var(--dash-ink)]">Indicadores-chave</h2>
                   <div className="mt-6 grid gap-4 md:grid-cols-4">
-                    <div className="rounded-2xl border border-sky-500/20 bg-sky-500/10 p-4">
+                    <div
+                      className="rounded-2xl border border-sky-500/20 bg-sky-500/10 p-4"
+                      title="MTTR (Mean Time To Repair): tempo médio de reparação."
+                    >
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                        MTTR
+                        MTTR - Tempo medio de reparacao
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-sky-700 dark:text-sky-300">
                         {kpis.mttr}h
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4">
+                    <div
+                      className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4"
+                      title="MTBF (Mean Time Between Failures): tempo médio entre falhas."
+                    >
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                        MTBF
+                        MTBF - Tempo medio entre falhas
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-indigo-700 dark:text-indigo-300">
                         {kpis.mtbf}h
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+                    <div
+                      className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4"
+                      title="SLA (Service Level Agreement): percentagem de ordens dentro do prazo."
+                    >
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                        SLA cumprido
+                        SLA - Cumprimento do acordo de nivel de servico
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-emerald-700 dark:text-emerald-300">
                         {kpis.sla_compliance}%
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
+                    <div
+                      className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4"
+                      title="Backlog: volume de ordens pendentes."
+                    >
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                        Backlog
+                        Backlog - Ordens pendentes
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-amber-700 dark:text-amber-300">
                         {kpis.backlog}
