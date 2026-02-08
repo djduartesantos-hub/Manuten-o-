@@ -185,6 +185,12 @@ export class WorkOrderController {
       const isManager = WorkOrderController.isManager(role);
       const isCreator = Boolean(userId && existing.created_by === userId);
 
+      const updatedAssigned = updates.assigned_to ?? existing.assigned_to;
+      const isAssignedUser = Boolean(userId && updatedAssigned === userId);
+      const isSelfAssign = Boolean(
+        !existing.assigned_to && userId && updates.assigned_to === userId,
+      );
+
       const editFields = [
         'title',
         'description',
@@ -207,7 +213,23 @@ export class WorkOrderController {
       const wantsEditFields = editFields.some((field) => Object.prototype.hasOwnProperty.call(updates, field));
       const wantsOperational = operationalFields.some((field) => Object.prototype.hasOwnProperty.call(updates, field));
 
-      if (wantsEditFields && !(isAdmin || isManager || isCreator)) {
+      const requestedEditFields = editFields.filter((field) =>
+        Object.prototype.hasOwnProperty.call(updates, field),
+      );
+      const onlyPlanningEdits =
+        requestedEditFields.length > 0 &&
+        requestedEditFields.every((field) => field === 'scheduled_date' || field === 'estimated_hours');
+      const isStartingOrder =
+        updates.status === 'em_curso' &&
+        (existing.status === 'aberta' || existing.status === 'atribuida') &&
+        Object.prototype.hasOwnProperty.call(updates, 'started_at');
+      const allowOperatorPlanningOnStart =
+        wantsOperational &&
+        isStartingOrder &&
+        onlyPlanningEdits &&
+        (isAdmin || isAssignedUser || isSelfAssign);
+
+      if (wantsEditFields && !(isAdmin || isManager || isCreator || allowOperatorPlanningOnStart)) {
         res.status(403).json({
           success: false,
           error: 'Sem permissao para editar esta ordem',
@@ -216,9 +238,6 @@ export class WorkOrderController {
       }
 
       if (wantsOperational) {
-        const updatedAssigned = updates.assigned_to ?? existing.assigned_to;
-        const isAssignedUser = Boolean(userId && updatedAssigned === userId);
-
         if (existing.assigned_to && existing.assigned_to !== userId && !isAdmin) {
           res.status(403).json({
             success: false,
@@ -228,7 +247,6 @@ export class WorkOrderController {
         }
 
         if (updates.assigned_to && updates.assigned_to !== existing.assigned_to) {
-          const isSelfAssign = Boolean(!existing.assigned_to && userId && updates.assigned_to === userId);
           if (!isAdmin && !isSelfAssign) {
             res.status(403).json({
               success: false,
@@ -247,15 +265,6 @@ export class WorkOrderController {
         }
 
         if (updates.status === 'concluida') {
-          const workPerformed = updates.work_performed ?? existing.work_performed;
-          if (!workPerformed || String(workPerformed).trim() === '') {
-            res.status(400).json({
-              success: false,
-              error: 'Indique o trabalho realizado antes de concluir',
-            });
-            return;
-          }
-
           const hasIncomplete = await WorkOrderService.hasIncompleteTasks(existing.id);
           if (hasIncomplete) {
             res.status(400).json({

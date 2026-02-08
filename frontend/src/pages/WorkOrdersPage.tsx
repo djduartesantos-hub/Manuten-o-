@@ -130,10 +130,13 @@ interface WorkOrderUpdateState {
   status: string;
   priority: string;
   scheduled_date: string;
+  notes: string;
+  estimated_hours: string;
+}
+
+interface WorkOrderFinishState {
   actual_hours: string;
   work_performed: string;
-  notes: string;
-  completed_at: string;
 }
 
 export function WorkOrdersPage() {
@@ -188,11 +191,14 @@ export function WorkOrdersPage() {
     status: 'aberta',
     priority: 'media',
     scheduled_date: '',
+    notes: '',
+    estimated_hours: '',
+  });
+  const [finishForm, setFinishForm] = useState<WorkOrderFinishState>({
     actual_hours: '',
     work_performed: '',
-    notes: '',
-    completed_at: '',
   });
+  const [showFinishFields, setShowFinishFields] = useState(false);
   const [usageForm, setUsageForm] = useState({
     spare_part_id: '',
     quantity: 1,
@@ -508,8 +514,6 @@ export function WorkOrdersPage() {
         title: form.title,
         description: form.description || undefined,
         priority: form.priority,
-        estimated_hours: form.estimated_hours || undefined,
-        scheduled_date: form.scheduled_date || undefined,
       });
 
       setForm({
@@ -565,6 +569,7 @@ export function WorkOrdersPage() {
 
   const handleStartEdit = (order: WorkOrder) => {
     setEditingOrder(order);
+    setShowFinishFields(false);
     setUsageForm({ spare_part_id: '', quantity: 1, unit_cost: '', notes: '' });
     setUsageMessage(null);
     setUsagePartSearch('');
@@ -579,10 +584,12 @@ export function WorkOrdersPage() {
       status: order.status || 'aberta',
       priority: order.priority || 'media',
       scheduled_date: toDateTimeLocal(order.scheduled_date),
+      notes: order.notes || '',
+      estimated_hours: order.estimated_hours || '',
+    });
+    setFinishForm({
       actual_hours: order.actual_hours || '',
       work_performed: order.work_performed || '',
-      notes: order.notes || '',
-      completed_at: toDateTimeLocal(order.completed_at),
     });
     loadWorkOrderDetails(order.id);
   };
@@ -607,11 +614,14 @@ export function WorkOrdersPage() {
         status: workOrder.status || 'aberta',
         priority: workOrder.priority || 'media',
         scheduled_date: toDateTimeLocal(workOrder.scheduled_date),
+        notes: workOrder.notes || '',
+        estimated_hours: workOrder.estimated_hours || '',
+      });
+      setFinishForm({
         actual_hours: workOrder.actual_hours || '',
         work_performed: workOrder.work_performed || '',
-        notes: workOrder.notes || '',
-        completed_at: toDateTimeLocal(workOrder.completed_at),
       });
+      setShowFinishFields(false);
     } catch (err: any) {
       setTasksError(err.message || 'Erro ao carregar ordem.');
       setAuditLoading(false);
@@ -635,7 +645,18 @@ export function WorkOrdersPage() {
 
   const handleAddTask = async () => {
     if (!selectedPlant || !editingOrder) return;
-    if (!editingPermissions?.canOperateOrder) {
+    if (editingOrder.status === 'concluida') {
+      setTasksError('Ordens concluidas nao podem receber novas tarefas.');
+      return;
+    }
+    if (
+      !editingPermissions?.canOperateOrder &&
+      !editingPermissions?.canEditOrder &&
+      !(
+        (editingOrder.status === 'aberta' || editingOrder.status === 'atribuida') &&
+        editingPermissions?.canAssumeOrder
+      )
+    ) {
       setTasksError('Sem permissao para atualizar tarefas.');
       return;
     }
@@ -663,6 +684,10 @@ export function WorkOrdersPage() {
 
   const handleToggleTask = async (task: WorkOrderTask) => {
     if (!selectedPlant || !editingOrder) return;
+    if (editingOrder.status !== 'em_curso') {
+      setTasksError('Apenas ordens em curso podem marcar tarefas como concluidas.');
+      return;
+    }
     if (!editingPermissions?.canOperateOrder) {
       setTasksError('Sem permissao para atualizar tarefas.');
       return;
@@ -763,10 +788,9 @@ export function WorkOrdersPage() {
       if (canEditOrder) {
         payload.priority = updateForm.priority;
         payload.scheduled_date = updateForm.scheduled_date || undefined;
+        payload.estimated_hours = updateForm.estimated_hours || undefined;
       }
       if (canOperateOrder) {
-        payload.actual_hours = updateForm.actual_hours || undefined;
-        payload.work_performed = updateForm.work_performed || undefined;
         payload.notes = updateForm.notes || undefined;
       }
 
@@ -825,6 +849,8 @@ export function WorkOrdersPage() {
         status: 'em_curso',
         assigned_to: editingOrder.assigned_to || userId,
         started_at: new Date().toISOString(),
+        scheduled_date: updateForm.scheduled_date || undefined,
+        estimated_hours: updateForm.estimated_hours || undefined,
       });
       setEditingOrder(null);
       await loadData();
@@ -865,11 +891,6 @@ export function WorkOrdersPage() {
       return;
     }
 
-    if (!updateForm.work_performed.trim()) {
-      setError('Indique o trabalho realizado antes de terminar a ordem');
-      return;
-    }
-
     if (orderTasks.some((task) => !task.is_completed)) {
       setError('Conclua todas as tarefas antes de terminar a ordem');
       return;
@@ -882,6 +903,8 @@ export function WorkOrdersPage() {
       await updateWorkOrder(selectedPlant, editingOrder.id, {
         status: 'concluida',
         completed_at: new Date().toISOString(),
+        actual_hours: finishForm.actual_hours || undefined,
+        work_performed: finishForm.work_performed || undefined,
       });
       setEditingOrder(null);
       await loadData();
@@ -1058,12 +1081,22 @@ export function WorkOrdersPage() {
     editingOrder &&
       (editingOrder.status === 'concluida'
         ? editingPermissions?.canOperateOrder
-        : editingPermissions?.canEditOrder || editingPermissions?.canOperateOrder),
+        : editingPermissions?.canEditOrder ||
+          editingPermissions?.canOperateOrder ||
+          ((editingOrder.status === 'aberta' || editingOrder.status === 'atribuida') &&
+            editingPermissions?.canAssumeOrder)),
   );
 
   const canShowChecklist = Boolean(
-    editingOrder && (editingPermissions?.canOperateOrder || editingPermissions?.canEditOrder),
+    editingOrder &&
+      (editingPermissions?.canOperateOrder ||
+        editingPermissions?.canEditOrder ||
+        ((editingOrder.status === 'aberta' || editingOrder.status === 'atribuida') &&
+          editingPermissions?.canAssumeOrder)),
   );
+
+  const isPlanningStage =
+    editingOrder?.status === 'aberta' || editingOrder?.status === 'atribuida';
 
   return (
     <MainLayout>
@@ -1263,29 +1296,6 @@ export function WorkOrdersPage() {
                 </select>
               </div>
 
-              <div>
-                <label className="mb-1 block text-sm font-medium theme-text">
-                  Horas estimadas
-                </label>
-                <input
-                  className="input"
-                  value={form.estimated_hours}
-                  onChange={(event) => setForm({ ...form, estimated_hours: event.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-medium theme-text">
-                  Data e hora planeada
-                </label>
-                <input
-                  type="datetime-local"
-                  className="input"
-                  value={form.scheduled_date}
-                  onChange={(event) => setForm({ ...form, scheduled_date: event.target.value })}
-                />
-              </div>
-
               <div className="md:col-span-2">
                 <label className="mb-1 block text-sm font-medium theme-text">Descricao</label>
                 <textarea
@@ -1418,6 +1428,12 @@ export function WorkOrdersPage() {
                           editingOrder.started_at || editingOrder.updated_at || editingOrder.created_at,
                         )}
                       </p>
+                      <p className="mt-2 text-[11px] theme-text-muted">
+                        Planeado: {formatShortDateTime(editingOrder.scheduled_date)}
+                      </p>
+                      <p className="mt-1 text-[11px] theme-text-muted">
+                        Estimativa: {editingOrder.estimated_hours || '-'}
+                      </p>
                     </div>
                     <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-3 text-xs theme-text-muted">
                       <p className="font-semibold theme-text">Prioridade</p>
@@ -1449,48 +1465,52 @@ export function WorkOrdersPage() {
                       </select>
                     </div>
 
-                    <div>
-                      <label className="mb-1 block text-sm font-medium theme-text">
-                        Data e hora planeada
-                      </label>
-                      <input
-                        type="datetime-local"
-                        className="input"
-                        value={updateForm.scheduled_date}
-                        onChange={(event) =>
-                          setUpdateForm({ ...updateForm, scheduled_date: event.target.value })
-                        }
-                        disabled={!editingPermissions?.canEditOrder}
-                      />
-                    </div>
+                    {isPlanningStage && (
+                      <>
+                        <div>
+                          <label className="mb-1 block text-sm font-medium theme-text">
+                            Horas estimadas
+                          </label>
+                          <input
+                            className="input"
+                            value={updateForm.estimated_hours}
+                            onChange={(event) =>
+                              setUpdateForm({ ...updateForm, estimated_hours: event.target.value })
+                            }
+                            disabled={
+                              !(
+                                editingPermissions?.canEditOrder ||
+                                ((editingOrder.status === 'aberta' ||
+                                  editingOrder.status === 'atribuida') &&
+                                  editingPermissions?.canAssumeOrder)
+                              )
+                            }
+                          />
+                        </div>
 
-                    <div>
-                      <label className="mb-1 block text-sm font-medium theme-text">
-                        Horas reais
-                      </label>
-                      <input
-                        className="input"
-                        value={updateForm.actual_hours}
-                        onChange={(event) =>
-                          setUpdateForm({ ...updateForm, actual_hours: event.target.value })
-                        }
-                        disabled={!editingPermissions?.canOperateOrder}
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="mb-1 block text-sm font-medium theme-text">
-                        Trabalho realizado
-                      </label>
-                      <textarea
-                        className="input min-h-[96px]"
-                        value={updateForm.work_performed}
-                        onChange={(event) =>
-                          setUpdateForm({ ...updateForm, work_performed: event.target.value })
-                        }
-                        disabled={!editingPermissions?.canOperateOrder}
-                      />
-                    </div>
+                        <div>
+                          <label className="mb-1 block text-sm font-medium theme-text">
+                            Data e hora planeada
+                          </label>
+                          <input
+                            type="datetime-local"
+                            className="input"
+                            value={updateForm.scheduled_date}
+                            onChange={(event) =>
+                              setUpdateForm({ ...updateForm, scheduled_date: event.target.value })
+                            }
+                            disabled={
+                              !(
+                                editingPermissions?.canEditOrder ||
+                                ((editingOrder.status === 'aberta' ||
+                                  editingOrder.status === 'atribuida') &&
+                                  editingPermissions?.canAssumeOrder)
+                              )
+                            }
+                          />
+                        </div>
+                      </>
+                    )}
                     <div className="md:col-span-2">
                       <label className="mb-1 block text-sm font-medium theme-text">Notas</label>
                       <textarea
@@ -1505,9 +1525,11 @@ export function WorkOrdersPage() {
                   </div>
 
                   <div className="mt-6 flex flex-wrap items-center gap-3">
-                    <button onClick={handleUpdate} className="btn-primary" disabled={updating}>
-                      {updating ? 'A atualizar...' : 'Guardar alteracoes'}
-                    </button>
+                    {(editingPermissions?.canEditOrder || editingPermissions?.canOperateOrder) && (
+                      <button onClick={handleUpdate} className="btn-primary" disabled={updating}>
+                        {updating ? 'A atualizar...' : 'Guardar alteracoes'}
+                      </button>
+                    )}
                     {editingPermissions?.canDeleteOrder && (
                       <button
                         onClick={handleDeleteOrder}
@@ -1531,10 +1553,14 @@ export function WorkOrdersPage() {
               {canShowChecklist && (
                 <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
-                    Checklist
+                    {editingOrder.status === 'em_curso' || editingOrder.status === 'concluida'
+                      ? 'Checklist'
+                      : 'Tarefas a realizar'}
                   </p>
                   <p className="mt-2 text-sm theme-text-muted">
-                    Marque as tarefas concluídas antes de finalizar a ordem.
+                    {editingOrder.status === 'em_curso' || editingOrder.status === 'concluida'
+                      ? 'Marque as tarefas concluídas antes de finalizar a ordem.'
+                      : 'Defina as tarefas planeadas para esta ordem.'}
                   </p>
 
                   {tasksError && (
@@ -1560,12 +1586,18 @@ export function WorkOrdersPage() {
                           key={task.id}
                           className="flex flex-wrap items-center gap-3 rounded-2xl border theme-border bg-[color:var(--dash-surface)] px-3 py-2 text-xs theme-text-muted"
                         >
-                          <input
-                            type="checkbox"
-                            checked={task.is_completed}
-                            onChange={() => handleToggleTask(task)}
-                            disabled={tasksSaving || !editingPermissions?.canOperateOrder}
-                          />
+                          {(editingOrder.status === 'em_curso' || editingOrder.status === 'concluida') && (
+                            <input
+                              type="checkbox"
+                              checked={task.is_completed}
+                              onChange={() => handleToggleTask(task)}
+                              disabled={
+                                tasksSaving ||
+                                !editingPermissions?.canOperateOrder ||
+                                editingOrder.status !== 'em_curso'
+                              }
+                            />
+                          )}
                           <span
                             className={
                               task.is_completed
@@ -1585,7 +1617,11 @@ export function WorkOrdersPage() {
                     </div>
                   )}
 
-                  {editingPermissions?.canOperateOrder && (
+                  {(editingPermissions?.canOperateOrder ||
+                    editingPermissions?.canEditOrder ||
+                    ((editingOrder.status === 'aberta' || editingOrder.status === 'atribuida') &&
+                      editingPermissions?.canAssumeOrder)) &&
+                    editingOrder.status !== 'concluida' && (
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                       <input
                         className="input flex-1"
@@ -1602,6 +1638,76 @@ export function WorkOrdersPage() {
                         Adicionar
                       </button>
                     </div>
+                  )}
+                </div>
+              )}
+
+              {editingOrder.status === 'em_curso' && editingPermissions?.canOperateOrder && (
+                <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+                    Finalizar ordem
+                  </p>
+                  <p className="mt-2 text-sm theme-text-muted">
+                    Ao terminar, pode indicar o trabalho realizado e as horas reais (opcional).
+                  </p>
+                  {!showFinishFields ? (
+                    <div className="mt-6 flex flex-wrap items-center gap-3">
+                      <button
+                        onClick={() => setShowFinishFields(true)}
+                        className="btn-primary"
+                        disabled={updating}
+                      >
+                        Finalizar agora
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                          <label className="mb-1 block text-sm font-medium theme-text">
+                            Horas reais (opcional)
+                          </label>
+                          <input
+                            className="input"
+                            value={finishForm.actual_hours}
+                            onChange={(event) =>
+                              setFinishForm({ ...finishForm, actual_hours: event.target.value })
+                            }
+                            disabled={updating}
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="mb-1 block text-sm font-medium theme-text">
+                            Trabalho realizado (opcional)
+                          </label>
+                          <textarea
+                            className="input min-h-[96px]"
+                            value={finishForm.work_performed}
+                            onChange={(event) =>
+                              setFinishForm({ ...finishForm, work_performed: event.target.value })
+                            }
+                            disabled={updating}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-6 flex flex-wrap items-center gap-3">
+                        <button
+                          onClick={handleFinishOrder}
+                          className="btn-primary"
+                          disabled={updating}
+                        >
+                          {updating ? 'A terminar...' : 'Terminar'}
+                        </button>
+                        <button
+                          onClick={() => setShowFinishFields(false)}
+                          className="btn-secondary"
+                          disabled={updating}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </>
                   )}
                 </div>
               )}
@@ -1867,13 +1973,6 @@ export function WorkOrdersPage() {
                           disabled={updating}
                         >
                           Pausar
-                        </button>
-                        <button
-                          onClick={handleFinishOrder}
-                          className="btn-primary"
-                          disabled={updating}
-                        >
-                          Terminar
                         </button>
                       </>
                     )}
