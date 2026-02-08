@@ -566,11 +566,16 @@ export async function createPreventiveSchedule(req: AuthenticatedRequest, res: R
       return;
     }
 
+    if (!req.user?.userId) {
+      res.status(401).json({ success: false, error: 'Not authenticated' });
+      return;
+    }
+
     const created = await maintenanceService.createPreventiveSchedule(
       req.tenantId!,
       plantId,
       validation.data,
-      req.user?.id,
+      req.user.userId,
     );
 
     if (isSocketManagerReady()) {
@@ -627,7 +632,7 @@ export async function updatePreventiveSchedule(req: AuthenticatedRequest, res: R
       plantId,
       schedule_id,
       validation.data,
-      req.user?.id,
+      req.user?.userId,
     );
 
     if (isSocketManagerReady()) {

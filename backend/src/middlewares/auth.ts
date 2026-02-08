@@ -46,12 +46,27 @@ export function authMiddleware(
       return;
     }
 
-    const normalizedRole = normalizeRole(payload?.role);
+    // Normalize legacy/variant payload shapes (older tokens)
+    // Some earlier versions used `id` / `tenant_id` instead of `userId` / `tenantId`.
+    const payloadAny: any = payload as any;
+    if (!payloadAny.userId && payloadAny.id) payloadAny.userId = payloadAny.id;
+    if (!payloadAny.tenantId && payloadAny.tenant_id) payloadAny.tenantId = payloadAny.tenant_id;
+
+    const normalizedRole = normalizeRole(payloadAny?.role);
     if (normalizedRole) {
-      payload.role = normalizedRole;
+      payloadAny.role = normalizedRole;
     }
 
-    if (req.tenantId && req.tenantId !== payload.tenantId) {
+    // Validate minimum required claims
+    if (!payloadAny?.userId || !payloadAny?.tenantId) {
+      res.status(401).json({
+        success: false,
+        error: 'Invalid token payload',
+      });
+      return;
+    }
+
+    if (req.tenantId && req.tenantId !== payloadAny.tenantId) {
       res.status(403).json({
         success: false,
         error: 'Access denied to this tenant',
@@ -59,8 +74,8 @@ export function authMiddleware(
       return;
     }
 
-    req.user = payload;
-    req.tenantId = req.tenantId || payload.tenantId;
+    req.user = payloadAny;
+    req.tenantId = req.tenantId || payloadAny.tenantId;
     next();
   } catch (error) {
     logger.error('Auth middleware error:', error);
