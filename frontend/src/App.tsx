@@ -8,6 +8,7 @@ import { getUserPlants } from './services/api';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { SocketProvider } from './context/SocketContext';
 import { queryClient } from './services/queryClient';
+import ThemeToggle from './components/ThemeToggle';
 
 // Pages
 import { LoginPage } from './pages/LoginPage';
@@ -26,28 +27,6 @@ import { DatabaseUpdatePage } from './pages/DatabaseUpdatePage';
 import { SetupInitPage } from './pages/SetupInitPage';
 
 import './index.css';
-
-function ThemeToggle() {
-  const [theme, setTheme] = useState(
-    localStorage.getItem('theme') || 'light'
-  );
-
-  useEffect(() => {
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
-  };
-
-  return (
-    <button onClick={toggleTheme} className="btn-primary">
-      Toggle Theme
-    </button>
-  );
-}
 
 function App() {
   const { isAuthenticated } = useAuth();
