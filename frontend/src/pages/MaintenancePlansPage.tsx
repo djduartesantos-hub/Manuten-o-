@@ -434,7 +434,7 @@ export function MaintenancePlansPage() {
   return (
     <MainLayout>
       <div
-        className="relative space-y-10 font-display text-[color:var(--plans-ink)]"
+        className="relative space-y-10 font-display text-foreground"
         style={
           {
             '--plans-accent': '#0f766e',
@@ -444,17 +444,17 @@ export function MaintenancePlansPage() {
           } as CSSProperties
         }
       >
-        <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#ecfdf3,_#ffffff_55%)] p-8 shadow-[0_28px_80px_-60px_rgba(15,118,110,0.55)]">
+        <section className="relative overflow-hidden rounded-[32px] border border-border bg-card p-8 shadow-[0_28px_80px_-60px_rgba(15,118,110,0.55)]">
           <div className="absolute -right-12 -top-20 h-56 w-56 rounded-full bg-emerald-200/60 blur-3xl plans-float" />
           <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-amber-200/50 blur-3xl plans-float" />
           <div className="absolute right-12 top-10 h-2 w-20 rounded-full bg-[color:var(--plans-accent)] opacity-50" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-foreground">
                 Rotinas programadas
               </p>
               <h1
-                className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl lg:text-5xl"
+                className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl lg:text-5xl"
                 onPointerDown={handleDiagnosticsPressStart}
                 onPointerUp={handleDiagnosticsPressEnd}
                 onPointerLeave={handleDiagnosticsPressEnd}

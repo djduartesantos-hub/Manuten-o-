@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
@@ -26,6 +26,28 @@ import { DatabaseUpdatePage } from './pages/DatabaseUpdatePage';
 import { SetupInitPage } from './pages/SetupInitPage';
 
 import './index.css';
+
+function ThemeToggle() {
+  const [theme, setTheme] = useState(
+    localStorage.getItem('theme') || 'light'
+  );
+
+  useEffect(() => {
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
+  };
+
+  return (
+    <button onClick={toggleTheme} className="btn-primary">
+      Toggle Theme
+    </button>
+  );
+}
 
 function App() {
   const { isAuthenticated } = useAuth();
@@ -63,6 +85,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <SocketProvider>
         <BrowserRouter>
+          <div className="theme-toggle-container">
+            <ThemeToggle />
+          </div>
           <Routes>
             <Route
               path="/"
