@@ -43,9 +43,9 @@ export function Header() {
   const [openDropdown, setOpenDropdown] = React.useState<string | null>(null);
   const location = useLocation();
   const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.trim() || 'U';
+  const { theme, setTheme } = useTheme();
 
   const navSections: NavSection[] = [
-      const { theme, setTheme } = useTheme();
     {
       title: 'Visão Geral',
       icon: LayoutDashboard,
