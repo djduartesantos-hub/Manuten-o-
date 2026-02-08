@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   Shield,
   Building2,
+  Boxes,
   Users,
   Plus,
   Pencil,
@@ -36,6 +37,7 @@ import { DatabaseUpdatePage } from './DatabaseUpdatePage';
 import { SetupInitPage } from './SetupInitPage';
 import { PlantsPage } from './PlantsPage';
 import { SuppliersPage } from './SuppliersPage';
+import { StockEntryPage } from './StockEntryPage';
 
 type SettingTab =
   | 'general'
@@ -1749,7 +1751,7 @@ function ManagementSettings() {
     'setup' | 'migrations' | 'bootstrap' | null
   >(null);
   const [activeAdminPanel, setActiveAdminPanel] = React.useState<
-    'plants' | 'suppliers' | null
+    'plants' | 'suppliers' | 'stock' | null
   >(null);
   const [plantModalOpen, setPlantModalOpen] = React.useState(false);
   const [userModalOpen, setUserModalOpen] = React.useState(false);
@@ -2075,6 +2077,12 @@ function ManagementSettings() {
       title: 'Fornecedores',
       description: 'Base de parceiros e contactos de compra.',
       icon: Users,
+    },
+    {
+      id: 'stock' as const,
+      title: 'Stock de peças',
+      description: 'Registar entradas e reposicoes de inventario.',
+      icon: Boxes,
     },
   ];
 
@@ -2770,6 +2778,26 @@ function ManagementSettings() {
             </button>
             <div className="max-h-[80vh] overflow-y-auto pr-1">
               <SuppliersPage embedded />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeAdminPanel === 'stock' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setActiveAdminPanel(null)}
+          />
+          <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+            <button
+              onClick={() => setActiveAdminPanel(null)}
+              className="absolute right-6 top-6 z-10 rounded-full border theme-border theme-card px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
+            >
+              Fechar
+            </button>
+            <div className="max-h-[80vh] overflow-y-auto pr-1">
+              <StockEntryPage embedded />
             </div>
           </div>
         </div>

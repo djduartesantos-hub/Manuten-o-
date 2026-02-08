@@ -266,8 +266,8 @@ export function SparePartsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-8 font-display bg-[color:var(--dash-bg)]">
-        <section className="relative overflow-hidden rounded-[32px] theme-border theme-card p-8 shadow-[0_28px_80px_-60px_rgba(245,158,11,0.35)]">
+      <div className="space-y-8 font-display">
+        <section className="relative overflow-hidden rounded-[32px] border theme-border bg-[radial-gradient(circle_at_top,var(--dash-panel)_0%,var(--dash-bg)_55%)] p-8 shadow-[0_28px_80px_-60px_rgba(245,158,11,0.35)]">
           <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-amber-200/50 blur-3xl" />
           <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-emerald-200/40 blur-3xl" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -420,22 +420,22 @@ export function SparePartsPage() {
                   <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
                     <thead className="bg-[color:var(--dash-surface)]">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
                           Código
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
                           Nome
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
                           Custo
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
                           Stock
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
                           Minimo
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
                           Fornecedor
                         </th>
                       </tr>
@@ -443,7 +443,7 @@ export function SparePartsPage() {
                     <tbody className="divide-y divide-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
                       {filteredParts.length === 0 && (
                         <tr>
-                          <td colSpan={4} className="px-6 py-6 text-center theme-text-muted">
+                          <td colSpan={6} className="px-6 py-6 text-center theme-text-muted">
                             Nenhuma peça encontrada
                           </td>
                         </tr>
