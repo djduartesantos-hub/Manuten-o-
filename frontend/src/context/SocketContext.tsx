@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from './store';
 import toast from 'react-hot-toast';
+import { AlertTriangle, CheckCircle2, Info, X, XCircle } from 'lucide-react';
 
 interface SocketContextType {
   socket: Socket | null;
@@ -10,6 +11,107 @@ interface SocketContextType {
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
+
+type ToastKind = 'success' | 'error' | 'warning' | 'info';
+
+function showPrettyToast(
+  kind: ToastKind,
+  message: string,
+  opts?: {
+    title?: string;
+    meta?: string;
+    duration?: number;
+  },
+) {
+  const duration =
+    opts?.duration ??
+    (kind === 'error' ? 10000 : kind === 'warning' ? 9000 : 7000);
+
+  const config =
+    kind === 'success'
+      ? {
+          title: opts?.title ?? 'Sucesso',
+          Icon: CheckCircle2,
+          iconWrap: 'bg-emerald-500/10 text-emerald-700',
+          iconClass: 'text-emerald-600',
+          accent: 'bg-emerald-500',
+        }
+      : kind === 'error'
+        ? {
+            title: opts?.title ?? 'Erro',
+            Icon: XCircle,
+            iconWrap: 'bg-rose-500/10 text-rose-700',
+            iconClass: 'text-rose-600',
+            accent: 'bg-rose-500',
+          }
+        : kind === 'warning'
+          ? {
+              title: opts?.title ?? 'Aviso',
+              Icon: AlertTriangle,
+              iconWrap: 'bg-amber-500/10 text-amber-700',
+              iconClass: 'text-amber-600',
+              accent: 'bg-amber-500',
+            }
+          : {
+              title: opts?.title ?? 'Informação',
+              Icon: Info,
+              iconWrap: 'bg-sky-500/10 text-sky-700',
+              iconClass: 'text-sky-600',
+              accent: 'bg-sky-500',
+            };
+
+  const Icon = config.Icon;
+
+  toast.custom(
+    (t) => (
+      <div
+        className={
+          'pointer-events-auto w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border theme-border theme-card shadow-sm transition-all duration-300 ' +
+          (t.visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2')
+        }
+        role="status"
+        aria-live="polite"
+      >
+        <div className="flex">
+          <div className={'w-1.5 ' + config.accent} />
+          <div className="flex flex-1 gap-3 p-4">
+            <div
+              className={
+                'mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl ' +
+                config.iconWrap
+              }
+            >
+              <Icon className={'h-5 w-5 ' + config.iconClass} />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold theme-text">{config.title}</p>
+                  <p className="mt-0.5 break-words text-sm theme-text-muted">{message}</p>
+                  {opts?.meta ? (
+                    <p className="mt-1 text-xs theme-text-muted">{opts.meta}</p>
+                  ) : null}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => toast.dismiss(t.id)}
+                  className="-m-1 inline-flex h-8 w-8 items-center justify-center rounded-xl border theme-border bg-[color:var(--dash-panel-2)] theme-text-muted transition hover:bg-[color:var(--dash-panel)] hover:theme-text focus:outline-none"
+                  aria-label="Fechar alerta"
+                  title="Fechar"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+    { duration },
+  );
+}
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -89,73 +191,87 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     // Order events
     newSocket.on('order:created', (data) => {
-      toast.success(data.message, {
-        duration: 4000,
-        icon: '📋',
+      showPrettyToast('success', data.message, {
+        title: 'Ordem criada',
+        meta: 'ordem de trabalho • criada',
+        duration: 8000,
       });
       window.dispatchEvent(new CustomEvent('realtime:work-orders'));
     });
 
     newSocket.on('order:updated', (data) => {
-      toast.success(data.message, {
-        duration: 3000,
-        icon: '✏️',
+      showPrettyToast('success', data.message, {
+        title: 'Ordem atualizada',
+        meta: 'ordem de trabalho • atualizada',
+        duration: 8000,
       });
       window.dispatchEvent(new CustomEvent('realtime:work-orders'));
     });
 
     newSocket.on('order:status-changed', (data) => {
-      toast.success(data.message, {
-        duration: 4000,
-        icon: '✅',
+      showPrettyToast('success', data.message, {
+        title: 'Estado alterado',
+        meta: 'ordem de trabalho • estado',
+        duration: 9000,
       });
       window.dispatchEvent(new CustomEvent('realtime:work-orders'));
     });
 
     // Asset events
     newSocket.on('asset:created', (data) => {
-      toast.success(data.message || 'Novo equipamento criado', {
-        duration: 3000,
-        icon: '🧰',
+      showPrettyToast('success', data.message || 'Novo equipamento criado', {
+        title: 'Equipamento criado',
+        meta: 'equipamento • criado',
+        duration: 8000,
       });
       window.dispatchEvent(new CustomEvent('realtime:assets'));
     });
 
     newSocket.on('asset:updated', (data) => {
-      toast.success(data.message || 'Equipamento atualizado', {
-        duration: 3000,
-        icon: '🧰',
+      showPrettyToast('success', data.message || 'Equipamento atualizado', {
+        title: 'Equipamento atualizado',
+        meta: 'equipamento • atualizado',
+        duration: 8000,
       });
       window.dispatchEvent(new CustomEvent('realtime:assets'));
     });
 
     // Alert events
     newSocket.on('alert:triggered', (data) => {
-      const icons: { [key: string]: string } = {
-        critical: '🔴',
-        high: '🟠',
-        medium: '🟡',
-        low: '🟢',
-      };
-      toast.error(data.message, {
-        duration: 5000,
-        icon: icons[data.severity] || '⚠️',
+      const metaParts: string[] = [];
+      if (data?.entity) metaParts.push(String(data.entity));
+      if (data?.action) metaParts.push(String(data.action));
+      if (data?.severity) metaParts.push(`severidade: ${String(data.severity)}`);
+
+      showPrettyToast('warning', data.message, {
+        title: 'Alerta',
+        meta: metaParts.length ? metaParts.join(' • ') : undefined,
+        duration: data?.severity === 'critical' ? 14000 : 11000,
       });
     });
 
     // Document events
     newSocket.on('document:uploaded', (data) => {
-      toast.success(data.message, {
-        duration: 3000,
-        icon: '📄',
+      showPrettyToast('success', data.message, {
+        title: 'Documento carregado',
+        meta: 'documento • upload',
+        duration: 8000,
       });
     });
 
     // Generic notifications
     newSocket.on('notification', (data) => {
-      const toastType = data.type === 'error' ? toast.error : data.type === 'success' ? toast.success : toast;
-      toastType(data.message, {
-        duration: 3000,
+      const kind: ToastKind =
+        data?.type === 'error' ? 'error' : data?.type === 'success' ? 'success' : 'info';
+
+      const metaParts: string[] = [];
+      if (data?.entity) metaParts.push(String(data.entity));
+      if (data?.action) metaParts.push(String(data.action));
+
+      showPrettyToast(kind, data.message, {
+        title: kind === 'success' ? 'Notificação' : kind === 'error' ? 'Erro' : 'Informação',
+        meta: metaParts.length ? metaParts.join(' • ') : undefined,
+        duration: kind === 'error' ? 11000 : 8000,
       });
 
       if (data.entity === 'asset') {
@@ -170,9 +286,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     // Error handling
     newSocket.on('error', (error) => {
       console.error('Socket error:', error);
-      toast.error('Erro na conexão', {
-        duration: 3000,
-        icon: '❌',
+      showPrettyToast('error', 'Erro na conexão', {
+        title: 'Conexão',
+        meta: 'tempo real • socket',
+        duration: 11000,
       });
     });
 

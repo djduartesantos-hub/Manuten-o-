@@ -187,7 +187,12 @@ function App() {
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </BrowserRouter>
-          <Toaster position="top-right" />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 7000,
+            }}
+          />
         </SocketProvider>
       </QueryClientProvider>
     </ThemeProvider>
