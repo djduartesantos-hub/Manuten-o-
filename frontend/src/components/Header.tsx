@@ -127,7 +127,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/80 shadow-[0_10px_40px_-30px_rgba(15,23,42,0.4)] backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-slate-200/70 theme-card shadow-[0_10px_40px_-30px_rgba(15,23,42,0.4)] backdrop-blur">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
@@ -304,7 +304,7 @@ export function Header() {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <nav className="md:hidden border-t border-slate-200 bg-white/90 py-4">
+          <nav className="md:hidden border-t border-slate-200 theme-card py-4">
             {/* Mobile Plant Selector */}
             {plants.length > 0 && (
               <div className="mb-4 px-4">

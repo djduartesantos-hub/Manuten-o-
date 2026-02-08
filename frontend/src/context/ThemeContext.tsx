@@ -11,6 +11,7 @@ const themes: Record<ThemeName, Theme> = {
   light: {
     name: 'light',
     variables: {
+      '--dash-bg': '#f1f5f9',
       '--dash-accent': '#38bdf8',
       '--dash-accent-2': '#fef9c3',
       '--dash-ink': '#334155',
@@ -25,6 +26,7 @@ const themes: Record<ThemeName, Theme> = {
   dark: {
     name: 'dark',
     variables: {
+      '--dash-bg': '#0b1220',
       '--dash-accent': '#38bdf8',
       '--dash-accent-2': '#0f766e',
       '--dash-ink': '#f8fafc',
@@ -46,13 +48,28 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [themeName, setThemeName] = useState<ThemeName>('light');
+  const [themeName, setThemeName] = useState<ThemeName>(() => {
+    if (typeof window === 'undefined') return 'light';
+    const stored = window.localStorage.getItem('theme');
+    if (stored === 'light' || stored === 'dark') return stored;
+    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches;
+    return prefersDark ? 'dark' : 'light';
+  });
 
   React.useEffect(() => {
     const theme = themes[themeName];
     Object.entries(theme.variables).forEach(([key, value]) => {
       document.documentElement.style.setProperty(key, value);
     });
+
+    // Keep compatibility with Tailwind dark variants / global CSS
+    document.documentElement.classList.toggle('dark', themeName === 'dark');
+
+    try {
+      window.localStorage.setItem('theme', themeName);
+    } catch {
+      // ignore
+    }
   }, [themeName]);
 
   const value: ThemeContextValue = {

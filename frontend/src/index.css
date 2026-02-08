@@ -12,6 +12,7 @@
   --border: #e5e7eb; /* Light border */
 
   /* Theme variables */
+  --dash-bg: #f1f5f9;
   --dash-accent: #38bdf8;
   --dash-accent-2: #fef9c3;
   --dash-ink: #334155;
@@ -30,6 +31,7 @@
   --border: #4b5563; /* Dark border */
 
   /* Theme variables */
+  --dash-bg: #0b1220;
   --dash-accent: #38bdf8;
   --dash-accent-2: #0f766e;
   --dash-ink: #f8fafc;
@@ -51,7 +53,10 @@ body {
 }
 
 .card {
-  @apply bg-white rounded-lg shadow-sm border border-gray-200;
+  @apply rounded-lg shadow-sm border;
+  background-color: var(--dash-panel);
+  border-color: var(--dash-border);
+  color: var(--dash-ink);
 }
 
 .card-gradient {
@@ -67,37 +72,47 @@ body {
 }
 
 .btn-secondary {
-  @apply px-4 py-2 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition font-medium;
+  @apply px-4 py-2 rounded-lg transition font-medium border;
+  background-color: var(--dash-panel-2);
+  border-color: var(--dash-border);
+  color: var(--dash-ink);
+}
+
+.btn-secondary:hover {
+  background-color: var(--dash-panel);
 }
 
 .input {
-  @apply w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500;
+  @apply w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500;
+  background-color: var(--dash-panel);
+  border-color: var(--dash-border);
+  color: var(--dash-ink);
 }
 
 /* Theme-aware classes */
 .theme-bg {
-  background-color: var(--dash-bg);
+  background-color: var(--dash-bg) !important;
 }
 
 .theme-text {
-  color: var(--dash-ink);
+  color: var(--dash-ink) !important;
 }
 
 .theme-text-muted {
-  color: var(--dash-muted);
+  color: var(--dash-muted) !important;
 }
 
 .theme-card {
-  background-color: var(--dash-panel);
-  border-color: var(--dash-border);
+  background-color: var(--dash-panel) !important;
+  border-color: var(--dash-border) !important;
 }
 
 .theme-surface {
-  background-color: var(--dash-surface);
+  background-color: var(--dash-surface) !important;
 }
 
 .theme-border {
-  border-color: var(--dash-border);
+  border-color: var(--dash-border) !important;
 }
 
 .badge-success {
