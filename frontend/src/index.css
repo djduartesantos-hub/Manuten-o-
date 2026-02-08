@@ -6,17 +6,17 @@
 
 /* Add global CSS variables for light and dark themes */
 :root {
-  --background: #ffffff;
-  --foreground: #000000;
-  --card: #f9f9f9;
-  --border: #e5e7eb;
+  --background: #ffffff; /* Light background */
+  --foreground: #1f2937; /* Dark text */
+  --card: #f3f4f6; /* Light card background */
+  --border: #e5e7eb; /* Light border */
 }
 
 dark {
-  --background: #1f2937;
-  --foreground: #f9fafb;
-  --card: #374151;
-  --border: #4b5563;
+  --background: #1f2937; /* Dark background */
+  --foreground: #f9fafb; /* Light text */
+  --card: #374151; /* Dark card background */
+  --border: #4b5563; /* Dark border */
 }
 
 body {
