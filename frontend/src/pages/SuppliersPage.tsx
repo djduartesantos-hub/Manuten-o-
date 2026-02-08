@@ -243,18 +243,18 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
 
   const content = (
     <div className="space-y-8 font-display">
-        <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-sky-50 p-8 shadow-sm">
-          <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-sky-200/50 blur-3xl" />
-          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-cyan-200/40 blur-3xl" />
+        <section className="relative overflow-hidden rounded-3xl border theme-border bg-[linear-gradient(135deg,var(--dash-panel),var(--dash-panel-2))] p-8 shadow-sm">
+          <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-[color:var(--dash-accent)] opacity-20 blur-3xl" />
+          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-[color:var(--dash-accent-2)] opacity-20 blur-3xl" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                 Rede de parceiros
               </p>
-              <h1 className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl">
+              <h1 className="mt-3 text-3xl font-semibold theme-text sm:text-4xl">
                 Fornecedores confiaveis e organizados
               </h1>
-              <p className="mt-2 max-w-2xl text-sm text-slate-600">
+              <p className="mt-2 max-w-2xl text-sm theme-text-muted">
                 Centralize contatos, enderecos e disponibilidade para manter compras
                 e reposicoes em dia.
               </p>
@@ -290,8 +290,8 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
           </div>
 
           <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
+            <div className="rounded-2xl border theme-border theme-card p-4">
+              <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <Users className="h-4 w-4 text-[color:var(--suppliers-card-icon-total)]" />
                 Fornecedores ativos
               </div>
@@ -300,8 +300,8 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
               </p>
               <p className="mt-1 text-xs text-[color:var(--suppliers-card-updated)]">Base central</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
+            <div className="rounded-2xl border theme-border theme-card p-4">
+              <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <Mail className="h-4 w-4 text-[color:var(--suppliers-card-icon-email)]" />
                 Emails validados
               </div>
@@ -310,8 +310,8 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
               </p>
               <p className="mt-1 text-xs text-[color:var(--suppliers-card-updated)]">Contato rapido</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
+            <div className="rounded-2xl border theme-border theme-card p-4">
+              <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <Phone className="h-4 w-4 text-[color:var(--suppliers-card-icon-phone)]" />
                 Telefones ativos
               </div>
@@ -320,8 +320,8 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
               </p>
               <p className="mt-1 text-xs text-[color:var(--suppliers-card-updated)]">Canal direto</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
+            <div className="rounded-2xl border theme-border theme-card p-4">
+              <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <MapPin className="h-4 w-4 text-[color:var(--suppliers-card-icon-country)]" />
                 Paises mapeados
               </div>
@@ -333,16 +333,16 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-3xl border theme-border theme-card p-6 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Pesquisa rapida</h2>
-              <p className="text-sm text-slate-600">
+              <h2 className="text-lg font-semibold theme-text">Pesquisa rapida</h2>
+              <p className="text-sm theme-text-muted">
                 Filtre por nome, email, telefone ou localizacao.
               </p>
             </div>
             <div className="relative w-full lg:w-80">
-              <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-[color:var(--dash-muted)]" />
               <input
                 className="input pl-9"
                 placeholder="Buscar fornecedores"
@@ -357,7 +357,7 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
               {topCountries.map((item) => (
                 <span
                   key={item.country}
-                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700"
+                  className="rounded-full border theme-border bg-[color:var(--dash-surface)] px-3 py-1 text-xs font-semibold theme-text"
                 >
                   {item.country} · {item.count}
                 </span>

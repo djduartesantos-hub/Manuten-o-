@@ -326,18 +326,18 @@ export function ReportsPage() {
   return (
     <MainLayout>
       <div className="space-y-8 font-display">
-        <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-indigo-50 p-8 shadow-sm">
+        <section className="relative overflow-hidden rounded-3xl border theme-border bg-[linear-gradient(135deg,var(--dash-panel),var(--dash-panel-2))] p-8 shadow-sm">
           <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-[color:var(--reports-float-indigo)] blur-3xl" />
           <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-[color:var(--reports-float-emerald)] blur-3xl" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--reports-title)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                 Analises de desempenho
               </p>
-              <h1 className="mt-3 text-3xl font-semibold text-[color:var(--reports-heading)] sm:text-4xl">
+              <h1 className="mt-3 text-3xl font-semibold theme-text sm:text-4xl">
                 Relatorios avancados
               </h1>
-              <p className="mt-2 max-w-2xl text-sm text-[color:var(--reports-desc)]">
+              <p className="mt-2 max-w-2xl text-sm theme-text-muted">
                 Explore indicadores, historicos e exporte dados para auditorias
                 ou reunioes.
               </p>
@@ -408,7 +408,7 @@ export function ReportsPage() {
           <div className="card mb-6 p-4">
             <div className="flex items-center gap-3 mb-4">
               <Filter className="w-4 h-4 text-primary-600" />
-              <h2 className="text-sm font-semibold text-gray-700">Filtros</h2>
+              <h2 className="text-sm font-semibold theme-text">Filtros</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
               <input
@@ -519,7 +519,7 @@ export function ReportsPage() {
 
           {reportType === 'technician' && (
             <div className="card mb-6 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <h3 className="text-lg font-semibold theme-text mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5" />
                 Ordens por Técnico
               </h3>
@@ -529,7 +529,7 @@ export function ReportsPage() {
 
           {reportType === 'temporal' && (
             <div className="card mb-6 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <h3 className="text-lg font-semibold theme-text mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5" />
                 Tendência Temporal (Semanal)
               </h3>
@@ -539,37 +539,37 @@ export function ReportsPage() {
 
           {/* Data Table */}
           <div className="card">
-            <div className="p-4 border-b">
-              <h2 className="text-lg font-semibold text-gray-900">Ordens Filtradas</h2>
-              <p className="text-sm text-gray-500">{filteredOrders.length} registros</p>
+            <div className="p-4 border-b theme-border">
+              <h2 className="text-lg font-semibold theme-text">Ordens Filtradas</h2>
+              <p className="text-sm theme-text-muted">{filteredOrders.length} registros</p>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
+                <thead className="bg-[color:var(--dash-surface)]">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ordem</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ativo</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prioridade</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Horas</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Criada em</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Ordem</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Ativo</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Prioridade</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Horas</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Criada em</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-[color:var(--dash-panel)] divide-y divide-[color:var(--dash-border)]">
                   {filteredOrders.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-6 py-6 text-center text-gray-500">
+                      <td colSpan={6} className="px-6 py-6 text-center theme-text-muted">
                         Nenhuma ordem encontrada
                       </td>
                     </tr>
                   )}
                   {filteredOrders.map((order) => (
-                    <tr key={order.id} className="hover:bg-gray-50">
+                    <tr key={order.id} className="hover:bg-[color:var(--dash-surface)]">
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{order.title}</div>
-                        <div className="text-xs text-gray-500">{order.description || 'Sem descrição'}</div>
+                        <div className="text-sm font-medium theme-text">{order.title}</div>
+                        <div className="text-xs theme-text-muted">{order.description || 'Sem descrição'}</div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
+                      <td className="px-6 py-4 text-sm theme-text">
                         {order.asset ? `${order.asset.code}` : '-'}
                       </td>
                       <td className="px-6 py-4 text-sm">

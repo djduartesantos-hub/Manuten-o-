@@ -299,10 +299,10 @@ export function DashboardPage() {
       <div
         className="relative w-full space-y-10 rounded-[32px] bg-[color:var(--dash-bg)] p-6 font-display text-[color:var(--dash-ink)] sm:p-8"
       >
-        <section className="relative overflow-hidden rounded-[36px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#ecfeff_0%,_#ffffff_55%,_#fef9c3_120%)] p-8 shadow-[0_32px_80px_-55px_rgba(15,118,110,0.45)] lg:p-10">
+        <section className="relative overflow-hidden rounded-[36px] border border-[color:var(--dash-border)] bg-[linear-gradient(135deg,var(--dash-panel),var(--dash-panel-2))] p-8 shadow-[0_32px_80px_-55px_rgba(15,118,110,0.45)] lg:p-10">
           <div className="absolute -left-20 top-4 h-40 w-40 rounded-full bg-emerald-200/60 blur-3xl dash-float" />
           <div className="absolute -right-24 -top-16 h-64 w-64 rounded-full bg-amber-200/60 blur-3xl dash-float" />
-          <div className="absolute bottom-6 right-8 h-20 w-20 rounded-3xl border border-white/70 bg-white/70 shadow-sm" />
+          <div className="absolute bottom-6 right-8 h-20 w-20 rounded-3xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] shadow-sm" />
 
           <div className="relative grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div className="space-y-4">

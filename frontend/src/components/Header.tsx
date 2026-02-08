@@ -16,6 +16,8 @@ import {
   Users,
   Settings,
   ChevronDown,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../context/store';
@@ -44,6 +46,7 @@ export function Header() {
   const location = useLocation();
   const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.trim() || 'U';
   const { theme, setTheme } = useTheme();
+  const isDark = theme.name === 'dark';
 
   const navSections: NavSection[] = [
     {
@@ -127,7 +130,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/70 theme-card shadow-[0_10px_40px_-30px_rgba(15,23,42,0.4)] backdrop-blur">
+    <header className="sticky top-0 z-50 border-b theme-border theme-card shadow-[0_10px_40px_-30px_rgba(15,23,42,0.4)] backdrop-blur">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
@@ -136,8 +139,8 @@ export function Header() {
               <span className="text-base font-semibold tracking-tight">M</span>
             </div>
             <div className="hidden sm:block">
-              <span className="text-lg font-semibold text-slate-900">Manutencao</span>
-              <span className="block text-xs uppercase tracking-[0.3em] text-slate-400">
+              <span className="text-lg font-semibold theme-text">Manutencao</span>
+              <span className="block text-xs uppercase tracking-[0.3em] theme-text-muted">
                 Ops Hub
               </span>
             </div>
@@ -157,8 +160,8 @@ export function Header() {
                     onMouseEnter={() => setOpenDropdown(section.title)}
                     className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all ${
                       hasActiveItem || isOpen
-                        ? 'bg-[color:var(--nav-accent,rgba(15,118,110,0.12))] text-emerald-700'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        ? 'bg-[color:var(--dash-surface-2)] text-[color:var(--dash-ink)]'
+                        : 'text-[color:var(--dash-muted)] hover:bg-[color:var(--dash-surface)] hover:text-[color:var(--dash-ink)]'
                     }`}
                   >
                     {SectionIcon && <SectionIcon className="w-4 h-4" />}
@@ -171,7 +174,7 @@ export function Header() {
                   {/* Dropdown Menu */}
                   {isOpen && (
                     <div
-                      className="absolute top-full left-0 mt-2 w-56 rounded-2xl border border-slate-200 bg-white/95 py-2 shadow-xl backdrop-blur"
+                      className="absolute top-full left-0 mt-2 w-56 rounded-2xl border theme-border theme-card py-2 shadow-xl backdrop-blur"
                       onMouseLeave={() => setOpenDropdown(null)}
                     >
                       <div className="mx-3 mb-2 h-1 rounded-full bg-[linear-gradient(90deg,#0f766e,#38bdf8)]" />
@@ -184,14 +187,14 @@ export function Header() {
                             onClick={() => setOpenDropdown(null)}
                             className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
                               item.active
-                                ? 'bg-emerald-50 text-emerald-700 font-semibold'
-                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                ? 'bg-[color:var(--dash-surface)] text-emerald-700 font-semibold'
+                                : 'text-[color:var(--dash-muted)] hover:bg-[color:var(--dash-surface)] hover:text-[color:var(--dash-ink)]'
                             }`}
                           >
                             {ItemIcon && (
                               <ItemIcon
                                 className={`w-4 h-4 ${
-                                  item.active ? 'text-emerald-600' : 'text-slate-400'
+                                  item.active ? 'text-emerald-600' : 'text-[color:var(--dash-muted)]'
                                 }`}
                               />
                             )}
@@ -208,34 +211,39 @@ export function Header() {
 
           {/* Right Side */}
           <div className="flex items-center gap-3">
-                        {/* Theme Selector */}
-                        <div className="hidden sm:flex items-center">
-                          <label className="relative inline-flex cursor-pointer items-center group">
-                            <input
-                              type="checkbox"
-                              checked={theme.name === 'dark'}
-                              onChange={() => setTheme(theme.name === 'light' ? 'dark' : 'light')}
-                              className="sr-only peer"
-                              aria-label="Alternar tema claro/escuro"
-                            />
-                            <span className="w-14 h-8 flex items-center bg-gray-200 peer-checked:bg-gray-700 rounded-full px-1 transition-all duration-500 ease-in-out shadow-inner">
-                              <span className="inline-block w-6 h-6 rounded-full bg-yellow-400 shadow-lg transform transition-all duration-500 ease-in-out peer-checked:translate-x-6 peer-checked:bg-gray-800 flex items-center justify-center">
-                                <svg className="w-4 h-4 text-white transition-all duration-300 opacity-100 peer-checked:opacity-0 rotate-0 peer-checked:rotate-180" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                  <circle cx="12" cy="12" r="5"/>
-                                  <path d="M12 1v2m0 18v2m11-11h-2M3 12H1m16.95 7.95l-1.41-1.41M6.34 6.34L4.93 4.93m12.02 0l-1.41 1.41M6.34 17.66l-1.41 1.41"/>
-                                </svg>
-                                <svg className="w-4 h-4 text-yellow-300 transition-all duration-300 opacity-0 peer-checked:opacity-100 rotate-180 peer-checked:rotate-0 absolute" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                  <path d="M21 12.79A9 9 0 1111.21 3c-.11 0-.21.01-.32.02a7 7 0 000 13.96c.11.01.21.02.32.02A9 9 0 0021 12.79z"/>
-                                </svg>
-                              </span>
-                            </span>
-                          </label>
-                        </div>
+            {/* Theme Selector */}
+            <div className="hidden sm:flex items-center">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isDark}
+                aria-label="Alternar tema claro/escuro"
+                onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                className="relative inline-flex h-8 w-14 items-center rounded-full border theme-border bg-[color:var(--dash-surface-2)] px-1 shadow-inner transition-colors"
+              >
+                <span
+                  className={`relative inline-flex h-6 w-6 items-center justify-center rounded-full bg-[color:var(--dash-panel)] shadow-sm transition-transform duration-300 ease-out will-change-transform ${
+                    isDark ? 'translate-x-6' : 'translate-x-0'
+                  }`}
+                >
+                  <Sun
+                    className={`absolute h-4 w-4 text-[color:var(--dash-accent)] transition-all duration-300 ${
+                      isDark ? 'opacity-0 -rotate-90 scale-75' : 'opacity-100 rotate-0 scale-100'
+                    }`}
+                  />
+                  <Moon
+                    className={`absolute h-4 w-4 text-[color:var(--dash-ink)] transition-all duration-300 ${
+                      isDark ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 rotate-90 scale-75'
+                    }`}
+                  />
+                </span>
+              </button>
+            </div>
             {/* Plant Selector */}
             {plants.length > 0 && (
               <div className="hidden sm:flex items-center">
                 <select
-                  className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                  className="rounded-full border theme-border theme-card px-3 py-2 text-sm font-semibold text-[color:var(--dash-ink)] shadow-sm transition hover:bg-[color:var(--dash-panel)] focus:outline-none focus:ring-2 focus:ring-emerald-200"
                   value={selectedPlant || ''}
                   onChange={(event) => setSelectedPlant(event.target.value)}
                 >
@@ -264,16 +272,16 @@ export function Header() {
             </div>
 
             {/* User Menu */}
-            <div className="flex items-center gap-3 border-l border-slate-200 pl-3">
+            <div className="flex items-center gap-3 border-l theme-border pl-3">
               <div className="hidden sm:flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full theme-surface text-sm font-semibold theme-text">
                   {initials}
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-slate-900">
+                  <p className="text-sm font-semibold theme-text">
                   {user?.firstName} {user?.lastName}
                   </p>
-                  <p className="text-xs capitalize text-slate-500">
+                  <p className="text-xs capitalize theme-text-muted">
                     {user?.role?.replace(/_/g, ' ')}
                   </p>
                 </div>
@@ -281,7 +289,7 @@ export function Header() {
 
               <button
                 onClick={handleLogout}
-                className="rounded-full border border-transparent p-2 text-slate-500 transition hover:border-rose-100 hover:bg-rose-50 hover:text-rose-600"
+                className="rounded-full border border-transparent p-2 theme-text-muted transition hover:border-[color:var(--dash-border)] hover:bg-[color:var(--dash-surface)] hover:text-rose-600"
                 title="Terminar sessão"
               >
                 <LogOut className="w-5 h-5" />
@@ -291,12 +299,12 @@ export function Header() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden rounded-full p-2 transition-colors hover:bg-slate-100"
+              className="md:hidden rounded-full p-2 transition-colors hover:bg-[color:var(--dash-surface)]"
             >
               {mobileMenuOpen ? (
-                <X className="w-5 h-5 text-slate-700" />
+                <X className="w-5 h-5 theme-text" />
               ) : (
-                <Menu className="w-5 h-5 text-slate-700" />
+                <Menu className="w-5 h-5 theme-text" />
               )}
             </button>
           </div>
@@ -304,15 +312,15 @@ export function Header() {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <nav className="md:hidden border-t border-slate-200 theme-card py-4">
+          <nav className="md:hidden border-t theme-border theme-card py-4">
             {/* Mobile Plant Selector */}
             {plants.length > 0 && (
               <div className="mb-4 px-4">
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider theme-text-muted">
                   Planta
                 </label>
                 <select
-                  className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                  className="w-full rounded-full border theme-border theme-card px-3 py-2 text-sm font-semibold text-[color:var(--dash-ink)] focus:outline-none focus:ring-2 focus:ring-emerald-200"
                   value={selectedPlant || ''}
                   onChange={(event) => setSelectedPlant(event.target.value)}
                 >
@@ -346,8 +354,10 @@ export function Header() {
               return (
                 <div key={section.title} className="mb-4">
                   <div className="flex items-center gap-2 px-4 mb-2">
-                    {SectionIcon && <SectionIcon className="w-4 h-4 text-slate-400" />}
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    {SectionIcon && (
+                      <SectionIcon className="w-4 h-4 text-[color:var(--dash-muted)]" />
+                    )}
+                    <p className="text-xs font-semibold uppercase tracking-wider theme-text-muted">
                       {section.title}
                     </p>
                   </div>
@@ -361,14 +371,14 @@ export function Header() {
                           onClick={() => setMobileMenuOpen(false)}
                           className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-colors ${
                             item.active
-                              ? 'bg-emerald-100 text-emerald-700 shadow-sm'
-                              : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                              ? 'bg-[color:var(--dash-surface-2)] text-emerald-700 shadow-sm'
+                              : 'text-[color:var(--dash-muted)] hover:bg-[color:var(--dash-surface)] hover:text-[color:var(--dash-ink)]'
                           }`}
                         >
                           {ItemIcon && (
                             <ItemIcon
                               className={`w-4 h-4 ${
-                                item.active ? 'text-emerald-600' : 'text-slate-400'
+                                item.active ? 'text-emerald-600' : 'text-[color:var(--dash-muted)]'
                               }`}
                             />
                           )}
