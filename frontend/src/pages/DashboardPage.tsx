@@ -8,6 +8,7 @@ import {
   getDashboardKPIs,
   getWorkOrders,
   updateWorkOrder,
+  getUpcomingPreventiveSchedules,
 } from '../services/api';
 import {
   AlertCircle,
@@ -73,6 +74,15 @@ interface AlertItem {
   } | null;
 }
 
+interface UpcomingPreventiveSchedule {
+  id: string;
+  scheduled_for: string;
+  status: string;
+  plan_name?: string | null;
+  asset_name?: string | null;
+  asset_code?: string | null;
+}
+
 export function DashboardPage() {
   const { user, isAuthenticated } = useAuth();
   const { selectedPlant } = useAppStore();
@@ -80,6 +90,9 @@ export function DashboardPage() {
   const [kpis, setKPIs] = React.useState<KPIs | null>(null);
   const [orders, setOrders] = React.useState<DashboardWorkOrder[]>([]);
   const [alerts, setAlerts] = React.useState<AlertItem[]>([]);
+  const [upcomingPreventive, setUpcomingPreventive] = React.useState<UpcomingPreventiveSchedule[]>(
+    [],
+  );
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState('');
   const [draggingOrderId, setDraggingOrderId] = React.useState<string | null>(null);
@@ -98,68 +111,80 @@ export function DashboardPage() {
         key: 'aberta',
         label: 'Abertas',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-amber-400/80',
+        iconTone: 'text-amber-700',
         Icon: AlertTriangle,
       },
       {
         key: 'em_analise',
         label: 'Em análise',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-sky-400/80',
+        iconTone: 'text-sky-700',
         Icon: Search,
       },
       {
         key: 'aprovada',
         label: 'Aprovada',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-indigo-400/80',
+        iconTone: 'text-indigo-700',
         Icon: CheckCircle2,
       },
       {
         key: 'planeada',
         label: 'Planeada',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-cyan-400/80',
+        iconTone: 'text-cyan-800',
         Icon: CalendarClock,
       },
       {
         key: 'em_execucao',
         label: 'Em execução',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-emerald-400/80',
+        iconTone: 'text-emerald-700',
         Icon: Activity,
       },
       {
         key: 'em_pausa',
         label: 'Em pausa',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-amber-400/80',
+        iconTone: 'text-amber-700',
         Icon: PauseCircle,
       },
       {
         key: 'concluida',
         label: 'Concluidas',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-emerald-400/80',
+        iconTone: 'text-emerald-700',
         Icon: Check,
       },
       {
         key: 'fechada',
         label: 'Fechadas',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-slate-400/80',
+        iconTone: 'text-slate-600',
         Icon: Lock,
       },
       {
         key: 'cancelada',
         label: 'Canceladas',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-rose-400/80',
+        iconTone: 'text-rose-700',
         Icon: XCircle,
       },
     ],
     [],
   );
+
+  const toneForPercent = (value: number) => {
+    if (value >= 90) return 'text-emerald-700 dark:text-emerald-300';
+    if (value >= 75) return 'text-amber-700 dark:text-amber-300';
+    return 'text-rose-700 dark:text-rose-300';
+  };
+
+  const toneForBacklogPressure = (value: number) => {
+    if (value >= 60) return 'text-rose-700 dark:text-rose-300';
+    if (value >= 35) return 'text-amber-700 dark:text-amber-300';
+    return 'text-emerald-700 dark:text-emerald-300';
+  };
 
   const groupedOrders = React.useMemo(() => {
     return orders.reduce<Record<string, DashboardWorkOrder[]>>((acc, order) => {
@@ -201,16 +226,18 @@ export function DashboardPage() {
     try {
       setLoading(true);
       setError('');
-      const [metricsData, kpisData, ordersData, alertsData] = await Promise.all([
+      const [metricsData, kpisData, ordersData, alertsData, upcomingPreventiveData] = await Promise.all([
         getDashboardMetrics(selectedPlant),
         getDashboardKPIs(selectedPlant),
         getWorkOrders(selectedPlant),
         apiCall('/alerts/history?limit=6'),
+        getUpcomingPreventiveSchedules(selectedPlant, 5),
       ]);
       setMetrics(metricsData);
       setKPIs(kpisData);
       setOrders(Array.isArray(ordersData) ? ordersData : []);
       setAlerts(Array.isArray(alertsData) ? alertsData : []);
+      setUpcomingPreventive(Array.isArray(upcomingPreventiveData) ? upcomingPreventiveData : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard');
     } finally {
@@ -471,24 +498,28 @@ export function DashboardPage() {
                   className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-emerald-700 dark:text-emerald-300"
                   title="SLA (Service Level Agreement): percentagem de ordens dentro do prazo."
                 >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
                   SLA {kpis?.sla_compliance ?? 0}%
                 </span>
                 <span
                   className="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-amber-700 dark:text-amber-300"
                   title="Backlog: ordens pendentes (em aberto e em execução/pause/análise conforme regras do KPI)."
                 >
+                  <AlertCircle className="h-3.5 w-3.5" />
                   Backlog {kpis?.backlog ?? 0}
                 </span>
                 <span
                   className="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 text-sky-700 dark:text-sky-300"
                   title="MTTR (Mean Time To Repair): tempo médio de reparação."
                 >
+                  <Clock className="h-3.5 w-3.5" />
                   MTTR {kpis?.mttr ?? 0}h
                 </span>
                 <span
                   className="inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-indigo-700 dark:text-indigo-300"
                   title="MTBF (Mean Time Between Failures): tempo médio entre falhas."
                 >
+                  <Activity className="h-3.5 w-3.5" />
                   MTBF {kpis?.mtbf ?? 0}h
                 </span>
               </div>
@@ -604,24 +635,45 @@ export function DashboardPage() {
                 </div>
               </div>
 
-              <div className="lg:col-span-2 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                    Efetividade
-                  </p>
-                  <p className="mt-2 text-3xl font-semibold text-[color:var(--dash-ink)]">
-                    {completionRate}%
-                  </p>
-                  <p className="text-xs text-[color:var(--dash-muted)]">Ordens concluidas</p>
+              <div className="lg:col-span-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2.5 shadow-sm" title="Efetividade: percentagem de ordens concluídas/fechadas no total.">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                      Efetividade
+                    </p>
+                    <Check className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <p className={`mt-2 text-xl font-semibold ${toneForPercent(completionRate)}`}>{completionRate}%</p>
                 </div>
-                <div className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                    Pressao de backlog
-                  </p>
-                  <p className="mt-2 text-3xl font-semibold text-[color:var(--dash-ink)]">
-                    {backlogShare}%
-                  </p>
-                  <p className="text-xs text-[color:var(--dash-muted)]">Participacao no total</p>
+
+                <div className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2.5 shadow-sm" title="Pressão de backlog: participação do backlog no total de ordens.">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                      Pressao backlog
+                    </p>
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <p className={`mt-2 text-xl font-semibold ${toneForBacklogPressure(backlogShare)}`}>{backlogShare}%</p>
+                </div>
+
+                <div className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2.5 shadow-sm" title="SLA: percentagem de ordens dentro do prazo.">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                      SLA
+                    </p>
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <p className={`mt-2 text-xl font-semibold ${toneForPercent(kpis?.sla_compliance ?? 0)}`}>{kpis?.sla_compliance ?? 0}%</p>
+                </div>
+
+                <div className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2.5 shadow-sm" title="Backlog: total de ordens pendentes.">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                      Backlog
+                    </p>
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <p className="mt-2 text-xl font-semibold text-[color:var(--dash-ink)]">{kpis?.backlog ?? 0}</p>
                 </div>
               </div>
             </div>
@@ -753,11 +805,10 @@ export function DashboardPage() {
                             const Icon = (column as any).Icon as typeof Activity;
                             return (
                               <span className="inline-flex h-7 w-7 items-center justify-center rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)]">
-                                <Icon className="h-4 w-4" />
+                                <Icon className={`h-4 w-4 ${(column as any).iconTone || ''}`} />
                               </span>
                             );
                           })()}
-                          <span className={`h-2.5 w-2.5 rounded-full ${column.dot}`} />
                           {column.label}
                         </div>
                         <span className="text-xs text-[color:var(--dash-muted)]">
@@ -893,6 +944,44 @@ export function DashboardPage() {
             </div>
 
             <aside className="space-y-6">
+              <div className="relative overflow-hidden rounded-[28px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
+                <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent),#38bdf8)]" />
+                <h3 className="text-sm font-semibold text-[color:var(--dash-ink)]">Próximas a realizar</h3>
+                <p className="mt-2 text-xs text-[color:var(--dash-muted)]">
+                  Preventivas agendadas para breve.
+                </p>
+                <div className="mt-4 space-y-3">
+                  {upcomingPreventive.length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] px-4 py-6 text-center text-xs text-[color:var(--dash-muted)]">
+                      Sem preventivas agendadas.
+                    </div>
+                  )}
+                  {upcomingPreventive.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-4 py-3"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-[color:var(--dash-ink)]">
+                          {item.asset_code
+                            ? `${item.asset_code} - ${item.asset_name || ''}`
+                            : item.asset_name || 'Sem ativo'}
+                        </p>
+                        <span className="rounded-full bg-[color:var(--dash-panel)] px-2 py-1 text-[10px] font-semibold text-[color:var(--dash-muted)]">
+                          {item.status}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                        {item.plan_name || 'Plano preventivo'}
+                      </p>
+                      <p className="mt-2 text-xs font-semibold text-[color:var(--dash-ink)]">
+                        {formatDateTime(item.scheduled_for)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="relative overflow-hidden rounded-[28px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
                 <div className="absolute right-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent-2),var(--dash-accent))]" />
                 <h3 className="text-sm font-semibold text-[color:var(--dash-ink)]">Foco imediato</h3>
