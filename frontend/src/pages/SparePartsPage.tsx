@@ -10,10 +10,13 @@ import {
   Wrench,
 } from 'lucide-react';
 import { useAppStore } from '../context/store';
+import { useAuth } from '../hooks/useAuth';
 import {
   getSpareParts,
   getStockMovementsByPlant,
 } from '../services/api';
+import { StockEntryPage } from './StockEntryPage';
+import { SparePartRegisterPage } from './SparePartRegisterPage';
 
 interface SparePart {
   id: string;
@@ -41,7 +44,9 @@ interface StockMovement {
 
 export function SparePartsPage() {
   const { selectedPlant } = useAppStore();
+  const { user } = useAuth();
   const [activeView, setActiveView] = useState<'parts' | 'movements'>('parts');
+  const [quickAction, setQuickAction] = useState<'spareparts' | 'stock' | null>(null);
   const [parts, setParts] = useState<SparePart[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(false);
@@ -62,6 +67,23 @@ export function SparePartsPage() {
   const [movementSort, setMovementSort] = useState('date_desc');
   const [partsVisibleCount, setPartsVisibleCount] = useState(20);
   const [movementsVisibleCount, setMovementsVisibleCount] = useState(20);
+
+  const userRole = user?.role || '';
+  const canRegisterParts = useMemo(
+    () => ['gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'].includes(userRole),
+    [userRole],
+  );
+  const canRegisterStock = useMemo(
+    () =>
+      ['tecnico', 'gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'].includes(
+        userRole,
+      ),
+    [userRole],
+  );
+  const canViewCosts = useMemo(
+    () => ['gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'].includes(userRole),
+    [userRole],
+  );
 
   const movementSummary = useMemo(() => {
     return movements.reduce(
@@ -100,8 +122,8 @@ export function SparePartsPage() {
     const normalizedSearch = movementSearch.trim().toLowerCase();
     const minQty = movementMinQty ? Number(movementMinQty) : null;
     const maxQty = movementMaxQty ? Number(movementMaxQty) : null;
-    const minCost = movementMinCost ? Number(movementMinCost) : null;
-    const maxCost = movementMaxCost ? Number(movementMaxCost) : null;
+    const minCost = canViewCosts && movementMinCost ? Number(movementMinCost) : null;
+    const maxCost = canViewCosts && movementMaxCost ? Number(movementMaxCost) : null;
 
     return movements.filter((movement) => {
       if (movementTypeFilter !== 'all' && movement.type !== movementTypeFilter) {
@@ -141,6 +163,7 @@ export function SparePartsPage() {
       return true;
     });
   }, [
+    canViewCosts,
     movementEndDate,
     movementMaxCost,
     movementMaxQty,
@@ -168,8 +191,8 @@ export function SparePartsPage() {
   const filteredParts = useMemo(() => {
     const normalizedSearch = partSearch.trim().toLowerCase();
     const normalizedSupplier = partSupplierSearch.trim().toLowerCase();
-    const minCost = partMinCost ? Number(partMinCost) : null;
-    const maxCost = partMaxCost ? Number(partMaxCost) : null;
+    const minCost = canViewCosts && partMinCost ? Number(partMinCost) : null;
+    const maxCost = canViewCosts && partMaxCost ? Number(partMaxCost) : null;
 
     return parts.filter((part) => {
       if (normalizedSearch) {
@@ -188,7 +211,7 @@ export function SparePartsPage() {
 
       return true;
     });
-  }, [partMaxCost, partMinCost, partSearch, partSupplierSearch, parts]);
+  }, [canViewCosts, partMaxCost, partMinCost, partSearch, partSupplierSearch, parts]);
 
   const sortedParts = useMemo(() => {
     const items = [...filteredParts];
@@ -201,12 +224,14 @@ export function SparePartsPage() {
       case 'code_desc':
         return items.sort((a, b) => b.code.localeCompare(a.code));
       case 'cost_asc':
+        if (!canViewCosts) return items.sort((a, b) => a.name.localeCompare(b.name));
         return items.sort((a, b) => {
           const aCost = numericCost(a.unit_cost) ?? Number.POSITIVE_INFINITY;
           const bCost = numericCost(b.unit_cost) ?? Number.POSITIVE_INFINITY;
           return aCost - bCost;
         });
       case 'cost_desc':
+        if (!canViewCosts) return items.sort((a, b) => a.name.localeCompare(b.name));
         return items.sort((a, b) => {
           const aCost = numericCost(a.unit_cost) ?? Number.NEGATIVE_INFINITY;
           const bCost = numericCost(b.unit_cost) ?? Number.NEGATIVE_INFINITY;
@@ -218,7 +243,7 @@ export function SparePartsPage() {
       default:
         return items.sort((a, b) => a.name.localeCompare(b.name));
     }
-  }, [filteredParts, partSort]);
+  }, [canViewCosts, filteredParts, partSort]);
 
   const sortedMovements = useMemo(() => {
     const items = [...filteredMovements];
@@ -235,12 +260,22 @@ export function SparePartsPage() {
       case 'qty_asc':
         return items.sort((a, b) => a.quantity - b.quantity);
       case 'cost_desc':
+        if (!canViewCosts) {
+          return items.sort((a, b) =>
+            new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
+          );
+        }
         return items.sort((a, b) => {
           const aCost = numericCost(a.unit_cost) ?? Number.NEGATIVE_INFINITY;
           const bCost = numericCost(b.unit_cost) ?? Number.NEGATIVE_INFINITY;
           return bCost - aCost;
         });
       case 'cost_asc':
+        if (!canViewCosts) {
+          return items.sort((a, b) =>
+            new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
+          );
+        }
         return items.sort((a, b) => {
           const aCost = numericCost(a.unit_cost) ?? Number.POSITIVE_INFINITY;
           const bCost = numericCost(b.unit_cost) ?? Number.POSITIVE_INFINITY;
@@ -252,7 +287,7 @@ export function SparePartsPage() {
           new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
         );
     }
-  }, [filteredMovements, movementSort]);
+  }, [canViewCosts, filteredMovements, movementSort]);
 
   const visibleParts = useMemo(
     () => sortedParts.slice(0, partsVisibleCount),
@@ -316,6 +351,31 @@ export function SparePartsPage() {
                 <RefreshCcw className="h-4 w-4" />
                 Atualizar
               </button>
+              {(canRegisterParts || canRegisterStock) && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {canRegisterParts && (
+                    <button
+                      type="button"
+                      onClick={() => setQuickAction('spareparts')}
+                      className="btn-primary"
+                      disabled={!selectedPlant}
+                    >
+                      Registar peças
+                    </button>
+                  )}
+                  {canRegisterStock && (
+                    <button
+                      type="button"
+                      onClick={() => setQuickAction('stock')}
+                      className="btn-secondary"
+                      disabled={!selectedPlant || parts.length === 0}
+                      title={parts.length === 0 ? 'Registe uma peça primeiro' : undefined}
+                    >
+                      Stock de peças
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -420,29 +480,41 @@ export function SparePartsPage() {
                         <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] theme-text-muted">
                           Custo mín.
                         </p>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min={0}
-                          className="input h-9"
-                          placeholder="€"
-                          value={partMinCost}
-                          onChange={(event) => setPartMinCost(event.target.value)}
-                        />
+                        {canViewCosts ? (
+                          <input
+                            type="number"
+                            step="0.01"
+                            min={0}
+                            className="input h-9"
+                            placeholder="€"
+                            value={partMinCost}
+                            onChange={(event) => setPartMinCost(event.target.value)}
+                          />
+                        ) : (
+                          <div className="input h-9 flex items-center theme-text-muted">
+                            Restrito
+                          </div>
+                        )}
                       </div>
                       <div>
                         <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] theme-text-muted">
                           Custo máx.
                         </p>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min={0}
-                          className="input h-9"
-                          placeholder="€"
-                          value={partMaxCost}
-                          onChange={(event) => setPartMaxCost(event.target.value)}
-                        />
+                        {canViewCosts ? (
+                          <input
+                            type="number"
+                            step="0.01"
+                            min={0}
+                            className="input h-9"
+                            placeholder="€"
+                            value={partMaxCost}
+                            onChange={(event) => setPartMaxCost(event.target.value)}
+                          />
+                        ) : (
+                          <div className="input h-9 flex items-center theme-text-muted">
+                            Restrito
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -455,8 +527,8 @@ export function SparePartsPage() {
                         <option value="name_desc">Nome (Z-A)</option>
                         <option value="code_asc">Código (A-Z)</option>
                         <option value="code_desc">Código (Z-A)</option>
-                        <option value="cost_asc">Custo (baixo-alto)</option>
-                        <option value="cost_desc">Custo (alto-baixo)</option>
+                        {canViewCosts && <option value="cost_asc">Custo (baixo-alto)</option>}
+                        {canViewCosts && <option value="cost_desc">Custo (alto-baixo)</option>}
                       </select>
                       <button
                         className="btn-secondary h-9"
@@ -483,9 +555,11 @@ export function SparePartsPage() {
                           <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
                             Nome
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
-                            Custo
-                          </th>
+                          {canViewCosts && (
+                            <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
+                              Custo
+                            </th>
+                          )}
                           <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
                             Stock
                           </th>
@@ -500,8 +574,36 @@ export function SparePartsPage() {
                       <tbody className="divide-y divide-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
                         {filteredParts.length === 0 && (
                           <tr>
-                            <td colSpan={6} className="px-6 py-6 text-center theme-text-muted">
-                              Nenhuma peça encontrada. Registe peças em Configurações → Gestão administrativa → Registar peças.
+                            <td
+                              colSpan={canViewCosts ? 6 : 5}
+                              className="px-6 py-8 text-center theme-text-muted"
+                            >
+                              <div className="space-y-3">
+                                <p>Nenhuma peça encontrada.</p>
+                                {(canRegisterParts || canRegisterStock) && (
+                                  <div className="flex flex-wrap justify-center gap-2">
+                                    {canRegisterParts && (
+                                      <button
+                                        type="button"
+                                        className="btn-primary"
+                                        onClick={() => setQuickAction('spareparts')}
+                                      >
+                                        Registar peças
+                                      </button>
+                                    )}
+                                    {canRegisterStock && (
+                                      <button
+                                        type="button"
+                                        className="btn-secondary"
+                                        onClick={() => setQuickAction('stock')}
+                                        disabled={parts.length === 0}
+                                      >
+                                        Stock de peças
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         )}
@@ -519,9 +621,11 @@ export function SparePartsPage() {
                                 {part.code}
                               </td>
                               <td className="px-6 py-4 text-sm theme-text">{part.name}</td>
-                              <td className="px-6 py-4 text-sm theme-text">
-                                {part.unit_cost ? `€ ${part.unit_cost}` : '-'}
-                              </td>
+                              {canViewCosts && (
+                                <td className="px-6 py-4 text-sm theme-text">
+                                  {part.unit_cost ? `€ ${part.unit_cost}` : '-'}
+                                </td>
+                              )}
                               <td className="px-6 py-4 text-sm theme-text">
                                 <span className={isLow ? 'text-rose-600 font-semibold' : undefined}>
                                   {currentStock}
@@ -637,24 +741,32 @@ export function SparePartsPage() {
                         value={movementMaxQty}
                         onChange={(event) => setMovementMaxQty(event.target.value)}
                       />
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        className="input h-9"
-                        placeholder="Custo mín"
-                        value={movementMinCost}
-                        onChange={(event) => setMovementMinCost(event.target.value)}
-                      />
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        className="input h-9"
-                        placeholder="Custo máx"
-                        value={movementMaxCost}
-                        onChange={(event) => setMovementMaxCost(event.target.value)}
-                      />
+                      {canViewCosts ? (
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          className="input h-9"
+                          placeholder="Custo mín"
+                          value={movementMinCost}
+                          onChange={(event) => setMovementMinCost(event.target.value)}
+                        />
+                      ) : (
+                        <div className="input h-9 flex items-center theme-text-muted">Restrito</div>
+                      )}
+                      {canViewCosts ? (
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          className="input h-9"
+                          placeholder="Custo máx"
+                          value={movementMaxCost}
+                          onChange={(event) => setMovementMaxCost(event.target.value)}
+                        />
+                      ) : (
+                        <div className="input h-9 flex items-center theme-text-muted">Restrito</div>
+                      )}
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -667,8 +779,8 @@ export function SparePartsPage() {
                         <option value="date_asc">Data (antigo)</option>
                         <option value="qty_desc">Quantidade (maior)</option>
                         <option value="qty_asc">Quantidade (menor)</option>
-                        <option value="cost_desc">Custo (alto-baixo)</option>
-                        <option value="cost_asc">Custo (baixo-alto)</option>
+                        {canViewCosts && <option value="cost_desc">Custo (alto-baixo)</option>}
+                        {canViewCosts && <option value="cost_asc">Custo (baixo-alto)</option>}
                       </select>
                       <button
                         className="btn-secondary h-9"
@@ -703,9 +815,11 @@ export function SparePartsPage() {
                           <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
                             Quantidade
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
-                            Custo
-                          </th>
+                          {canViewCosts && (
+                            <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
+                              Custo
+                            </th>
+                          )}
                           <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
                             Data
                           </th>
@@ -714,7 +828,10 @@ export function SparePartsPage() {
                       <tbody className="divide-y divide-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
                         {filteredMovements.length === 0 && (
                           <tr>
-                            <td colSpan={5} className="px-6 py-6 text-center theme-text-muted">
+                            <td
+                              colSpan={canViewCosts ? 5 : 4}
+                              className="px-6 py-6 text-center theme-text-muted"
+                            >
                               Nenhum movimento encontrado
                             </td>
                           </tr>
@@ -743,9 +860,11 @@ export function SparePartsPage() {
                               </span>
                             </td>
                             <td className="px-6 py-4 text-sm theme-text">{movement.quantity}</td>
-                            <td className="px-6 py-4 text-sm theme-text">
-                              {movement.unit_cost ? `€ ${movement.unit_cost}` : '-'}
-                            </td>
+                            {canViewCosts && (
+                              <td className="px-6 py-4 text-sm theme-text">
+                                {movement.unit_cost ? `€ ${movement.unit_cost}` : '-'}
+                              </td>
+                            )}
                             <td className="px-6 py-4 text-sm theme-text">
                               {movement.created_at
                                 ? new Date(movement.created_at).toLocaleString()
@@ -772,6 +891,27 @@ export function SparePartsPage() {
           </>
         )}
       </div>
+
+      {quickAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setQuickAction(null)}
+          />
+          <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+            <button
+              onClick={() => setQuickAction(null)}
+              className="absolute right-6 top-6 z-10 rounded-full border theme-border theme-card px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
+            >
+              Fechar
+            </button>
+            <div className="max-h-[80vh] overflow-y-auto pr-1">
+              {quickAction === 'spareparts' && canRegisterParts && <SparePartRegisterPage embedded />}
+              {quickAction === 'stock' && canRegisterStock && <StockEntryPage embedded />}
+            </div>
+          </div>
+        </div>
+      )}
     </MainLayout>
   );
 }

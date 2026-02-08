@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { MainLayout } from '../layouts/MainLayout';
 import { useAppStore } from '../context/store';
+import { useAuth } from '../hooks/useAuth';
 import { createSparePart, getSuppliers } from '../services/api';
 
 interface SupplierOption {
@@ -20,6 +21,7 @@ interface SupplierOption {
 
 export function SparePartRegisterPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { selectedPlant } = useAppStore();
+  const { user } = useAuth();
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -36,6 +38,12 @@ export function SparePartRegisterPage({ embedded = false }: { embedded?: boolean
     min_stock: '',
     supplier_id: '',
   });
+
+  const userRole = user?.role || '';
+  const canViewCosts = useMemo(
+    () => ['gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'].includes(userRole),
+    [userRole],
+  );
 
   const loadSuppliers = useCallback(async () => {
     if (!selectedPlant || !selectedPlant.trim()) {
@@ -102,10 +110,12 @@ export function SparePartRegisterPage({ embedded = false }: { embedded?: boolean
       return;
     }
 
-    const decimalRegex = /^\d+(\.\d{1,2})?$/;
-    if (form.unit_cost.trim() && !decimalRegex.test(form.unit_cost.trim())) {
-      setError('Custo unitário inválido. Use formato decimal, ex: 12.50');
-      return;
+    if (canViewCosts) {
+      const decimalRegex = /^\d+(\.\d{1,2})?$/;
+      if (form.unit_cost.trim() && !decimalRegex.test(form.unit_cost.trim())) {
+        setError('Custo unitário inválido. Use formato decimal, ex: 12.50');
+        return;
+      }
     }
 
     setSaving(true);
@@ -114,7 +124,7 @@ export function SparePartRegisterPage({ embedded = false }: { embedded?: boolean
         code: form.code.trim(),
         name: form.name.trim(),
         description: form.description.trim() || undefined,
-        unit_cost: form.unit_cost.trim() || undefined,
+        unit_cost: canViewCosts ? form.unit_cost.trim() || undefined : undefined,
         min_stock: minStockValue,
         supplier_id: form.supplier_id || undefined,
       });
@@ -271,19 +281,23 @@ export function SparePartRegisterPage({ embedded = false }: { embedded?: boolean
               />
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium theme-text">Custo unitário (opcional)</label>
-              <input
-                className="input"
-                value={form.unit_cost}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, unit_cost: event.target.value }))
-                }
-                placeholder="ex: 12.50"
-                disabled={saving}
-              />
-              <p className="mt-2 text-xs theme-text-muted">Formato decimal (ex: 10 ou 10.50)</p>
-            </div>
+            {canViewCosts && (
+              <div>
+                <label className="mb-1 block text-sm font-medium theme-text">
+                  Custo unitário (opcional)
+                </label>
+                <input
+                  className="input"
+                  value={form.unit_cost}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, unit_cost: event.target.value }))
+                  }
+                  placeholder="ex: 12.50"
+                  disabled={saving}
+                />
+                <p className="mt-2 text-xs theme-text-muted">Formato decimal (ex: 10 ou 10.50)</p>
+              </div>
+            )}
 
             <div className="md:col-span-2">
               <label className="mb-1 block text-sm font-medium theme-text">Descrição (opcional)</label>

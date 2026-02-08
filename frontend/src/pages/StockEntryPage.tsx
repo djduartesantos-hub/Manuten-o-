@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowUpCircle, Boxes, CheckCircle2, Loader2, Plus, RefreshCcw, Search, XCircle } from 'lucide-react';
 import { MainLayout } from '../layouts/MainLayout';
 import { useAppStore } from '../context/store';
+import { useAuth } from '../hooks/useAuth';
 import { createStockMovement, getSpareParts } from '../services/api';
 
 interface SparePartOption {
@@ -13,6 +14,7 @@ interface SparePartOption {
 
 export function StockEntryPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { selectedPlant } = useAppStore();
+  const { user } = useAuth();
   const [parts, setParts] = useState<SparePartOption[]>([]);
   const [loadingParts, setLoadingParts] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -27,7 +29,13 @@ export function StockEntryPage({ embedded = false }: { embedded?: boolean } = {}
     notes: '',
   });
 
-  const loadParts = async () => {
+  const userRole = user?.role || '';
+  const canViewCosts = useMemo(
+    () => ['gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'].includes(userRole),
+    [userRole],
+  );
+
+  const loadParts = useCallback(async () => {
     if (!selectedPlant || !selectedPlant.trim()) {
       setParts([]);
       return;
@@ -44,12 +52,11 @@ export function StockEntryPage({ embedded = false }: { embedded?: boolean } = {}
     } finally {
       setLoadingParts(false);
     }
-  };
+  }, [selectedPlant]);
 
   useEffect(() => {
     loadParts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPlant]);
+  }, [loadParts]);
 
   const filteredParts = useMemo(() => {
     const query = partSearch.trim().toLowerCase();
@@ -98,7 +105,7 @@ export function StockEntryPage({ embedded = false }: { embedded?: boolean } = {}
         spare_part_id: form.spare_part_id,
         type: 'entrada',
         quantity: qty,
-        unit_cost: form.unit_cost || undefined,
+        unit_cost: canViewCosts ? form.unit_cost || undefined : undefined,
         notes: form.notes.trim() || undefined,
       });
 
@@ -228,9 +235,11 @@ export function StockEntryPage({ embedded = false }: { embedded?: boolean } = {}
                       <Boxes className="h-4 w-4 text-amber-600" />
                       {selectedPart.code} · {selectedPart.name}
                     </span>
-                    <span>
-                      Custo base: {selectedPart.unit_cost ? `€ ${selectedPart.unit_cost}` : '-'}
-                    </span>
+                    {canViewCosts && (
+                      <span>
+                        Custo base: {selectedPart.unit_cost ? `€ ${selectedPart.unit_cost}` : '-'}
+                      </span>
+                    )}
                   </div>
                 </div>
               )}
@@ -250,20 +259,22 @@ export function StockEntryPage({ embedded = false }: { embedded?: boolean } = {}
               />
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium theme-text">
-                Custo unitário (opcional)
-              </label>
-              <input
-                className="input"
-                value={form.unit_cost}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, unit_cost: event.target.value }))
-                }
-                placeholder="ex: 12.50"
-                disabled={saving}
-              />
-            </div>
+            {canViewCosts && (
+              <div>
+                <label className="mb-1 block text-sm font-medium theme-text">
+                  Custo unitário (opcional)
+                </label>
+                <input
+                  className="input"
+                  value={form.unit_cost}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, unit_cost: event.target.value }))
+                  }
+                  placeholder="ex: 12.50"
+                  disabled={saving}
+                />
+              </div>
+            )}
 
             <div className="lg:col-span-2">
               <label className="mb-1 block text-sm font-medium theme-text">Notas (opcional)</label>
