@@ -7,6 +7,7 @@ interface MainLayoutProps {
   wide?: boolean;
 }
 
+export function MainLayout({ children, wide = false }: MainLayoutProps) {
   return (
     <ThemeProvider>
       <div className="min-h-screen bg-gray-50">
