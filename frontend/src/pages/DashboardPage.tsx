@@ -298,19 +298,6 @@ export function DashboardPage() {
     <MainLayout wide>
       <div
         className="relative w-full space-y-10 rounded-[32px] bg-[linear-gradient(180deg,#f1f5f9_0%,#e2e8f0_45%,#e5edf5_100%)] p-6 font-display text-[color:var(--dash-ink)] sm:p-8"
-        style={
-          {
-            '--dash-accent': '#0f766e',
-            '--dash-accent-2': '#f59e0b',
-            '--dash-ink': '#0f172a',
-            '--dash-muted': '#475569',
-            '--dash-panel': 'rgba(255,255,255,0.9)',
-            '--dash-panel-2': 'rgba(248,250,252,0.9)',
-            '--dash-border': 'rgba(148,163,184,0.35)',
-            '--dash-surface': '#f1f5f9',
-            '--dash-surface-2': '#e2e8f0',
-          } as CSSProperties
-        }
       >
         <section className="relative overflow-hidden rounded-[36px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#ecfeff_0%,_#ffffff_55%,_#fef9c3_120%)] p-8 shadow-[0_32px_80px_-55px_rgba(15,118,110,0.45)] lg:p-10">
           <div className="absolute -left-20 top-4 h-40 w-40 rounded-full bg-emerald-200/60 blur-3xl dash-float" />
@@ -598,7 +585,7 @@ export function DashboardPage() {
                             </div>
                             <div className="mt-3 flex items-center justify-between text-[11px] text-[color:var(--dash-muted)]">
                               <span>{formatDateTime(order.created_at)}</span>
-                              <span className="rounded-full bg-slate-800/70 px-2 py-1 text-[10px] text-[color:var(--dash-muted)]">
+                              <span className="rounded-full bg-[color:var(--dash-accent)] px-2 py-1 text-[10px] text-white">
                                 #{order.id.slice(0, 6)}
                               </span>
                             </div>
@@ -700,7 +687,7 @@ export function DashboardPage() {
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-[28px] border border-emerald-400/20 bg-[linear-gradient(135deg,#0f172a,#111827)] p-6 text-[color:var(--dash-ink)] shadow-[0_20px_60px_-45px_rgba(16,185,129,0.45)]">
+                <div className="relative overflow-hidden rounded-[28px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
                 <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-400/20 blur-2xl" />
                 <h3 className="text-sm font-semibold">Top ativos</h3>
                 <p className="mt-2 text-xs text-[color:var(--dash-muted)]">

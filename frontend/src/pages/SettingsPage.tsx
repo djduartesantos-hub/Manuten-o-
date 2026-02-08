@@ -100,14 +100,6 @@ export function SettingsPage() {
     <MainLayout>
       <div
         className="relative space-y-10 font-display text-[color:var(--settings-ink)]"
-        style={
-          {
-            '--settings-accent': '#0f766e',
-            '--settings-accent-2': '#2563eb',
-            '--settings-ink': '#0f172a',
-            '--settings-surface': '#f8fafc',
-          } as CSSProperties
-        }
       >
         <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#ecfeff,_#ffffff_55%)] p-8 shadow-[0_28px_80px_-60px_rgba(15,118,110,0.5)]">
           <div className="absolute -right-12 -top-20 h-56 w-56 rounded-full bg-emerald-200/60 blur-3xl" />

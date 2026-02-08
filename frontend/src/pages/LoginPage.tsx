@@ -37,12 +37,6 @@ export function LoginPage() {
   return (
     <div
       className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_#ecfdf3,_#f8fafc_55%)] text-slate-900"
-      style={
-        {
-          '--auth-accent': '#0f766e',
-          '--auth-accent-2': '#38bdf8',
-        } as CSSProperties
-      }
     >
       <div className="absolute -top-32 -left-24 h-80 w-80 rounded-full bg-emerald-200/60 blur-3xl auth-float" />
       <div className="absolute -bottom-40 right-0 h-96 w-96 rounded-full bg-sky-200/70 blur-3xl auth-float" />

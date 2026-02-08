@@ -210,17 +210,22 @@ export function Header() {
           <div className="flex items-center gap-3">
                         {/* Theme Selector */}
                         <div className="hidden sm:flex items-center">
-                          <button
-                            className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                            title="Alternar tema"
-                            onClick={() => setTheme(theme.name === 'light' ? 'dark' : 'light')}
-                          >
-                            {theme.name === 'light' ? (
-                              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m8.66-10.66l-.71.71M4.05 19.95l-.71.71M21 12h1M3 12H2m16.95 7.95l-.71-.71M4.05 4.05l-.71-.71" /><circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth={2} /></svg>
-                            ) : (
-                              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12.79A9 9 0 0112.21 3c-.11 0-.21.01-.32.02a7 7 0 000 13.96c.11.01.21.02.32.02A9 9 0 0021 12.79z" /></svg>
-                            )}
-                          </button>
+                          <label className="relative inline-flex cursor-pointer items-center">
+                            <input
+                              type="checkbox"
+                              checked={theme.name === 'dark'}
+                              onChange={() => setTheme(theme.name === 'light' ? 'dark' : 'light')}
+                              className="sr-only peer"
+                            />
+                            <div className="peer h-7 w-12 rounded-full bg-gray-200 peer-checked:bg-gray-700 transition-colors duration-300 flex items-center px-1">
+                              <span className="transition-transform duration-300 transform peer-checked:translate-x-5">
+                                <svg className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 15a5 5 0 100-10 5 5 0 000 10z" /><path fillRule="evenodd" d="M10 1a1 1 0 011 1v1a1 1 0 11-2 0V2a1 1 0 011-1zm0 16a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zm9-7a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM4 10a1 1 0 01-1 1H2a1 1 0 110-2h1a1 1 0 011 1zm12.071-5.071a1 1 0 010 1.414l-.707.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM5.636 15.536a1 1 0 010 1.415l-.707.707a1 1 0 11-1.415-1.415l.708-.707a1 1 0 011.414 0zm10.607 1.415a1 1 0 01-1.415 0l-.707-.707a1 1 0 111.415-1.415l.707.707a1 1 0 010 1.415zM5.636 4.464a1 1 0 01-1.415 0l-.707-.707A1 1 0 115.93 2.343l.707.707a1 1 0 010 1.414z" clipRule="evenodd" /></svg>
+                              </span>
+                              <span className="transition-transform duration-300 transform -translate-x-5 peer-checked:translate-x-0">
+                                <svg className="w-5 h-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>
+                              </span>
+                            </div>
+                          </label>
                         </div>
             {/* Plant Selector */}
             {plants.length > 0 && (
