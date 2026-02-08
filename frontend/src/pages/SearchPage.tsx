@@ -231,28 +231,28 @@ export function SearchPage() {
 
         {(results.orders.total > 0 || results.assets.total > 0) && (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="search-reveal rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-                ordens
-              </p>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
-                {results.orders.total}
-              </p>
-            </div>
-            <div className="search-reveal search-reveal-delay-1 rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-                equipamentos
-              </p>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
-                {results.assets.total}
-              </p>
-            </div>
-            <div className="search-reveal search-reveal-delay-2 rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-sm">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-                pesquisa
-              </p>
-              <p className="mt-3 text-sm font-semibold text-slate-900">{lastQuery}</p>
-            </div>
+            <div className="search-reveal rounded-[26px] border border-[color:var(--search-summary-border)] bg-[color:var(--search-summary-bg)] p-4 shadow-sm">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--search-summary-label)]">
+                  ordens
+                </p>
+                <p className="mt-3 text-2xl font-semibold text-[color:var(--search-summary-value)]">
+                  {results.orders.total}
+                </p>
+              </div>
+              <div className="search-reveal search-reveal-delay-1 rounded-[26px] border border-[color:var(--search-summary-border)] bg-[color:var(--search-summary-bg)] p-4 shadow-sm">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--search-summary-label)]">
+                  equipamentos
+                </p>
+                <p className="mt-3 text-2xl font-semibold text-[color:var(--search-summary-value)]">
+                  {results.assets.total}
+                </p>
+              </div>
+              <div className="search-reveal search-reveal-delay-2 rounded-[26px] border border-[color:var(--search-summary-border)] bg-[color:var(--search-summary-bg)] p-4 shadow-sm">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--search-summary-label)]">
+                  pesquisa
+                </p>
+                <p className="mt-3 text-sm font-semibold text-[color:var(--search-summary-value)]">{lastQuery}</p>
+              </div>
           </div>
         )}
 

@@ -327,17 +327,17 @@ export function ReportsPage() {
     <MainLayout>
       <div className="space-y-8 font-display">
         <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-indigo-50 p-8 shadow-sm">
-          <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-indigo-200/50 blur-3xl" />
-          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-emerald-200/40 blur-3xl" />
+          <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-[color:var(--reports-float-indigo)] blur-3xl" />
+          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-[color:var(--reports-float-emerald)] blur-3xl" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--reports-title)]">
                 Analises de desempenho
               </p>
-              <h1 className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl">
+              <h1 className="mt-3 text-3xl font-semibold text-[color:var(--reports-heading)] sm:text-4xl">
                 Relatorios avancados
               </h1>
-              <p className="mt-2 max-w-2xl text-sm text-slate-600">
+              <p className="mt-2 max-w-2xl text-sm text-[color:var(--reports-desc)]">
                 Explore indicadores, historicos e exporte dados para auditorias
                 ou reunioes.
               </p>
@@ -364,18 +364,18 @@ export function ReportsPage() {
         </section>
 
         {error && (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+          <div className="rounded-2xl border border-[color:var(--reports-error-border)] bg-[color:var(--reports-error-bg)] p-4">
             <div className="flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-rose-600" />
-              <p className="text-sm text-rose-800">{error}</p>
+              <AlertCircle className="h-5 w-5 text-[color:var(--reports-error-icon)]" />
+              <p className="text-sm text-[color:var(--reports-error-text)]">{error}</p>
             </div>
           </div>
         )}
 
         {loading && (
-          <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center">
-            <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-slate-400" />
-            <p className="text-sm text-slate-600">Carregando relatórios...</p>
+          <div className="rounded-3xl border border-[color:var(--reports-loading-border)] bg-[color:var(--reports-loading-bg)] p-12 text-center">
+            <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-[color:var(--reports-loading-icon)]" />
+            <p className="text-sm text-[color:var(--reports-loading-text)]">Carregando relatórios...</p>
           </div>
         )}
 
@@ -383,7 +383,7 @@ export function ReportsPage() {
           <>
           {/* Report Type Selector */}
           <div className="card mb-6 p-4">
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">Tipo de Relatório</h2>
+            <h2 className="text-sm font-semibold text-[color:var(--reports-type-title)] mb-3">Tipo de Relatório</h2>
             <div className="flex flex-wrap gap-2">
               {['general', 'asset', 'technician', 'temporal'].map((type) => (
                 <button
@@ -391,8 +391,8 @@ export function ReportsPage() {
                   onClick={() => setReportType(type as any)}
                   className={`px-3 py-2 rounded text-sm font-medium transition ${
                     reportType === type
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-[color:var(--reports-type-active-bg)] text-[color:var(--reports-type-active-text)]'
+                      : 'bg-[color:var(--reports-type-bg)] text-[color:var(--reports-type-text)] hover:bg-[color:var(--reports-type-hover-bg)]'
                   }`}
                 >
                   {type === 'general' && 'Geral'}

@@ -529,21 +529,21 @@ export function MaintenancePlansPage() {
               <p className="mt-4 text-2xl font-semibold text-slate-900">
                 {planSummary.preventive}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Rotinas recorrentes</p>
+              <p className="mt-1 text-xs text-[color:var(--plans-card-updated)]">Rotinas recorrentes</p>
             </div>
-            <div className="plans-reveal plans-reveal-delay-3 rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+            <div className="plans-reveal plans-reveal-delay-3 rounded-3xl border border-[color:var(--plans-card-border)] bg-[color:var(--plans-card-bg)] p-4 shadow-sm backdrop-blur">
               <div className="flex items-center justify-between">
-                <div className="rounded-2xl bg-rose-100 p-2 text-rose-700">
+                <div className="rounded-2xl bg-[color:var(--plans-card-icon-bg-corrective)] p-2 text-[color:var(--plans-card-icon-corrective)]">
                   <Activity className="h-4 w-4" />
                 </div>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--plans-card-label)]">
                   corretivos
                 </span>
               </div>
-              <p className="mt-4 text-2xl font-semibold text-slate-900">
+              <p className="mt-4 text-2xl font-semibold text-[color:var(--plans-card-value)]">
                 {planSummary.corrective}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Sob demanda</p>
+              <p className="mt-1 text-xs text-[color:var(--plans-card-updated)]">Sob demanda</p>
             </div>
           </div>
         </section>

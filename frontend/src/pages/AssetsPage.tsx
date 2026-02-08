@@ -455,11 +455,11 @@ export function AssetsPage() {
           <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
               <div className="flex items-center gap-3 text-sm text-slate-600">
-                <Boxes className="h-4 w-4 text-amber-600" />
+                <Boxes className="h-4 w-4 text-[color:var(--assets-card-icon-total)]" />
                 Total de equipamentos
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">{assets.length}</p>
-              <p className="mt-1 text-xs text-slate-500">Atualizado agora</p>
+              <p className="mt-3 text-2xl font-semibold text-[color:var(--assets-card-value)]">{assets.length}</p>
+              <p className="mt-1 text-xs text-[color:var(--assets-card-updated)]">Atualizado agora</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
               <div className="flex items-center gap-3 text-sm text-slate-600">

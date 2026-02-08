@@ -292,43 +292,43 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
           <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
               <div className="flex items-center gap-3 text-sm text-slate-600">
-                <Users className="h-4 w-4 text-sky-600" />
+                <Users className="h-4 w-4 text-[color:var(--suppliers-card-icon-total)]" />
                 Fornecedores ativos
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-3 text-2xl font-semibold text-[color:var(--suppliers-card-value)]">
                 {supplierSummary.total}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Base central</p>
+              <p className="mt-1 text-xs text-[color:var(--suppliers-card-updated)]">Base central</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
               <div className="flex items-center gap-3 text-sm text-slate-600">
-                <Mail className="h-4 w-4 text-emerald-600" />
+                <Mail className="h-4 w-4 text-[color:var(--suppliers-card-icon-email)]" />
                 Emails validados
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-3 text-2xl font-semibold text-[color:var(--suppliers-card-value)]">
                 {supplierSummary.withEmail}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Contato rapido</p>
+              <p className="mt-1 text-xs text-[color:var(--suppliers-card-updated)]">Contato rapido</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
               <div className="flex items-center gap-3 text-sm text-slate-600">
-                <Phone className="h-4 w-4 text-amber-600" />
+                <Phone className="h-4 w-4 text-[color:var(--suppliers-card-icon-phone)]" />
                 Telefones ativos
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-3 text-2xl font-semibold text-[color:var(--suppliers-card-value)]">
                 {supplierSummary.withPhone}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Canal direto</p>
+              <p className="mt-1 text-xs text-[color:var(--suppliers-card-updated)]">Canal direto</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
               <div className="flex items-center gap-3 text-sm text-slate-600">
-                <MapPin className="h-4 w-4 text-rose-600" />
+                <MapPin className="h-4 w-4 text-[color:var(--suppliers-card-icon-country)]" />
                 Paises mapeados
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-3 text-2xl font-semibold text-[color:var(--suppliers-card-value)]">
                 {supplierSummary.countries}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Cobertura regional</p>
+              <p className="mt-1 text-xs text-[color:var(--suppliers-card-updated)]">Cobertura regional</p>
             </div>
           </div>
         </section>

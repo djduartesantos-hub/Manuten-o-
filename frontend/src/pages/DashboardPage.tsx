@@ -76,32 +76,32 @@ export function DashboardPage() {
       {
         key: 'aberta',
         label: 'Abertas',
-        tone: 'border-amber-200/80 bg-amber-50/70 text-amber-800',
-        dot: 'bg-amber-400',
+        tone: 'border-[color:var(--dashboard-border-aberta)] bg-[color:var(--dashboard-bg-aberta)] text-[color:var(--dashboard-text-aberta)]',
+        dot: 'bg-[color:var(--dashboard-dot-aberta)]',
       },
       {
         key: 'atribuida',
         label: 'Atribuidas',
-        tone: 'border-sky-200/80 bg-sky-50/70 text-sky-800',
-        dot: 'bg-sky-400',
+        tone: 'border-[color:var(--dashboard-border-atribuida)] bg-[color:var(--dashboard-bg-atribuida)] text-[color:var(--dashboard-text-atribuida)]',
+        dot: 'bg-[color:var(--dashboard-dot-atribuida)]',
       },
       {
         key: 'em_curso',
         label: 'Em curso',
-        tone: 'border-emerald-200/80 bg-emerald-50/70 text-emerald-800',
-        dot: 'bg-emerald-400',
+        tone: 'border-[color:var(--dashboard-border-em_curso)] bg-[color:var(--dashboard-bg-em_curso)] text-[color:var(--dashboard-text-em_curso)]',
+        dot: 'bg-[color:var(--dashboard-dot-em_curso)]',
       },
       {
         key: 'concluida',
         label: 'Concluidas',
-        tone: 'border-slate-200/80 bg-slate-50/70 text-slate-700',
-        dot: 'bg-slate-400',
+        tone: 'border-[color:var(--dashboard-border-concluida)] bg-[color:var(--dashboard-bg-concluida)] text-[color:var(--dashboard-text-concluida)]',
+        dot: 'bg-[color:var(--dashboard-dot-concluida)]',
       },
       {
         key: 'cancelada',
         label: 'Canceladas',
-        tone: 'border-rose-200/80 bg-rose-50/70 text-rose-700',
-        dot: 'bg-rose-400',
+        tone: 'border-[color:var(--dashboard-border-cancelada)] bg-[color:var(--dashboard-bg-cancelada)] text-[color:var(--dashboard-text-cancelada)]',
+        dot: 'bg-[color:var(--dashboard-dot-cancelada)]',
       },
     ],
     [],
@@ -131,10 +131,10 @@ export function DashboardPage() {
   }, [orders]);
 
   const severityBadge: Record<string, string> = {
-    critical: 'bg-rose-100 text-rose-700',
-    high: 'bg-amber-100 text-amber-700',
-    medium: 'bg-yellow-100 text-yellow-700',
-    low: 'bg-emerald-100 text-emerald-700',
+    critical: 'bg-[color:var(--dashboard-severity-critical-bg)] text-[color:var(--dashboard-severity-critical-text)]',
+    high: 'bg-[color:var(--dashboard-severity-high-bg)] text-[color:var(--dashboard-severity-high-text)]',
+    medium: 'bg-[color:var(--dashboard-severity-medium-bg)] text-[color:var(--dashboard-severity-medium-text)]',
+    low: 'bg-[color:var(--dashboard-severity-low-bg)] text-[color:var(--dashboard-severity-low-text)]',
   };
 
   const loadData = React.useCallback(async () => {
