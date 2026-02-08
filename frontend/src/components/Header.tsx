@@ -218,10 +218,15 @@ export function Header() {
                               className="sr-only peer"
                               aria-label="Alternar tema claro/escuro"
                             />
-                            <span className="w-12 h-7 flex items-center bg-gray-200 peer-checked:bg-gray-700 rounded-full px-1 transition-colors duration-300">
-                              <span className="inline-block w-5 h-5 rounded-full bg-yellow-400 shadow-md transform transition-transform duration-300 peer-checked:translate-x-5 peer-checked:bg-gray-800 flex items-center justify-center">
-                                <svg className="w-4 h-4 text-white transition-opacity duration-300 opacity-100 peer-checked:opacity-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2m11-11h-2M3 12H1m16.95 7.95l-1.41-1.41M6.34 6.34L4.93 4.93m12.02 0l-1.41 1.41M6.34 17.66l-1.41 1.41"/></svg>
-                                <svg className="w-4 h-4 text-yellow-300 transition-opacity duration-300 opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3c-.11 0-.21.01-.32.02a7 7 0 000 13.96c.11.01.21.02.32.02A9 9 0 0021 12.79z"/></svg>
+                            <span className="w-14 h-8 flex items-center bg-gray-200 peer-checked:bg-gray-700 rounded-full px-1 transition-all duration-500 ease-in-out shadow-inner">
+                              <span className="inline-block w-6 h-6 rounded-full bg-yellow-400 shadow-lg transform transition-all duration-500 ease-in-out peer-checked:translate-x-6 peer-checked:bg-gray-800 flex items-center justify-center">
+                                <svg className="w-4 h-4 text-white transition-all duration-300 opacity-100 peer-checked:opacity-0 rotate-0 peer-checked:rotate-180" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                  <circle cx="12" cy="12" r="5"/>
+                                  <path d="M12 1v2m0 18v2m11-11h-2M3 12H1m16.95 7.95l-1.41-1.41M6.34 6.34L4.93 4.93m12.02 0l-1.41 1.41M6.34 17.66l-1.41 1.41"/>
+                                </svg>
+                                <svg className="w-4 h-4 text-yellow-300 transition-all duration-300 opacity-0 peer-checked:opacity-100 rotate-180 peer-checked:rotate-0 absolute" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                  <path d="M21 12.79A9 9 0 1111.21 3c-.11 0-.21.01-.32.02a7 7 0 000 13.96c.11.01.21.02.32.02A9 9 0 0021 12.79z"/>
+                                </svg>
                               </span>
                             </span>
                           </label>

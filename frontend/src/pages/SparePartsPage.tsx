@@ -267,7 +267,7 @@ export function SparePartsPage() {
   return (
     <MainLayout>
       <div className="space-y-8 font-display bg-[color:var(--dash-bg)]">
-        <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#fff7ed,_#ffffff_60%)] p-8 shadow-[0_28px_80px_-60px_rgba(245,158,11,0.35)]">
+        <section className="relative overflow-hidden rounded-[32px] theme-border theme-card p-8 shadow-[0_28px_80px_-60px_rgba(245,158,11,0.35)]">
           <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-amber-200/50 blur-3xl" />
           <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-emerald-200/40 blur-3xl" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -275,10 +275,10 @@ export function SparePartsPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
                 Inventario de pecas
               </p>
-              <h1 className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl">
+              <h1 className="mt-3 text-3xl font-semibold theme-text sm:text-4xl">
                 Pecas e stock sob controlo
               </h1>
-              <p className="mt-2 max-w-2xl text-sm text-slate-600">
+              <p className="mt-2 max-w-2xl text-sm theme-text-muted">
                 Consulte pecas, movimentos e quantidades para manter o
                 abastecimento sempre visivel.
               </p>

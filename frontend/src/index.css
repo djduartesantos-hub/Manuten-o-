@@ -10,13 +10,35 @@
   --foreground: #1f2937; /* Dark text */
   --card: #f3f4f6; /* Light card background */
   --border: #e5e7eb; /* Light border */
+
+  /* Theme variables */
+  --dash-accent: #38bdf8;
+  --dash-accent-2: #fef9c3;
+  --dash-ink: #334155;
+  --dash-muted: #64748b;
+  --dash-panel: rgba(255,255,255,0.98);
+  --dash-panel-2: rgba(248,250,252,0.98);
+  --dash-border: rgba(148,163,184,0.18);
+  --dash-surface: #f8fafc;
+  --dash-surface-2: #f1f5f9;
 }
 
-dark {
+.dark {
   --background: #1f2937; /* Dark background */
   --foreground: #f9fafb; /* Light text */
   --card: #374151; /* Dark card background */
   --border: #4b5563; /* Dark border */
+
+  /* Theme variables */
+  --dash-accent: #38bdf8;
+  --dash-accent-2: #0f766e;
+  --dash-ink: #f8fafc;
+  --dash-muted: #cbd5e1;
+  --dash-panel: rgba(30,41,59,0.98);
+  --dash-panel-2: rgba(51,65,85,0.98);
+  --dash-border: rgba(148,163,184,0.35);
+  --dash-surface: #1e293b;
+  --dash-surface-2: #334155;
 }
 
 body {
@@ -50,6 +72,32 @@ body {
 
 .input {
   @apply w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500;
+}
+
+/* Theme-aware classes */
+.theme-bg {
+  background-color: var(--dash-bg);
+}
+
+.theme-text {
+  color: var(--dash-ink);
+}
+
+.theme-text-muted {
+  color: var(--dash-muted);
+}
+
+.theme-card {
+  background-color: var(--dash-panel);
+  border-color: var(--dash-border);
+}
+
+.theme-surface {
+  background-color: var(--dash-surface);
+}
+
+.theme-border {
+  border-color: var(--dash-border);
 }
 
 .badge-success {

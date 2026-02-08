@@ -436,24 +436,24 @@ export function MaintenancePlansPage() {
       <div
         className="relative space-y-10 font-display bg-[color:var(--dash-bg)] text-foreground"
       >
-        <section className="relative overflow-hidden rounded-[32px] border border-border bg-card p-8 shadow-[0_28px_80px_-60px_rgba(15,118,110,0.55)]">
+        <section className="relative overflow-hidden rounded-[32px] theme-border theme-card p-8 shadow-[0_28px_80px_-60px_rgba(15,118,110,0.55)]">
           <div className="absolute -right-12 -top-20 h-56 w-56 rounded-full bg-emerald-200/60 blur-3xl plans-float" />
           <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-amber-200/50 blur-3xl plans-float" />
           <div className="absolute right-12 top-10 h-2 w-20 rounded-full bg-[color:var(--plans-accent)] opacity-50" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-foreground">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] theme-text">
                 Rotinas programadas
               </p>
               <h1
-                className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl lg:text-5xl"
+                className="mt-3 text-3xl font-semibold theme-text sm:text-4xl lg:text-5xl"
                 onPointerDown={handleDiagnosticsPressStart}
                 onPointerUp={handleDiagnosticsPressEnd}
                 onPointerLeave={handleDiagnosticsPressEnd}
               >
                 Planos de manutencao em destaque
               </h1>
-              <p className="mt-2 max-w-2xl text-sm text-slate-600">
+              <p className="mt-2 max-w-2xl text-sm theme-text-muted">
                 Estruture frequencias, ativos e tipos de intervencao para garantir
                 previsibilidade.
               </p>
@@ -481,49 +481,49 @@ export function MaintenancePlansPage() {
           </div>
 
           <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="plans-reveal rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+            <div className="plans-reveal rounded-3xl theme-border theme-card p-4 shadow-sm backdrop-blur">
               <div className="flex items-center justify-between">
                 <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
                   <Layers className="h-4 w-4" />
                 </div>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] theme-text-muted">
                   total
                 </span>
               </div>
-              <p className="mt-4 text-2xl font-semibold text-slate-900">
+              <p className="mt-4 text-2xl font-semibold theme-text">
                 {planSummary.total}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Visao geral</p>
+              <p className="mt-1 text-xs theme-text-muted">Visao geral</p>
             </div>
-            <div className="plans-reveal plans-reveal-delay-1 rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+            <div className="plans-reveal plans-reveal-delay-1 rounded-3xl theme-border theme-card p-4 shadow-sm backdrop-blur">
               <div className="flex items-center justify-between">
                 <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
                   <CheckCircle2 className="h-4 w-4" />
                 </div>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] theme-text-muted">
                   ativos
                 </span>
               </div>
-              <p className="mt-4 text-2xl font-semibold text-slate-900">
+              <p className="mt-4 text-2xl font-semibold theme-text">
                 {planSummary.active}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Em execucao</p>
+              <p className="mt-1 text-xs theme-text-muted">Em execucao</p>
             </div>
-            <div className="plans-reveal plans-reveal-delay-2 rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+            <div className="plans-reveal plans-reveal-delay-2 rounded-3xl theme-border theme-card p-4 shadow-sm backdrop-blur">
               <div className="flex items-center justify-between">
                 <div className="rounded-2xl bg-amber-100 p-2 text-amber-700">
                   <CalendarClock className="h-4 w-4" />
                 </div>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] theme-text-muted">
                   preventivos
                 </span>
               </div>
-              <p className="mt-4 text-2xl font-semibold text-slate-900">
+              <p className="mt-4 text-2xl font-semibold theme-text">
                 {planSummary.preventive}
               </p>
-              <p className="mt-1 text-xs text-[color:var(--plans-card-updated)]">Rotinas recorrentes</p>
+              <p className="mt-1 text-xs theme-text-muted">Rotinas recorrentes</p>
             </div>
-            <div className="plans-reveal plans-reveal-delay-3 rounded-3xl border border-[color:var(--plans-card-border)] bg-[color:var(--plans-card-bg)] p-4 shadow-sm backdrop-blur">
+            <div className="plans-reveal plans-reveal-delay-3 rounded-3xl theme-border theme-card p-4 shadow-sm backdrop-blur">
               <div className="flex items-center justify-between">
                 <div className="rounded-2xl bg-[color:var(--plans-card-icon-bg-corrective)] p-2 text-[color:var(--plans-card-icon-corrective)]">
                   <Activity className="h-4 w-4" />
@@ -532,35 +532,35 @@ export function MaintenancePlansPage() {
                   corretivos
                 </span>
               </div>
-              <p className="mt-4 text-2xl font-semibold text-[color:var(--plans-card-value)]">
+              <p className="mt-4 text-2xl font-semibold theme-text">
                 {planSummary.corrective}
               </p>
-              <p className="mt-1 text-xs text-[color:var(--plans-card-updated)]">Sob demanda</p>
+              <p className="mt-1 text-xs theme-text-muted">Sob demanda</p>
             </div>
           </div>
         </section>
 
         {!selectedPlant && (
-          <div className="relative overflow-hidden rounded-[28px] border border-dashed border-slate-200 bg-[linear-gradient(135deg,#ffffff,#f1f5f9)] p-10 text-center shadow-sm">
+          <div className="relative overflow-hidden rounded-[28px] border border-dashed theme-border theme-surface p-10 text-center shadow-sm">
             <div className="absolute left-1/2 top-0 h-1 w-32 -translate-x-1/2 rounded-full bg-[color:var(--plans-accent)]/50" />
-            <AlertCircle className="mx-auto mb-4 h-10 w-10 text-slate-400" />
-            <h2 className="mb-2 text-xl font-semibold text-slate-900">
+            <AlertCircle className="mx-auto mb-4 h-10 w-10 theme-text-muted" />
+            <h2 className="mb-2 text-xl font-semibold theme-text">
               Selecione uma fabrica
             </h2>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm theme-text-muted">
               Escolha uma fabrica no topo para visualizar os planos.
             </p>
           </div>
         )}
 
         {showForm && (
-          <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_20px_60px_-45px_rgba(15,118,110,0.5)]">
+          <div className="relative overflow-hidden rounded-[28px] theme-border theme-card p-6 shadow-[0_20px_60px_-45px_rgba(15,118,110,0.5)]">
             <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--plans-accent),var(--plans-accent-2))]" />
             <div className="mb-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
                 Detalhes do plano
               </p>
-              <h2 className="mt-2 text-lg font-semibold text-slate-900">
+              <h2 className="mt-2 text-lg font-semibold theme-text">
                 {editingPlan ? 'Editar plano' : 'Novo plano'}
               </h2>
             </div>

@@ -114,7 +114,7 @@ export function SearchPage() {
       <div
         className="relative space-y-10 font-display bg-[color:var(--dash-bg)] text-[color:var(--search-ink)]"
       >
-        <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#f3e8ff,_#ffffff_58%)] p-8 shadow-[0_28px_80px_-60px_rgba(124,58,237,0.4)]">
+        <section className="relative overflow-hidden rounded-[32px] theme-border theme-card p-8 shadow-[0_28px_80px_-60px_rgba(124,58,237,0.4)]">
           <div className="absolute -right-12 -top-20 h-56 w-56 rounded-full bg-violet-200/60 blur-3xl search-float" />
           <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-sky-200/50 blur-3xl search-float" />
           <div className="absolute right-12 top-10 h-2 w-20 rounded-full bg-[color:var(--search-accent)] opacity-40" />
@@ -122,16 +122,16 @@ export function SearchPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-700">
               Pesquisa inteligente
             </p>
-            <h1 className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl lg:text-5xl">
+            <h1 className="mt-3 text-3xl font-semibold theme-text sm:text-4xl lg:text-5xl">
               Encontre ordens e ativos em segundos
             </h1>
-            <p className="mt-2 max-w-2xl text-sm text-slate-600">
+            <p className="mt-2 max-w-2xl text-sm theme-text-muted">
               Combine filtros, prioridades e categorias para uma busca mais precisa.
             </p>
           </div>
         </section>
 
-        <div className="rounded-[28px] border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur">
+        <div className="rounded-[28px] theme-border theme-card p-5 shadow-sm backdrop-blur">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-7">
             <input
               className="input md:col-span-2"

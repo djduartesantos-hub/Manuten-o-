@@ -402,7 +402,7 @@ export function AssetsPage() {
   return (
     <MainLayout>
       <div className="space-y-8 font-display bg-[color:var(--dash-bg)]">
-        <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-amber-50 p-8 shadow-sm">
+        <section className="relative overflow-hidden rounded-3xl theme-border theme-card p-8 shadow-sm">
           <div className="absolute -right-10 -top-14 h-56 w-56 rounded-full bg-amber-200/50 blur-3xl" />
           <div className="absolute -left-14 bottom-0 h-44 w-44 rounded-full bg-emerald-200/40 blur-3xl" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -411,14 +411,14 @@ export function AssetsPage() {
                 Inventario de ativos
               </p>
               <h1
-                className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl"
+                className="mt-3 text-3xl font-semibold theme-text sm:text-4xl"
                 onPointerDown={handleDiagnosticsPressStart}
                 onPointerUp={handleDiagnosticsPressEnd}
                 onPointerLeave={handleDiagnosticsPressEnd}
               >
                 Equipamentos com visao operacional
               </h1>
-              <p className="mt-2 max-w-2xl text-sm text-slate-600">
+              <p className="mt-2 max-w-2xl text-sm theme-text-muted">
                 Acompanhe localizacao, categoria e status em tempo real para decidir
                 o que precisa de atencao primeiro.
               </p>
