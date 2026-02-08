@@ -25,7 +25,8 @@ import { PlantsPage } from './pages/PlantsPage';
 import { DatabaseUpdatePage } from './pages/DatabaseUpdatePage';
 import { SetupInitPage } from './pages/SetupInitPage';
 
-import './index.css';
+
+import { ThemeProvider } from './context/ThemeContext';
 
 function App() {
   const { isAuthenticated } = useAuth();
@@ -60,10 +61,11 @@ function App() {
   }, [isAuthenticated, selectedPlant, setPlants, setSelectedPlant]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SocketProvider>
-        <BrowserRouter>
-          <Routes>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <SocketProvider>
+          <BrowserRouter>
+            <Routes>
             <Route
               path="/"
               element={
@@ -174,11 +176,12 @@ function App() {
               }
             />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </BrowserRouter>
-        <Toaster position="top-right" />
-      </SocketProvider>
-    </QueryClientProvider>
+            </Routes>
+          </BrowserRouter>
+          <Toaster position="top-right" />
+        </SocketProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 
