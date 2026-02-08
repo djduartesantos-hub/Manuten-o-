@@ -1,5 +1,15 @@
 import { z } from 'zod';
 
+const preventiveScheduleStatusSchema = z.enum([
+  'planeada',
+  'agendada',
+  'confirmada',
+  'em_execucao',
+  'concluida',
+  'fechada',
+  'reagendada',
+]);
+
 // Maintenance Plan Schemas
 export const createMaintenancePlanSchema = z.object({
   asset_id: z.string().uuid('Asset ID deve ser UUID'),
@@ -31,6 +41,23 @@ export const createMaintenanceTaskSchema = z.object({
   sequence: z.number().int().nonnegative().optional(),
 });
 
+// Preventive Maintenance Scheduling Schemas
+export const createPreventiveScheduleSchema = z.object({
+  plan_id: z.string().uuid('Plan ID deve ser UUID'),
+  scheduled_for: z.string().datetime('scheduled_for deve ser uma data ISO válida'),
+  status: preventiveScheduleStatusSchema.optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export const updatePreventiveScheduleSchema = z.object({
+  scheduled_for: z.string().datetime('scheduled_for deve ser uma data ISO válida').optional(),
+  status: preventiveScheduleStatusSchema.optional(),
+  notes: z.string().max(2000).optional(),
+});
+
 export type CreateMaintenancePlanInput = z.infer<typeof createMaintenancePlanSchema>;
 export type UpdateMaintenancePlanInput = z.infer<typeof updateMaintenancePlanSchema>;
 export type CreateMaintenanceTaskInput = z.infer<typeof createMaintenanceTaskSchema>;
+
+export type CreatePreventiveScheduleInput = z.infer<typeof createPreventiveScheduleSchema>;
+export type UpdatePreventiveScheduleInput = z.infer<typeof updatePreventiveScheduleSchema>;

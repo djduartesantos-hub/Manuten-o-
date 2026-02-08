@@ -305,6 +305,42 @@ export async function getMaintenancePlans(plantId: string) {
   return apiCall(`/${plantId}/plans`);
 }
 
+export async function getPreventiveSchedules(
+  plantId: string,
+  filters?: { asset_id?: string; plan_id?: string; status?: string },
+) {
+  const params = new URLSearchParams();
+  if (filters?.asset_id) params.append('asset_id', filters.asset_id);
+  if (filters?.plan_id) params.append('plan_id', filters.plan_id);
+  if (filters?.status) params.append('status', filters.status);
+  const query = params.toString();
+  return apiCall(`/${plantId}/preventive-schedules${query ? `?${query}` : ''}`);
+}
+
+export async function getUpcomingPreventiveSchedules(plantId: string, limit = 5) {
+  const params = new URLSearchParams();
+  params.append('limit', String(limit));
+  return apiCall(`/${plantId}/preventive-schedules/upcoming?${params.toString()}`);
+}
+
+export async function createPreventiveSchedule(plantId: string, data: any) {
+  return apiCall(`/${plantId}/preventive-schedules`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updatePreventiveSchedule(
+  plantId: string,
+  scheduleId: string,
+  data: any,
+) {
+  return apiCall(`/${plantId}/preventive-schedules/${scheduleId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function createMaintenancePlan(plantId: string, data: any) {
   return apiCall(`/${plantId}/plans`, {
     method: 'POST',

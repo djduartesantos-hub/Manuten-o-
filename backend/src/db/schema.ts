@@ -31,6 +31,16 @@ export const maintenanceTypeEnum = pgEnum('maintenance_type', [
   'corretiva',
 ]);
 
+export const preventiveScheduleStatusEnum = pgEnum('preventive_schedule_status', [
+  'planeada',
+  'agendada',
+  'confirmada',
+  'em_execucao',
+  'concluida',
+  'fechada',
+  'reagendada',
+]);
+
 export const priorityEnum = pgEnum('priority', ['baixa', 'media', 'alta', 'critica']);
 
 export const stockMovementTypeEnum = pgEnum('stock_movement_type', [
@@ -229,6 +239,57 @@ export const maintenanceTasks = pgTable(
   },
   (table) => ({
     planIdIdx: index('maintenance_tasks_plan_id_idx').on(table.plan_id),
+  }),
+);
+
+// Preventive Maintenance Schedules
+export const preventiveMaintenanceSchedules = pgTable(
+  'preventive_maintenance_schedules',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    plant_id: uuid('plant_id')
+      .notNull()
+      .references(() => plants.id, { onDelete: 'cascade' }),
+    plan_id: uuid('plan_id')
+      .notNull()
+      .references(() => maintenancePlans.id, { onDelete: 'cascade' }),
+    asset_id: uuid('asset_id')
+      .notNull()
+      .references(() => assets.id, { onDelete: 'restrict' }),
+
+    status: preventiveScheduleStatusEnum('status').notNull().default('agendada'),
+    scheduled_for: timestamp('scheduled_for', { withTimezone: true }).notNull(),
+
+    confirmed_at: timestamp('confirmed_at', { withTimezone: true }),
+    confirmed_by: uuid('confirmed_by').references(() => users.id, { onDelete: 'set null' }),
+
+    started_at: timestamp('started_at', { withTimezone: true }),
+    completed_at: timestamp('completed_at', { withTimezone: true }),
+
+    closed_at: timestamp('closed_at', { withTimezone: true }),
+    closed_by: uuid('closed_by').references(() => users.id, { onDelete: 'set null' }),
+
+    rescheduled_from: timestamp('rescheduled_from', { withTimezone: true }),
+    rescheduled_at: timestamp('rescheduled_at', { withTimezone: true }),
+
+    notes: text('notes'),
+    created_by: uuid('created_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index('pms_tenant_id_idx').on(table.tenant_id),
+    plantIdIdx: index('pms_plant_id_idx').on(table.plant_id),
+    planIdIdx: index('pms_plan_id_idx').on(table.plan_id),
+    assetIdIdx: index('pms_asset_id_idx').on(table.asset_id),
+    scheduledForIdx: index('pms_scheduled_for_idx').on(table.scheduled_for),
+    statusIdx: index('pms_status_idx').on(table.status),
   }),
 );
 

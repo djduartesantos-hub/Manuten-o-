@@ -13,6 +13,30 @@ router.use(plantMiddleware);
 // GET /api/tenants/:plantId/plans - listar planos
 router.get('/:plantId/plans', MaintenanceController.getMaintenancePlans);
 
+// Preventive Maintenance Schedules
+// GET /api/tenants/:plantId/preventive-schedules/upcoming - próximos agendamentos (dashboard)
+router.get(
+  '/:plantId/preventive-schedules/upcoming',
+  MaintenanceController.getUpcomingPreventiveSchedules,
+);
+
+// GET /api/tenants/:plantId/preventive-schedules - listar agendamentos
+router.get('/:plantId/preventive-schedules', MaintenanceController.getPreventiveSchedules);
+
+// POST /api/tenants/:plantId/preventive-schedules - criar agendamento
+router.post(
+  '/:plantId/preventive-schedules',
+  requireRole('gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'),
+  MaintenanceController.createPreventiveSchedule,
+);
+
+// PATCH /api/tenants/:plantId/preventive-schedules/:schedule_id - atualizar agendamento
+router.patch(
+  '/:plantId/preventive-schedules/:schedule_id',
+  requireRole('gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'),
+  MaintenanceController.updatePreventiveSchedule,
+);
+
 // POST /api/tenants/:plantId/plans - criar plano
 router.post(
   '/:plantId/plans',

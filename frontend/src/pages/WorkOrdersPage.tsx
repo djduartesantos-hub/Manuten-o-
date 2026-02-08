@@ -25,6 +25,7 @@ import {
   deleteWorkOrder,
   getAssets,
   getApiHealth,
+  getPreventiveSchedules,
   getWorkOrder,
   getWorkOrderAuditLogs,
   getSpareParts,
@@ -120,6 +121,15 @@ interface WorkOrder {
   } | null;
 }
 
+interface PreventiveSchedule {
+  id: string;
+  scheduled_for: string;
+  status: string;
+  plan_name?: string | null;
+  asset_name?: string | null;
+  asset_code?: string | null;
+}
+
 interface WorkOrderFormState {
   asset_id: string;
   title: string;
@@ -160,6 +170,11 @@ export function WorkOrdersPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
+  const [activeSection, setActiveSection] = useState<'orders' | 'preventive'>('orders');
+  const [preventiveSchedules, setPreventiveSchedules] = useState<PreventiveSchedule[]>([]);
+  const [preventiveStatusFilter, setPreventiveStatusFilter] = useState('');
+  const [preventiveLoading, setPreventiveLoading] = useState(false);
+  const [preventiveError, setPreventiveError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -394,6 +409,28 @@ export function WorkOrdersPage() {
     }
   };
 
+  const loadPreventiveSchedules = async () => {
+    if (!selectedPlant || !selectedPlant.trim()) {
+      setPreventiveSchedules([]);
+      setPreventiveError(null);
+      return;
+    }
+    setPreventiveLoading(true);
+    setPreventiveError(null);
+    try {
+      const data = await getPreventiveSchedules(
+        selectedPlant,
+        preventiveStatusFilter ? { status: preventiveStatusFilter } : undefined,
+      );
+      setPreventiveSchedules(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      setPreventiveSchedules([]);
+      setPreventiveError(err.message || 'Erro ao carregar preventivas');
+    } finally {
+      setPreventiveLoading(false);
+    }
+  };
+
   const loadSpareParts = async () => {
     if (!selectedPlant || !selectedPlant.trim()) {
       setSpareParts([]);
@@ -452,6 +489,12 @@ export function WorkOrdersPage() {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlant, statusFilter, searchTerm]);
+
+  useEffect(() => {
+    if (activeSection !== 'preventive') return;
+    loadPreventiveSchedules();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlant, activeSection, preventiveStatusFilter]);
 
   useEffect(() => {
     loadSpareParts();
@@ -2104,48 +2147,101 @@ export function WorkOrdersPage() {
                     <Search className="h-4 w-4 text-emerald-600" />
                     <input
                       className="w-full bg-transparent text-sm text-[color:var(--dash-text)] placeholder:text-[color:var(--dash-muted)] focus:outline-none"
-                      placeholder="Pesquisar por titulo, ativo ou descricao"
+                      placeholder={
+                        activeSection === 'orders'
+                          ? 'Pesquisar por titulo, ativo ou descricao'
+                          : 'Pesquisa indisponível nesta aba'
+                      }
                       value={searchTerm}
                       onChange={(event) => setSearchTerm(event.target.value)}
+                      disabled={activeSection !== 'orders'}
                     />
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <div className="inline-flex items-center gap-2 rounded-2xl border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-xs font-semibold theme-text-muted">
-                      <SlidersHorizontal className="h-4 w-4 text-emerald-600" />
-                      <select
-                        className="bg-transparent text-xs font-semibold text-[color:var(--dash-text)] focus:outline-none"
-                        value={statusFilter}
-                        onChange={(event) => setStatusFilter(event.target.value)}
-                      >
-                        {statusOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
                     <div className="flex items-center gap-1 rounded-full border theme-border bg-[color:var(--dash-panel)] px-2 py-1">
                       <button
                         className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                          viewMode === 'table'
+                          activeSection === 'orders'
                             ? 'bg-emerald-100 text-emerald-700'
                             : 'text-[color:var(--dash-muted)] hover:text-[color:var(--dash-text)]'
                         }`}
-                        onClick={() => setViewMode('table')}
+                        onClick={() => setActiveSection('orders')}
                       >
-                        <List className="h-4 w-4" />
+                        Ordens
                       </button>
                       <button
                         className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                          viewMode === 'kanban'
+                          activeSection === 'preventive'
                             ? 'bg-emerald-100 text-emerald-700'
                             : 'text-[color:var(--dash-muted)] hover:text-[color:var(--dash-text)]'
                         }`}
-                        onClick={() => setViewMode('kanban')}
+                        onClick={() => {
+                          setActiveSection('preventive');
+                          setViewMode('table');
+                        }}
                       >
-                        <LayoutGrid className="h-4 w-4" />
+                        Preventiva
                       </button>
                     </div>
+
+                    {activeSection === 'orders' ? (
+                      <>
+                        <div className="inline-flex items-center gap-2 rounded-2xl border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-xs font-semibold theme-text-muted">
+                          <SlidersHorizontal className="h-4 w-4 text-emerald-600" />
+                          <select
+                            className="bg-transparent text-xs font-semibold text-[color:var(--dash-text)] focus:outline-none"
+                            value={statusFilter}
+                            onChange={(event) => setStatusFilter(event.target.value)}
+                          >
+                            {statusOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex items-center gap-1 rounded-full border theme-border bg-[color:var(--dash-panel)] px-2 py-1">
+                          <button
+                            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                              viewMode === 'table'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'text-[color:var(--dash-muted)] hover:text-[color:var(--dash-text)]'
+                            }`}
+                            onClick={() => setViewMode('table')}
+                          >
+                            <List className="h-4 w-4" />
+                          </button>
+                          <button
+                            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                              viewMode === 'kanban'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'text-[color:var(--dash-muted)] hover:text-[color:var(--dash-text)]'
+                            }`}
+                            onClick={() => setViewMode('kanban')}
+                          >
+                            <LayoutGrid className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="inline-flex items-center gap-2 rounded-2xl border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-xs font-semibold theme-text-muted">
+                        <SlidersHorizontal className="h-4 w-4 text-emerald-600" />
+                        <select
+                          className="bg-transparent text-xs font-semibold text-[color:var(--dash-text)] focus:outline-none"
+                          value={preventiveStatusFilter}
+                          onChange={(event) => setPreventiveStatusFilter(event.target.value)}
+                        >
+                          <option value="">Todos</option>
+                          <option value="planeada">Planeada</option>
+                          <option value="agendada">Agendada</option>
+                          <option value="confirmada">Confirmada</option>
+                          <option value="em_execucao">Em execução</option>
+                          <option value="concluida">Concluída</option>
+                          <option value="fechada">Fechada</option>
+                          <option value="reagendada">Reagendada</option>
+                        </select>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2153,10 +2249,17 @@ export function WorkOrdersPage() {
               <div className="rounded-[28px] border theme-border theme-card shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
                 <div className="flex flex-col gap-2 border-b border-[color:var(--dash-border)] p-5 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold theme-text">Ordens</h2>
-                    <p className="text-sm theme-text-muted">{workOrders.length} registros</p>
+                    <h2 className="text-lg font-semibold theme-text">
+                      {activeSection === 'orders' ? 'Ordens' : 'Preventiva / planeada'}
+                    </h2>
+                    <p className="text-sm theme-text-muted">
+                      {activeSection === 'orders'
+                        ? `${workOrders.length} registros`
+                        : `${preventiveSchedules.length} registros`}
+                    </p>
                   </div>
-                  {(alertSummary.overdue > 0 || alertSummary.dueSoon > 0) && (
+                  {activeSection === 'orders' &&
+                    (alertSummary.overdue > 0 || alertSummary.dueSoon > 0) && (
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       {alertSummary.overdue > 0 && (
                         <span className="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 font-semibold text-rose-700">
@@ -2174,21 +2277,21 @@ export function WorkOrdersPage() {
                   )}
                 </div>
 
-                {loading && (
+                {activeSection === 'orders' && loading && (
                   <div className="p-12 text-center">
                     <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin theme-text-muted" />
                     <p className="text-sm theme-text-muted">Carregando ordens...</p>
                   </div>
                 )}
 
-                {!loading && error && (
+                {activeSection === 'orders' && !loading && error && (
                   <div className="p-12 text-center">
                     <AlertCircle className="mx-auto mb-4 h-8 w-8 text-rose-400" />
                     <p className="text-sm theme-text-muted">{error}</p>
                   </div>
                 )}
 
-                {!loading && !error && viewMode === 'table' && (
+                {activeSection === 'orders' && !loading && !error && viewMode === 'table' && (
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
                       <thead className="bg-[color:var(--dash-surface)]">
@@ -2338,6 +2441,75 @@ export function WorkOrdersPage() {
                     </table>
                   </div>
                 )}
+
+                {activeSection === 'preventive' && preventiveLoading && (
+                  <div className="p-12 text-center">
+                    <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin theme-text-muted" />
+                    <p className="text-sm theme-text-muted">Carregando preventivas...</p>
+                  </div>
+                )}
+
+                {activeSection === 'preventive' && !preventiveLoading && preventiveError && (
+                  <div className="p-12 text-center">
+                    <AlertCircle className="mx-auto mb-4 h-8 w-8 text-rose-400" />
+                    <p className="text-sm theme-text-muted">{preventiveError}</p>
+                  </div>
+                )}
+
+                {activeSection === 'preventive' &&
+                  !preventiveLoading &&
+                  !preventiveError && (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
+                        <thead className="bg-[color:var(--dash-surface)]">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
+                              Data
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
+                              Ativo
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
+                              Plano
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
+                              Estado
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
+                          {preventiveSchedules.length === 0 && (
+                            <tr>
+                              <td
+                                colSpan={4}
+                                className="px-6 py-8 text-center theme-text-muted"
+                              >
+                                Sem preventivas agendadas.
+                              </td>
+                            </tr>
+                          )}
+                          {preventiveSchedules.map((s) => (
+                            <tr key={s.id} className="hover:bg-[color:var(--dash-surface)]">
+                              <td className="px-6 py-4 text-sm theme-text">
+                                {new Date(s.scheduled_for).toLocaleString()}
+                              </td>
+                              <td className="px-6 py-4 text-sm theme-text">
+                                {s.asset_code
+                                  ? `${s.asset_code} - ${s.asset_name || ''}`
+                                  : s.asset_name || '—'}
+                              </td>
+                              <td className="px-6 py-4 text-sm theme-text">
+                                {s.plan_name || '—'}
+                              </td>
+                              <td className="px-6 py-4 text-sm theme-text-muted">
+                                {s.status}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
 
                 {!loading && !error && viewMode === 'kanban' && (
                   <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">

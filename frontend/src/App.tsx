@@ -15,6 +15,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { WorkOrdersPage } from './pages/WorkOrdersPage';
 import { AssetsPage } from './pages/AssetsPage';
 import { MaintenancePlansPage } from './pages/MaintenancePlansPage';
+import { PreventiveSchedulesPage } from './pages/PreventiveSchedulesPage';
 import { SparePartsPage } from './pages/SparePartsPage';
 import { SuppliersPage } from './pages/SuppliersPage';
 import { ReportsPage } from './pages/ReportsPage';
@@ -108,6 +109,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <MaintenancePlansPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/preventive-schedules"
+              element={
+                <ProtectedRoute>
+                  <PreventiveSchedulesPage />
                 </ProtectedRoute>
               }
             />

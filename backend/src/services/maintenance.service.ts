@@ -1,7 +1,13 @@
 // @ts-nocheck
 import { db } from '../config/database.js';
-import { maintenancePlans, maintenanceTasks, workOrders, assets } from '../db/schema.js';
-import { eq, and, desc, like, inArray } from 'drizzle-orm';
+import {
+  maintenancePlans,
+  maintenanceTasks,
+  workOrders,
+  assets,
+  preventiveMaintenanceSchedules,
+} from '../db/schema.js';
+import { eq, and, desc, like, inArray, asc, gte } from 'drizzle-orm';
 import { CacheKeys, CacheTTL, RedisService } from './redis.service.js';
 import { logger } from '../config/logger.js';
 
@@ -30,6 +36,33 @@ export interface CreateMaintenanceTaskInput {
   plan_id: string;
   description: string;
   sequence?: number;
+}
+
+export interface CreatePreventiveScheduleInput {
+  plan_id: string;
+  scheduled_for: string;
+  status?:
+    | 'planeada'
+    | 'agendada'
+    | 'confirmada'
+    | 'em_execucao'
+    | 'concluida'
+    | 'fechada'
+    | 'reagendada';
+  notes?: string;
+}
+
+export interface UpdatePreventiveScheduleInput {
+  scheduled_for?: string;
+  status?:
+    | 'planeada'
+    | 'agendada'
+    | 'confirmada'
+    | 'em_execucao'
+    | 'concluida'
+    | 'fechada'
+    | 'reagendada';
+  notes?: string;
 }
 
 export class MaintenanceService {
@@ -150,6 +183,255 @@ export class MaintenanceService {
     }
 
     return plans;
+  }
+
+  /**
+   * List preventive maintenance schedules for a plant
+   */
+  async getPreventiveSchedules(
+    tenant_id: string,
+    plant_id: string,
+    filters?: {
+      asset_id?: string;
+      plan_id?: string;
+      status?: string;
+    },
+  ) {
+    let query = db
+      .select({
+        id: preventiveMaintenanceSchedules.id,
+        tenant_id: preventiveMaintenanceSchedules.tenant_id,
+        plant_id: preventiveMaintenanceSchedules.plant_id,
+        plan_id: preventiveMaintenanceSchedules.plan_id,
+        asset_id: preventiveMaintenanceSchedules.asset_id,
+        scheduled_for: preventiveMaintenanceSchedules.scheduled_for,
+        status: preventiveMaintenanceSchedules.status,
+        notes: preventiveMaintenanceSchedules.notes,
+        created_by: preventiveMaintenanceSchedules.created_by,
+        confirmed_by: preventiveMaintenanceSchedules.confirmed_by,
+        confirmed_at: preventiveMaintenanceSchedules.confirmed_at,
+        started_at: preventiveMaintenanceSchedules.started_at,
+        completed_at: preventiveMaintenanceSchedules.completed_at,
+        closed_at: preventiveMaintenanceSchedules.closed_at,
+        closed_by: preventiveMaintenanceSchedules.closed_by,
+        rescheduled_at: preventiveMaintenanceSchedules.rescheduled_at,
+        rescheduled_from: preventiveMaintenanceSchedules.rescheduled_from,
+        created_at: preventiveMaintenanceSchedules.created_at,
+        updated_at: preventiveMaintenanceSchedules.updated_at,
+        plan_name: maintenancePlans.name,
+        asset_name: assets.name,
+        asset_code: assets.code,
+      })
+      .from(preventiveMaintenanceSchedules)
+      .leftJoin(maintenancePlans, eq(preventiveMaintenanceSchedules.plan_id, maintenancePlans.id))
+      .leftJoin(assets, eq(preventiveMaintenanceSchedules.asset_id, assets.id));
+
+    const conditions = [
+      eq(preventiveMaintenanceSchedules.tenant_id, tenant_id),
+      eq(preventiveMaintenanceSchedules.plant_id, plant_id),
+    ];
+
+    if (filters?.asset_id) {
+      conditions.push(eq(preventiveMaintenanceSchedules.asset_id, filters.asset_id));
+    }
+    if (filters?.plan_id) {
+      conditions.push(eq(preventiveMaintenanceSchedules.plan_id, filters.plan_id));
+    }
+    if (filters?.status) {
+      conditions.push(eq(preventiveMaintenanceSchedules.status, filters.status as any));
+    }
+
+    query = query.where(and(...conditions));
+    return await query.orderBy(desc(preventiveMaintenanceSchedules.scheduled_for));
+  }
+
+  /**
+   * Get upcoming preventive schedules (next N) for dashboard
+   */
+  async getUpcomingPreventiveSchedules(tenant_id: string, plant_id: string, limit = 5) {
+    const now = new Date();
+    return await db
+      .select({
+        id: preventiveMaintenanceSchedules.id,
+        plan_id: preventiveMaintenanceSchedules.plan_id,
+        asset_id: preventiveMaintenanceSchedules.asset_id,
+        scheduled_for: preventiveMaintenanceSchedules.scheduled_for,
+        status: preventiveMaintenanceSchedules.status,
+        plan_name: maintenancePlans.name,
+        asset_name: assets.name,
+        asset_code: assets.code,
+      })
+      .from(preventiveMaintenanceSchedules)
+      .leftJoin(maintenancePlans, eq(preventiveMaintenanceSchedules.plan_id, maintenancePlans.id))
+      .leftJoin(assets, eq(preventiveMaintenanceSchedules.asset_id, assets.id))
+      .where(
+        and(
+          eq(preventiveMaintenanceSchedules.tenant_id, tenant_id),
+          eq(preventiveMaintenanceSchedules.plant_id, plant_id),
+          inArray(preventiveMaintenanceSchedules.status, [
+            'planeada',
+            'agendada',
+            'confirmada',
+            'reagendada',
+          ] as any),
+          gte(preventiveMaintenanceSchedules.scheduled_for, now),
+        ),
+      )
+      .orderBy(asc(preventiveMaintenanceSchedules.scheduled_for))
+      .limit(limit);
+  }
+
+  /**
+   * Create a preventive schedule from an existing maintenance plan
+   */
+  async createPreventiveSchedule(
+    tenant_id: string,
+    plant_id: string,
+    input: CreatePreventiveScheduleInput,
+    created_by?: string,
+  ) {
+    if (!created_by) {
+      throw new Error('Utilizador não autenticado');
+    }
+
+    const scheduledForDate = new Date(input.scheduled_for);
+    if (Number.isNaN(scheduledForDate.getTime())) {
+      throw new Error('scheduled_for inválido');
+    }
+
+    const plan = await db
+      .select({
+        id: maintenancePlans.id,
+        name: maintenancePlans.name,
+        asset_id: maintenancePlans.asset_id,
+        asset_plant_id: assets.plant_id,
+      })
+      .from(maintenancePlans)
+      .leftJoin(assets, eq(maintenancePlans.asset_id, assets.id))
+      .where(and(eq(maintenancePlans.id, input.plan_id), eq(maintenancePlans.tenant_id, tenant_id)))
+      .limit(1);
+
+    const planRow = plan?.[0];
+    if (!planRow) {
+      throw new Error('Maintenance plan not found');
+    }
+    if (planRow.asset_plant_id && planRow.asset_plant_id !== plant_id) {
+      throw new Error('Plano não pertence à planta selecionada');
+    }
+
+    const inserted = await db
+      .insert(preventiveMaintenanceSchedules)
+      .values({
+        tenant_id,
+        plant_id,
+        plan_id: input.plan_id,
+        asset_id: planRow.asset_id,
+        scheduled_for: scheduledForDate,
+        status: (input.status || 'planeada') as any,
+        notes: input.notes,
+        created_by,
+      })
+      .returning();
+
+    return inserted?.[0];
+  }
+
+  /**
+   * Update a preventive schedule (status/reschedule/notes)
+   */
+  async updatePreventiveSchedule(
+    tenant_id: string,
+    plant_id: string,
+    schedule_id: string,
+    patch: UpdatePreventiveScheduleInput,
+    user_id?: string,
+  ) {
+    const existing = await db
+      .select({
+        id: preventiveMaintenanceSchedules.id,
+        status: preventiveMaintenanceSchedules.status,
+        scheduled_for: preventiveMaintenanceSchedules.scheduled_for,
+        confirmed_at: preventiveMaintenanceSchedules.confirmed_at,
+        started_at: preventiveMaintenanceSchedules.started_at,
+        completed_at: preventiveMaintenanceSchedules.completed_at,
+        closed_at: preventiveMaintenanceSchedules.closed_at,
+      })
+      .from(preventiveMaintenanceSchedules)
+      .where(
+        and(
+          eq(preventiveMaintenanceSchedules.id, schedule_id),
+          eq(preventiveMaintenanceSchedules.tenant_id, tenant_id),
+          eq(preventiveMaintenanceSchedules.plant_id, plant_id),
+        ),
+      )
+      .limit(1);
+
+    const row = existing?.[0];
+    if (!row) {
+      throw new Error('Preventive schedule not found');
+    }
+
+    const updates: any = {};
+
+    if (patch.notes !== undefined) {
+      updates.notes = patch.notes;
+    }
+
+    let newScheduledFor: Date | undefined;
+    if (patch.scheduled_for) {
+      const parsed = new Date(patch.scheduled_for);
+      if (Number.isNaN(parsed.getTime())) {
+        throw new Error('scheduled_for inválido');
+      }
+      newScheduledFor = parsed;
+      updates.scheduled_for = parsed;
+    }
+
+    if (patch.status) {
+      updates.status = patch.status as any;
+
+      if (patch.status === 'confirmada' && !row.confirmed_at) {
+        updates.confirmed_at = new Date();
+        updates.confirmed_by = user_id || null;
+      }
+
+      if (patch.status === 'em_execucao' && !row.started_at) {
+        updates.started_at = new Date();
+      }
+
+      if (patch.status === 'concluida' && !row.completed_at) {
+        updates.completed_at = new Date();
+      }
+
+      if (patch.status === 'fechada' && !row.closed_at) {
+        updates.closed_at = new Date();
+        updates.closed_by = user_id || null;
+      }
+
+      if (patch.status === 'reagendada') {
+        if (!newScheduledFor) {
+          throw new Error('Para reagendar, envie scheduled_for');
+        }
+        updates.rescheduled_at = new Date();
+        updates.rescheduled_from = row.scheduled_for;
+      }
+    }
+
+    updates.updated_at = new Date();
+
+    const updated = await db
+      .update(preventiveMaintenanceSchedules)
+      .set(updates)
+      .where(
+        and(
+          eq(preventiveMaintenanceSchedules.id, schedule_id),
+          eq(preventiveMaintenanceSchedules.tenant_id, tenant_id),
+          eq(preventiveMaintenanceSchedules.plant_id, plant_id),
+        ),
+      )
+      .returning();
+
+    return updated?.[0];
   }
 
   /**
