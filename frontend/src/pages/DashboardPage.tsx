@@ -297,7 +297,7 @@ export function DashboardPage() {
   return (
     <MainLayout wide>
       <div
-        className="relative w-full space-y-10 rounded-[32px] bg-[linear-gradient(180deg,#f1f5f9_0%,#e2e8f0_45%,#e5edf5_100%)] p-6 font-display text-[color:var(--dash-ink)] sm:p-8"
+        className="relative w-full space-y-10 rounded-[32px] bg-[color:var(--dash-bg)] p-6 font-display text-[color:var(--dash-ink)] sm:p-8"
       >
         <section className="relative overflow-hidden rounded-[36px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#ecfeff_0%,_#ffffff_55%,_#fef9c3_120%)] p-8 shadow-[0_32px_80px_-55px_rgba(15,118,110,0.45)] lg:p-10">
           <div className="absolute -left-20 top-4 h-40 w-40 rounded-full bg-emerald-200/60 blur-3xl dash-float" />

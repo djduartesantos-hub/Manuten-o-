@@ -401,7 +401,7 @@ export function AssetsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-8 font-display">
+      <div className="space-y-8 font-display bg-[color:var(--dash-bg)]">
         <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-amber-50 p-8 shadow-sm">
           <div className="absolute -right-10 -top-14 h-56 w-56 rounded-full bg-amber-200/50 blur-3xl" />
           <div className="absolute -left-14 bottom-0 h-44 w-44 rounded-full bg-emerald-200/40 blur-3xl" />

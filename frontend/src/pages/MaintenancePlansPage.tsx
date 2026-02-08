@@ -434,7 +434,7 @@ export function MaintenancePlansPage() {
   return (
     <MainLayout>
       <div
-        className="relative space-y-10 font-display text-foreground"
+        className="relative space-y-10 font-display bg-[color:var(--dash-bg)] text-foreground"
       >
         <section className="relative overflow-hidden rounded-[32px] border border-border bg-card p-8 shadow-[0_28px_80px_-60px_rgba(15,118,110,0.55)]">
           <div className="absolute -right-12 -top-20 h-56 w-56 rounded-full bg-emerald-200/60 blur-3xl plans-float" />

@@ -112,7 +112,7 @@ export function SearchPage() {
   return (
     <MainLayout>
       <div
-        className="relative space-y-10 font-display text-[color:var(--search-ink)]"
+        className="relative space-y-10 font-display bg-[color:var(--dash-bg)] text-[color:var(--search-ink)]"
       >
         <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#f3e8ff,_#ffffff_58%)] p-8 shadow-[0_28px_80px_-60px_rgba(124,58,237,0.4)]">
           <div className="absolute -right-12 -top-20 h-56 w-56 rounded-full bg-violet-200/60 blur-3xl search-float" />

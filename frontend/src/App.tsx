@@ -8,7 +8,6 @@ import { getUserPlants } from './services/api';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { SocketProvider } from './context/SocketContext';
 import { queryClient } from './services/queryClient';
-import ThemeToggle from './components/ThemeToggle';
 
 // Pages
 import { LoginPage } from './pages/LoginPage';
@@ -64,9 +63,6 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <SocketProvider>
         <BrowserRouter>
-          <div className="theme-toggle-container">
-            <ThemeToggle />
-          </div>
           <Routes>
             <Route
               path="/"

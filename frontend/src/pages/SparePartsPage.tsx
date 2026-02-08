@@ -266,7 +266,7 @@ export function SparePartsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-8 font-display">
+      <div className="space-y-8 font-display bg-[color:var(--dash-bg)]">
         <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#fff7ed,_#ffffff_60%)] p-8 shadow-[0_28px_80px_-60px_rgba(245,158,11,0.35)]">
           <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-amber-200/50 blur-3xl" />
           <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-emerald-200/40 blur-3xl" />
