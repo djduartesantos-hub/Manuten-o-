@@ -133,86 +133,22 @@ export function Header() {
     <header className="sticky top-0 z-50 border-b theme-border theme-card shadow-[0_10px_40px_-30px_rgba(15,23,42,0.4)] backdrop-blur">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link to="/dashboard" className="flex items-center gap-3 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0f766e,#38bdf8)] text-white shadow-md transition-all group-hover:-translate-y-0.5 group-hover:shadow-lg">
-              <span className="text-base font-semibold tracking-tight">M</span>
-            </div>
-            <div className="hidden sm:block">
-              <span className="text-lg font-semibold theme-text">Manutencao</span>
-              <span className="block text-xs uppercase tracking-[0.3em] theme-text-muted">
-                Ops Hub
-              </span>
-            </div>
-          </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navSections.map((section) => {
-              const SectionIcon = section.icon;
-              const hasActiveItem = section.items.some((item) => item.active);
-              const isOpen = openDropdown === section.title;
-
-              return (
-                <div key={section.title} className="relative">
-                  <button
-                    onClick={() => setOpenDropdown(isOpen ? null : section.title)}
-                    onMouseEnter={() => setOpenDropdown(section.title)}
-                    className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all ${
-                      hasActiveItem || isOpen
-                        ? 'bg-[color:var(--dash-surface-2)] text-[color:var(--dash-ink)]'
-                        : 'text-[color:var(--dash-muted)] hover:bg-[color:var(--dash-surface)] hover:text-[color:var(--dash-ink)]'
-                    }`}
-                  >
-                    {SectionIcon && <SectionIcon className="w-4 h-4" />}
-                    <span>{section.title}</span>
-                    <ChevronDown
-                      className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                    />
-                  </button>
-
-                  {/* Dropdown Menu */}
-                  {isOpen && (
-                    <div
-                      className="absolute top-full left-0 mt-2 w-56 rounded-2xl border theme-border theme-card py-2 shadow-xl backdrop-blur"
-                      onMouseLeave={() => setOpenDropdown(null)}
-                    >
-                      <div className="mx-3 mb-2 h-1 rounded-full bg-[linear-gradient(90deg,#0f766e,#38bdf8)]" />
-                      {section.items.map((item) => {
-                        const ItemIcon = item.icon;
-                        return (
-                          <Link
-                            key={item.href}
-                            to={item.href}
-                            onClick={() => setOpenDropdown(null)}
-                            className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
-                              item.active
-                                ? 'bg-[color:var(--dash-surface)] text-emerald-700 font-semibold'
-                                : 'text-[color:var(--dash-muted)] hover:bg-[color:var(--dash-surface)] hover:text-[color:var(--dash-ink)]'
-                            }`}
-                          >
-                            {ItemIcon && (
-                              <ItemIcon
-                                className={`w-4 h-4 ${
-                                  item.active ? 'text-emerald-600' : 'text-[color:var(--dash-muted)]'
-                                }`}
-                              />
-                            )}
-                            <span>{item.label}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-
-          {/* Right Side */}
           <div className="flex items-center gap-3">
-            {/* Theme Selector */}
-            <div className="hidden sm:flex items-center">
+            {/* Logo */}
+            <Link to="/dashboard" className="flex items-center gap-3 group">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0f766e,#38bdf8)] text-white shadow-md transition-all group-hover:-translate-y-0.5 group-hover:shadow-lg">
+                <span className="text-base font-semibold tracking-tight">M</span>
+              </div>
+              <div className="hidden sm:block">
+                <span className="text-lg font-semibold theme-text">Manutencao</span>
+                <span className="block text-xs uppercase tracking-[0.3em] theme-text-muted">
+                  Ops Hub
+                </span>
+              </div>
+            </Link>
+
+            {/* Theme Selector (Desktop) */}
+            <div className="hidden md:flex items-center">
               <button
                 type="button"
                 role="switch"
@@ -239,6 +175,75 @@ export function Header() {
                 </span>
               </button>
             </div>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-1">
+              {navSections.map((section) => {
+                const SectionIcon = section.icon;
+                const hasActiveItem = section.items.some((item) => item.active);
+                const isOpen = openDropdown === section.title;
+
+                return (
+                  <div key={section.title} className="relative">
+                    <button
+                      onClick={() => setOpenDropdown(isOpen ? null : section.title)}
+                      onMouseEnter={() => setOpenDropdown(section.title)}
+                      className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all ${
+                        hasActiveItem || isOpen
+                          ? 'bg-[color:var(--dash-surface-2)] text-[color:var(--dash-ink)]'
+                          : 'text-[color:var(--dash-muted)] hover:bg-[color:var(--dash-surface)] hover:text-[color:var(--dash-ink)]'
+                      }`}
+                    >
+                      {SectionIcon && <SectionIcon className="w-4 h-4" />}
+                      <span>{section.title}</span>
+                      <ChevronDown
+                        className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+
+                    {/* Dropdown Menu */}
+                    {isOpen && (
+                      <div
+                        className="absolute top-full left-0 mt-2 w-56 rounded-2xl border theme-border theme-card py-2 shadow-xl backdrop-blur"
+                        onMouseLeave={() => setOpenDropdown(null)}
+                      >
+                        <div className="mx-3 mb-2 h-1 rounded-full bg-[linear-gradient(90deg,#0f766e,#38bdf8)]" />
+                        {section.items.map((item) => {
+                          const ItemIcon = item.icon;
+                          return (
+                            <Link
+                              key={item.href}
+                              to={item.href}
+                              onClick={() => setOpenDropdown(null)}
+                              className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                                item.active
+                                  ? 'bg-[color:var(--dash-surface)] text-emerald-700 font-semibold'
+                                  : 'text-[color:var(--dash-muted)] hover:bg-[color:var(--dash-surface)] hover:text-[color:var(--dash-ink)]'
+                              }`}
+                            >
+                              {ItemIcon && (
+                                <ItemIcon
+                                  className={`w-4 h-4 ${
+                                    item.active
+                                      ? 'text-emerald-600'
+                                      : 'text-[color:var(--dash-muted)]'
+                                  }`}
+                                />
+                              )}
+                              <span>{item.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Right Side */}
+          <div className="flex items-center gap-3">
             {/* Plant Selector */}
             {plants.length > 0 && (
               <div className="hidden sm:flex items-center">
@@ -313,6 +318,38 @@ export function Header() {
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
           <nav className="md:hidden border-t theme-border theme-card py-4">
+            {/* Mobile Theme Selector */}
+            <div className="mb-4 px-4 flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider theme-text-muted">
+                Tema
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isDark}
+                aria-label="Alternar tema claro/escuro"
+                onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                className="relative inline-flex h-8 w-14 items-center rounded-full border theme-border bg-[color:var(--dash-surface-2)] px-1 shadow-inner transition-colors"
+              >
+                <span
+                  className={`relative inline-flex h-6 w-6 items-center justify-center rounded-full bg-[color:var(--dash-panel)] shadow-sm transition-transform duration-300 ease-out will-change-transform ${
+                    isDark ? 'translate-x-6' : 'translate-x-0'
+                  }`}
+                >
+                  <Sun
+                    className={`absolute h-4 w-4 text-[color:var(--dash-accent)] transition-all duration-300 ${
+                      isDark ? 'opacity-0 -rotate-90 scale-75' : 'opacity-100 rotate-0 scale-100'
+                    }`}
+                  />
+                  <Moon
+                    className={`absolute h-4 w-4 text-[color:var(--dash-ink)] transition-all duration-300 ${
+                      isDark ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 rotate-90 scale-75'
+                    }`}
+                  />
+                </span>
+              </button>
+            </div>
+
             {/* Mobile Plant Selector */}
             {plants.length > 0 && (
               <div className="mb-4 px-4">

@@ -338,10 +338,10 @@ export function SparePartsPage() {
         </section>
 
         {error && (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 shadow-sm">
+          <div className="rounded-2xl border theme-border bg-rose-500/10 p-4 shadow-sm">
             <div className="flex items-center gap-3">
               <AlertCircle className="h-5 w-5 text-rose-600" />
-              <p className="text-sm text-rose-800">{error}</p>
+              <p className="text-sm theme-text">{error}</p>
             </div>
           </div>
         )}
@@ -470,7 +470,7 @@ export function SparePartsPage() {
                           <td className="px-6 py-4 text-sm theme-text">
                             {minStock || '-'}
                             {isLow && (
-                              <span className="ml-2 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                              <span className="ml-2 rounded-full bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold text-[color:var(--dash-text)]">
                                 Baixo
                               </span>
                             )}
@@ -593,55 +593,55 @@ export function SparePartsPage() {
                   </div>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
+                  <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
+                    <thead className="bg-[color:var(--dash-surface)]">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
                           Peça
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
                           Tipo
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
                           Quantidade
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
                           Data
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
+                    <tbody className="divide-y divide-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
                       {filteredMovements.length === 0 && (
                         <tr>
-                          <td colSpan={4} className="px-6 py-6 text-center text-slate-500">
+                          <td colSpan={4} className="px-6 py-6 text-center theme-text-muted">
                             Nenhum movimento encontrado
                           </td>
                         </tr>
                       )}
                       {visibleMovements.map((movement) => (
-                        <tr key={movement.id} className="transition hover:bg-amber-50/40">
-                          <td className="px-6 py-4 text-sm text-slate-700">
+                        <tr key={movement.id} className="transition hover:bg-amber-500/10">
+                          <td className="px-6 py-4 text-sm theme-text">
                             {movement.spare_part
                               ? `${movement.spare_part.code} - ${movement.spare_part.name}`
                               : '-'}
                           </td>
-                          <td className="px-6 py-4 text-sm text-slate-700 capitalize">
+                          <td className="px-6 py-4 text-sm theme-text capitalize">
                             <span
                               className={`rounded-full px-2 py-1 text-xs font-semibold ${
                                 movement.type === 'entrada'
-                                  ? 'bg-emerald-100 text-emerald-700'
+                                  ? 'bg-emerald-500/10 text-[color:var(--dash-text)]'
                                   : movement.type === 'saida'
-                                  ? 'bg-rose-100 text-rose-700'
-                                  : 'bg-slate-100 text-slate-600'
+                                  ? 'bg-rose-500/10 text-[color:var(--dash-text)]'
+                                  : 'bg-[color:var(--dash-surface)] theme-text-muted'
                               }`}
                             >
                               {movement.type}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-sm text-slate-700">
+                          <td className="px-6 py-4 text-sm theme-text">
                             {movement.quantity}
                           </td>
-                          <td className="px-6 py-4 text-sm text-slate-700">
+                          <td className="px-6 py-4 text-sm theme-text">
                             {movement.created_at
                               ? new Date(movement.created_at).toLocaleString()
                               : '-'}
@@ -652,7 +652,7 @@ export function SparePartsPage() {
                   </table>
                 </div>
                 {sortedMovements.length > visibleMovements.length && (
-                  <div className="border-t border-slate-100 p-4">
+                  <div className="border-t border-[color:var(--dash-border)] p-4">
                     <button
                       className="btn-secondary w-full"
                       onClick={() => setMovementsVisibleCount((count) => count + 20)}

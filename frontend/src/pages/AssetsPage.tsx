@@ -358,7 +358,7 @@ export function AssetsPage() {
       },
       inativo: {
         label: 'Inativo',
-        badge: 'bg-slate-100 text-slate-700',
+        badge: 'bg-[color:var(--dash-surface)] theme-text-muted',
         icon: Clock3,
       },
     }),
@@ -662,7 +662,7 @@ export function AssetsPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="mb-1 block text-sm font-medium theme-text">
                         Status
                       </label>
                       <select
@@ -678,7 +678,7 @@ export function AssetsPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="mb-1 block text-sm font-medium theme-text">
                         Localizacao
                       </label>
                       <input
@@ -690,7 +690,7 @@ export function AssetsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="mb-1 block text-sm font-medium theme-text">
                         Fabricante
                       </label>
                       <input
@@ -702,7 +702,7 @@ export function AssetsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="mb-1 block text-sm font-medium theme-text">
                         Modelo
                       </label>
                       <input
@@ -712,7 +712,7 @@ export function AssetsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="mb-1 block text-sm font-medium theme-text">
                         Numero de serie
                       </label>
                       <input
@@ -727,24 +727,24 @@ export function AssetsPage() {
                       <input
                         id="asset-critical"
                         type="checkbox"
-                        className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                        className="h-4 w-4 rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
                         checked={form.is_critical}
                         onChange={(event) =>
                           setForm({ ...form, is_critical: event.target.checked })
                         }
                       />
-                      <label htmlFor="asset-critical" className="text-sm text-slate-700">
+                      <label htmlFor="asset-critical" className="text-sm theme-text">
                         Equipamento critico
                       </label>
                     </div>
                   </div>
 
                   {showCategoryForm && (
-                    <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <h3 className="text-sm font-semibold text-slate-800">Nova categoria</h3>
+                    <div className="mt-4 rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+                      <h3 className="text-sm font-semibold theme-text">Nova categoria</h3>
                       <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                         <div>
-                          <label className="block text-xs font-medium text-slate-600 mb-1">
+                          <label className="mb-1 block text-xs font-medium theme-text-muted">
                             Nome
                           </label>
                           <input
@@ -756,7 +756,7 @@ export function AssetsPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-600 mb-1">
+                          <label className="mb-1 block text-xs font-medium theme-text-muted">
                             Descricao
                           </label>
                           <input
@@ -820,11 +820,11 @@ export function AssetsPage() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 {filteredAssets.length === 0 && (
-                  <div className="col-span-full rounded-3xl border border-dashed border-slate-200 bg-white p-10 text-center">
-                    <p className="text-sm font-semibold text-slate-700">
+                  <div className="col-span-full rounded-3xl border border-dashed theme-border bg-[color:var(--dash-panel)] p-10 text-center">
+                    <p className="text-sm font-semibold theme-text">
                       Nenhum equipamento encontrado
                     </p>
-                    <p className="mt-2 text-xs text-slate-500">
+                    <p className="mt-2 text-xs theme-text-muted">
                       Ajuste os filtros ou tente outro termo de busca.
                     </p>
                   </div>
@@ -836,17 +836,17 @@ export function AssetsPage() {
                   return (
                     <article
                       key={asset.id}
-                      className="group rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-slate-300 hover:shadow-md"
+                      className="group rounded-3xl border theme-border theme-card p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                             {asset.code}
                           </p>
-                          <h3 className="mt-2 text-lg font-semibold text-slate-900">
+                          <h3 className="mt-2 text-lg font-semibold theme-text">
                             {asset.name}
                           </h3>
-                          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs theme-text-muted">
                             <span className="inline-flex items-center gap-1">
                               <Tag className="h-3.5 w-3.5" />
                               {asset.category?.name || 'Sem categoria'}
@@ -859,26 +859,26 @@ export function AssetsPage() {
                         </div>
                         <span
                           className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
-                            meta?.badge || 'bg-slate-100 text-slate-700'
+                            meta?.badge || 'bg-[color:var(--dash-surface)] theme-text'
                           }`}
                         >
                           <StatusIcon className="h-3.5 w-3.5" />
                           {meta?.label || asset.status || 'n/a'}
                         </span>
                       </div>
-                      <div className="mt-5 border-t border-slate-100 pt-4 text-xs text-slate-500">
+                      <div className="mt-5 border-t border-[color:var(--dash-border)] pt-4 text-xs theme-text-muted">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleEdit(asset)}
-                              className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                              className="inline-flex items-center gap-1 rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text transition hover:bg-[color:var(--dash-surface)]"
                             >
                               <Pencil className="h-3.5 w-3.5" />
                               Editar
                             </button>
                             <button
                               onClick={() => handleDelete(asset.id)}
-                              className="inline-flex items-center gap-1 rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-50"
+                              className="inline-flex items-center gap-1 rounded-full border border-rose-500/20 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-500/10"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                               Eliminar
@@ -886,7 +886,7 @@ export function AssetsPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <span>Ultima atualizacao</span>
-                            <span className="font-semibold text-slate-700">Agora</span>
+                            <span className="font-semibold theme-text">Agora</span>
                           </div>
                         </div>
                       </div>
@@ -897,21 +897,21 @@ export function AssetsPage() {
             </div>
 
             <aside className="space-y-6">
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 className="text-sm font-semibold text-slate-900">Categorias em destaque</h2>
+              <div className="rounded-3xl border theme-border theme-card p-6 shadow-sm">
+                <h2 className="text-sm font-semibold theme-text">Categorias em destaque</h2>
                 <div className="mt-4 space-y-3">
                   {categoryStats.length === 0 && (
-                    <p className="text-xs text-slate-500">Sem dados suficientes.</p>
+                    <p className="text-xs theme-text-muted">Sem dados suficientes.</p>
                   )}
                   {categoryStats.map((category) => (
                     <div
                       key={category.name}
-                      className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2"
+                      className="flex items-center justify-between rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 py-2"
                     >
-                      <span className="text-xs font-semibold text-slate-700">
+                      <span className="text-xs font-semibold theme-text">
                         {category.name}
                       </span>
-                      <span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-600">
+                      <span className="rounded-full bg-[color:var(--dash-panel)] px-2 py-1 text-xs font-semibold theme-text-muted">
                         {category.count}
                       </span>
                     </div>
@@ -919,17 +919,17 @@ export function AssetsPage() {
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-slate-800 shadow-sm">
+              <div className="rounded-3xl border theme-border bg-amber-500/10 p-6 theme-text shadow-sm">
                 <h3 className="text-sm font-semibold">Proxima acao sugerida</h3>
-                <p className="mt-2 text-xs text-slate-600">
+                <p className="mt-2 text-xs theme-text-muted">
                   Concentre os recursos nos equipamentos em manutencao e parados para
                   aumentar a disponibilidade.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                  <span className="rounded-full bg-white px-3 py-1 font-semibold text-amber-700">
+                  <span className="rounded-full bg-[color:var(--dash-panel)] px-3 py-1 font-semibold text-amber-700">
                     {statusCounts.manutencao || 0} em manutencao
                   </span>
-                  <span className="rounded-full bg-white px-3 py-1 font-semibold text-rose-700">
+                  <span className="rounded-full bg-[color:var(--dash-panel)] px-3 py-1 font-semibold text-rose-700">
                     {statusCounts.parado || 0} parados
                   </span>
                 </div>

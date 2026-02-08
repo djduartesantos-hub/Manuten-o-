@@ -304,13 +304,13 @@ function AlertsSettings() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
             Alertas inteligentes
           </p>
-          <h2 className="mt-2 text-2xl font-semibold text-slate-900">
+          <h2 className="mt-2 text-2xl font-semibold theme-text">
             Alertas & Notificacoes
           </h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm theme-text-muted">
             Configure limites e canais de notificacao.
           </p>
         </div>
@@ -328,13 +328,13 @@ function AlertsSettings() {
 
       {/* Form */}
       {showForm && (
-        <div className="mb-6 overflow-hidden rounded-[24px] border border-slate-200 bg-[color:var(--settings-surface)]/80 shadow-sm">
-          <div className="h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
+        <div className="mb-6 overflow-hidden rounded-[24px] border theme-border theme-card shadow-sm">
+          <div className="h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent),var(--dash-accent-2))]" />
           <form onSubmit={handleSubmit} className="space-y-4 p-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Asset */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="mb-1 block text-sm font-medium theme-text">
                   Equipamento
                 </label>
                 <select
@@ -354,7 +354,7 @@ function AlertsSettings() {
 
               {/* Alert Type */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="mb-1 block text-sm font-medium theme-text">
                   Tipo de Alerta
                 </label>
                 <select
@@ -372,7 +372,7 @@ function AlertsSettings() {
 
               {/* Threshold */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="mb-1 block text-sm font-medium theme-text">
                   Limite
                 </label>
                 <input
@@ -388,7 +388,7 @@ function AlertsSettings() {
 
               {/* Time Unit */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="mb-1 block text-sm font-medium theme-text">
                   Unidade
                 </label>
                 <select
@@ -404,7 +404,7 @@ function AlertsSettings() {
 
               {/* Escalate After Hours */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="mb-1 block text-sm font-medium theme-text">
                   Escalar após (horas)
                 </label>
                 <input
@@ -421,12 +421,15 @@ function AlertsSettings() {
 
             {/* Notify Roles */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="mb-2 block text-sm font-medium theme-text">
                 Notificar Roles
               </label>
               <div className="flex flex-wrap gap-4">
                 {roles.map((role) => (
-                  <label key={role} className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs">
+                  <label
+                    key={role}
+                    className="flex items-center gap-2 rounded-full border theme-border bg-[color:var(--dash-surface)] px-3 py-1 text-xs"
+                  >
                     <input
                       type="checkbox"
                       checked={formData.notify_roles.includes(role)}
@@ -443,9 +446,9 @@ function AlertsSettings() {
                           });
                         }
                       }}
-                      className="rounded border-slate-300"
+                      className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
                     />
-                    <span className="capitalize text-xs text-slate-700">{role}</span>
+                    <span className="capitalize text-xs theme-text">{role}</span>
                   </label>
                 ))}
               </div>
@@ -453,29 +456,29 @@ function AlertsSettings() {
 
             {/* Notification Options */}
             <div className="flex flex-wrap gap-4">
-              <label className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs">
+              <label className="flex items-center gap-2 rounded-full border theme-border bg-[color:var(--dash-surface)] px-3 py-1 text-xs">
                 <input
                   type="checkbox"
                   checked={formData.notify_email}
                   onChange={(e) => setFormData({ ...formData, notify_email: e.target.checked })}
-                  className="rounded border-slate-300"
+                  className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
                 />
-                <span className="text-xs text-slate-700">Email</span>
+                <span className="text-xs theme-text">Email</span>
               </label>
-              <label className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs">
+              <label className="flex items-center gap-2 rounded-full border theme-border bg-[color:var(--dash-surface)] px-3 py-1 text-xs">
                 <input
                   type="checkbox"
                   checked={formData.notify_push}
                   onChange={(e) => setFormData({ ...formData, notify_push: e.target.checked })}
-                  className="rounded border-slate-300"
+                  className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
                 />
-                <span className="text-xs text-slate-700">Push</span>
+                <span className="text-xs theme-text">Push</span>
               </label>
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="mb-1 block text-sm font-medium theme-text">
                 Descrição (opcional)
               </label>
               <textarea
@@ -556,19 +559,19 @@ function AlertsSettings() {
                     </div>
                   </div>
                   {alert.description && (
-                    <p className="mt-2 text-sm text-slate-600 italic">"{alert.description}"</p>
+                    <p className="mt-2 text-sm theme-text-muted italic">"{alert.description}"</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleEdit(alert)}
-                    className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-[color:var(--settings-surface)]"
+                    className="rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => handleDelete(alert.id)}
-                    className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
+                    className="rounded-full border theme-border px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-500/10"
                   >
                     Eliminar
                   </button>
@@ -693,16 +696,16 @@ function NotificationSettings() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
             Notificacoes do sistema
           </p>
-          <h2 className="mt-2 text-2xl font-semibold text-slate-900">Regras operacionais</h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <h2 className="mt-2 text-2xl font-semibold theme-text">Regras operacionais</h2>
+          <p className="mt-1 text-sm theme-text-muted">
             Ajuste eventos, canais e destinatarios das notificacoes.
           </p>
         </div>
         <button
-          className="inline-flex items-center gap-2 rounded-full bg-[color:var(--settings-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-full bg-[color:var(--dash-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
           onClick={handleSaveNotificationRules}
           disabled={notificationsSaving || notificationsLoading}
         >
@@ -711,13 +714,13 @@ function NotificationSettings() {
       </div>
 
       {notificationsError && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-700">
+        <div className="rounded-2xl border theme-border bg-rose-500/10 p-4 text-sm theme-text">
           {notificationsError}
         </div>
       )}
 
       {notificationsLoading ? (
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white/80 py-10 text-center text-sm text-slate-500">
+        <div className="mt-6 rounded-2xl border theme-border theme-card py-10 text-center text-sm theme-text-muted">
           A carregar regras...
         </div>
       ) : (
@@ -735,19 +738,19 @@ function NotificationSettings() {
             return (
               <div
                 key={event.value}
-                className="rounded-[22px] border border-slate-200 bg-[color:var(--settings-surface)]/70 p-4"
+                className="rounded-[22px] border theme-border bg-[color:var(--dash-surface)] p-4"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{event.label}</p>
-                    <p className="mt-1 text-xs text-slate-500">{event.description}</p>
+                    <p className="text-sm font-semibold theme-text">{event.label}</p>
+                    <p className="mt-1 text-xs theme-text-muted">{event.description}</p>
                   </div>
-                  <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600">
+                  <label className="inline-flex items-center gap-2 text-xs font-semibold theme-text-muted">
                     <input
                       type="checkbox"
                       checked={rule.is_active !== false}
                       onChange={(e) => updateRule(event.value, { is_active: e.target.checked })}
-                      className="rounded border-slate-300"
+                      className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
                     />
                     Ativo
                   </label>
@@ -755,20 +758,20 @@ function NotificationSettings() {
 
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                       Canais
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {channelOptions.map((option) => (
                         <label
                           key={option.value}
-                          className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600"
+                          className="flex items-center gap-2 rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-1 text-xs theme-text-muted"
                         >
                           <input
                             type="checkbox"
                             checked={rule.channels?.includes(option.value)}
                             onChange={() => toggleRuleArrayValue(event.value, 'channels', option.value)}
-                            className="rounded border-slate-300"
+                            className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
                           />
                           {option.label}
                         </label>
@@ -777,20 +780,20 @@ function NotificationSettings() {
                   </div>
 
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                       Destinatarios
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {recipientOptions.map((option) => (
                         <label
                           key={option.value}
-                          className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600"
+                          className="flex items-center gap-2 rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-1 text-xs theme-text-muted"
                         >
                           <input
                             type="checkbox"
                             checked={rule.recipients?.includes(option.value)}
                             onChange={() => toggleRuleArrayValue(event.value, 'recipients', option.value)}
-                            className="rounded border-slate-300"
+                            className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
                           />
                           {option.label}
                         </label>
@@ -944,13 +947,13 @@ function PreventiveMaintenanceSettings() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
             Rotinas programadas
           </p>
-          <h2 className="mt-2 text-2xl font-semibold text-slate-900">
+          <h2 className="mt-2 text-2xl font-semibold theme-text">
             Planos de Manutencao Preventiva
           </h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm theme-text-muted">
             Crie e gerencie planos de manutencao por equipamento.
           </p>
         </div>
@@ -968,13 +971,13 @@ function PreventiveMaintenanceSettings() {
 
       {/* Form */}
       {showForm && (
-        <div className="mb-6 overflow-hidden rounded-[24px] border border-slate-200 bg-[color:var(--settings-surface)]/80 shadow-sm">
+        <div className="mb-6 overflow-hidden rounded-[24px] border theme-border theme-card shadow-sm">
           <div className="h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
           <form onSubmit={handleSubmit} className="space-y-4 p-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Asset */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium theme-text mb-1">
                   Equipamento
                 </label>
                 <select
@@ -994,7 +997,7 @@ function PreventiveMaintenanceSettings() {
 
               {/* Plan Name */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium theme-text mb-1">
                   Nome do Plano
                 </label>
                 <input
@@ -1009,7 +1012,7 @@ function PreventiveMaintenanceSettings() {
 
               {/* Frequency Value */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium theme-text mb-1">
                   Frequência
                 </label>
                 <input
@@ -1025,7 +1028,7 @@ function PreventiveMaintenanceSettings() {
 
               {/* Frequency Unit */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium theme-text mb-1">
                   Unidade
                 </label>
                 <select
@@ -1043,7 +1046,7 @@ function PreventiveMaintenanceSettings() {
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium theme-text mb-1">
                 Descrição (opcional)
               </label>
               <textarea
@@ -1057,11 +1060,11 @@ function PreventiveMaintenanceSettings() {
             {/* Tasks */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-slate-700">Tarefas</label>
+                <label className="block text-sm font-medium theme-text">Tarefas</label>
                 <button
                   type="button"
                   onClick={addTask}
-                  className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-white"
+                  className="rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text transition hover:bg-[color:var(--dash-surface)]"
                 >
                   + Adicionar tarefa
                 </button>
@@ -1079,7 +1082,7 @@ function PreventiveMaintenanceSettings() {
                     <button
                       type="button"
                       onClick={() => removeTask(idx)}
-                      className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
+                      className="rounded-full border border-rose-500/20 px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-500/10"
                     >
                       ✕
                     </button>
@@ -1102,7 +1105,7 @@ function PreventiveMaintenanceSettings() {
                   setShowForm(false);
                   setEditingPlan(null);
                 }}
-                className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-white"
+                className="inline-flex items-center justify-center rounded-full border theme-border px-4 py-2 text-sm font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
               >
                 Cancelar
               </button>
@@ -1114,28 +1117,28 @@ function PreventiveMaintenanceSettings() {
       {/* Plans List */}
       <div className="space-y-3">
         {loading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white/80 py-10 text-center text-sm text-slate-500">
+          <div className="rounded-2xl border theme-border theme-card py-10 text-center text-sm theme-text-muted">
             Carregando...
           </div>
         ) : plans.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-[color:var(--settings-surface)] p-10 text-center text-sm text-slate-500">
+          <div className="rounded-2xl border border-dashed theme-border bg-[color:var(--dash-surface)] p-10 text-center text-sm theme-text-muted">
             Nenhum plano de manutencao ainda
           </div>
         ) : (
           plans.map((plan) => (
             <div
               key={plan.id}
-              className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm"
+              className="rounded-2xl border theme-border theme-card p-4 shadow-sm"
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold text-slate-900">{plan.name}</span>
-                    <span className="text-sm text-slate-600">
+                    <span className="font-semibold theme-text">{plan.name}</span>
+                    <span className="text-sm theme-text-muted">
                       {plan.asset?.name} ({plan.asset?.code})
                     </span>
                   </div>
-                  <div className="mt-3 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
+                  <div className="mt-3 grid gap-3 text-sm theme-text-muted sm:grid-cols-2">
                     <div>
                       <span className="font-medium">Frequencia:</span> A cada{' '}
                       {plan.frequency_value} {plan.frequency_unit}
@@ -1145,12 +1148,12 @@ function PreventiveMaintenanceSettings() {
                     </div>
                   </div>
                   {plan.description && (
-                    <p className="mt-2 text-sm text-slate-600 italic">"{plan.description}"</p>
+                    <p className="mt-2 text-sm theme-text-muted italic">"{plan.description}"</p>
                   )}
                   {plan.tasks && plan.tasks.length > 0 && (
                     <div className="mt-3 space-y-1">
                       {plan.tasks.map((task: string, idx: number) => (
-                        <div key={idx} className="flex items-start gap-2 text-sm text-slate-600">
+                        <div key={idx} className="flex items-start gap-2 text-sm theme-text-muted">
                           <span className="text-emerald-500">•</span>
                           <span>{task}</span>
                         </div>
@@ -1161,13 +1164,13 @@ function PreventiveMaintenanceSettings() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleEdit(plan)}
-                    className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-[color:var(--settings-surface)]"
+                    className="rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text transition hover:bg-[color:var(--dash-surface)]"
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => handleDelete(plan.id)}
-                    className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
+                    className="rounded-full border border-rose-500/20 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-500/10"
                   >
                     Eliminar
                   </button>
@@ -1255,18 +1258,18 @@ function PredictiveWarningsSettings() {
   return (
     <div>
       <div className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
           Saude operacional
         </p>
-        <h2 className="mt-2 text-2xl font-semibold text-slate-900">Alertas preditivos</h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <h2 className="mt-2 text-2xl font-semibold theme-text">Alertas preditivos</h2>
+        <p className="mt-1 text-sm theme-text-muted">
           Analise automatica de historico para avisos de risco.
         </p>
       </div>
 
       {/* Asset Selector */}
-      <div className="mb-6 rounded-[24px] border border-slate-200 bg-white/90 p-4 shadow-sm">
-        <label className="block text-sm font-medium text-slate-700 mb-2">
+      <div className="mb-6 rounded-[24px] border theme-border theme-card p-4 shadow-sm">
+        <label className="block text-sm font-medium theme-text mb-2">
           Selecionar equipamento
         </label>
         <select
@@ -1285,11 +1288,11 @@ function PredictiveWarningsSettings() {
 
       {/* Warnings Display */}
       {loading ? (
-        <div className="rounded-2xl border border-slate-200 bg-white/80 py-10 text-center text-sm text-slate-500">
+        <div className="rounded-2xl border theme-border theme-card py-10 text-center text-sm theme-text-muted">
           Analisando historico...
         </div>
       ) : warnings.length === 0 ? (
-        <div className="rounded-[24px] border border-emerald-200 bg-[linear-gradient(135deg,#ecfdf3,#ffffff)] p-10 text-center">
+        <div className="rounded-[24px] border border-emerald-500/20 bg-emerald-500/10 p-10 text-center">
           <div className="text-3xl">✅</div>
           <p className="mt-2 text-sm font-semibold text-emerald-800">Nenhum risco detectado</p>
           <p className="mt-1 text-xs text-emerald-700">
@@ -1332,7 +1335,7 @@ function PredictiveWarningsSettings() {
                     )}
                   </div>
                   {warning.recommendation && (
-                    <div className="mt-3 rounded-2xl border border-white/60 bg-white/70 p-3 text-sm">
+                    <div className="mt-3 rounded-2xl border theme-border bg-[color:var(--dash-panel)] p-3 text-sm theme-text">
                       <span className="font-medium">Recomendacao:</span> {warning.recommendation}
                     </div>
                   )}
@@ -1346,19 +1349,19 @@ function PredictiveWarningsSettings() {
       {/* Analysis Summary */}
       {selectedAsset && warnings.length > 0 && (
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-[20px] border border-rose-200 bg-rose-50/70 p-4 text-center">
+          <div className="rounded-[20px] border border-rose-500/20 bg-rose-500/10 p-4 text-center">
             <div className="text-2xl font-semibold text-rose-600">
               {warnings.filter((w) => w.severity === 'critical').length}
             </div>
             <div className="text-xs text-rose-700">Criticos</div>
           </div>
-          <div className="rounded-[20px] border border-orange-200 bg-orange-50/70 p-4 text-center">
+          <div className="rounded-[20px] border border-orange-500/20 bg-orange-500/10 p-4 text-center">
             <div className="text-2xl font-semibold text-orange-600">
               {warnings.filter((w) => w.severity === 'high').length}
             </div>
             <div className="text-xs text-orange-700">Altos</div>
           </div>
-          <div className="rounded-[20px] border border-yellow-200 bg-yellow-50/70 p-4 text-center">
+          <div className="rounded-[20px] border border-yellow-500/20 bg-yellow-500/10 p-4 text-center">
             <div className="text-2xl font-semibold text-yellow-600">
               {warnings.filter((w) => w.severity === 'medium').length}
             </div>
@@ -1491,20 +1494,20 @@ function DocumentsLibrarySettings() {
   return (
     <div>
       <div className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
           Documentacao tecnica
         </p>
-        <h2 className="mt-2 text-2xl font-semibold text-slate-900">
+        <h2 className="mt-2 text-2xl font-semibold theme-text">
           Biblioteca de documentos
         </h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-sm theme-text-muted">
           Manuais, esquemas, certificados e garantias.
         </p>
       </div>
 
       {/* Asset Selector */}
-      <div className="mb-6 rounded-[24px] border border-slate-200 bg-white/90 p-4 shadow-sm">
-        <label className="block text-sm font-medium text-slate-700 mb-2">
+      <div className="mb-6 rounded-[24px] border theme-border theme-card p-4 shadow-sm">
+        <label className="block text-sm font-medium theme-text mb-2">
           Selecionar equipamento
         </label>
         <select
@@ -1523,11 +1526,11 @@ function DocumentsLibrarySettings() {
 
       {/* Upload Area */}
       {selectedAsset && (
-        <div className="relative mb-6 overflow-hidden rounded-[24px] border-2 border-dashed border-slate-200 bg-[color:var(--settings-surface)]/80 p-6">
+        <div className="relative mb-6 overflow-hidden rounded-[24px] border-2 border-dashed border-[color:var(--dash-border)] bg-[color:var(--dash-surface)]/80 p-6">
           <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
           <div className="flex items-center gap-4">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-slate-700 mb-3">
+              <label className="block text-sm font-medium theme-text mb-3">
                 Tipo de documento
               </label>
               <select
@@ -1545,7 +1548,7 @@ function DocumentsLibrarySettings() {
                   type="file"
                   onChange={handleFileUpload}
                   disabled={uploading}
-                  className="block w-full text-sm text-slate-500 file:mr-4 file:rounded-full file:border-0 file:bg-[color:var(--settings-accent)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:opacity-90"
+                  className="block w-full text-sm theme-text-muted file:mr-4 file:rounded-full file:border-0 file:bg-[color:var(--settings-accent)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:opacity-90"
                 />
               </div>
               {uploading && (
@@ -1559,28 +1562,28 @@ function DocumentsLibrarySettings() {
       {/* Documents List */}
       <div className="space-y-3">
         {loading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white/80 py-10 text-center text-sm text-slate-500">
+          <div className="rounded-2xl border theme-border theme-card py-10 text-center text-sm theme-text-muted">
             Carregando...
           </div>
         ) : documents.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-[color:var(--settings-surface)] p-10 text-center text-sm text-slate-500">
+          <div className="rounded-2xl border border-dashed theme-border bg-[color:var(--dash-surface)] p-10 text-center text-sm theme-text-muted">
             {selectedAsset ? 'Nenhum documento para este equipamento' : 'Selecione um equipamento'}
           </div>
         ) : (
           documents.map((doc) => (
             <div
               key={doc.id}
-              className="overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm"
+              className="overflow-hidden rounded-2xl border theme-border theme-card shadow-sm"
             >
               <button
                 onClick={() => setExpandedDoc(expandedDoc === doc.id ? null : doc.id)}
-                className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-[color:var(--settings-surface)]"
+                className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-[color:var(--dash-surface)]"
               >
                 <div className="flex flex-1 items-center gap-3">
                   <span className="text-2xl">{getDocumentIcon(doc.document_type)}</span>
                   <div className="min-w-0 flex-1">
-                    <div className="font-medium text-slate-900 truncate">{doc.title}</div>
-                    <div className="text-xs text-slate-600">
+                    <div className="font-medium theme-text truncate">{doc.title}</div>
+                    <div className="text-xs theme-text-muted">
                       v{doc.version_number} •{' '}
                       {new Date(doc.created_at).toLocaleDateString('pt-PT')}
                     </div>
@@ -1597,7 +1600,7 @@ function DocumentsLibrarySettings() {
                   )}
                 </div>
                 <ChevronRight
-                  className={`h-5 w-5 text-slate-400 transition-transform ${
+                  className={`h-5 w-5 theme-text-muted transition-transform ${
                     expandedDoc === doc.id ? 'rotate-90' : ''
                   }`}
                 />
@@ -1605,28 +1608,28 @@ function DocumentsLibrarySettings() {
 
               {/* Expanded Details */}
               {expandedDoc === doc.id && (
-                <div className="space-y-3 border-t border-slate-200 bg-[color:var(--settings-surface)] p-4">
+                <div className="space-y-3 border-t border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
                   <div className="grid gap-4 text-sm sm:grid-cols-2">
                     <div>
-                      <span className="font-medium text-slate-700">Tamanho:</span>
-                      <p className="text-slate-600">{(doc.file_size_mb || 0).toFixed(2)} MB</p>
+                      <span className="font-medium theme-text">Tamanho:</span>
+                      <p className="theme-text-muted">{(doc.file_size_mb || 0).toFixed(2)} MB</p>
                     </div>
                     <div>
-                      <span className="font-medium text-slate-700">Formato:</span>
-                      <p className="text-slate-600">{doc.file_extension?.toUpperCase()}</p>
+                      <span className="font-medium theme-text">Formato:</span>
+                      <p className="theme-text-muted">{doc.file_extension?.toUpperCase()}</p>
                     </div>
                     {doc.expires_at && (
                       <div>
-                        <span className="font-medium text-slate-700">Expira em:</span>
-                        <p className="text-slate-600">
+                        <span className="font-medium theme-text">Expira em:</span>
+                        <p className="theme-text-muted">
                           {new Date(doc.expires_at).toLocaleDateString('pt-PT')}
                         </p>
                       </div>
                     )}
                     {doc.tags && doc.tags.length > 0 && (
                       <div>
-                        <span className="font-medium text-slate-700">Tags:</span>
-                        <p className="text-slate-600">{doc.tags.join(', ')}</p>
+                        <span className="font-medium theme-text">Tags:</span>
+                        <p className="theme-text-muted">{doc.tags.join(', ')}</p>
                       </div>
                     )}
                   </div>
@@ -1635,13 +1638,13 @@ function DocumentsLibrarySettings() {
                     <a
                       href={doc.file_url}
                       download
-                      className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-white"
+                      className="rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text transition hover:bg-[color:var(--dash-panel)]"
                     >
                       Download
                     </a>
                     <button
                       onClick={() => handleDeleteDocument(doc.id)}
-                      className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
+                      className="rounded-full border border-rose-500/20 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-500/10"
                     >
                       Eliminar
                     </button>
@@ -1660,39 +1663,39 @@ function PermissionsSettings() {
   return (
     <div>
       <div className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
           Controlo de acesso
         </p>
-        <h2 className="mt-2 text-2xl font-semibold text-slate-900">Permissoes & roles</h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <h2 className="mt-2 text-2xl font-semibold theme-text">Permissoes & roles</h2>
+        <p className="mt-1 text-sm theme-text-muted">
           Gerencie o acesso por funcao de utilizador.
         </p>
       </div>
 
       {/* Permissions Matrix */}
-      <div className="relative overflow-x-auto rounded-[24px] border border-slate-200 bg-white/95 shadow-sm">
+      <div className="relative overflow-x-auto rounded-[24px] border theme-border theme-card shadow-sm">
         <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-[color:var(--settings-surface)]">
+        <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
+          <thead className="bg-[color:var(--dash-surface)]">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                 Funcionalidade
               </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                 Admin
               </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                 Manager
               </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                 Tecnico
               </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                 Visualizador
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200 bg-white">
+          <tbody className="divide-y divide-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
             {[
               { feature: 'Criar Equipamentos', permissions: [true, true, false, false] },
               { feature: 'Editar Configuracoes', permissions: [true, true, false, false] },
@@ -1703,7 +1706,7 @@ function PermissionsSettings() {
               { feature: 'Gerir Utilizadores', permissions: [true, false, false, false] },
             ].map((row, idx) => (
               <tr key={idx}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium theme-text">
                   {row.feature}
                 </td>
                 {row.permissions.map((perm, i) => (
@@ -1713,7 +1716,7 @@ function PermissionsSettings() {
                         <span className="text-emerald-700 font-bold">✓</span>
                       </span>
                     ) : (
-                      <span className="text-slate-300">—</span>
+                      <span className="theme-text-muted">—</span>
                     )}
                   </td>
                 ))}
@@ -1723,7 +1726,7 @@ function PermissionsSettings() {
         </table>
       </div>
 
-      <div className="mt-6 rounded-[20px] border border-emerald-200 bg-[linear-gradient(135deg,#ecfdf3,#ffffff)] p-4">
+      <div className="mt-6 rounded-[20px] border border-emerald-500/20 bg-emerald-500/10 p-4">
         <p className="text-sm text-emerald-800">
           <strong>Nota:</strong> As permissoes sao pre-configuradas por role. Customizacao de roles
           sera disponibilizada em futuras versoes.
@@ -2078,26 +2081,26 @@ function ManagementSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
           Administracao
         </p>
-        <h2 className="mt-2 text-2xl font-semibold text-slate-900">Gestao administrativa</h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <h2 className="mt-2 text-2xl font-semibold theme-text">Gestao administrativa</h2>
+        <p className="mt-1 text-sm theme-text-muted">
           Controle plantas, utilizadores, roles e equipamentos sem sair das configuracoes.
         </p>
       </div>
 
       {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-700 shadow-sm">
+        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-700 shadow-sm">
           {error}
         </div>
       )}
 
-      <div className="rounded-[28px] border border-slate-200 bg-white/95 p-5 shadow-sm">
+      <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">Ferramentas da base de dados</h3>
-            <p className="text-sm text-slate-500">Menu rapido de configuracao e migracoes.</p>
+            <h3 className="text-lg font-semibold theme-text">Ferramentas da base de dados</h3>
+            <p className="text-sm theme-text-muted">Menu rapido de configuracao e migracoes.</p>
           </div>
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
@@ -2107,12 +2110,12 @@ function ManagementSettings() {
               <button
                 key={tool.id}
                 onClick={() => setActiveDbTool(tool.id)}
-                className="group rounded-[22px] border border-slate-200 bg-white p-4 text-left shadow-[0_12px_24px_-20px_rgba(15,23,42,0.4)] transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
+                className="group rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 text-left shadow-[0_12px_24px_-20px_rgba(15,23,42,0.4)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{tool.title}</p>
-                    <p className="mt-1 text-xs text-slate-500">{tool.description}</p>
+                    <p className="text-sm font-semibold theme-text">{tool.title}</p>
+                    <p className="mt-1 text-xs theme-text-muted">{tool.description}</p>
                   </div>
                   <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 transition group-hover:bg-emerald-100">
                     <Icon className="h-4 w-4" />
@@ -2127,11 +2130,11 @@ function ManagementSettings() {
         </div>
       </div>
 
-      <div className="rounded-[28px] border border-slate-200 bg-white/95 p-5 shadow-sm">
+      <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">Menu administrativo</h3>
-            <p className="text-sm text-slate-500">Aceda as paginas de gestao.</p>
+            <h3 className="text-lg font-semibold theme-text">Menu administrativo</h3>
+            <p className="text-sm theme-text-muted">Aceda as paginas de gestao.</p>
           </div>
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
@@ -2141,12 +2144,12 @@ function ManagementSettings() {
               <button
                 key={panel.id}
                 onClick={() => setActiveAdminPanel(panel.id)}
-                className="group rounded-[22px] border border-slate-200 bg-white p-4 text-left shadow-[0_12px_24px_-20px_rgba(15,23,42,0.4)] transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
+                className="group rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 text-left shadow-[0_12px_24px_-20px_rgba(15,23,42,0.4)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{panel.title}</p>
-                    <p className="mt-1 text-xs text-slate-500">{panel.description}</p>
+                    <p className="text-sm font-semibold theme-text">{panel.title}</p>
+                    <p className="mt-1 text-xs theme-text-muted">{panel.description}</p>
                   </div>
                   <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 transition group-hover:bg-emerald-100">
                     <Icon className="h-4 w-4" />
@@ -2160,25 +2163,25 @@ function ManagementSettings() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-5 shadow-sm space-y-6">
+        <div className="relative overflow-hidden rounded-[28px] border theme-border theme-card p-5 shadow-sm space-y-6">
           <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-slate-900">Plantas & utilizadores</h3>
-              <p className="text-sm text-slate-500">Associe utilizadores a cada planta</p>
+              <h3 className="text-lg font-semibold theme-text">Plantas & utilizadores</h3>
+              <p className="text-sm theme-text-muted">Associe utilizadores a cada planta</p>
             </div>
-            <Building2 className="h-5 w-5 text-slate-400" />
+            <Building2 className="h-5 w-5 theme-text-muted" />
           </div>
           {singlePlantLocked && (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs theme-text-muted">
               Modo de fabrica unica ativo. A criacao de novas plantas esta bloqueada.
             </p>
           )}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {loading && <p className="text-sm text-slate-500">Carregando plantas...</p>}
+            {loading && <p className="text-sm theme-text-muted">Carregando plantas...</p>}
             {!loading && plants.length === 0 && (
-              <p className="text-sm text-slate-500">Nenhuma planta cadastrada.</p>
+              <p className="text-sm theme-text-muted">Nenhuma planta cadastrada.</p>
             )}
             {plants.map((plant) => {
               const assignedUsers = users.filter(
@@ -2190,14 +2193,14 @@ function ManagementSettings() {
               return (
                 <div
                   key={plant.id}
-                  className="rounded-[22px] border border-slate-200 bg-white/90 p-4 shadow-[0_12px_26px_-20px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
+                  className="rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 shadow-[0_12px_26px_-20px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">
+                      <p className="text-sm font-semibold theme-text">
                         {plant.code} - {plant.name}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs theme-text-muted">
                         {plant.city || 'Cidade'} · {plant.country || 'Pais'}
                       </p>
                     </div>
@@ -2206,13 +2209,13 @@ function ManagementSettings() {
                         className={`rounded-full px-3 py-1 text-xs font-semibold ${
                           plant.is_active
                             ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-slate-200 text-slate-600'
+                            : 'bg-[color:var(--dash-surface)] theme-text-muted'
                         }`}
                       >
                         {plant.is_active ? 'Ativa' : 'Inativa'}
                       </span>
                       <button
-                        className="text-xs text-slate-500 hover:text-slate-700"
+                        className="text-xs theme-text-muted hover:text-[color:var(--dash-text)]"
                         onClick={() => handleStartPlantEdit(plant)}
                       >
                         <Pencil className="h-4 w-4" />
@@ -2228,20 +2231,20 @@ function ManagementSettings() {
 
                   <div className="mt-4 flex flex-wrap items-center gap-2">
                     {visibleUsers.length === 0 && (
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs theme-text-muted">
                         Sem utilizadores atribuídos.
                       </span>
                     )}
                     {visibleUsers.map((user) => (
                       <span
                         key={user.id}
-                        className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"
+                        className="rounded-full bg-[color:var(--dash-surface)] px-3 py-1 text-xs font-semibold theme-text-muted"
                       >
                         {user.first_name} {user.last_name}
                       </span>
                     ))}
                     {remainingUsers > 0 && (
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">
+                      <span className="rounded-full bg-[color:var(--dash-surface)] px-3 py-1 text-xs theme-text-muted">
                         +{remainingUsers}
                       </span>
                     )}
@@ -2260,12 +2263,12 @@ function ManagementSettings() {
           </div>
         </div>
 
-        <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-5 shadow-sm space-y-5">
+        <div className="relative overflow-hidden rounded-[28px] border theme-border theme-card p-5 shadow-sm space-y-5">
           <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-slate-900">Equipamentos</h3>
-              <p className="text-sm text-slate-500">Resumo por planta selecionada</p>
+              <h3 className="text-lg font-semibold theme-text">Equipamentos</h3>
+              <p className="text-sm theme-text-muted">Resumo por planta selecionada</p>
             </div>
             <a className="text-sm text-[color:var(--settings-accent)]" href="/assets">
               Ver lista
@@ -2273,34 +2276,34 @@ function ManagementSettings() {
           </div>
 
           {!selectedPlant && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-700">
               Selecione uma planta no topo para visualizar equipamentos.
             </div>
           )}
 
           {selectedPlant && (
             <div className="space-y-3">
-              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                <p className="text-xs text-slate-500">Total</p>
-                <p className="text-2xl font-semibold text-slate-900">{assets.length}</p>
+              <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                <p className="text-xs theme-text-muted">Total</p>
+                <p className="text-2xl font-semibold theme-text">{assets.length}</p>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {assets.slice(0, 5).map((asset) => (
                   <div
                     key={asset.id}
-                    className="rounded-[20px] border border-slate-200 bg-white/90 p-3 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.3)] transition hover:-translate-y-1 hover:shadow-[0_16px_32px_-22px_rgba(15,23,42,0.4)]"
+                    className="rounded-[20px] border theme-border bg-[color:var(--dash-panel)] p-3 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.3)] transition hover:-translate-y-1 hover:shadow-[0_16px_32px_-22px_rgba(15,23,42,0.4)]"
                   >
                     <div>
-                      <p className="text-sm font-medium text-slate-900">{asset.name}</p>
-                      <p className="text-xs text-slate-500">{asset.code}</p>
+                      <p className="text-sm font-medium theme-text">{asset.name}</p>
+                      <p className="text-xs theme-text-muted">{asset.code}</p>
                     </div>
-                    <span className="mt-2 inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">
+                    <span className="mt-2 inline-flex items-center rounded-full bg-[color:var(--dash-surface)] px-2 py-1 text-xs theme-text-muted">
                       {asset.status || 'ativo'}
                     </span>
                   </div>
                 ))}
                 {assets.length === 0 && (
-                  <p className="text-sm text-slate-500">Sem equipamentos cadastrados.</p>
+                  <p className="text-sm theme-text-muted">Sem equipamentos cadastrados.</p>
                 )}
               </div>
             </div>
@@ -2308,12 +2311,12 @@ function ManagementSettings() {
         </div>
       </div>
 
-      <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-5 shadow-sm space-y-6">
+      <div className="relative overflow-hidden rounded-[28px] border theme-border theme-card p-5 shadow-sm space-y-6">
         <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">Utilizadores e roles</h3>
-            <p className="text-sm text-slate-500">Crie contas e distribua acessos</p>
+            <h3 className="text-lg font-semibold theme-text">Utilizadores e roles</h3>
+            <p className="text-sm theme-text-muted">Crie contas e distribua acessos</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -2336,42 +2339,42 @@ function ManagementSettings() {
               <Plus className="h-4 w-4" />
               Novo utilizador
             </button>
-            <Users className="h-5 w-5 text-slate-400" />
+            <Users className="h-5 w-5 theme-text-muted" />
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {loading && <p className="text-sm text-slate-500">Carregando utilizadores...</p>}
+          {loading && <p className="text-sm theme-text-muted">Carregando utilizadores...</p>}
           {!loading && users.length === 0 && (
-            <p className="text-sm text-slate-500">Nenhum utilizador encontrado.</p>
+            <p className="text-sm theme-text-muted">Nenhum utilizador encontrado.</p>
           )}
           {users.map((user) => (
             <div
               key={user.id}
-              className="rounded-[22px] border border-slate-200 bg-white/90 p-4 shadow-[0_12px_26px_-20px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
+              className="rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 shadow-[0_12px_26px_-20px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">
+                  <p className="text-sm font-semibold theme-text">
                     {user.first_name} {user.last_name}
                   </p>
-                  <p className="text-xs text-slate-500">{user.username}</p>
-                  <p className="text-xs text-slate-400">{user.email}</p>
+                  <p className="text-xs theme-text-muted">{user.username}</p>
+                  <p className="text-xs theme-text-muted">{user.email}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">
+                  <span className="rounded-full bg-[color:var(--dash-surface)] px-3 py-1 text-xs theme-text-muted">
                     {user.role}
                   </span>
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold ${
                       user.is_active
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-slate-200 text-slate-600'
+                        ? 'bg-emerald-500/10 text-[color:var(--dash-text)]'
+                        : 'bg-[color:var(--dash-surface)] theme-text-muted'
                     }`}
                   >
                     {user.is_active ? 'Ativo' : 'Inativo'}
                   </span>
                   <button
-                    className="text-xs text-slate-500 hover:text-slate-700"
+                    className="text-xs theme-text-muted hover:text-[color:var(--dash-text)]"
                     onClick={() => handleStartUserEdit(user)}
                   >
                     <Pencil className="h-4 w-4" />
@@ -2392,26 +2395,26 @@ function ManagementSettings() {
               setEditingPlantId(null);
             }}
           />
-          <div className="relative w-full max-w-2xl overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+          <div className="relative w-full max-w-2xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
             <button
               onClick={() => {
                 setPlantModalOpen(false);
                 setEditingPlantId(null);
               }}
-              className="absolute right-4 top-4 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+              className="absolute right-4 top-4 rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-1 text-xs font-semibold theme-text transition hover:bg-[color:var(--dash-surface)]"
             >
               Fechar
             </button>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[color:var(--dash-accent)]">
               Editar planta
             </p>
-            <h3 className="mt-2 text-lg font-semibold text-slate-900">
+            <h3 className="mt-2 text-lg font-semibold theme-text">
               Atualizar dados
             </h3>
 
             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
                   Nome da planta
                 </label>
                 <input
@@ -2421,7 +2424,7 @@ function ManagementSettings() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
                   Codigo
                 </label>
                 <input
@@ -2431,7 +2434,7 @@ function ManagementSettings() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
                   Cidade
                 </label>
                 <input
@@ -2441,7 +2444,7 @@ function ManagementSettings() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
                   Pais
                 </label>
                 <input
@@ -2450,13 +2453,14 @@ function ManagementSettings() {
                   onChange={(event) => setPlantForm({ ...plantForm, country: event.target.value })}
                 />
               </div>
-              <label className="flex items-center gap-2 text-xs text-slate-600">
+              <label className="flex items-center gap-2 text-xs theme-text-muted">
                 <input
                   type="checkbox"
                   checked={plantForm.is_active}
                   onChange={(event) =>
                     setPlantForm({ ...plantForm, is_active: event.target.checked })
                   }
+                  className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
                 />
                 Planta ativa
               </label>
@@ -2489,20 +2493,20 @@ function ManagementSettings() {
               setEditingUserId(null);
             }}
           />
-          <div className="relative w-full max-w-2xl overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+          <div className="relative w-full max-w-2xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
             <button
               onClick={() => {
                 setUserModalOpen(false);
                 setEditingUserId(null);
               }}
-              className="absolute right-4 top-4 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+              className="absolute right-4 top-4 rounded-full border theme-border theme-card px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
             >
               Fechar
             </button>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[color:var(--dash-accent)]">
               {userModalMode === 'create' ? 'Novo utilizador' : 'Editar utilizador'}
             </p>
-            <h3 className="mt-2 text-lg font-semibold text-slate-900">
+            <h3 className="mt-2 text-lg font-semibold theme-text">
               {userModalMode === 'create' ? 'Criar conta' : 'Atualizar conta'}
             </h3>
 
@@ -2564,8 +2568,8 @@ function ManagementSettings() {
                   </option>
                 ))}
               </select>
-              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 md:col-span-2">
-                <p className="text-xs font-semibold text-slate-500">Plantas</p>
+              <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-3 md:col-span-2">
+                <p className="text-xs font-semibold theme-text-muted">Plantas</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {plants.map((plant) => {
                     const selectedIds =
@@ -2574,10 +2578,10 @@ function ManagementSettings() {
                       <button
                         key={plant.id}
                         type="button"
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
                           selectedIds.includes(plant.id)
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-white text-slate-600'
+                            ? 'border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] theme-text'
+                            : 'border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] theme-text-muted'
                         }`}
                         onClick={() =>
                           userModalMode === 'create'
@@ -2598,13 +2602,14 @@ function ManagementSettings() {
                 </div>
               </div>
               {userModalMode === 'edit' && (
-                <label className="flex items-center gap-2 text-xs text-slate-600">
+                <label className="flex items-center gap-2 text-xs theme-text-muted">
                   <input
                     type="checkbox"
                     checked={userForm.is_active}
                     onChange={(event) =>
                       setUserForm({ ...userForm, is_active: event.target.checked })
                     }
+                    className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
                   />
                   Utilizador ativo
                 </label>
@@ -2644,20 +2649,20 @@ function ManagementSettings() {
               setPlantUsersPlant(null);
             }}
           />
-          <div className="relative w-full max-w-3xl overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+          <div className="relative w-full max-w-3xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
             <button
               onClick={() => {
                 setPlantUsersModalOpen(false);
                 setPlantUsersPlant(null);
               }}
-              className="absolute right-4 top-4 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+              className="absolute right-4 top-4 rounded-full border theme-border theme-card px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
             >
               Fechar
             </button>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[color:var(--dash-accent)]">
               Atribuir utilizadores
             </p>
-            <h3 className="mt-2 text-lg font-semibold text-slate-900">
+            <h3 className="mt-2 text-lg font-semibold theme-text">
               {plantUsersPlant.code} - {plantUsersPlant.name}
             </h3>
 
@@ -2665,24 +2670,24 @@ function ManagementSettings() {
               {users.map((user) => (
                 <label
                   key={user.id}
-                  className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 text-sm shadow-sm"
+                  className="flex items-center justify-between rounded-2xl border theme-border bg-[color:var(--dash-surface)] px-4 py-3 text-sm shadow-sm"
                 >
                   <div>
-                    <p className="font-medium text-slate-900">
+                    <p className="font-medium theme-text">
                       {user.first_name} {user.last_name}
                     </p>
-                    <p className="text-xs text-slate-500">{user.email}</p>
+                    <p className="text-xs theme-text-muted">{user.email}</p>
                   </div>
                   <input
                     type="checkbox"
                     checked={plantUsersSelection.includes(user.id)}
                     onChange={() => togglePlantUser(user.id)}
-                    className="h-4 w-4 rounded border-slate-300"
+                    className="h-4 w-4 rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
                   />
                 </label>
               ))}
               {users.length === 0 && (
-                <p className="text-sm text-slate-500">Nenhum utilizador encontrado.</p>
+                <p className="text-sm theme-text-muted">Nenhum utilizador encontrado.</p>
               )}
             </div>
 
@@ -2714,10 +2719,10 @@ function ManagementSettings() {
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             onClick={() => setActiveDbTool(null)}
           />
-          <div className="relative w-full max-w-5xl overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+          <div className="relative w-full max-w-5xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
             <button
               onClick={() => setActiveDbTool(null)}
-              className="absolute right-4 top-4 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+              className="absolute right-4 top-4 rounded-full border theme-border theme-card px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
             >
               Fechar
             </button>
@@ -2736,10 +2741,10 @@ function ManagementSettings() {
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             onClick={() => setActiveAdminPanel(null)}
           />
-          <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+          <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
             <button
               onClick={() => setActiveAdminPanel(null)}
-              className="absolute right-6 top-6 z-10 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+              className="absolute right-6 top-6 z-10 rounded-full border theme-border theme-card px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
             >
               Fechar
             </button>
@@ -2756,10 +2761,10 @@ function ManagementSettings() {
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             onClick={() => setActiveAdminPanel(null)}
           />
-          <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+          <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
             <button
               onClick={() => setActiveAdminPanel(null)}
-              className="absolute right-6 top-6 z-10 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+              className="absolute right-6 top-6 z-10 rounded-full border theme-border theme-card px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
             >
               Fechar
             </button>

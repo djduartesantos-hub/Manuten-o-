@@ -992,11 +992,11 @@ export function WorkOrdersPage() {
     cancelada: 'Cancelada',
   };
   const statusBadgeClass: Record<string, string> = {
-    aberta: 'bg-amber-100 text-amber-800',
-    atribuida: 'bg-blue-100 text-blue-700',
-    em_curso: 'bg-emerald-100 text-emerald-700',
-    concluida: 'bg-slate-200 text-slate-700',
-    cancelada: 'bg-rose-100 text-rose-700',
+    aberta: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
+    atribuida: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
+    em_curso: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
+    concluida: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
+    cancelada: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
   };
 
   const statusSummary = useMemo(() => {
@@ -1353,7 +1353,8 @@ export function WorkOrdersPage() {
                     </div>
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        statusBadgeClass[editingOrder.status] || 'bg-slate-100 text-slate-700'
+                        statusBadgeClass[editingOrder.status] ||
+                        'border theme-border bg-[color:var(--dash-surface)] theme-text'
                       }`}
                     >
                       {statusLabels[editingOrder.status] || editingOrder.status}
@@ -1381,7 +1382,7 @@ export function WorkOrdersPage() {
                 {editingPermissions?.isAssignedToOther &&
                   !editingPermissions?.canEditOrder &&
                   !editingPermissions?.canOperateOrder && (
-                  <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
+                  <div className="rounded-[24px] border theme-border bg-amber-500/10 p-4 text-xs theme-text">
                     Esta ordem esta atribuida a outro utilizador. Apenas leitura.
                   </div>
                 )}
@@ -1417,21 +1418,21 @@ export function WorkOrdersPage() {
                         )}
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-                      <p className="font-semibold text-slate-700">Prioridade</p>
+                    <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-3 text-xs theme-text-muted">
+                      <p className="font-semibold theme-text">Prioridade</p>
                       <p className="mt-1">{updateForm.priority}</p>
                     </div>
                   </div>
                 </div>
 
               {canShowEditForm && (
-                <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                     Atualizacao da ordem
                   </p>
                   <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Prioridade</label>
+                      <label className="mb-1 block text-sm font-medium theme-text">Prioridade</label>
                       <select
                         className="input"
                         value={updateForm.priority}
@@ -1448,7 +1449,7 @@ export function WorkOrdersPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="mb-1 block text-sm font-medium theme-text">
                         Data e hora planeada
                       </label>
                       <input
@@ -1463,7 +1464,7 @@ export function WorkOrdersPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="mb-1 block text-sm font-medium theme-text">
                         Horas reais
                       </label>
                       <input
@@ -1477,7 +1478,7 @@ export function WorkOrdersPage() {
                     </div>
 
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="mb-1 block text-sm font-medium theme-text">
                         Trabalho realizado
                       </label>
                       <textarea
@@ -1490,7 +1491,7 @@ export function WorkOrdersPage() {
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Notas</label>
+                      <label className="mb-1 block text-sm font-medium theme-text">Notas</label>
                       <textarea
                         className="input min-h-[96px]"
                         value={updateForm.notes}
@@ -1527,11 +1528,11 @@ export function WorkOrdersPage() {
               )}
 
               {canShowChecklist && (
-                <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                     Checklist
                   </p>
-                  <p className="mt-2 text-sm text-slate-600">
+                  <p className="mt-2 text-sm theme-text-muted">
                     Marque as tarefas concluídas antes de finalizar a ordem.
                   </p>
 
@@ -1542,11 +1543,11 @@ export function WorkOrdersPage() {
                   )}
 
                   {tasksLoading && (
-                    <p className="mt-4 text-xs text-slate-500">A carregar tarefas...</p>
+                    <p className="mt-4 text-xs theme-text-muted">A carregar tarefas...</p>
                   )}
 
                   {!tasksLoading && orderTasks.length === 0 && (
-                    <p className="mt-4 text-xs text-slate-500">
+                    <p className="mt-4 text-xs theme-text-muted">
                       Ainda nao ha tarefas registadas nesta ordem.
                     </p>
                   )}
@@ -1556,7 +1557,7 @@ export function WorkOrdersPage() {
                       {orderTasks.map((task) => (
                         <label
                           key={task.id}
-                          className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600"
+                          className="flex flex-wrap items-center gap-3 rounded-2xl border theme-border bg-[color:var(--dash-surface)] px-3 py-2 text-xs theme-text-muted"
                         >
                           <input
                             type="checkbox"
@@ -1567,14 +1568,14 @@ export function WorkOrdersPage() {
                           <span
                             className={
                               task.is_completed
-                                ? 'text-slate-400 line-through'
-                                : 'text-slate-700'
+                                ? 'theme-text-muted line-through'
+                                : 'theme-text'
                             }
                           >
                             {task.description}
                           </span>
                           {task.completed_at && (
-                            <span className="ml-auto text-[11px] text-slate-400">
+                            <span className="ml-auto text-[11px] theme-text-muted">
                               {formatShortDateTime(task.completed_at)}
                             </span>
                           )}
@@ -1604,8 +1605,8 @@ export function WorkOrdersPage() {
                 </div>
               )}
 
-              <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                   Historico de alteracoes
                 </p>
                 {auditError && (
@@ -1614,10 +1615,10 @@ export function WorkOrdersPage() {
                   </div>
                 )}
                 {auditLoading && (
-                  <p className="mt-4 text-xs text-slate-500">A carregar historico...</p>
+                  <p className="mt-4 text-xs theme-text-muted">A carregar historico...</p>
                 )}
                 {!auditLoading && auditLogs.length === 0 && (
-                  <p className="mt-4 text-xs text-slate-500">
+                  <p className="mt-4 text-xs theme-text-muted">
                     Sem alteracoes registadas ainda.
                   </p>
                 )}
@@ -1626,20 +1627,20 @@ export function WorkOrdersPage() {
                     {auditLogs.map((log) => (
                       <div
                         key={log.id}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600"
+                        className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] px-3 py-2 text-xs theme-text-muted"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="font-semibold text-slate-700">
+                          <span className="font-semibold theme-text">
                             {log.action}
                           </span>
-                          <span className="text-[11px] text-slate-400">
+                          <span className="text-[11px] theme-text-muted">
                             {formatShortDateTime(log.created_at)}
                           </span>
                         </div>
-                        <p className="mt-1 text-[11px] text-slate-500">
+                        <p className="mt-1 text-[11px] theme-text-muted">
                           {formatAuditUser(log)}
                         </p>
-                        <p className="mt-1 text-[11px] text-slate-500">
+                        <p className="mt-1 text-[11px] theme-text-muted">
                           {formatAuditFields(log)}
                         </p>
                       </div>
@@ -1649,11 +1650,11 @@ export function WorkOrdersPage() {
               </div>
 
               {canShowPartsSection && (
-                <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                     Pecas utilizadas
                   </p>
-                  <p className="mt-2 text-sm text-slate-600">
+                  <p className="mt-2 text-sm theme-text-muted">
                     Registe as pecas consumidas nesta ordem para atualizar o stock.
                   </p>
 
@@ -1666,7 +1667,7 @@ export function WorkOrdersPage() {
                       )}
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
+                          <label className="mb-1 block text-sm font-medium theme-text">
                             Peca
                           </label>
                           <input
@@ -1692,13 +1693,13 @@ export function WorkOrdersPage() {
                             ))}
                           </select>
                           {!partsLoading && filteredUsageParts.length === 0 && (
-                            <p className="mt-2 text-xs text-slate-500">
+                            <p className="mt-2 text-xs theme-text-muted">
                               Nenhuma peca encontrada.
                             </p>
                           )}
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
+                          <label className="mb-1 block text-sm font-medium theme-text">
                             Quantidade
                           </label>
                           <input
@@ -1716,7 +1717,7 @@ export function WorkOrdersPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
+                          <label className="mb-1 block text-sm font-medium theme-text">
                             Custo unitario (opcional)
                           </label>
                           <input
@@ -1729,7 +1730,7 @@ export function WorkOrdersPage() {
                           />
                         </div>
                         <div className="md:col-span-2">
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
+                          <label className="mb-1 block text-sm font-medium theme-text">
                             Notas (opcional)
                           </label>
                           <input
@@ -1752,26 +1753,26 @@ export function WorkOrdersPage() {
                           {usageSaving ? 'A registar...' : 'Registar peca usada'}
                         </button>
                         {usageMessage && (
-                          <span className="text-xs text-slate-500">{usageMessage}</span>
+                          <span className="text-xs theme-text-muted">{usageMessage}</span>
                         )}
                       </div>
                     </div>
                   )}
 
-                  <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="mt-5 rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                         Registos desta ordem
                       </p>
                       {orderMovements.length > 0 && (
-                        <span className="text-xs font-semibold text-slate-600">
+                        <span className="text-xs font-semibold theme-text">
                           {orderMovements.length} movimentos
                         </span>
                       )}
                     </div>
 
                     {orderMovementsLoading && (
-                      <p className="mt-3 text-xs text-slate-500">A carregar movimentos...</p>
+                      <p className="mt-3 text-xs theme-text-muted">A carregar movimentos...</p>
                     )}
                     {orderMovementsError && (
                       <p className="mt-3 text-xs text-rose-600">{orderMovementsError}</p>
@@ -1779,45 +1780,45 @@ export function WorkOrdersPage() {
                     {!orderMovementsLoading &&
                       !orderMovementsError &&
                       orderMovements.length === 0 && (
-                        <p className="mt-3 text-xs text-slate-500">
+                        <p className="mt-3 text-xs theme-text-muted">
                           Ainda nao ha pecas registadas nesta ordem.
                         </p>
                       )}
 
                     {orderMovements.length > 0 && (
                       <div className="mt-3 overflow-x-auto">
-                        <table className="min-w-full divide-y divide-slate-200 text-xs">
-                          <thead className="bg-slate-50">
+                        <table className="min-w-full divide-y divide-[color:var(--dash-border)] text-xs">
+                          <thead className="bg-[color:var(--dash-panel)]">
                             <tr>
-                              <th className="px-3 py-2 text-left font-semibold text-slate-500">
+                              <th className="px-3 py-2 text-left font-semibold text-[color:var(--dash-muted)]">
                                 Peca
                               </th>
-                              <th className="px-3 py-2 text-left font-semibold text-slate-500">
+                              <th className="px-3 py-2 text-left font-semibold text-[color:var(--dash-muted)]">
                                 Quantidade
                               </th>
-                              <th className="px-3 py-2 text-left font-semibold text-slate-500">
+                              <th className="px-3 py-2 text-left font-semibold text-[color:var(--dash-muted)]">
                                 Custo
                               </th>
-                              <th className="px-3 py-2 text-left font-semibold text-slate-500">
+                              <th className="px-3 py-2 text-left font-semibold text-[color:var(--dash-muted)]">
                                 Data
                               </th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100">
+                          <tbody className="divide-y divide-[color:var(--dash-border)]">
                             {orderMovements.map((movement) => (
                               <tr key={movement.id}>
-                                <td className="px-3 py-2 text-slate-700">
+                                <td className="px-3 py-2 theme-text">
                                   {movement.spare_part
                                     ? `${movement.spare_part.code} - ${movement.spare_part.name}`
                                     : '-'}
                                 </td>
-                                <td className="px-3 py-2 text-slate-700">
+                                <td className="px-3 py-2 theme-text">
                                   {movement.quantity}
                                 </td>
-                                <td className="px-3 py-2 text-slate-700">
+                                <td className="px-3 py-2 theme-text">
                                   {movement.unit_cost ? `€ ${movement.unit_cost}` : '-'}
                                 </td>
-                                <td className="px-3 py-2 text-slate-500">
+                                <td className="px-3 py-2 theme-text-muted">
                                   {formatShortDateTime(movement.created_at)}
                                 </td>
                               </tr>
@@ -1830,8 +1831,8 @@ export function WorkOrdersPage() {
                 </div>
               )}
 
-              <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                   Acoes
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -1876,7 +1877,7 @@ export function WorkOrdersPage() {
                       </>
                     )}
                   {!editingPermissions?.canAssumeOrder && (
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs theme-text-muted">
                       Esta ordem esta atribuida a outro utilizador.
                     </span>
                   )}
@@ -2095,10 +2096,10 @@ export function WorkOrdersPage() {
                                   <span
                                     className={`rounded-full px-2 py-1 text-xs ${
                                       isOverdue
-                                        ? 'bg-rose-100 text-rose-700'
+                                        ? 'bg-rose-500/10 text-[color:var(--dash-text)]'
                                         : dueSoon
-                                        ? 'bg-amber-100 text-amber-700'
-                                        : 'bg-emerald-100 text-emerald-700'
+                                        ? 'bg-amber-500/10 text-[color:var(--dash-text)]'
+                                        : 'bg-emerald-500/10 text-[color:var(--dash-text)]'
                                     }`}
                                   >
                                     {slaDate.toLocaleDateString()}
@@ -2113,13 +2114,14 @@ export function WorkOrdersPage() {
                               <td className="px-6 py-4">
                                 <span
                                   className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                                    statusBadgeClass[order.status] || 'bg-slate-100 text-slate-700'
+                                    statusBadgeClass[order.status] ||
+                                    'border theme-border bg-[color:var(--dash-surface)] theme-text'
                                   }`}
                                 >
                                   {statusLabels[order.status] || order.status}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-xs font-semibold text-emerald-700">
+                              <td className="px-6 py-4 text-xs font-semibold theme-text-muted">
                                 {isReadOnly ? 'Ver' : 'Clique para abrir'}
                               </td>
                             </tr>
@@ -2215,17 +2217,17 @@ export function WorkOrdersPage() {
                                     <span
                                       className={`rounded-full px-2 py-1 ${
                                         isOverdue
-                                          ? 'bg-rose-100 text-rose-700'
+                                          ? 'bg-rose-500/10 text-[color:var(--dash-text)]'
                                           : dueSoon
-                                          ? 'bg-amber-100 text-amber-700'
-                                          : 'bg-emerald-100 text-emerald-700'
+                                          ? 'bg-amber-500/10 text-[color:var(--dash-text)]'
+                                          : 'bg-emerald-500/10 text-[color:var(--dash-text)]'
                                       }`}
                                     >
                                       SLA {slaDate.toLocaleDateString()}
                                     </span>
                                   )}
                                 </div>
-                                <div className="mt-4 text-xs font-semibold text-emerald-700">
+                                <div className="mt-4 text-xs font-semibold theme-text-muted">
                                   Clique para abrir
                                 </div>
                               </div>
@@ -2263,19 +2265,19 @@ export function WorkOrdersPage() {
                 </div>
               </div>
 
-              <div className="rounded-[28px] border border-amber-200 bg-amber-50 p-6 text-slate-800 shadow-[0_18px_40px_-30px_rgba(120,53,15,0.35)]">
-                <h3 className="text-sm font-semibold">Radar de SLA</h3>
+              <div className="rounded-[28px] border theme-border theme-card p-6 theme-text shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
+                <h3 className="text-sm font-semibold theme-text">Radar de SLA</h3>
                 <p className="mt-2 text-xs theme-text-muted">
                   Controle rapido das ordens que podem comprometer disponibilidade.
                 </p>
                 <div className="mt-4 grid gap-3 text-xs">
-                  <div className="flex items-center justify-between rounded-2xl bg-[color:var(--dash-panel)] px-3 py-2">
-                    <span className="font-semibold text-rose-700">Em atraso</span>
-                    <span className="text-rose-700">{alertSummary.overdue}</span>
+                  <div className="flex items-center justify-between rounded-2xl border theme-border bg-[color:var(--dash-surface)] px-3 py-2">
+                    <span className="font-semibold theme-text">Em atraso</span>
+                    <span className="theme-text">{alertSummary.overdue}</span>
                   </div>
-                  <div className="flex items-center justify-between rounded-2xl bg-[color:var(--dash-panel)] px-3 py-2">
-                    <span className="font-semibold text-amber-700">A vencer</span>
-                    <span className="text-amber-700">{alertSummary.dueSoon}</span>
+                  <div className="flex items-center justify-between rounded-2xl border theme-border bg-[color:var(--dash-surface)] px-3 py-2">
+                    <span className="font-semibold theme-text">A vencer</span>
+                    <span className="theme-text">{alertSummary.dueSoon}</span>
                   </div>
                 </div>
               </div>
