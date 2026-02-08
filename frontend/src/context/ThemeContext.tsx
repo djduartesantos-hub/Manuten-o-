@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-export type ThemeName = 'dashboard' | 'light';
+export type ThemeName = 'light' | 'dark';
 
 export interface Theme {
   name: ThemeName;
@@ -8,20 +8,6 @@ export interface Theme {
 }
 
 const themes: Record<ThemeName, Theme> = {
-  dashboard: {
-    name: 'dashboard',
-    variables: {
-      '--dash-accent': '#0f766e',
-      '--dash-accent-2': '#f59e0b',
-      '--dash-ink': '#0f172a',
-      '--dash-muted': '#475569',
-      '--dash-panel': 'rgba(255,255,255,0.9)',
-      '--dash-panel-2': 'rgba(248,250,252,0.9)',
-      '--dash-border': 'rgba(148,163,184,0.35)',
-      '--dash-surface': '#f1f5f9',
-      '--dash-surface-2': '#e2e8f0',
-    },
-  },
   light: {
     name: 'light',
     variables: {
@@ -36,6 +22,20 @@ const themes: Record<ThemeName, Theme> = {
       '--dash-surface-2': '#f1f5f9',
     },
   },
+  dark: {
+    name: 'dark',
+    variables: {
+      '--dash-accent': '#38bdf8',
+      '--dash-accent-2': '#0f766e',
+      '--dash-ink': '#f8fafc',
+      '--dash-muted': '#cbd5e1',
+      '--dash-panel': 'rgba(30,41,59,0.98)',
+      '--dash-panel-2': 'rgba(51,65,85,0.98)',
+      '--dash-border': 'rgba(148,163,184,0.35)',
+      '--dash-surface': '#1e293b',
+      '--dash-surface-2': '#334155',
+    },
+  },
 };
 
 interface ThemeContextValue {
@@ -46,7 +46,7 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [themeName, setThemeName] = useState<ThemeName>('dashboard');
+  const [themeName, setThemeName] = useState<ThemeName>('light');
 
   React.useEffect(() => {
     const theme = themes[themeName];

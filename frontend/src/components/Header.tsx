@@ -210,15 +210,17 @@ export function Header() {
           <div className="flex items-center gap-3">
                         {/* Theme Selector */}
                         <div className="hidden sm:flex items-center">
-                          <select
-                            className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                            value={theme.name}
-                            onChange={e => setTheme(e.target.value as any)}
-                            style={{ minWidth: 120 }}
+                          <button
+                            className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                            title="Alternar tema"
+                            onClick={() => setTheme(theme.name === 'light' ? 'dark' : 'light')}
                           >
-                            <option value="dashboard">Dashboard</option>
-                            <option value="light">Claro</option>
-                          </select>
+                            {theme.name === 'light' ? (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m8.66-10.66l-.71.71M4.05 19.95l-.71.71M21 12h1M3 12H2m16.95 7.95l-.71-.71M4.05 4.05l-.71-.71" /><circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth={2} /></svg>
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12.79A9 9 0 0112.21 3c-.11 0-.21.01-.32.02a7 7 0 000 13.96c.11.01.21.02.32.02A9 9 0 0021 12.79z" /></svg>
+                            )}
+                          </button>
                         </div>
             {/* Plant Selector */}
             {plants.length > 0 && (

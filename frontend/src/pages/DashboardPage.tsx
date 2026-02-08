@@ -713,10 +713,10 @@ export function DashboardPage() {
                   {topAssets.map((asset) => (
                     <div
                       key={asset.label}
-                      className="flex items-center justify-between rounded-2xl bg-emerald-500/10 px-3 py-2 text-xs"
+                      className="flex items-center justify-between rounded-2xl bg-[color:var(--dash-panel)] px-3 py-2 text-xs border border-[color:var(--dash-border)]"
                     >
                       <span className="font-semibold text-[color:var(--dash-ink)]">{asset.label}</span>
-                      <span className="rounded-full bg-emerald-500/20 px-2 py-1 text-[10px] font-semibold text-emerald-200">
+                      <span className="rounded-full bg-[color:var(--dash-accent)] px-2 py-1 text-[10px] font-semibold text-white">
                         {asset.count}
                       </span>
                     </div>
