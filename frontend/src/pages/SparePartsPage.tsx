@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { MainLayout } from '../layouts/MainLayout';
 import {
   AlertCircle,
@@ -41,6 +41,7 @@ interface StockMovement {
 
 export function SparePartsPage() {
   const { selectedPlant } = useAppStore();
+  const [activeView, setActiveView] = useState<'parts' | 'movements'>('parts');
   const [parts, setParts] = useState<SparePart[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(false);
@@ -74,7 +75,7 @@ export function SparePartsPage() {
     );
   }, [movements]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -89,12 +90,11 @@ export function SparePartsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedPlant]);
 
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPlant]);
+  }, [loadData]);
 
   const filteredMovements = useMemo(() => {
     const normalizedSearch = movementSearch.trim().toLowerCase();
@@ -267,23 +267,47 @@ export function SparePartsPage() {
   return (
     <MainLayout>
       <div className="space-y-8 font-display">
-        <section className="relative overflow-hidden rounded-[32px] border theme-border bg-[radial-gradient(circle_at_top,var(--dash-panel)_0%,var(--dash-bg)_55%)] p-8 shadow-[0_28px_80px_-60px_rgba(245,158,11,0.35)]">
-          <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-amber-200/50 blur-3xl" />
+        <section className="relative overflow-hidden rounded-[32px] border theme-border bg-[radial-gradient(circle_at_top,var(--dash-panel)_0%,var(--dash-bg)_55%)] p-8 shadow-[0_28px_80px_-60px_rgba(59,130,246,0.35)]">
+          <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-sky-200/50 blur-3xl" />
           <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-emerald-200/40 blur-3xl" />
+          <div className="absolute right-10 top-10 h-2 w-20 rounded-full bg-sky-400/40" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
-                Inventario de pecas
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
+                Inventário
               </p>
               <h1 className="mt-3 text-3xl font-semibold theme-text sm:text-4xl">
-                Pecas e stock sob controlo
+                Peças & movimentos
               </h1>
               <p className="mt-2 max-w-2xl text-sm theme-text-muted">
-                Consulte pecas, movimentos e quantidades para manter o
-                abastecimento sempre visivel.
+                Consulte catálogo, stock calculado e histórico de movimentos.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
+              <div className="inline-flex items-center rounded-full border theme-border bg-[color:var(--dash-panel)] p-1 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setActiveView('parts')}
+                  className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                    activeView === 'parts'
+                      ? 'bg-[color:var(--dash-surface)] theme-text'
+                      : 'theme-text-muted hover:bg-[color:var(--dash-surface)]'
+                  }`}
+                >
+                  Peças
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveView('movements')}
+                  className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                    activeView === 'movements'
+                      ? 'bg-[color:var(--dash-surface)] theme-text'
+                      : 'theme-text-muted hover:bg-[color:var(--dash-surface)]'
+                  }`}
+                >
+                  Movimentos
+                </button>
+              </div>
               <button
                 onClick={loadData}
                 className="btn-secondary inline-flex items-center gap-2"
@@ -298,11 +322,11 @@ export function SparePartsPage() {
           <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-[26px] border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
               <div className="flex items-center gap-3 text-sm theme-text-muted">
-                <Boxes className="h-4 w-4 text-amber-600" />
-                Pecas cadastradas
+                <Boxes className="h-4 w-4 text-sky-600" />
+                Peças no catálogo
               </div>
               <p className="mt-3 text-2xl font-semibold theme-text">{parts.length}</p>
-              <p className="mt-1 text-xs theme-text-muted">Catalogo ativo</p>
+              <p className="mt-1 text-xs theme-text-muted">Registos disponíveis</p>
             </div>
             <div className="rounded-[26px] border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
               <div className="flex items-center gap-3 text-sm theme-text-muted">
@@ -355,199 +379,285 @@ export function SparePartsPage() {
 
         {!loading && (
           <>
-            <section>
-              <div className="rounded-[28px] border theme-border theme-card shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
-                <div className="border-b border-[color:var(--dash-border)] p-5">
-                  <h2 className="text-lg font-semibold theme-text">Pecas cadastradas</h2>
-                  <p className="text-sm theme-text-muted">{filteredParts.length} itens</p>
-                </div>
-                <div className="border-b border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-                    <input
-                      className="input h-9"
-                      placeholder="Pesquisar codigo/nome"
-                      value={partSearch}
-                      onChange={(event) => setPartSearch(event.target.value)}
-                    />
-                    <input
-                      className="input h-9"
-                      placeholder="Fornecedor"
-                      value={partSupplierSearch}
-                      onChange={(event) => setPartSupplierSearch(event.target.value)}
-                    />
-                    <input
-                      className="input h-9"
-                      placeholder="Custo minimo"
-                      value={partMinCost}
-                      onChange={(event) => setPartMinCost(event.target.value)}
-                    />
-                    <input
-                      className="input h-9"
-                      placeholder="Custo maximo"
-                      value={partMaxCost}
-                      onChange={(event) => setPartMaxCost(event.target.value)}
-                    />
-                  </div>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <select
-                      className="input h-9"
-                      value={partSort}
-                      onChange={(event) => setPartSort(event.target.value)}
-                    >
-                      <option value="name_asc">Nome (A-Z)</option>
-                      <option value="name_desc">Nome (Z-A)</option>
-                      <option value="code_asc">Codigo (A-Z)</option>
-                      <option value="code_desc">Codigo (Z-A)</option>
-                      <option value="cost_asc">Custo (baixo-alto)</option>
-                      <option value="cost_desc">Custo (alto-baixo)</option>
-                    </select>
-                    <button
-                      className="btn-secondary h-9"
-                      onClick={() => {
-                        setPartSearch('');
-                        setPartSupplierSearch('');
-                        setPartMinCost('');
-                        setPartMaxCost('');
-                        setPartSort('name_asc');
-                        setPartsVisibleCount(20);
-                      }}
-                    >
-                      Limpar filtros
-                    </button>
-                  </div>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
-                    <thead className="bg-[color:var(--dash-surface)]">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
-                          Código
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
-                          Nome
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
-                          Custo
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
-                          Stock
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
-                          Minimo
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
-                          Fornecedor
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
-                      {filteredParts.length === 0 && (
-                        <tr>
-                          <td colSpan={6} className="px-6 py-6 text-center theme-text-muted">
-                            Nenhuma peça encontrada
-                          </td>
-                        </tr>
-                      )}
-                      {visibleParts.map((part) => {
-                        const currentStock = stockByPart[part.id] ?? 0;
-                        const minStock = part.min_stock ?? 0;
-                        const isLow = minStock > 0 && currentStock < minStock;
-
-                        return (
-                        <tr key={part.id} className="transition hover:bg-amber-500/10">
-                          <td className="px-6 py-4 text-sm font-medium theme-text">
-                            {part.code}
-                          </td>
-                          <td className="px-6 py-4 text-sm theme-text">{part.name}</td>
-                          <td className="px-6 py-4 text-sm theme-text">
-                            {part.unit_cost ? `€ ${part.unit_cost}` : '-'}
-                          </td>
-                          <td className="px-6 py-4 text-sm theme-text">
-                            <span className={isLow ? 'text-rose-600 font-semibold' : undefined}>
-                              {currentStock}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm theme-text">
-                            {minStock || '-'}
-                            {isLow && (
-                              <span className="ml-2 rounded-full bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold text-[color:var(--dash-text)]">
-                                Baixo
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 text-sm theme-text">
-                            {part.supplier_name || '-'}
-                          </td>
-                        </tr>
-                      );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {sortedParts.length > visibleParts.length && (
-                  <div className="border-t border-[color:var(--dash-border)] p-4">
-                    <button
-                      className="btn-secondary w-full"
-                      onClick={() => setPartsVisibleCount((count) => count + 20)}
-                    >
-                      Carregar mais
-                    </button>
-                  </div>
-                )}
+            {!selectedPlant && (
+              <div className="rounded-[28px] border theme-border bg-[color:var(--dash-surface)] p-6 text-sm theme-text-muted">
+                Selecione uma planta no topo para consultar peças e movimentos.
               </div>
-            </section>
+            )}
 
-            {movements.length > 0 && (
-              <div className="rounded-[28px] border theme-border theme-card shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
-                <div className="border-b border-[color:var(--dash-border)] p-5">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <h2 className="text-lg font-semibold theme-text">
-                        Movimentos recentes
-                      </h2>
-                      <p className="text-sm theme-text-muted">Ultimos registos da planta</p>
+            {selectedPlant && activeView === 'parts' && (
+              <section>
+                <div className="rounded-[28px] border theme-border theme-card shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
+                  <div className="border-b border-[color:var(--dash-border)] p-5">
+                    <h2 className="text-lg font-semibold theme-text">Peças cadastradas</h2>
+                    <p className="text-sm theme-text-muted">{filteredParts.length} itens</p>
+                  </div>
+                  <div className="border-b border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] theme-text-muted">
+                          Pesquisa
+                        </p>
+                        <input
+                          className="input h-9"
+                          placeholder="Código ou nome"
+                          value={partSearch}
+                          onChange={(event) => setPartSearch(event.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] theme-text-muted">
+                          Fornecedor
+                        </p>
+                        <input
+                          className="input h-9"
+                          placeholder="Nome do fornecedor"
+                          value={partSupplierSearch}
+                          onChange={(event) => setPartSupplierSearch(event.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] theme-text-muted">
+                          Custo mín.
+                        </p>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          className="input h-9"
+                          placeholder="€"
+                          value={partMinCost}
+                          onChange={(event) => setPartMinCost(event.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] theme-text-muted">
+                          Custo máx.
+                        </p>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          className="input h-9"
+                          placeholder="€"
+                          value={partMaxCost}
+                          onChange={(event) => setPartMaxCost(event.target.value)}
+                        />
+                      </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <select
+                        className="input h-9"
+                        value={partSort}
+                        onChange={(event) => setPartSort(event.target.value)}
+                      >
+                        <option value="name_asc">Nome (A-Z)</option>
+                        <option value="name_desc">Nome (Z-A)</option>
+                        <option value="code_asc">Código (A-Z)</option>
+                        <option value="code_desc">Código (Z-A)</option>
+                        <option value="cost_asc">Custo (baixo-alto)</option>
+                        <option value="cost_desc">Custo (alto-baixo)</option>
+                      </select>
+                      <button
+                        className="btn-secondary h-9"
+                        onClick={() => {
+                          setPartSearch('');
+                          setPartSupplierSearch('');
+                          setPartMinCost('');
+                          setPartMaxCost('');
+                          setPartSort('name_asc');
+                          setPartsVisibleCount(20);
+                        }}
+                      >
+                        Limpar filtros
+                      </button>
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
+                      <thead className="bg-[color:var(--dash-surface)]">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
+                            Código
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
+                            Nome
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
+                            Custo
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
+                            Stock
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
+                            Mínimo
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
+                            Fornecedor
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
+                        {filteredParts.length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-6 text-center theme-text-muted">
+                              Nenhuma peça encontrada. Registe peças em Configurações → Gestão administrativa → Registar peças.
+                            </td>
+                          </tr>
+                        )}
+                        {visibleParts.map((part) => {
+                          const currentStock = stockByPart[part.id] ?? 0;
+                          const minStock = part.min_stock ?? 0;
+                          const isLow = minStock > 0 && currentStock < minStock;
+
+                          return (
+                            <tr
+                              key={part.id}
+                              className="transition hover:bg-[color:var(--dash-surface)]"
+                            >
+                              <td className="px-6 py-4 text-sm font-medium theme-text">
+                                {part.code}
+                              </td>
+                              <td className="px-6 py-4 text-sm theme-text">{part.name}</td>
+                              <td className="px-6 py-4 text-sm theme-text">
+                                {part.unit_cost ? `€ ${part.unit_cost}` : '-'}
+                              </td>
+                              <td className="px-6 py-4 text-sm theme-text">
+                                <span className={isLow ? 'text-rose-600 font-semibold' : undefined}>
+                                  {currentStock}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-sm theme-text">
+                                {minStock || '-'}
+                                {isLow && (
+                                  <span className="ml-2 rounded-full bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold text-[color:var(--dash-text)]">
+                                    Baixo
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 text-sm theme-text">
+                                {part.supplier_name || '-'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  {sortedParts.length > visibleParts.length && (
+                    <div className="border-t border-[color:var(--dash-border)] p-4">
+                      <button
+                        className="btn-secondary w-full"
+                        onClick={() => setPartsVisibleCount((count) => count + 20)}
+                      >
+                        Carregar mais
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {selectedPlant && activeView === 'movements' && (
+              <section>
+                <div className="rounded-[28px] border theme-border theme-card shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
+                  <div className="border-b border-[color:var(--dash-border)] p-5">
+                    <h2 className="text-lg font-semibold theme-text">Movimentos</h2>
+                    <p className="text-sm theme-text-muted">{filteredMovements.length} registos</p>
+                  </div>
+
+                  <div className="border-b border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] theme-text-muted">
+                          Pesquisa
+                        </p>
+                        <input
+                          className="input h-9"
+                          placeholder="Código ou nome da peça"
+                          value={movementSearch}
+                          onChange={(event) => setMovementSearch(event.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] theme-text-muted">
+                          Tipo
+                        </p>
+                        <select
+                          className="input h-9"
+                          value={movementTypeFilter}
+                          onChange={(event) => setMovementTypeFilter(event.target.value)}
+                        >
+                          <option value="all">Todos</option>
+                          <option value="entrada">Entrada</option>
+                          <option value="saida">Saída</option>
+                          <option value="ajuste">Ajuste</option>
+                        </select>
+                      </div>
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] theme-text-muted">
+                          Data início
+                        </p>
+                        <input
+                          type="date"
+                          className="input h-9"
+                          value={movementStartDate}
+                          onChange={(event) => setMovementStartDate(event.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] theme-text-muted">
+                          Data fim
+                        </p>
+                        <input
+                          type="date"
+                          className="input h-9"
+                          value={movementEndDate}
+                          onChange={(event) => setMovementEndDate(event.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
                       <input
-                        className="input h-9 w-full sm:w-56"
-                        placeholder="Pesquisar peça"
-                        value={movementSearch}
-                        onChange={(event) => setMovementSearch(event.target.value)}
-                      />
-                      <input
-                        className="input h-9 w-full sm:w-32"
-                        placeholder="Qtd min"
+                        type="number"
+                        min={0}
+                        step="1"
+                        className="input h-9"
+                        placeholder="Qtd mín"
                         value={movementMinQty}
                         onChange={(event) => setMovementMinQty(event.target.value)}
                       />
                       <input
-                        className="input h-9 w-full sm:w-32"
-                        placeholder="Qtd max"
+                        type="number"
+                        min={0}
+                        step="1"
+                        className="input h-9"
+                        placeholder="Qtd máx"
                         value={movementMaxQty}
                         onChange={(event) => setMovementMaxQty(event.target.value)}
                       />
                       <input
-                        className="input h-9 w-full sm:w-32"
-                        placeholder="Custo min"
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        className="input h-9"
+                        placeholder="Custo mín"
                         value={movementMinCost}
                         onChange={(event) => setMovementMinCost(event.target.value)}
                       />
                       <input
-                        className="input h-9 w-full sm:w-32"
-                        placeholder="Custo max"
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        className="input h-9"
+                        placeholder="Custo máx"
                         value={movementMaxCost}
                         onChange={(event) => setMovementMaxCost(event.target.value)}
                       />
-                      <select
-                        className="input h-9"
-                        value={movementTypeFilter}
-                        onChange={(event) => setMovementTypeFilter(event.target.value)}
-                      >
-                        <option value="all">Todos</option>
-                        <option value="entrada">Entrada</option>
-                        <option value="saida">Saida</option>
-                        <option value="ajuste">Ajuste</option>
-                      </select>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
                       <select
                         className="input h-9"
                         value={movementSort}
@@ -560,18 +670,6 @@ export function SparePartsPage() {
                         <option value="cost_desc">Custo (alto-baixo)</option>
                         <option value="cost_asc">Custo (baixo-alto)</option>
                       </select>
-                      <input
-                        type="date"
-                        className="input h-9"
-                        value={movementStartDate}
-                        onChange={(event) => setMovementStartDate(event.target.value)}
-                      />
-                      <input
-                        type="date"
-                        className="input h-9"
-                        value={movementEndDate}
-                        onChange={(event) => setMovementEndDate(event.target.value)}
-                      />
                       <button
                         className="btn-secondary h-9"
                         onClick={() => {
@@ -587,81 +685,89 @@ export function SparePartsPage() {
                           setMovementsVisibleCount(20);
                         }}
                       >
-                        Limpar
+                        Limpar filtros
                       </button>
                     </div>
                   </div>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
-                    <thead className="bg-[color:var(--dash-surface)]">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
-                          Peça
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
-                          Tipo
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
-                          Quantidade
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
-                          Data
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
-                      {filteredMovements.length === 0 && (
+
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
+                      <thead className="bg-[color:var(--dash-surface)]">
                         <tr>
-                          <td colSpan={4} className="px-6 py-6 text-center theme-text-muted">
-                            Nenhum movimento encontrado
-                          </td>
+                          <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
+                            Peça
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
+                            Tipo
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
+                            Quantidade
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
+                            Custo
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium theme-text-muted uppercase">
+                            Data
+                          </th>
                         </tr>
-                      )}
-                      {visibleMovements.map((movement) => (
-                        <tr key={movement.id} className="transition hover:bg-amber-500/10">
-                          <td className="px-6 py-4 text-sm theme-text">
-                            {movement.spare_part
-                              ? `${movement.spare_part.code} - ${movement.spare_part.name}`
-                              : '-'}
-                          </td>
-                          <td className="px-6 py-4 text-sm theme-text capitalize">
-                            <span
-                              className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                                movement.type === 'entrada'
-                                  ? 'bg-emerald-500/10 text-[color:var(--dash-text)]'
-                                  : movement.type === 'saida'
-                                  ? 'bg-rose-500/10 text-[color:var(--dash-text)]'
-                                  : 'bg-[color:var(--dash-surface)] theme-text-muted'
-                              }`}
-                            >
-                              {movement.type}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm theme-text">
-                            {movement.quantity}
-                          </td>
-                          <td className="px-6 py-4 text-sm theme-text">
-                            {movement.created_at
-                              ? new Date(movement.created_at).toLocaleString()
-                              : '-'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {sortedMovements.length > visibleMovements.length && (
-                  <div className="border-t border-[color:var(--dash-border)] p-4">
-                    <button
-                      className="btn-secondary w-full"
-                      onClick={() => setMovementsVisibleCount((count) => count + 20)}
-                    >
-                      Carregar mais
-                    </button>
+                      </thead>
+                      <tbody className="divide-y divide-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
+                        {filteredMovements.length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="px-6 py-6 text-center theme-text-muted">
+                              Nenhum movimento encontrado
+                            </td>
+                          </tr>
+                        )}
+                        {visibleMovements.map((movement) => (
+                          <tr
+                            key={movement.id}
+                            className="transition hover:bg-[color:var(--dash-surface)]"
+                          >
+                            <td className="px-6 py-4 text-sm theme-text">
+                              {movement.spare_part
+                                ? `${movement.spare_part.code} - ${movement.spare_part.name}`
+                                : '-'}
+                            </td>
+                            <td className="px-6 py-4 text-sm theme-text capitalize">
+                              <span
+                                className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                                  movement.type === 'entrada'
+                                    ? 'bg-emerald-500/10 text-[color:var(--dash-text)]'
+                                    : movement.type === 'saida'
+                                    ? 'bg-rose-500/10 text-[color:var(--dash-text)]'
+                                    : 'bg-[color:var(--dash-surface)] theme-text-muted'
+                                }`}
+                              >
+                                {movement.type}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm theme-text">{movement.quantity}</td>
+                            <td className="px-6 py-4 text-sm theme-text">
+                              {movement.unit_cost ? `€ ${movement.unit_cost}` : '-'}
+                            </td>
+                            <td className="px-6 py-4 text-sm theme-text">
+                              {movement.created_at
+                                ? new Date(movement.created_at).toLocaleString()
+                                : '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                )}
-              </div>
+                  {sortedMovements.length > visibleMovements.length && (
+                    <div className="border-t border-[color:var(--dash-border)] p-4">
+                      <button
+                        className="btn-secondary w-full"
+                        onClick={() => setMovementsVisibleCount((count) => count + 20)}
+                      >
+                        Carregar mais
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </section>
             )}
           </>
         )}
