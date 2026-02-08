@@ -20,6 +20,7 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../context/store';
 import { useSocket } from '../context/SocketContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface NavItem {
   label: string;
@@ -44,6 +45,7 @@ export function Header() {
   const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.trim() || 'U';
 
   const navSections: NavSection[] = [
+      const { theme, setTheme } = useTheme();
     {
       title: 'Visão Geral',
       icon: LayoutDashboard,
@@ -206,6 +208,18 @@ export function Header() {
 
           {/* Right Side */}
           <div className="flex items-center gap-3">
+                        {/* Theme Selector */}
+                        <div className="hidden sm:flex items-center">
+                          <select
+                            className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                            value={theme.name}
+                            onChange={e => setTheme(e.target.value as any)}
+                            style={{ minWidth: 120 }}
+                          >
+                            <option value="dashboard">Dashboard</option>
+                            <option value="light">Claro</option>
+                          </select>
+                        </div>
             {/* Plant Selector */}
             {plants.length > 0 && (
               <div className="hidden sm:flex items-center">
