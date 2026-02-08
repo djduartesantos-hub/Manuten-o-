@@ -85,61 +85,77 @@ export function DashboardPage() {
   const [draggingOrderId, setDraggingOrderId] = React.useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = React.useState<string | null>(null);
 
+  const canManageFlow = React.useMemo(() => {
+    const role = user?.role;
+    return ['superadmin', 'admin_empresa', 'gestor_manutencao', 'supervisor'].includes(
+      role || '',
+    );
+  }, [user?.role]);
+
   const statusColumns = React.useMemo(
     () => [
       {
         key: 'aberta',
         label: 'Abertas',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-[color:var(--dash-accent)]',
+        dot: 'bg-amber-400/80',
+        Icon: AlertTriangle,
       },
       {
         key: 'em_analise',
         label: 'Em análise',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-[color:var(--dash-accent)]',
+        dot: 'bg-sky-400/80',
+        Icon: Search,
       },
       {
         key: 'aprovada',
         label: 'Aprovada',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-[color:var(--dash-accent)]',
+        dot: 'bg-indigo-400/80',
+        Icon: CheckCircle2,
       },
       {
         key: 'planeada',
         label: 'Planeada',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-[color:var(--dash-accent-2)]',
+        dot: 'bg-cyan-400/80',
+        Icon: CalendarClock,
       },
       {
         key: 'em_execucao',
         label: 'Em execução',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-[color:var(--dash-accent)]',
+        dot: 'bg-emerald-400/80',
+        Icon: Activity,
       },
       {
         key: 'em_pausa',
         label: 'Em pausa',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-[color:var(--dash-accent-2)]',
+        dot: 'bg-amber-400/80',
+        Icon: PauseCircle,
       },
       {
         key: 'concluida',
         label: 'Concluidas',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-[color:var(--dash-accent)]',
+        dot: 'bg-emerald-400/80',
+        Icon: Check,
       },
       {
         key: 'fechada',
         label: 'Fechadas',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-[color:var(--dash-muted)]',
+        dot: 'bg-slate-400/80',
+        Icon: Lock,
       },
       {
         key: 'cancelada',
         label: 'Canceladas',
         tone: 'theme-card theme-border theme-text',
-        dot: 'bg-[color:var(--dash-muted)]',
+        dot: 'bg-rose-400/80',
+        Icon: XCircle,
       },
     ],
     [],
@@ -205,6 +221,14 @@ export function DashboardPage() {
   React.useEffect(() => {
     loadData();
   }, [loadData]);
+
+  React.useEffect(() => {
+    if (!isAuthenticated || !selectedPlant) return;
+    const interval = window.setInterval(() => {
+      loadData();
+    }, 60_000);
+    return () => window.clearInterval(interval);
+  }, [isAuthenticated, selectedPlant, loadData]);
 
   const formatDateTime = (value?: string | null) => {
     if (!value) return '-';
@@ -375,6 +399,7 @@ export function DashboardPage() {
   }, [orders]);
 
   const handleDragStart = (orderId: string) => {
+    if (!canManageFlow) return;
     setDraggingOrderId(orderId);
   };
 
@@ -384,6 +409,7 @@ export function DashboardPage() {
   };
 
   const handleDrop = async (status: string) => {
+    if (!canManageFlow) return;
     if (!draggingOrderId || !selectedPlant) return;
     const targetOrder = orders.find((order) => order.id === draggingOrderId);
     if (!targetOrder || targetOrder.status === status) {
@@ -465,26 +491,6 @@ export function DashboardPage() {
                 >
                   MTBF {kpis?.mtbf ?? 0}h
                 </span>
-              </div>
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                    Efetividade
-                  </p>
-                  <p className="mt-2 text-3xl font-semibold text-[color:var(--dash-ink)]">
-                    {completionRate}%
-                  </p>
-                  <p className="text-xs text-[color:var(--dash-muted)]">Ordens concluidas</p>
-                </div>
-                <div className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                    Pressao de backlog
-                  </p>
-                  <p className="mt-2 text-3xl font-semibold text-[color:var(--dash-ink)]">
-                    {backlogShare}%
-                  </p>
-                  <p className="text-xs text-[color:var(--dash-muted)]">Participacao no total</p>
-                </div>
               </div>
             </div>
 
@@ -598,13 +604,26 @@ export function DashboardPage() {
                 </div>
               </div>
 
-              <button
-                className="lg:col-span-2 inline-flex items-center justify-center gap-2 rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2 text-sm font-semibold text-[color:var(--dash-ink)] shadow-sm transition hover:bg-[color:var(--dash-panel)]"
-                onClick={loadData}
-              >
-                <RefreshCcw className="h-4 w-4" />
-                Recarregar painel
-              </button>
+              <div className="lg:col-span-2 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                    Efetividade
+                  </p>
+                  <p className="mt-2 text-3xl font-semibold text-[color:var(--dash-ink)]">
+                    {completionRate}%
+                  </p>
+                  <p className="text-xs text-[color:var(--dash-muted)]">Ordens concluidas</p>
+                </div>
+                <div className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                    Pressao de backlog
+                  </p>
+                  <p className="mt-2 text-3xl font-semibold text-[color:var(--dash-ink)]">
+                    {backlogShare}%
+                  </p>
+                  <p className="text-xs text-[color:var(--dash-muted)]">Participacao no total</p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -628,7 +647,7 @@ export function DashboardPage() {
         )}
 
         {!loading && metrics && (
-          <section className="grid gap-6 xl:grid-cols-[1.8fr_0.6fr]">
+          <section className="grid gap-6 xl:grid-cols-[2fr_0.5fr]">
             <div className="space-y-6">
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                 {statusSummary.map((item, index) => {
@@ -671,7 +690,11 @@ export function DashboardPage() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-semibold text-[color:var(--dash-ink)]">Fluxo das ordens</h2>
-                    <p className="text-xs text-[color:var(--dash-muted)]">Arraste para atualizar o estado</p>
+                    <p className="text-xs text-[color:var(--dash-muted)]">
+                      {canManageFlow
+                        ? 'Arraste para atualizar o estado'
+                        : 'Atualizacao de estado reservada a gestores'}
+                    </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-[color:var(--dash-muted)]">
                     <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] px-3 py-1">
@@ -713,15 +736,27 @@ export function DashboardPage() {
                       className={`flex min-h-[280px] flex-col rounded-[22px] border p-3 transition ${column.tone} ${
                         dragOverStatus === column.key ? 'ring-2 ring-emerald-400/60' : ''
                       }`}
-                      onDragOver={(event) => {
-                        event.preventDefault();
-                        setDragOverStatus(column.key);
-                      }}
-                      onDragLeave={() => setDragOverStatus(null)}
-                      onDrop={() => handleDrop(column.key)}
+                      onDragOver={
+                        canManageFlow
+                          ? (event) => {
+                              event.preventDefault();
+                              setDragOverStatus(column.key);
+                            }
+                          : undefined
+                      }
+                      onDragLeave={canManageFlow ? () => setDragOverStatus(null) : undefined}
+                      onDrop={canManageFlow ? () => handleDrop(column.key) : undefined}
                     >
                       <div className="mb-3 flex items-center justify-between">
                         <div className="inline-flex items-center gap-2 text-xs font-semibold text-[color:var(--dash-muted)]">
+                          {(() => {
+                            const Icon = (column as any).Icon as typeof Activity;
+                            return (
+                              <span className="inline-flex h-7 w-7 items-center justify-center rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)]">
+                                <Icon className="h-4 w-4" />
+                              </span>
+                            );
+                          })()}
                           <span className={`h-2.5 w-2.5 rounded-full ${column.dot}`} />
                           {column.label}
                         </div>
@@ -733,9 +768,9 @@ export function DashboardPage() {
                         {(groupedOrders[column.key] || []).map((order) => (
                           <div
                             key={order.id}
-                            draggable
-                            onDragStart={() => handleDragStart(order.id)}
-                            onDragEnd={handleDragEnd}
+                            draggable={canManageFlow}
+                            onDragStart={canManageFlow ? () => handleDragStart(order.id) : undefined}
+                            onDragEnd={canManageFlow ? handleDragEnd : undefined}
                             className={`rounded-[18px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_16px_26px_-20px_rgba(15,23,42,0.65)] ${
                               draggingOrderId === order.id ? 'opacity-50' : ''
                             }`}
@@ -792,6 +827,11 @@ export function DashboardPage() {
                       className="rounded-2xl border border-sky-500/20 bg-sky-500/10 p-4"
                       title="MTTR (Mean Time To Repair): tempo médio de reparação."
                     >
+                      <div className="flex items-center justify-between">
+                        <div className="rounded-2xl bg-sky-100 p-2 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
+                          <Clock className="h-4 w-4" />
+                        </div>
+                      </div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
                         MTTR - Tempo medio de reparacao
                       </p>
@@ -803,6 +843,11 @@ export function DashboardPage() {
                       className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4"
                       title="MTBF (Mean Time Between Failures): tempo médio entre falhas."
                     >
+                      <div className="flex items-center justify-between">
+                        <div className="rounded-2xl bg-indigo-100 p-2 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
+                          <Activity className="h-4 w-4" />
+                        </div>
+                      </div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
                         MTBF - Tempo medio entre falhas
                       </p>
@@ -814,6 +859,11 @@ export function DashboardPage() {
                       className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4"
                       title="SLA (Service Level Agreement): percentagem de ordens dentro do prazo."
                     >
+                      <div className="flex items-center justify-between">
+                        <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                          <CheckCircle2 className="h-4 w-4" />
+                        </div>
+                      </div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
                         SLA - Cumprimento do acordo de nivel de servico
                       </p>
@@ -825,6 +875,11 @@ export function DashboardPage() {
                       className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4"
                       title="Backlog: volume de ordens pendentes."
                     >
+                      <div className="flex items-center justify-between">
+                        <div className="rounded-2xl bg-amber-100 p-2 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+                          <AlertCircle className="h-4 w-4" />
+                        </div>
+                      </div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
                         Backlog - Ordens pendentes
                       </p>
