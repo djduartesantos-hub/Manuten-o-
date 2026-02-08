@@ -634,48 +634,6 @@ export function DashboardPage() {
                   <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Ordens em execução</p>
                 </div>
               </div>
-
-              <div className="lg:col-span-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2.5 shadow-sm" title="Efetividade: percentagem de ordens concluídas/fechadas no total.">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                      Efetividade
-                    </p>
-                    <Check className="h-4 w-4 text-emerald-600" />
-                  </div>
-                  <p className={`mt-2 text-xl font-semibold ${toneForPercent(completionRate)}`}>{completionRate}%</p>
-                </div>
-
-                <div className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2.5 shadow-sm" title="Pressão de backlog: participação do backlog no total de ordens.">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                      Pressao backlog
-                    </p>
-                    <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  </div>
-                  <p className={`mt-2 text-xl font-semibold ${toneForBacklogPressure(backlogShare)}`}>{backlogShare}%</p>
-                </div>
-
-                <div className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2.5 shadow-sm" title="SLA: percentagem de ordens dentro do prazo.">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                      SLA
-                    </p>
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                  </div>
-                  <p className={`mt-2 text-xl font-semibold ${toneForPercent(kpis?.sla_compliance ?? 0)}`}>{kpis?.sla_compliance ?? 0}%</p>
-                </div>
-
-                <div className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2.5 shadow-sm" title="Backlog: total de ordens pendentes.">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                      Backlog
-                    </p>
-                    <AlertCircle className="h-4 w-4 text-amber-600" />
-                  </div>
-                  <p className="mt-2 text-xl font-semibold text-[color:var(--dash-ink)]">{kpis?.backlog ?? 0}</p>
-                </div>
-              </div>
             </div>
           </div>
         </section>
@@ -941,6 +899,72 @@ export function DashboardPage() {
                   </div>
                 </div>
               )}
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div
+                  className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2.5 shadow-sm"
+                  title="Efetividade: percentagem de ordens concluídas/fechadas no total."
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                      Efetividade
+                    </p>
+                    <Check className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <p className={`mt-2 text-xl font-semibold ${toneForPercent(completionRate)}`}>
+                    {completionRate}%
+                  </p>
+                </div>
+
+                <div
+                  className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2.5 shadow-sm"
+                  title="Pressão de backlog: participação do backlog no total de ordens."
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                      Pressao backlog
+                    </p>
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <p
+                    className={`mt-2 text-xl font-semibold ${toneForBacklogPressure(backlogShare)}`}
+                  >
+                    {backlogShare}%
+                  </p>
+                </div>
+
+                <div
+                  className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2.5 shadow-sm"
+                  title="SLA: percentagem de ordens dentro do prazo."
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                      SLA
+                    </p>
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <p
+                    className={`mt-2 text-xl font-semibold ${toneForPercent(kpis?.sla_compliance ?? 0)}`}
+                  >
+                    {kpis?.sla_compliance ?? 0}%
+                  </p>
+                </div>
+
+                <div
+                  className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2.5 shadow-sm"
+                  title="Backlog: total de ordens pendentes."
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                      Backlog
+                    </p>
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <p className="mt-2 text-xl font-semibold text-[color:var(--dash-ink)]">
+                    {kpis?.backlog ?? 0}
+                  </p>
+                </div>
+              </div>
             </div>
 
             <aside className="space-y-6">
