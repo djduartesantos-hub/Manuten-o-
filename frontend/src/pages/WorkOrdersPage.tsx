@@ -714,6 +714,7 @@ export function WorkOrdersPage() {
 
       await createStockMovement(selectedPlant, {
         spare_part_id: usageForm.spare_part_id,
+        work_order_id: editingOrder.id,
         type: 'saida',
         quantity: Number(usageForm.quantity),
         unit_cost: usageForm.unit_cost || undefined,

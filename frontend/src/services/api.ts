@@ -375,7 +375,10 @@ export async function getStockMovementsByPlant(plantId: string) {
 export async function createStockMovement(plantId: string, data: any) {
   return apiCall(`/${plantId}/stock-movements`, {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      ...data,
+      plant_id: plantId,
+    }),
   });
 }
 
