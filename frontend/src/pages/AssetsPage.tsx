@@ -446,78 +446,78 @@ export function AssetsPage() {
                 <RefreshCcw className="h-4 w-4" />
                 Atualizar
               </button>
-              <div className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
+              <div className="rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-xs font-semibold text-[color:var(--dash-text)]">
                 {assets.length} ativos mapeados
               </div>
             </div>
           </div>
 
           <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
+            <div className="rounded-2xl border theme-border theme-card p-4">
+              <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <Boxes className="h-4 w-4 text-[color:var(--assets-card-icon-total)]" />
                 Total de equipamentos
               </div>
               <p className="mt-3 text-2xl font-semibold text-[color:var(--assets-card-value)]">{assets.length}</p>
               <p className="mt-1 text-xs text-[color:var(--assets-card-updated)]">Atualizado agora</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
+            <div className="rounded-2xl border theme-border theme-card p-4">
+              <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                 Operacionais
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-3 text-2xl font-semibold theme-text">
                 {statusCounts.operacional || 0}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Prontos para uso</p>
+              <p className="mt-1 text-xs theme-text-muted">Prontos para uso</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
+            <div className="rounded-2xl border theme-border theme-card p-4">
+              <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <Wrench className="h-4 w-4 text-amber-600" />
                 Em manutencao
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-3 text-2xl font-semibold theme-text">
                 {statusCounts.manutencao || 0}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Acompanhamento ativo</p>
+              <p className="mt-1 text-xs theme-text-muted">Acompanhamento ativo</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
+            <div className="rounded-2xl border theme-border theme-card p-4">
+              <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <Clock3 className="h-4 w-4 text-rose-600" />
                 Parados
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-3 text-2xl font-semibold theme-text">
                 {statusCounts.parado || 0}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Criticos para retorno</p>
+              <p className="mt-1 text-xs theme-text-muted">Criticos para retorno</p>
             </div>
           </div>
         </section>
 
       {!selectedPlant && (
-        <div className="mt-8 rounded-3xl border border-dashed border-slate-200 bg-white p-10 text-center">
-          <AlertCircle className="mx-auto mb-4 h-10 w-10 text-slate-400" />
-          <h2 className="text-xl font-semibold text-slate-900 mb-2">
+        <div className="mt-8 rounded-3xl border border-dashed theme-border theme-card p-10 text-center">
+          <AlertCircle className="mx-auto mb-4 h-10 w-10 theme-text-muted" />
+          <h2 className="mb-2 text-xl font-semibold theme-text">
             Selecione uma fabrica
           </h2>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm theme-text-muted">
             Escolha uma fabrica no topo para visualizar os equipamentos disponiveis.
           </p>
         </div>
       )}
 
       {selectedPlant && loading && (
-        <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-12 text-center">
-          <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-slate-400" />
-          <p className="text-sm text-slate-600">Carregando equipamentos...</p>
+        <div className="mt-8 rounded-3xl border theme-border theme-card p-12 text-center">
+          <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin theme-text-muted" />
+          <p className="text-sm theme-text-muted">Carregando equipamentos...</p>
         </div>
       )}
 
       {selectedPlant && !loading && error && (
         <div className="mt-8 rounded-3xl border border-rose-200 bg-rose-50 p-10 text-center">
           <AlertCircle className="mx-auto mb-4 h-10 w-10 text-rose-500" />
-          <h2 className="text-xl font-semibold text-slate-900 mb-2">Erro</h2>
-          <p className="text-sm text-slate-600">{error}</p>
+          <h2 className="mb-2 text-xl font-semibold theme-text">Erro</h2>
+          <p className="text-sm theme-text-muted">{error}</p>
         </div>
       )}
 
@@ -545,22 +545,22 @@ export function AssetsPage() {
       {selectedPlant && !loading && (
         <section className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
             <div className="space-y-6">
-              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="rounded-3xl border theme-border theme-card p-5 shadow-sm">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="flex flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <Search className="h-4 w-4 text-slate-500" />
+                  <div className="flex flex-1 items-center gap-3 rounded-2xl border theme-border bg-[color:var(--dash-panel)] px-4 py-3">
+                    <Search className="h-4 w-4 theme-text-muted" />
                     <input
-                      className="w-full bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
+                      className="w-full bg-transparent text-sm text-[color:var(--dash-text)] placeholder:text-[color:var(--dash-muted)] focus:outline-none"
                       placeholder="Buscar por nome, codigo ou localizacao"
                       value={searchInput}
                       onChange={(event) => setSearchInput(event.target.value)}
                     />
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">
+                    <div className="inline-flex items-center gap-2 rounded-2xl border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-xs font-semibold theme-text-muted">
                       <SlidersHorizontal className="h-4 w-4" />
                       <select
-                        className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none"
+                        className="bg-transparent text-xs font-semibold text-[color:var(--dash-text)] focus:outline-none"
                         value={statusFilter}
                         onChange={(event) => setStatusFilter(event.target.value)}
                       >
@@ -583,13 +583,13 @@ export function AssetsPage() {
               </div>
 
               {showForm && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="rounded-3xl border theme-border theme-card p-6 shadow-sm">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h2 className="text-lg font-semibold text-slate-900">
+                      <h2 className="text-lg font-semibold theme-text">
                         {editingAsset ? 'Editar equipamento' : 'Novo equipamento'}
                       </h2>
-                      <p className="text-sm text-slate-600">
+                      <p className="text-sm theme-text-muted">
                         Cadastre dados essenciais para manter o inventario atualizado.
                       </p>
                     </div>
@@ -606,7 +606,7 @@ export function AssetsPage() {
 
                   <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="mb-1 block text-sm font-medium theme-text">
                         Codigo
                       </label>
                       <input
@@ -618,7 +618,7 @@ export function AssetsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="mb-1 block text-sm font-medium theme-text">
                         Nome
                       </label>
                       <input
@@ -630,7 +630,7 @@ export function AssetsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="mb-1 block text-sm font-medium theme-text">
                         Categoria
                       </label>
                       <div className="flex gap-2">

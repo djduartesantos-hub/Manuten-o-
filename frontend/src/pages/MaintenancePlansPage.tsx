@@ -735,31 +735,31 @@ export function MaintenancePlansPage() {
         )}
 
         {loading && (
-          <div className="rounded-[28px] border border-slate-200 bg-white/90 p-12 text-center shadow-sm">
-            <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-slate-400" />
-            <p className="text-sm text-slate-600">Carregando planos...</p>
+          <div className="rounded-[28px] border theme-border theme-card p-12 text-center shadow-sm">
+            <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin theme-text-muted" />
+            <p className="text-sm theme-text-muted">Carregando planos...</p>
           </div>
         )}
 
         {!loading && selectedPlant && (
           <section className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
             <div className="space-y-6">
-              <div className="rounded-[28px] border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur">
+              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm backdrop-blur">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="flex flex-1 items-center gap-3 rounded-full border border-slate-200 bg-[color:var(--plans-surface)] px-4 py-3">
-                    <Search className="h-4 w-4 text-slate-500" />
+                  <div className="flex flex-1 items-center gap-3 rounded-full border theme-border bg-[color:var(--dash-panel)] px-4 py-3">
+                    <Search className="h-4 w-4 theme-text-muted" />
                     <input
-                      className="w-full bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
+                      className="w-full bg-transparent text-sm text-[color:var(--dash-text)] placeholder:text-[color:var(--dash-muted)] focus:outline-none"
                       placeholder="Buscar por nome, ativo ou descricao"
                       value={searchTerm}
                       onChange={(event) => setSearchTerm(event.target.value)}
                     />
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600">
+                    <div className="inline-flex items-center gap-2 rounded-full border theme-border bg-[color:var(--dash-panel)] px-4 py-2 text-xs font-semibold theme-text-muted">
                       <SlidersHorizontal className="h-4 w-4" />
                       <select
-                        className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none"
+                        className="bg-transparent text-xs font-semibold text-[color:var(--dash-text)] focus:outline-none"
                         value={typeFilter}
                         onChange={(event) => setTypeFilter(event.target.value)}
                       >
@@ -768,10 +768,10 @@ export function MaintenancePlansPage() {
                         <option value="corretiva">Corretiva</option>
                       </select>
                     </div>
-                    <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600">
+                    <div className="inline-flex items-center gap-2 rounded-full border theme-border bg-[color:var(--dash-panel)] px-4 py-2 text-xs font-semibold theme-text-muted">
                       <Clock3 className="h-4 w-4" />
                       <select
-                        className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none"
+                        className="bg-transparent text-xs font-semibold text-[color:var(--dash-text)] focus:outline-none"
                         value={statusFilter}
                         onChange={(event) => setStatusFilter(event.target.value)}
                       >
@@ -786,11 +786,11 @@ export function MaintenancePlansPage() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 {filteredPlans.length === 0 && (
-                  <div className="col-span-full rounded-[28px] border border-dashed border-slate-200 bg-[linear-gradient(135deg,#ffffff,#f1f5f9)] p-10 text-center shadow-sm">
-                    <p className="text-sm font-semibold text-slate-700">
+                  <div className="col-span-full rounded-[28px] border border-dashed theme-border bg-[linear-gradient(135deg,var(--dash-panel),var(--dash-panel-2))] p-10 text-center shadow-sm">
+                    <p className="text-sm font-semibold theme-text">
                       Nenhum plano encontrado
                     </p>
-                    <p className="mt-2 text-xs text-slate-500">
+                    <p className="mt-2 text-xs theme-text-muted">
                       Ajuste filtros ou termos para localizar planos.
                     </p>
                   </div>
@@ -798,7 +798,7 @@ export function MaintenancePlansPage() {
                 {filteredPlans.map((plan) => (
                   <article
                     key={plan.id}
-                    className="group relative overflow-hidden rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-30px_rgba(15,118,110,0.35)] transition hover:-translate-y-1 hover:shadow-[0_25px_55px_-35px_rgba(15,118,110,0.55)]"
+                    className="group relative overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-[0_18px_40px_-30px_rgba(15,118,110,0.35)] transition hover:-translate-y-1 hover:shadow-[0_25px_55px_-35px_rgba(15,118,110,0.55)]"
                   >
                     <div className="absolute left-0 top-0 h-full w-1 bg-[linear-gradient(180deg,var(--plans-accent),#34d399)]" />
                     <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-100/60 opacity-0 blur-2xl transition group-hover:opacity-100" />
@@ -807,10 +807,10 @@ export function MaintenancePlansPage() {
                         <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[color:var(--plans-accent)]">
                           {plan.type}
                         </p>
-                        <h3 className="mt-2 text-lg font-semibold text-slate-900">
+                        <h3 className="mt-2 text-lg font-semibold theme-text">
                           {plan.name}
                         </h3>
-                        <p className="mt-2 text-sm text-slate-600">
+                        <p className="mt-2 text-sm theme-text-muted">
                           {plan.description || 'Sem descricao'}
                         </p>
                       </div>
@@ -819,7 +819,7 @@ export function MaintenancePlansPage() {
                           className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
                             plan.is_active
                               ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-slate-100 text-slate-700'
+                              : 'bg-[color:var(--dash-surface)] text-[color:var(--dash-text)]'
                           }`}
                         >
                           {plan.is_active ? 'Ativo' : 'Inativo'}
@@ -843,12 +843,12 @@ export function MaintenancePlansPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="mt-5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--plans-surface)] px-3 py-1 text-slate-600">
+                    <div className="mt-5 flex flex-wrap items-center gap-3 text-xs theme-text-muted">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--dash-surface)] px-3 py-1 theme-text">
                         <CalendarClock className="h-3.5 w-3.5" />
                         {frequencyLabel(plan)}
                       </span>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1">
+                      <span className="inline-flex items-center gap-1 rounded-full border theme-border px-3 py-1 theme-text">
                         <Layers className="h-3.5 w-3.5" />
                         {plan.asset_name || 'Sem ativo'}
                       </span>
@@ -859,22 +859,22 @@ export function MaintenancePlansPage() {
             </div>
 
             <aside className="space-y-6">
-              <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 p-6 shadow-sm">
+              <div className="relative overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-sm">
                 <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--plans-accent),#34d399)]" />
-                <h3 className="text-sm font-semibold text-slate-900">Ativos com mais planos</h3>
+                <h3 className="text-sm font-semibold theme-text">Ativos com mais planos</h3>
                 <div className="mt-4 space-y-3">
                   {assetHighlights.length === 0 && (
-                    <p className="text-xs text-slate-500">Sem dados suficientes.</p>
+                    <p className="text-xs theme-text-muted">Sem dados suficientes.</p>
                   )}
                   {assetHighlights.map((asset) => (
                     <div
                       key={asset.name}
-                      className="flex items-center justify-between rounded-2xl border border-slate-100 bg-[color:var(--plans-surface)] px-3 py-2"
+                      className="flex items-center justify-between rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 py-2"
                     >
-                      <span className="text-xs font-semibold text-slate-700">
+                      <span className="text-xs font-semibold theme-text">
                         {asset.name}
                       </span>
-                      <span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-600">
+                      <span className="rounded-full bg-[color:var(--dash-panel)] px-2 py-1 text-xs font-semibold theme-text-muted">
                         {asset.count}
                       </span>
                     </div>
@@ -882,18 +882,18 @@ export function MaintenancePlansPage() {
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-[28px] border border-emerald-200 bg-[linear-gradient(135deg,#ecfdf3,#ffffff)] p-6 text-slate-800 shadow-[0_20px_60px_-45px_rgba(16,185,129,0.6)]">
+              <div className="relative overflow-hidden rounded-[28px] border theme-border bg-[linear-gradient(135deg,var(--dash-panel),var(--dash-panel-2))] p-6 theme-text shadow-[0_20px_60px_-45px_rgba(16,185,129,0.6)]">
                 <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-200/50 blur-2xl" />
                 <h3 className="text-sm font-semibold">Dica de controle</h3>
-                <p className="mt-2 text-xs text-slate-600">
+                <p className="mt-2 text-xs theme-text-muted">
                   Garanta que planos preventivos estejam ativos para reduzir paragens
                   nao planejadas.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                  <span className="rounded-full bg-white px-3 py-1 font-semibold text-emerald-700">
+                  <span className="rounded-full bg-[color:var(--dash-panel)] px-3 py-1 font-semibold text-emerald-700">
                     {planSummary.preventive} preventivos
                   </span>
-                  <span className="rounded-full bg-white px-3 py-1 font-semibold text-rose-700">
+                  <span className="rounded-full bg-[color:var(--dash-panel)] px-3 py-1 font-semibold text-rose-700">
                     {planSummary.corrective} corretivos
                   </span>
                 </div>

@@ -296,43 +296,43 @@ export function SparePartsPage() {
           </div>
 
           <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
+            <div className="rounded-[26px] border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
+              <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <Boxes className="h-4 w-4 text-amber-600" />
                 Pecas cadastradas
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">{parts.length}</p>
-              <p className="mt-1 text-xs text-slate-500">Catalogo ativo</p>
+              <p className="mt-3 text-2xl font-semibold theme-text">{parts.length}</p>
+              <p className="mt-1 text-xs theme-text-muted">Catalogo ativo</p>
             </div>
-            <div className="rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
+            <div className="rounded-[26px] border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
+              <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <ArrowUpCircle className="h-4 w-4 text-emerald-600" />
                 Entradas
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-3 text-2xl font-semibold theme-text">
                 {movementSummary.in}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Movimentos recentes</p>
+              <p className="mt-1 text-xs theme-text-muted">Movimentos recentes</p>
             </div>
-            <div className="rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
+            <div className="rounded-[26px] border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
+              <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <ArrowDownCircle className="h-4 w-4 text-rose-600" />
                 Saidas
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-3 text-2xl font-semibold theme-text">
                 {movementSummary.out}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Consumo</p>
+              <p className="mt-1 text-xs theme-text-muted">Consumo</p>
             </div>
-            <div className="rounded-[26px] border border-slate-200 bg-white/90 p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
-              <div className="flex items-center gap-3 text-sm text-slate-600">
+            <div className="rounded-[26px] border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
+              <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <Wrench className="h-4 w-4 text-sky-600" />
                 Ajustes
               </div>
-              <p className="mt-3 text-2xl font-semibold text-slate-900">
+              <p className="mt-3 text-2xl font-semibold theme-text">
                 {movementSummary.adjust}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Correcao de stock</p>
+              <p className="mt-1 text-xs theme-text-muted">Correcao de stock</p>
             </div>
           </div>
         </section>
@@ -347,21 +347,21 @@ export function SparePartsPage() {
         )}
 
         {loading && (
-          <div className="rounded-[28px] border border-slate-200 bg-white/95 p-12 text-center shadow-sm">
-            <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-slate-400" />
-            <p className="text-sm text-slate-600">Carregando peças...</p>
+          <div className="rounded-[28px] border theme-border theme-card p-12 text-center shadow-sm">
+            <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin theme-text-muted" />
+            <p className="text-sm theme-text-muted">Carregando peças...</p>
           </div>
         )}
 
         {!loading && (
           <>
             <section>
-              <div className="rounded-[28px] border border-slate-200 bg-white/95 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
-                <div className="border-b border-slate-100 p-5">
-                  <h2 className="text-lg font-semibold text-slate-900">Pecas cadastradas</h2>
-                  <p className="text-sm text-slate-500">{filteredParts.length} itens</p>
+              <div className="rounded-[28px] border theme-border theme-card shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
+                <div className="border-b border-[color:var(--dash-border)] p-5">
+                  <h2 className="text-lg font-semibold theme-text">Pecas cadastradas</h2>
+                  <p className="text-sm theme-text-muted">{filteredParts.length} itens</p>
                 </div>
-                <div className="border-b border-slate-100 bg-slate-50/80 p-4">
+                <div className="border-b border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
                     <input
                       className="input h-9"
@@ -417,33 +417,33 @@ export function SparePartsPage() {
                   </div>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
+                  <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
+                    <thead className="bg-[color:var(--dash-surface)]">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">
                           Código
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">
                           Nome
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">
                           Custo
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">
                           Stock
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">
                           Minimo
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">
                           Fornecedor
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
+                    <tbody className="divide-y divide-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
                       {filteredParts.length === 0 && (
                         <tr>
-                          <td colSpan={4} className="px-6 py-6 text-center text-slate-500">
+                          <td colSpan={4} className="px-6 py-6 text-center theme-text-muted">
                             Nenhuma peça encontrada
                           </td>
                         </tr>
@@ -454,20 +454,20 @@ export function SparePartsPage() {
                         const isLow = minStock > 0 && currentStock < minStock;
 
                         return (
-                        <tr key={part.id} className="transition hover:bg-amber-50/40">
-                          <td className="px-6 py-4 text-sm font-medium text-slate-900">
+                        <tr key={part.id} className="transition hover:bg-amber-500/10">
+                          <td className="px-6 py-4 text-sm font-medium theme-text">
                             {part.code}
                           </td>
-                          <td className="px-6 py-4 text-sm text-slate-700">{part.name}</td>
-                          <td className="px-6 py-4 text-sm text-slate-700">
+                          <td className="px-6 py-4 text-sm theme-text">{part.name}</td>
+                          <td className="px-6 py-4 text-sm theme-text">
                             {part.unit_cost ? `€ ${part.unit_cost}` : '-'}
                           </td>
-                          <td className="px-6 py-4 text-sm text-slate-700">
+                          <td className="px-6 py-4 text-sm theme-text">
                             <span className={isLow ? 'text-rose-600 font-semibold' : undefined}>
                               {currentStock}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-sm text-slate-700">
+                          <td className="px-6 py-4 text-sm theme-text">
                             {minStock || '-'}
                             {isLow && (
                               <span className="ml-2 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
@@ -475,7 +475,7 @@ export function SparePartsPage() {
                               </span>
                             )}
                           </td>
-                          <td className="px-6 py-4 text-sm text-slate-700">
+                          <td className="px-6 py-4 text-sm theme-text">
                             {part.supplier_name || '-'}
                           </td>
                         </tr>
@@ -485,7 +485,7 @@ export function SparePartsPage() {
                   </table>
                 </div>
                 {sortedParts.length > visibleParts.length && (
-                  <div className="border-t border-slate-100 p-4">
+                  <div className="border-t border-[color:var(--dash-border)] p-4">
                     <button
                       className="btn-secondary w-full"
                       onClick={() => setPartsVisibleCount((count) => count + 20)}
@@ -498,14 +498,14 @@ export function SparePartsPage() {
             </section>
 
             {movements.length > 0 && (
-              <div className="rounded-[28px] border border-slate-200 bg-white/95 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
-                <div className="border-b border-slate-100 p-5">
+              <div className="rounded-[28px] border theme-border theme-card shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
+                <div className="border-b border-[color:var(--dash-border)] p-5">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                      <h2 className="text-lg font-semibold text-slate-900">
+                      <h2 className="text-lg font-semibold theme-text">
                         Movimentos recentes
                       </h2>
-                      <p className="text-sm text-slate-500">Ultimos registos da planta</p>
+                      <p className="text-sm theme-text-muted">Ultimos registos da planta</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <input

@@ -1067,24 +1067,24 @@ export function WorkOrdersPage() {
   return (
     <MainLayout>
       <div className="space-y-8 font-display">
-        <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-[radial-gradient(circle_at_top,_#ffffff_0%,_#f8fafc_45%,_#ecfeff_100%)] p-8 shadow-[0_26px_60px_-40px_rgba(15,23,42,0.45)]">
+        <section className="relative overflow-hidden rounded-[32px] border theme-border bg-[radial-gradient(circle_at_top,var(--dash-panel)_0%,var(--dash-bg)_45%,var(--dash-surface)_100%)] p-8 shadow-[0_26px_60px_-40px_rgba(15,23,42,0.45)]">
           <div className="absolute -right-14 -top-20 h-56 w-56 rounded-full bg-emerald-200/60 blur-3xl" />
-          <div className="absolute left-10 top-10 h-12 w-12 rotate-12 rounded-2xl border border-emerald-200/70 bg-white/70 shadow-sm" />
-          <div className="absolute bottom-6 right-12 h-16 w-16 rounded-full border border-slate-200/70 bg-white/70" />
+          <div className="absolute left-10 top-10 h-12 w-12 rotate-12 rounded-2xl border border-emerald-200/70 bg-[color:var(--dash-panel)] opacity-70 shadow-sm" />
+          <div className="absolute bottom-6 right-12 h-16 w-16 rounded-full border theme-border bg-[color:var(--dash-panel)] opacity-70" />
           <div className="relative grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
             <div className="space-y-4">
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-700">
                 Sala de comando
               </p>
               <h1
-                className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl"
+                className="text-3xl font-semibold tracking-tight theme-text sm:text-4xl"
                 onPointerDown={handleDiagnosticsPressStart}
                 onPointerUp={handleDiagnosticsPressEnd}
                 onPointerLeave={handleDiagnosticsPressEnd}
               >
                 Ordens em movimento e decisao rapida
               </h1>
-              <p className="max-w-2xl text-sm text-slate-600">
+              <p className="max-w-2xl text-sm theme-text-muted">
                 Controle operacoes com clareza: prioridades, SLA e progresso lado a lado.
               </p>
               <div className="flex flex-wrap items-center gap-3">
@@ -1114,45 +1114,45 @@ export function WorkOrdersPage() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
-                <div className="flex items-center gap-3 text-sm text-slate-600">
+              <div className="rounded-2xl border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
+                <div className="flex items-center gap-3 text-sm theme-text-muted">
                   <List className="h-4 w-4 text-emerald-600" />
                   Total de ordens
                 </div>
-                <p className="mt-3 text-2xl font-semibold text-slate-900">
+                <p className="mt-3 text-2xl font-semibold theme-text">
                   {statusSummary.total}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">Fila completa</p>
+                <p className="mt-1 text-xs theme-text-muted">Fila completa</p>
               </div>
-              <div className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
-                <div className="flex items-center gap-3 text-sm text-slate-600">
+              <div className="rounded-2xl border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
+                <div className="flex items-center gap-3 text-sm theme-text-muted">
                   <AlertCircle className="h-4 w-4 text-amber-600" />
                   Abertas
                 </div>
-                <p className="mt-3 text-2xl font-semibold text-slate-900">
+                <p className="mt-3 text-2xl font-semibold theme-text">
                   {statusSummary.aberta}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">Aguardando inicio</p>
+                <p className="mt-1 text-xs theme-text-muted">Aguardando inicio</p>
               </div>
-              <div className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
-                <div className="flex items-center gap-3 text-sm text-slate-600">
+              <div className="rounded-2xl border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
+                <div className="flex items-center gap-3 text-sm theme-text-muted">
                   <RefreshCcw className="h-4 w-4 text-cyan-600" />
                   Em curso
                 </div>
-                <p className="mt-3 text-2xl font-semibold text-slate-900">
+                <p className="mt-3 text-2xl font-semibold theme-text">
                   {statusSummary.em_curso}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">Execucao ativa</p>
+                <p className="mt-1 text-xs theme-text-muted">Execucao ativa</p>
               </div>
-              <div className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
-                <div className="flex items-center gap-3 text-sm text-slate-600">
+              <div className="rounded-2xl border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
+                <div className="flex items-center gap-3 text-sm theme-text-muted">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                   Concluidas
                 </div>
-                <p className="mt-3 text-2xl font-semibold text-slate-900">
+                <p className="mt-3 text-2xl font-semibold theme-text">
                   {statusSummary.concluida}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">Finalizadas</p>
+                <p className="mt-1 text-xs theme-text-muted">Finalizadas</p>
               </div>
             </div>
           </div>
@@ -1199,32 +1199,32 @@ export function WorkOrdersPage() {
         )}
 
         {!selectedPlant && (
-          <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-10 text-center">
-            <AlertCircle className="mx-auto mb-4 h-10 w-10 text-slate-400" />
-            <h2 className="text-xl font-semibold text-slate-900 mb-2">
+          <div className="rounded-3xl border border-dashed theme-border theme-card p-10 text-center">
+            <AlertCircle className="mx-auto mb-4 h-10 w-10 theme-text-muted" />
+            <h2 className="mb-2 text-xl font-semibold theme-text">
               Selecione uma fabrica
             </h2>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm theme-text-muted">
               Escolha uma fabrica no topo para visualizar as ordens.
             </p>
           </div>
         )}
 
         {selectedPlant && showCreate && (
-          <div className="rounded-[28px] border border-slate-200 bg-white/90 p-6 shadow-[0_20px_40px_-30px_rgba(15,23,42,0.45)]">
+          <div className="rounded-[28px] border theme-border theme-card p-6 shadow-[0_20px_40px_-30px_rgba(15,23,42,0.45)]">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700">
                   Nova ordem
                 </p>
-                <h2 className="mt-2 text-lg font-semibold text-slate-900">
+                <h2 className="mt-2 text-lg font-semibold theme-text">
                   Registrar intervencao
                 </h2>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Ativo</label>
+                <label className="mb-1 block text-sm font-medium theme-text">Ativo</label>
                 <select
                   className="input"
                   value={form.asset_id}
@@ -1240,7 +1240,7 @@ export function WorkOrdersPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Titulo</label>
+                <label className="mb-1 block text-sm font-medium theme-text">Titulo</label>
                 <input
                   className="input"
                   value={form.title}
@@ -1249,7 +1249,7 @@ export function WorkOrdersPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Prioridade</label>
+                <label className="mb-1 block text-sm font-medium theme-text">Prioridade</label>
                 <select
                   className="input"
                   value={form.priority}
@@ -1263,7 +1263,7 @@ export function WorkOrdersPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="mb-1 block text-sm font-medium theme-text">
                   Horas estimadas
                 </label>
                 <input
@@ -1274,7 +1274,7 @@ export function WorkOrdersPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="mb-1 block text-sm font-medium theme-text">
                   Data e hora planeada
                 </label>
                 <input
@@ -1286,7 +1286,7 @@ export function WorkOrdersPage() {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Descricao</label>
+                <label className="mb-1 block text-sm font-medium theme-text">Descricao</label>
                 <textarea
                   className="input min-h-[96px]"
                   value={form.description}
@@ -1325,27 +1325,27 @@ export function WorkOrdersPage() {
               onClick={() => setEditingOrder(null)}
             />
             <div
-              className="relative w-full max-w-5xl max-h-[88vh] overflow-y-auto rounded-[32px] border border-slate-200 bg-gradient-to-br from-white via-white to-emerald-50/60 p-6 shadow-[0_40px_80px_-45px_rgba(15,23,42,0.6)]"
+              className="relative w-full max-w-5xl max-h-[88vh] overflow-y-auto rounded-[32px] border theme-border bg-[linear-gradient(135deg,var(--dash-panel),var(--dash-panel-2))] p-6 shadow-[0_40px_80px_-45px_rgba(15,23,42,0.6)]"
               role="dialog"
               aria-modal="true"
             >
               <button
                 onClick={() => setEditingOrder(null)}
-                className="absolute right-4 top-4 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                className="absolute right-4 top-4 rounded-full border theme-border theme-card px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
               >
                 Fechar
               </button>
               <div className="space-y-6">
-                <div className="rounded-[24px] border border-slate-200 bg-white/95 p-5 shadow-sm">
+                <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
                   <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-700">
                     Detalhes da ordem
                   </p>
                   <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h2 className="text-xl font-semibold text-slate-900">
+                      <h2 className="text-xl font-semibold theme-text">
                         {editingOrder.title}
                       </h2>
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="mt-1 text-xs theme-text-muted">
                         {editingOrder.asset
                           ? `${editingOrder.asset.code} - ${editingOrder.asset.name}`
                           : 'Sem ativo'}
@@ -1386,32 +1386,32 @@ export function WorkOrdersPage() {
                   </div>
                 )}
 
-                <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                       Resumo rapido
                     </p>
                   </div>
                   <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-                      <p className="font-semibold text-slate-700">Criado por</p>
+                    <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-3 text-xs theme-text-muted">
+                      <p className="font-semibold theme-text">Criado por</p>
                       <p className="mt-1">
                         {editingOrder.createdByUser
                           ? `${editingOrder.createdByUser.first_name} ${editingOrder.createdByUser.last_name}`
                           : 'Nao informado'}
                       </p>
-                      <p className="mt-1 text-[11px] text-slate-500">
+                      <p className="mt-1 text-[11px] theme-text-muted">
                         {formatDateTime(editingOrder.created_at)}
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-                      <p className="font-semibold text-slate-700">Responsavel</p>
+                    <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-3 text-xs theme-text-muted">
+                      <p className="font-semibold theme-text">Responsavel</p>
                       <p className="mt-1">
                         {editingOrder.assignedUser
                           ? `${editingOrder.assignedUser.first_name} ${editingOrder.assignedUser.last_name}`
                           : 'Nao atribuido'}
                       </p>
-                      <p className="mt-1 text-[11px] text-slate-500">
+                      <p className="mt-1 text-[11px] theme-text-muted">
                         {formatDateTime(
                           editingOrder.started_at || editingOrder.updated_at || editingOrder.created_at,
                         )}
@@ -1890,22 +1890,22 @@ export function WorkOrdersPage() {
         {selectedPlant && (
           <section className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
             <div className="space-y-6">
-              <div className="rounded-[28px] border border-slate-200 bg-gradient-to-r from-white via-white to-emerald-50/60 p-5 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
+              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="flex flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                  <div className="flex flex-1 items-center gap-3 rounded-2xl border theme-border bg-[color:var(--dash-panel)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
                     <Search className="h-4 w-4 text-emerald-600" />
                     <input
-                      className="w-full bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
+                      className="w-full bg-transparent text-sm text-[color:var(--dash-text)] placeholder:text-[color:var(--dash-muted)] focus:outline-none"
                       placeholder="Pesquisar por titulo, ativo ou descricao"
                       value={searchTerm}
                       onChange={(event) => setSearchTerm(event.target.value)}
                     />
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">
+                    <div className="inline-flex items-center gap-2 rounded-2xl border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-xs font-semibold theme-text-muted">
                       <SlidersHorizontal className="h-4 w-4 text-emerald-600" />
                       <select
-                        className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none"
+                        className="bg-transparent text-xs font-semibold text-[color:var(--dash-text)] focus:outline-none"
                         value={statusFilter}
                         onChange={(event) => setStatusFilter(event.target.value)}
                       >
@@ -1916,12 +1916,12 @@ export function WorkOrdersPage() {
                         ))}
                       </select>
                     </div>
-                    <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1">
+                    <div className="flex items-center gap-1 rounded-full border theme-border bg-[color:var(--dash-panel)] px-2 py-1">
                       <button
                         className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                           viewMode === 'table'
                             ? 'bg-emerald-100 text-emerald-700'
-                            : 'text-slate-600 hover:text-slate-900'
+                            : 'text-[color:var(--dash-muted)] hover:text-[color:var(--dash-text)]'
                         }`}
                         onClick={() => setViewMode('table')}
                       >
@@ -1931,7 +1931,7 @@ export function WorkOrdersPage() {
                         className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                           viewMode === 'kanban'
                             ? 'bg-emerald-100 text-emerald-700'
-                            : 'text-slate-600 hover:text-slate-900'
+                            : 'text-[color:var(--dash-muted)] hover:text-[color:var(--dash-text)]'
                         }`}
                         onClick={() => setViewMode('kanban')}
                       >
@@ -1942,11 +1942,11 @@ export function WorkOrdersPage() {
                 </div>
               </div>
 
-              <div className="rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
-                <div className="flex flex-col gap-2 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="rounded-[28px] border theme-border theme-card shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
+                <div className="flex flex-col gap-2 border-b border-[color:var(--dash-border)] p-5 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-slate-900">Ordens</h2>
-                    <p className="text-sm text-slate-500">{workOrders.length} registros</p>
+                    <h2 className="text-lg font-semibold theme-text">Ordens</h2>
+                    <p className="text-sm theme-text-muted">{workOrders.length} registros</p>
                   </div>
                   {(alertSummary.overdue > 0 || alertSummary.dueSoon > 0) && (
                     <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -1968,53 +1968,53 @@ export function WorkOrdersPage() {
 
                 {loading && (
                   <div className="p-12 text-center">
-                    <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-slate-400" />
-                    <p className="text-sm text-slate-600">Carregando ordens...</p>
+                    <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin theme-text-muted" />
+                    <p className="text-sm theme-text-muted">Carregando ordens...</p>
                   </div>
                 )}
 
                 {!loading && error && (
                   <div className="p-12 text-center">
                     <AlertCircle className="mx-auto mb-4 h-8 w-8 text-rose-400" />
-                    <p className="text-sm text-slate-600">{error}</p>
+                    <p className="text-sm theme-text-muted">{error}</p>
                   </div>
                 )}
 
                 {!loading && !error && viewMode === 'table' && (
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-200">
-                      <thead className="bg-slate-50">
+                    <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
+                      <thead className="bg-[color:var(--dash-surface)]">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
                             Ordem
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
                             Ativo
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
                             Responsavel
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
                             Registo
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
                             SLA
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
                             Prioridade
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
                             Status
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
                             Abrir
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white">
+                      <tbody className="divide-y divide-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
                         {workOrders.length === 0 && (
                           <tr>
-                            <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                            <td colSpan={7} className="px-6 py-8 text-center theme-text-muted">
                               Nenhuma ordem encontrada
                             </td>
                           </tr>
@@ -2039,7 +2039,7 @@ export function WorkOrdersPage() {
                           return (
                             <tr
                               key={order.id}
-                              className="group cursor-pointer transition-all duration-200 hover:bg-emerald-50/60 hover:shadow-[0_14px_30px_-22px_rgba(15,23,42,0.45)] focus-within:bg-emerald-50/60"
+                              className="group cursor-pointer transition-all duration-200 hover:bg-emerald-500/10 hover:shadow-[0_14px_30px_-22px_rgba(15,23,42,0.45)] focus-within:bg-emerald-500/10"
                               role="button"
                               tabIndex={0}
                               onClick={() => handleStartEdit(order)}
@@ -2051,46 +2051,46 @@ export function WorkOrdersPage() {
                               }}
                             >
                               <td className="px-6 py-4">
-                                <div className="text-sm font-semibold text-slate-900">
+                                <div className="text-sm font-semibold theme-text">
                                   {order.title}
                                 </div>
-                                <div className="text-xs text-slate-500">
+                                <div className="text-xs theme-text-muted">
                                   {order.description || 'Sem descricao'}
                                 </div>
-                                <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+                                <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] theme-text-muted">
                                   <span className="inline-flex items-center gap-1">
                                     <User className="h-3 w-3 text-emerald-600" />
                                     {order.createdByUser
                                       ? `${order.createdByUser.first_name} ${order.createdByUser.last_name}`
                                       : 'Nao informado'}
                                   </span>
-                                  <span className="inline-flex items-center gap-1 text-slate-400">
+                                  <span className="inline-flex items-center gap-1 theme-text-muted">
                                     <Clock className="h-3 w-3" />
                                     {formatShortDateTime(order.created_at)}
                                   </span>
                                 </div>
                               </td>
-                              <td className="px-6 py-4 text-sm text-slate-700">
+                              <td className="px-6 py-4 text-sm theme-text">
                                 {order.asset ? `${order.asset.code} - ${order.asset.name}` : '-'}
                               </td>
-                              <td className="px-6 py-4 text-sm text-slate-700">
-                                <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+                              <td className="px-6 py-4 text-sm theme-text">
+                                <div className="flex flex-wrap items-center gap-3 text-[11px] theme-text-muted">
                                   <span className="inline-flex items-center gap-1">
                                     <UserCheck className="h-3 w-3 text-sky-600" />
                                     {order.assignedUser
                                       ? `${order.assignedUser.first_name} ${order.assignedUser.last_name}`
                                       : 'Nao atribuido'}
                                   </span>
-                                  <span className="inline-flex items-center gap-1 text-slate-400">
+                                  <span className="inline-flex items-center gap-1 theme-text-muted">
                                     <Clock className="h-3 w-3" />
                                     {formatShortDateTime(responsibleDate)}
                                   </span>
                                 </div>
                               </td>
-                              <td className="px-6 py-4 text-sm text-slate-700">
+                              <td className="px-6 py-4 text-sm theme-text">
                                 {formatShortDateTime(order.created_at)}
                               </td>
-                              <td className="px-6 py-4 text-sm text-slate-700">
+                              <td className="px-6 py-4 text-sm theme-text">
                                 {slaDate ? (
                                   <span
                                     className={`rounded-full px-2 py-1 text-xs ${
@@ -2107,7 +2107,7 @@ export function WorkOrdersPage() {
                                   '-'
                                 )}
                               </td>
-                              <td className="px-6 py-4 text-sm text-slate-700">
+                              <td className="px-6 py-4 text-sm theme-text">
                                 {order.priority || 'n/a'}
                               </td>
                               <td className="px-6 py-4">
@@ -2135,13 +2135,13 @@ export function WorkOrdersPage() {
                     {Object.keys(statusLabels).map((statusKey) => (
                       <div
                         key={statusKey}
-                        className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
+                        className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4"
                       >
                         <div className="mb-3 flex items-center justify-between">
-                          <h3 className="text-sm font-semibold text-slate-700">
+                          <h3 className="text-sm font-semibold theme-text">
                             {statusLabels[statusKey]}
                           </h3>
-                          <span className="text-xs text-slate-500">
+                          <span className="text-xs theme-text-muted">
                             {(groupedByStatus[statusKey] || []).length}
                           </span>
                         </div>
@@ -2164,7 +2164,7 @@ export function WorkOrdersPage() {
                             return (
                               <div
                                 key={order.id}
-                                className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_12px_26px_-20px_rgba(15,23,42,0.35)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70"
+                                className="cursor-pointer rounded-2xl border theme-border theme-card p-4 shadow-[0_12px_26px_-20px_rgba(15,23,42,0.35)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70"
                                 role="button"
                                 tabIndex={0}
                                 onClick={() => handleStartEdit(order)}
@@ -2175,40 +2175,40 @@ export function WorkOrdersPage() {
                                   }
                                 }}
                               >
-                                <p className="text-sm font-semibold text-slate-900">
+                                <p className="text-sm font-semibold theme-text">
                                   {order.title}
                                 </p>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-xs theme-text-muted">
                                   {order.asset
                                     ? `${order.asset.code} - ${order.asset.name}`
                                     : 'Sem ativo'}
                                 </p>
-                                <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+                                <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] theme-text-muted">
                                   <span className="inline-flex items-center gap-1">
                                     <User className="h-3 w-3 text-emerald-600" />
                                     {order.createdByUser
                                       ? `${order.createdByUser.first_name} ${order.createdByUser.last_name}`
                                       : 'Nao informado'}
                                   </span>
-                                  <span className="inline-flex items-center gap-1 text-slate-400">
+                                  <span className="inline-flex items-center gap-1 theme-text-muted">
                                     <Clock className="h-3 w-3" />
                                     {formatShortDateTime(order.created_at)}
                                   </span>
                                 </div>
-                                <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+                                <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] theme-text-muted">
                                   <span className="inline-flex items-center gap-1">
                                     <UserCheck className="h-3 w-3 text-sky-600" />
                                     {order.assignedUser
                                       ? `${order.assignedUser.first_name} ${order.assignedUser.last_name}`
                                       : 'Nao atribuido'}
                                   </span>
-                                  <span className="inline-flex items-center gap-1 text-slate-400">
+                                  <span className="inline-flex items-center gap-1 theme-text-muted">
                                     <Clock className="h-3 w-3" />
                                     {formatShortDateTime(responsibleDate)}
                                   </span>
                                 </div>
                                 <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                                  <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-700">
+                                  <span className="rounded-full bg-[color:var(--dash-surface)] px-2 py-1 theme-text">
                                     {order.priority || 'n/a'}
                                   </span>
                                   {slaDate && (
@@ -2240,19 +2240,19 @@ export function WorkOrdersPage() {
             </div>
 
             <aside className="space-y-6">
-              <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
-                <h3 className="text-sm font-semibold text-slate-900">Mapa de prioridades</h3>
+              <div className="rounded-[28px] border theme-border theme-card p-6 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
+                <h3 className="text-sm font-semibold theme-text">Mapa de prioridades</h3>
                 <div className="mt-4 space-y-3">
                   {Object.keys(prioritySummary).length === 0 && (
-                    <p className="text-xs text-slate-500">Sem dados suficientes.</p>
+                    <p className="text-xs theme-text-muted">Sem dados suficientes.</p>
                   )}
                   {Object.entries(prioritySummary).map(([priority, count]) => (
                     <div key={priority} className="space-y-2">
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                      <div className="flex items-center justify-between text-xs font-semibold theme-text">
                         <span>{priority}</span>
                         <span>{count}</span>
                       </div>
-                      <div className="h-2 rounded-full bg-slate-100">
+                      <div className="h-2 rounded-full bg-[color:var(--dash-surface)]">
                         <div
                           className="h-2 rounded-full bg-emerald-500"
                           style={{ width: `${Math.min((count / Math.max(1, workOrders.length)) * 100, 100)}%` }}
@@ -2265,15 +2265,15 @@ export function WorkOrdersPage() {
 
               <div className="rounded-[28px] border border-amber-200 bg-amber-50 p-6 text-slate-800 shadow-[0_18px_40px_-30px_rgba(120,53,15,0.35)]">
                 <h3 className="text-sm font-semibold">Radar de SLA</h3>
-                <p className="mt-2 text-xs text-slate-600">
+                <p className="mt-2 text-xs theme-text-muted">
                   Controle rapido das ordens que podem comprometer disponibilidade.
                 </p>
                 <div className="mt-4 grid gap-3 text-xs">
-                  <div className="flex items-center justify-between rounded-2xl bg-white/70 px-3 py-2">
+                  <div className="flex items-center justify-between rounded-2xl bg-[color:var(--dash-panel)] px-3 py-2">
                     <span className="font-semibold text-rose-700">Em atraso</span>
                     <span className="text-rose-700">{alertSummary.overdue}</span>
                   </div>
-                  <div className="flex items-center justify-between rounded-2xl bg-white/70 px-3 py-2">
+                  <div className="flex items-center justify-between rounded-2xl bg-[color:var(--dash-panel)] px-3 py-2">
                     <span className="font-semibold text-amber-700">A vencer</span>
                     <span className="text-amber-700">{alertSummary.dueSoon}</span>
                   </div>
@@ -2281,8 +2281,8 @@ export function WorkOrdersPage() {
               </div>
 
               {templates.length > 0 && (
-                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
-                  <h3 className="text-sm font-semibold text-slate-900">Templates guardados</h3>
+                <div className="rounded-[28px] border theme-border theme-card p-6 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
+                  <h3 className="text-sm font-semibold theme-text">Templates guardados</h3>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {templates.map((template) => (
                       <button
