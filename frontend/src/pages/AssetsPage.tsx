@@ -919,17 +919,17 @@ export function AssetsPage() {
                 </div>
               </div>
 
-              <div className="rounded-3xl border theme-border bg-amber-500/10 p-6 theme-text shadow-sm">
-                <h3 className="text-sm font-semibold">Proxima acao sugerida</h3>
+              <div className="rounded-3xl border theme-border theme-card p-6 shadow-sm">
+                <h3 className="text-sm font-semibold theme-text">Proxima acao sugerida</h3>
                 <p className="mt-2 text-xs theme-text-muted">
                   Concentre os recursos nos equipamentos em manutencao e parados para
                   aumentar a disponibilidade.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                  <span className="rounded-full bg-[color:var(--dash-panel)] px-3 py-1 font-semibold text-amber-700">
+                  <span className="rounded-full border theme-border bg-amber-500/10 px-3 py-1 font-semibold theme-text">
                     {statusCounts.manutencao || 0} em manutencao
                   </span>
-                  <span className="rounded-full bg-[color:var(--dash-panel)] px-3 py-1 font-semibold text-rose-700">
+                  <span className="rounded-full border theme-border bg-rose-500/10 px-3 py-1 font-semibold theme-text">
                     {statusCounts.parado || 0} parados
                   </span>
                 </div>

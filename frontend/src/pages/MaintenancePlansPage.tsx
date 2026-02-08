@@ -481,7 +481,7 @@ export function MaintenancePlansPage() {
           </div>
 
           <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="plans-reveal rounded-3xl theme-border theme-card p-4 shadow-sm backdrop-blur">
+            <div className="plans-reveal rounded-3xl border theme-border theme-card p-4 shadow-sm backdrop-blur">
               <div className="flex items-center justify-between">
                 <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
                   <Layers className="h-4 w-4" />
@@ -495,7 +495,7 @@ export function MaintenancePlansPage() {
               </p>
               <p className="mt-1 text-xs theme-text-muted">Visao geral</p>
             </div>
-            <div className="plans-reveal plans-reveal-delay-1 rounded-3xl theme-border theme-card p-4 shadow-sm backdrop-blur">
+            <div className="plans-reveal plans-reveal-delay-1 rounded-3xl border theme-border theme-card p-4 shadow-sm backdrop-blur">
               <div className="flex items-center justify-between">
                 <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
                   <CheckCircle2 className="h-4 w-4" />
@@ -509,7 +509,7 @@ export function MaintenancePlansPage() {
               </p>
               <p className="mt-1 text-xs theme-text-muted">Em execucao</p>
             </div>
-            <div className="plans-reveal plans-reveal-delay-2 rounded-3xl theme-border theme-card p-4 shadow-sm backdrop-blur">
+            <div className="plans-reveal plans-reveal-delay-2 rounded-3xl border theme-border theme-card p-4 shadow-sm backdrop-blur">
               <div className="flex items-center justify-between">
                 <div className="rounded-2xl bg-amber-100 p-2 text-amber-700">
                   <CalendarClock className="h-4 w-4" />
@@ -523,7 +523,7 @@ export function MaintenancePlansPage() {
               </p>
               <p className="mt-1 text-xs theme-text-muted">Rotinas recorrentes</p>
             </div>
-            <div className="plans-reveal plans-reveal-delay-3 rounded-3xl theme-border theme-card p-4 shadow-sm backdrop-blur">
+            <div className="plans-reveal plans-reveal-delay-3 rounded-3xl border theme-border theme-card p-4 shadow-sm backdrop-blur">
               <div className="flex items-center justify-between">
                 <div className="rounded-2xl bg-[color:var(--plans-card-icon-bg-corrective)] p-2 text-[color:var(--plans-card-icon-corrective)]">
                   <Activity className="h-4 w-4" />

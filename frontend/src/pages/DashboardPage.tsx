@@ -689,7 +689,7 @@ export function DashboardPage() {
 
                 <div className="relative overflow-hidden rounded-[28px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
                 <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-400/20 blur-2xl" />
-                <h3 className="text-sm font-semibold">Top ativos</h3>
+                  <h3 className="text-sm font-semibold text-[color:var(--dash-ink)]">Top ativos</h3>
                 <p className="mt-2 text-xs text-[color:var(--dash-muted)]">
                   Equipamentos com mais ordens recentes.
                 </p>

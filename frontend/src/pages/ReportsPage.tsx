@@ -471,45 +471,51 @@ export function ReportsPage() {
 
           {/* Key Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-            <div className="card-gradient p-5">
-              <p className="text-xs text-gray-600 uppercase">Total Filtrado</p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">{summary.total}</p>
+            <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+              <p className="text-xs theme-text-muted uppercase tracking-wider">Total Filtrado</p>
+              <p className="text-2xl font-bold theme-text mt-2">{summary.total}</p>
             </div>
-            <div className="card-gradient p-5">
-              <p className="text-xs text-gray-600 uppercase">Em Atraso (SLA)</p>
-              <p className="text-2xl font-bold text-red-600 mt-2">{summary.overdue}</p>
+            <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+              <p className="text-xs theme-text-muted uppercase tracking-wider">Em Atraso (SLA)</p>
+              <p className="text-2xl font-bold text-rose-600 mt-2">{summary.overdue}</p>
             </div>
-            <div className="card-gradient p-5">
-              <p className="text-xs text-gray-600 uppercase">MTTR (horas)</p>
-              <p className="text-2xl font-bold text-blue-600 mt-2">{calculateMetrics.mttr}</p>
+            <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+              <p className="text-xs theme-text-muted uppercase tracking-wider">MTTR (horas)</p>
+              <p className="text-2xl font-bold text-[color:var(--dash-accent)] mt-2">
+                {calculateMetrics.mttr}
+              </p>
             </div>
-            <div className="card-gradient p-5">
-              <p className="text-xs text-gray-600 uppercase">Conformidade SLA</p>
-              <p className="text-2xl font-bold text-green-600 mt-2">{calculateMetrics.slaCompliance}%</p>
+            <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+              <p className="text-xs theme-text-muted uppercase tracking-wider">Conformidade SLA</p>
+              <p className="text-2xl font-bold text-emerald-600 mt-2">
+                {calculateMetrics.slaCompliance}%
+              </p>
             </div>
-            <div className="card-gradient p-5">
-              <p className="text-xs text-gray-600 uppercase">Taxa Conclusão</p>
-              <p className="text-2xl font-bold text-purple-600 mt-2">{calculateMetrics.completionRate}%</p>
+            <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+              <p className="text-xs theme-text-muted uppercase tracking-wider">Taxa Conclusão</p>
+              <p className="text-2xl font-bold theme-text mt-2">
+                {calculateMetrics.completionRate}%
+              </p>
             </div>
           </div>
 
           {/* Charts based on report type */}
           {reportType === 'general' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <div className="card p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Status</h3>
+              <div className="rounded-[28px] border theme-border theme-card p-6 shadow-sm">
+                <h3 className="text-lg font-semibold theme-text mb-4">Status</h3>
                 <Doughnut data={statusChartData} />
               </div>
-              <div className="card p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Prioridades</h3>
+              <div className="rounded-[28px] border theme-border theme-card p-6 shadow-sm">
+                <h3 className="text-lg font-semibold theme-text mb-4">Prioridades</h3>
                 <Bar data={priorityChartData} />
               </div>
             </div>
           )}
 
           {reportType === 'asset' && (
-            <div className="card mb-6 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="rounded-[28px] border theme-border theme-card mb-6 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold theme-text mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5" />
                 Ordens por Ativo
               </h3>
@@ -518,7 +524,7 @@ export function ReportsPage() {
           )}
 
           {reportType === 'technician' && (
-            <div className="card mb-6 p-6">
+            <div className="rounded-[28px] border theme-border theme-card mb-6 p-6 shadow-sm">
               <h3 className="text-lg font-semibold theme-text mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5" />
                 Ordens por Técnico
@@ -528,7 +534,7 @@ export function ReportsPage() {
           )}
 
           {reportType === 'temporal' && (
-            <div className="card mb-6 p-6">
+            <div className="rounded-[28px] border theme-border theme-card mb-6 p-6 shadow-sm">
               <h3 className="text-lg font-semibold theme-text mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5" />
                 Tendência Temporal (Semanal)
@@ -538,7 +544,7 @@ export function ReportsPage() {
           )}
 
           {/* Data Table */}
-          <div className="card">
+          <div className="overflow-hidden rounded-[28px] border theme-border theme-card shadow-sm">
             <div className="p-4 border-b theme-border">
               <h2 className="text-lg font-semibold theme-text">Ordens Filtradas</h2>
               <p className="text-sm theme-text-muted">{filteredOrders.length} registros</p>
@@ -576,12 +582,12 @@ export function ReportsPage() {
                         <span
                           className={`chip text-xs font-medium px-2 py-1 rounded-full ${
                             order.status === 'concluida'
-                              ? 'bg-green-100 text-green-700'
+                              ? 'bg-emerald-500/10 theme-text'
                               : order.status === 'cancelada'
-                              ? 'bg-red-100 text-red-700'
+                              ? 'bg-rose-500/10 theme-text'
                               : order.status === 'em_curso'
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-gray-100 text-gray-700'
+                              ? 'bg-sky-500/10 theme-text'
+                              : 'bg-[color:var(--dash-surface)] theme-text-muted'
                           }`}
                         >
                           {order.status}
@@ -591,21 +597,21 @@ export function ReportsPage() {
                         <span
                           className={`chip text-xs font-medium px-2 py-1 rounded-full ${
                             order.priority === 'critica'
-                              ? 'bg-red-100 text-red-700'
+                              ? 'bg-rose-500/10 theme-text'
                               : order.priority === 'alta'
-                              ? 'bg-orange-100 text-orange-700'
+                              ? 'bg-amber-500/10 theme-text'
                               : order.priority === 'media'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : 'bg-green-100 text-green-700'
+                              ? 'bg-emerald-500/10 theme-text'
+                              : 'bg-[color:var(--dash-surface)] theme-text-muted'
                           }`}
                         >
                           {order.priority || '-'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
+                      <td className="px-6 py-4 text-sm theme-text">
                         {order.actual_hours ? `${order.actual_hours}h` : order.estimated_hours ? `${order.estimated_hours}h (est.)` : '-'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
+                      <td className="px-6 py-4 text-sm theme-text">
                         {order.created_at ? new Date(order.created_at).toLocaleDateString('pt-PT') : '-'}
                       </td>
                     </tr>
