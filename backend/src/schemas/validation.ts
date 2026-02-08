@@ -25,10 +25,25 @@ export const UpdateWorkOrderSchema = z.object({
   title: z.string().min(3).max(200).optional(),
   description: z.string().max(2000).optional(),
   priority: z.number().int().min(1).max(4).optional(),
-  status: z.enum(['aberta', 'atribuida', 'em_curso', 'concluida', 'cancelada']).optional(),
+  status: z
+    .enum([
+      'aberta',
+      'em_analise',
+      'aprovada',
+      'planeada',
+      'em_execucao',
+      'em_pausa',
+      'concluida',
+      'fechada',
+      'cancelada',
+    ])
+    .optional(),
+  sub_status: z.string().max(80).optional(),
   assigned_user_id: z.string().uuid().optional(),
   actual_hours: z.number().positive().optional(),
   planned_date: z.string().datetime().optional(),
+  closed_at: z.string().datetime().optional(),
+  closed_by: z.string().uuid().optional(),
 });
 
 export const AddTaskSchema = z.object({

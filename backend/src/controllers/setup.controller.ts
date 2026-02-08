@@ -335,7 +335,7 @@ export class SetupController {
             created_by: demoAdminId,
             title: `Ordem Demo ${i + 1}`,
             description: 'Ordem de trabalho demonstrativa',
-            status: i === 1 ? 'em_curso' : i === 2 ? 'concluida' : 'aberta',
+            status: i === 1 ? 'em_execucao' : i === 2 ? 'concluida' : 'aberta',
             priority: i === 2 ? 'alta' : 'media',
             scheduled_date: new Date(),
             started_at: i >= 1 ? new Date() : undefined,

@@ -87,6 +87,7 @@ interface WorkOrder {
   title: string;
   description?: string | null;
   status: string;
+  sub_status?: string | null;
   assigned_to?: string | null;
   created_by?: string | null;
   priority?: string | null;
@@ -98,6 +99,8 @@ interface WorkOrder {
   scheduled_date?: string | null;
   started_at?: string | null;
   completed_at?: string | null;
+  closed_at?: string | null;
+  closed_by?: string | null;
   notes?: string | null;
   work_performed?: string | null;
   tasks?: WorkOrderTask[];
@@ -128,6 +131,7 @@ interface WorkOrderFormState {
 
 interface WorkOrderUpdateState {
   status: string;
+  sub_status: string;
   priority: string;
   scheduled_date: string;
   notes: string;
@@ -189,6 +193,7 @@ export function WorkOrdersPage() {
   });
   const [updateForm, setUpdateForm] = useState<WorkOrderUpdateState>({
     status: 'aberta',
+    sub_status: '',
     priority: 'media',
     scheduled_date: '',
     notes: '',
@@ -262,9 +267,13 @@ export function WorkOrdersPage() {
     () => [
       { value: '', label: 'Todos' },
       { value: 'aberta', label: 'Aberta' },
-      { value: 'atribuida', label: 'Atribuída' },
-      { value: 'em_curso', label: 'Em curso' },
+      { value: 'em_analise', label: 'Em Análise' },
+      { value: 'aprovada', label: 'Aprovada' },
+      { value: 'planeada', label: 'Planeada' },
+      { value: 'em_execucao', label: 'Em Execução' },
+      { value: 'em_pausa', label: 'Em Pausa' },
       { value: 'concluida', label: 'Concluída' },
+      { value: 'fechada', label: 'Fechada' },
       { value: 'cancelada', label: 'Cancelada' },
     ],
     [],
@@ -582,6 +591,7 @@ export function WorkOrdersPage() {
     setAuditError(null);
     setUpdateForm({
       status: order.status || 'aberta',
+      sub_status: order.sub_status || '',
       priority: order.priority || 'media',
       scheduled_date: toDateTimeLocal(order.scheduled_date),
       notes: order.notes || '',
@@ -612,6 +622,7 @@ export function WorkOrdersPage() {
       setOrderTasks(workOrder.tasks || []);
       setUpdateForm({
         status: workOrder.status || 'aberta',
+        sub_status: workOrder.sub_status || '',
         priority: workOrder.priority || 'media',
         scheduled_date: toDateTimeLocal(workOrder.scheduled_date),
         notes: workOrder.notes || '',
@@ -645,15 +656,15 @@ export function WorkOrdersPage() {
 
   const handleAddTask = async () => {
     if (!selectedPlant || !editingOrder) return;
-    if (editingOrder.status === 'concluida') {
-      setTasksError('Ordens concluidas nao podem receber novas tarefas.');
+    if (['concluida', 'fechada', 'cancelada'].includes(editingOrder.status)) {
+      setTasksError('Esta ordem nao pode receber novas tarefas.');
       return;
     }
     if (
       !editingPermissions?.canOperateOrder &&
       !editingPermissions?.canEditOrder &&
       !(
-        (editingOrder.status === 'aberta' || editingOrder.status === 'atribuida') &&
+        (editingOrder.status === 'aberta' || editingOrder.status === 'em_analise') &&
         editingPermissions?.canAssumeOrder
       )
     ) {
@@ -684,8 +695,8 @@ export function WorkOrdersPage() {
 
   const handleToggleTask = async (task: WorkOrderTask) => {
     if (!selectedPlant || !editingOrder) return;
-    if (editingOrder.status !== 'em_curso') {
-      setTasksError('Apenas ordens em curso podem marcar tarefas como concluidas.');
+    if (editingOrder.status !== 'em_execucao') {
+      setTasksError('Apenas ordens em execucao podem marcar tarefas como concluidas.');
       return;
     }
     if (!editingPermissions?.canOperateOrder) {
@@ -712,8 +723,8 @@ export function WorkOrdersPage() {
 
   const handleAddUsedPart = async () => {
     if (!selectedPlant || !editingOrder) return;
-    if (editingOrder.status !== 'em_curso') {
-      setUsageMessage('Apenas ordens em curso podem registar pecas usadas.');
+    if (!['em_execucao', 'em_pausa'].includes(editingOrder.status)) {
+      setUsageMessage('Apenas ordens em execucao/pausa podem registar pecas usadas.');
       return;
     }
     if (!usageForm.spare_part_id) {
@@ -768,7 +779,7 @@ export function WorkOrdersPage() {
   const handleUpdate = async () => {
     if (!selectedPlant || !editingOrder) return;
     const canEditOrder = isAdmin || isManager || editingOrder.created_by === userId;
-    const canOperateOrder = isAdmin || editingOrder.assigned_to === userId;
+    const canOperateOrder = isAdmin || isManager || editingOrder.assigned_to === userId;
 
     if (!canEditOrder && !canOperateOrder) {
       setError('Sem permissao para atualizar esta ordem');
@@ -792,6 +803,12 @@ export function WorkOrdersPage() {
       }
       if (canOperateOrder) {
         payload.notes = updateForm.notes || undefined;
+        if (updateForm.status && updateForm.status !== editingOrder.status) {
+          payload.status = updateForm.status;
+        }
+        if (updateForm.sub_status && updateForm.sub_status.trim()) {
+          payload.sub_status = updateForm.sub_status.trim();
+        }
       }
 
       if (Object.keys(payload).length === 0) {
@@ -822,7 +839,7 @@ export function WorkOrdersPage() {
 
     try {
       await updateWorkOrder(selectedPlant, editingOrder.id, {
-        status: 'atribuida',
+        status: 'em_analise',
         assigned_to: editingOrder.assigned_to || userId,
       });
       setEditingOrder(null);
@@ -846,7 +863,7 @@ export function WorkOrdersPage() {
 
     try {
       await updateWorkOrder(selectedPlant, editingOrder.id, {
-        status: 'em_curso',
+        status: 'em_execucao',
         assigned_to: editingOrder.assigned_to || userId,
         started_at: new Date().toISOString(),
         scheduled_date: updateForm.scheduled_date || undefined,
@@ -873,7 +890,8 @@ export function WorkOrdersPage() {
 
     try {
       await updateWorkOrder(selectedPlant, editingOrder.id, {
-        status: 'atribuida',
+        status: 'em_pausa',
+        sub_status: updateForm.sub_status?.trim() || undefined,
       });
       setEditingOrder(null);
       await loadData();
@@ -910,6 +928,31 @@ export function WorkOrdersPage() {
       await loadData();
     } catch (err: any) {
       setError(err.message || 'Erro ao terminar ordem');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleCloseOrder = async () => {
+    if (!selectedPlant || !editingOrder) return;
+    if (!isAdmin && !isManager) {
+      setError('Apenas gestor ou admin pode fechar a ordem');
+      return;
+    }
+
+    setUpdating(true);
+    setError(null);
+
+    try {
+      await updateWorkOrder(selectedPlant, editingOrder.id, {
+        status: 'fechada',
+        actual_hours: finishForm.actual_hours || editingOrder.actual_hours || undefined,
+        completed_at: editingOrder.completed_at || undefined,
+      });
+      setEditingOrder(null);
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao fechar ordem');
     } finally {
       setUpdating(false);
     }
@@ -1000,6 +1043,7 @@ export function WorkOrdersPage() {
 
     workOrders.forEach((order) => {
       if (!order.sla_deadline) return;
+      if (['concluida', 'fechada', 'cancelada'].includes(order.status)) return;
       const slaTime = new Date(order.sla_deadline).getTime();
       if (slaTime < now) overdue += 1;
       else if (slaTime <= soon) dueSoon += 1;
@@ -1010,16 +1054,24 @@ export function WorkOrdersPage() {
 
   const statusLabels: Record<string, string> = {
     aberta: 'Aberta',
-    atribuida: 'Atribuída',
-    em_curso: 'Em curso',
+    em_analise: 'Em Análise',
+    aprovada: 'Aprovada',
+    planeada: 'Planeada',
+    em_execucao: 'Em Execução',
+    em_pausa: 'Em Pausa',
     concluida: 'Concluída',
+    fechada: 'Fechada',
     cancelada: 'Cancelada',
   };
   const statusBadgeClass: Record<string, string> = {
     aberta: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
-    atribuida: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
-    em_curso: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
+    em_analise: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
+    aprovada: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
+    planeada: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
+    em_execucao: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
+    em_pausa: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
     concluida: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
+    fechada: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
     cancelada: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
   };
 
@@ -1027,14 +1079,14 @@ export function WorkOrdersPage() {
     const counts = {
       total: workOrders.length,
       aberta: 0,
-      em_curso: 0,
+      em_execucao: 0,
       concluida: 0,
     };
 
     workOrders.forEach((order) => {
       if (order.status === 'aberta') counts.aberta += 1;
-      if (order.status === 'em_curso') counts.em_curso += 1;
-      if (order.status === 'concluida') counts.concluida += 1;
+      if (order.status === 'em_execucao') counts.em_execucao += 1;
+      if (order.status === 'concluida' || order.status === 'fechada') counts.concluida += 1;
     });
 
     return counts;
@@ -1055,7 +1107,7 @@ export function WorkOrdersPage() {
       editingOrder.assigned_to && editingOrder.assigned_to !== userId,
     );
     const canEditOrder = isAdmin || isManager || editingOrder.created_by === userId;
-    const canOperateOrder = isAdmin || isAssignedToUser;
+    const canOperateOrder = isAdmin || isManager || isAssignedToUser;
     const canAssumeOrder = isAdmin || !editingOrder.assigned_to || isAssignedToUser;
     const canDeleteOrder = isAdmin || editingOrder.created_by === userId;
 
@@ -1072,18 +1124,20 @@ export function WorkOrdersPage() {
   const canShowPartsSection = Boolean(
     editingOrder &&
       editingPermissions?.canOperateOrder &&
-      (editingOrder.status === 'em_curso' ||
+      (editingOrder.status === 'em_execucao' ||
+        editingOrder.status === 'em_pausa' ||
         editingOrder.status === 'concluida' ||
+        editingOrder.status === 'fechada' ||
         Boolean(editingOrder.started_at)),
   );
 
   const canShowEditForm = Boolean(
     editingOrder &&
-      (editingOrder.status === 'concluida'
+      (editingOrder.status === 'concluida' || editingOrder.status === 'fechada'
         ? editingPermissions?.canOperateOrder
         : editingPermissions?.canEditOrder ||
           editingPermissions?.canOperateOrder ||
-          ((editingOrder.status === 'aberta' || editingOrder.status === 'atribuida') &&
+          ((editingOrder.status === 'aberta' || editingOrder.status === 'em_analise') &&
             editingPermissions?.canAssumeOrder)),
   );
 
@@ -1091,12 +1145,15 @@ export function WorkOrdersPage() {
     editingOrder &&
       (editingPermissions?.canOperateOrder ||
         editingPermissions?.canEditOrder ||
-        ((editingOrder.status === 'aberta' || editingOrder.status === 'atribuida') &&
+        ((editingOrder.status === 'aberta' || editingOrder.status === 'em_analise') &&
           editingPermissions?.canAssumeOrder)),
   );
 
   const isPlanningStage =
-    editingOrder?.status === 'aberta' || editingOrder?.status === 'atribuida';
+    Boolean(
+      editingOrder &&
+        ['aberta', 'em_analise', 'aprovada', 'planeada'].includes(editingOrder.status),
+    );
 
   return (
     <MainLayout>
@@ -1171,10 +1228,10 @@ export function WorkOrdersPage() {
               <div className="rounded-2xl border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
                 <div className="flex items-center gap-3 text-sm theme-text-muted">
                   <RefreshCcw className="h-4 w-4 text-cyan-600" />
-                  Em curso
+                  Em execução
                 </div>
                 <p className="mt-3 text-2xl font-semibold theme-text">
-                  {statusSummary.em_curso}
+                  {statusSummary.em_execucao}
                 </p>
                 <p className="mt-1 text-xs theme-text-muted">Execucao ativa</p>
               </div>
@@ -1465,6 +1522,45 @@ export function WorkOrdersPage() {
                       </select>
                     </div>
 
+                    <div>
+                      <label className="mb-1 block text-sm font-medium theme-text">Estado</label>
+                      <select
+                        className="input"
+                        value={updateForm.status}
+                        onChange={(event) =>
+                          setUpdateForm({ ...updateForm, status: event.target.value })
+                        }
+                        disabled={!editingPermissions?.canOperateOrder}
+                      >
+                        <option value="aberta">Aberta</option>
+                        <option value="em_analise">Em Análise</option>
+                        <option value="aprovada">Aprovada</option>
+                        <option value="planeada">Planeada</option>
+                        <option value="em_execucao">Em Execução</option>
+                        <option value="em_pausa">Em Pausa</option>
+                        <option value="concluida">Concluída</option>
+                        <option value="fechada">Fechada</option>
+                        <option value="cancelada">Cancelada</option>
+                      </select>
+                    </div>
+
+                    {updateForm.status === 'em_pausa' && (
+                      <div className="md:col-span-2">
+                        <label className="mb-1 block text-sm font-medium theme-text">
+                          Sub-estado (opcional)
+                        </label>
+                        <input
+                          className="input"
+                          value={updateForm.sub_status}
+                          onChange={(event) =>
+                            setUpdateForm({ ...updateForm, sub_status: event.target.value })
+                          }
+                          disabled={!editingPermissions?.canOperateOrder}
+                          placeholder="Ex: aguardando_pecas, aguardando_producao"
+                        />
+                      </div>
+                    )}
+
                     {isPlanningStage && (
                       <>
                         <div>
@@ -1481,7 +1577,7 @@ export function WorkOrdersPage() {
                               !(
                                 editingPermissions?.canEditOrder ||
                                 ((editingOrder.status === 'aberta' ||
-                                  editingOrder.status === 'atribuida') &&
+                                  editingOrder.status === 'em_analise') &&
                                   editingPermissions?.canAssumeOrder)
                               )
                             }
@@ -1503,7 +1599,7 @@ export function WorkOrdersPage() {
                               !(
                                 editingPermissions?.canEditOrder ||
                                 ((editingOrder.status === 'aberta' ||
-                                  editingOrder.status === 'atribuida') &&
+                                  editingOrder.status === 'em_analise') &&
                                   editingPermissions?.canAssumeOrder)
                               )
                             }
@@ -1553,12 +1649,12 @@ export function WorkOrdersPage() {
               {canShowChecklist && (
                 <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
-                    {editingOrder.status === 'em_curso' || editingOrder.status === 'concluida'
+                    {['em_execucao', 'em_pausa', 'concluida', 'fechada'].includes(editingOrder.status)
                       ? 'Checklist'
                       : 'Tarefas a realizar'}
                   </p>
                   <p className="mt-2 text-sm theme-text-muted">
-                    {editingOrder.status === 'em_curso' || editingOrder.status === 'concluida'
+                    {['em_execucao', 'em_pausa', 'concluida', 'fechada'].includes(editingOrder.status)
                       ? 'Marque as tarefas concluídas antes de finalizar a ordem.'
                       : 'Defina as tarefas planeadas para esta ordem.'}
                   </p>
@@ -1586,7 +1682,7 @@ export function WorkOrdersPage() {
                           key={task.id}
                           className="flex flex-wrap items-center gap-3 rounded-2xl border theme-border bg-[color:var(--dash-surface)] px-3 py-2 text-xs theme-text-muted"
                         >
-                          {(editingOrder.status === 'em_curso' || editingOrder.status === 'concluida') && (
+                          {['em_execucao', 'em_pausa', 'concluida', 'fechada'].includes(editingOrder.status) && (
                             <input
                               type="checkbox"
                               checked={task.is_completed}
@@ -1594,7 +1690,7 @@ export function WorkOrdersPage() {
                               disabled={
                                 tasksSaving ||
                                 !editingPermissions?.canOperateOrder ||
-                                editingOrder.status !== 'em_curso'
+                                editingOrder.status !== 'em_execucao'
                               }
                             />
                           )}
@@ -1619,9 +1715,9 @@ export function WorkOrdersPage() {
 
                   {(editingPermissions?.canOperateOrder ||
                     editingPermissions?.canEditOrder ||
-                    ((editingOrder.status === 'aberta' || editingOrder.status === 'atribuida') &&
+                    ((editingOrder.status === 'aberta' || editingOrder.status === 'em_analise') &&
                       editingPermissions?.canAssumeOrder)) &&
-                    editingOrder.status !== 'concluida' && (
+                    !['concluida', 'fechada', 'cancelada'].includes(editingOrder.status) && (
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                       <input
                         className="input flex-1"
@@ -1642,7 +1738,8 @@ export function WorkOrdersPage() {
                 </div>
               )}
 
-              {editingOrder.status === 'em_curso' && editingPermissions?.canOperateOrder && (
+              {['em_execucao', 'em_pausa'].includes(editingOrder.status) &&
+                editingPermissions?.canOperateOrder && (
                 <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                     Finalizar ordem
@@ -1765,7 +1862,7 @@ export function WorkOrdersPage() {
                     Registe as pecas consumidas nesta ordem para atualizar o stock.
                   </p>
 
-                  {editingOrder.status === 'em_curso' && (
+                  {['em_execucao', 'em_pausa'].includes(editingOrder.status) && (
                     <div className="mt-4 space-y-4">
                       {partsError && (
                         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -1943,7 +2040,7 @@ export function WorkOrdersPage() {
                   Acoes
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {(editingOrder.status === 'aberta' || editingOrder.status === 'atribuida') &&
+                  {['aberta', 'em_analise', 'aprovada', 'planeada', 'em_pausa'].includes(editingOrder.status) &&
                     editingPermissions?.canAssumeOrder && (
                       <>
                         {editingOrder.status === 'aberta' && (
@@ -1952,7 +2049,7 @@ export function WorkOrdersPage() {
                             className="btn-secondary"
                             disabled={updating}
                           >
-                            Aguardar
+                            Em análise
                           </button>
                         )}
                         <button
@@ -1960,11 +2057,11 @@ export function WorkOrdersPage() {
                           className="btn-primary"
                           disabled={updating}
                         >
-                          Iniciar
+                          {editingOrder.status === 'em_pausa' ? 'Retomar' : 'Iniciar'}
                         </button>
                       </>
                     )}
-                  {editingOrder.status === 'em_curso' &&
+                  {editingOrder.status === 'em_execucao' &&
                     editingPermissions?.canOperateOrder && (
                       <>
                         <button
@@ -1976,6 +2073,16 @@ export function WorkOrdersPage() {
                         </button>
                       </>
                     )}
+
+                  {editingOrder.status === 'concluida' && (isAdmin || isManager) && (
+                    <button
+                      onClick={handleCloseOrder}
+                      className="btn-primary"
+                      disabled={updating}
+                    >
+                      Fechar ordem
+                    </button>
+                  )}
                   {!editingPermissions?.canAssumeOrder && (
                     <span className="text-xs theme-text-muted">
                       Esta ordem esta atribuida a outro utilizador.

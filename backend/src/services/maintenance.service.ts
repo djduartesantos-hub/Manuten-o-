@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { db } from '../config/database.js';
 import { maintenancePlans, maintenanceTasks, workOrders, assets } from '../db/schema.js';
-import { eq, and, desc, like } from 'drizzle-orm';
+import { eq, and, desc, like, inArray } from 'drizzle-orm';
 import { CacheKeys, CacheTTL, RedisService } from './redis.service.js';
 import { logger } from '../config/logger.js';
 
@@ -384,7 +384,7 @@ export class MaintenanceService {
           .where(
             and(
               eq(workOrders.plan_id, plan.id),
-              eq(workOrders.status, 'concluida')
+                  inArray(workOrders.status, ['concluida', 'fechada'] as any)
             )
           )
           .orderBy(desc(workOrders.completed_at))

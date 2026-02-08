@@ -4,7 +4,7 @@ import {
   alertsHistory,
   workOrders,
 } from '../db/schema.js';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { CacheKeys, CacheTTL, RedisService } from './redis.service.js';
 import { logger } from '../config/logger.js';
@@ -448,7 +448,14 @@ export class AlertService {
           where: and(
             eq(workOrders.tenant_id, tenantId),
             eq(workOrders.asset_id, assetId),
-            eq(workOrders.status, 'aberta' as any),
+            inArray(workOrders.status, [
+              'aberta',
+              'em_analise',
+              'aprovada',
+              'planeada',
+              'em_execucao',
+              'em_pausa',
+            ] as any),
           ),
         });
 
@@ -472,7 +479,7 @@ export class AlertService {
           where: and(
             eq(workOrders.tenant_id, tenantId),
             eq(workOrders.asset_id, assetId),
-            eq(workOrders.status, 'concluida' as any),
+            inArray(workOrders.status, ['concluida', 'fechada'] as any),
           ),
           orderBy: desc(workOrders.completed_at),
         });

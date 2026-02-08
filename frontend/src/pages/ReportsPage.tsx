@@ -100,7 +100,7 @@ export function ReportsPage() {
 
   // Calculate MTTR (Mean Time To Repair) and MTBF (Mean Time Between Failures)
   const calculateMetrics = useMemo(() => {
-    const completed = filteredOrders.filter((o) => o.status === 'concluida');
+    const completed = filteredOrders.filter((o) => ['concluida', 'fechada'].includes(o.status));
     
     let totalRepairTime = 0;
     let repairCount = 0;
@@ -170,7 +170,7 @@ export function ReportsPage() {
 
       if (order.sla_deadline) {
         const sla = new Date(order.sla_deadline).getTime();
-        if (sla < Date.now() && order.status !== 'concluida') overdue += 1;
+        if (sla < Date.now() && !['concluida', 'fechada', 'cancelada'].includes(order.status)) overdue += 1;
       }
     });
 
@@ -424,9 +424,13 @@ export function ReportsPage() {
               >
                 <option value="">Status (todos)</option>
                 <option value="aberta">Aberta</option>
-                <option value="atribuida">Atribuída</option>
-                <option value="em_curso">Em curso</option>
+                <option value="em_analise">Em Análise</option>
+                <option value="aprovada">Aprovada</option>
+                <option value="planeada">Planeada</option>
+                <option value="em_execucao">Em Execução</option>
+                <option value="em_pausa">Em Pausa</option>
                 <option value="concluida">Concluída</option>
+                <option value="fechada">Fechada</option>
                 <option value="cancelada">Cancelada</option>
               </select>
               <select
@@ -581,16 +585,32 @@ export function ReportsPage() {
                       <td className="px-6 py-4 text-sm">
                         <span
                           className={`chip text-xs font-medium px-2 py-1 rounded-full ${
-                            order.status === 'concluida'
+                            order.status === 'concluida' || order.status === 'fechada'
                               ? 'bg-emerald-500/10 theme-text'
                               : order.status === 'cancelada'
                               ? 'bg-rose-500/10 theme-text'
-                              : order.status === 'em_curso'
+                              : order.status === 'em_execucao'
                               ? 'bg-sky-500/10 theme-text'
+                              : order.status === 'em_pausa'
+                              ? 'bg-amber-500/10 theme-text'
                               : 'bg-[color:var(--dash-surface)] theme-text-muted'
                           }`}
                         >
-                          {order.status}
+                          {
+                            (
+                              {
+                                aberta: 'Aberta',
+                                em_analise: 'Em Análise',
+                                aprovada: 'Aprovada',
+                                planeada: 'Planeada',
+                                em_execucao: 'Em Execução',
+                                em_pausa: 'Em Pausa',
+                                concluida: 'Concluída',
+                                fechada: 'Fechada',
+                                cancelada: 'Cancelada',
+                              } as Record<string, string>
+                            )[order.status] || order.status
+                          }
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm">

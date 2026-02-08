@@ -9,9 +9,13 @@ export enum UserRole {
 
 export enum OrderStatus {
   Open = 'aberta',
-  Assigned = 'atribuida',
-  InProgress = 'em_curso',
+  InAnalysis = 'em_analise',
+  Approved = 'aprovada',
+  Planned = 'planeada',
+  InExecution = 'em_execucao',
+  Paused = 'em_pausa',
   Completed = 'concluida',
+  Closed = 'fechada',
   Cancelled = 'cancelada',
 }
 

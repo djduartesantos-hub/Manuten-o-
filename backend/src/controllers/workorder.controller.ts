@@ -12,7 +12,7 @@ export class WorkOrderController {
   }
 
   private static isManager(role?: string) {
-    return role === 'gestor_manutencao';
+    return role === 'gestor_manutencao' || role === 'supervisor';
   }
 
   static async list(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -220,8 +220,8 @@ export class WorkOrderController {
         requestedEditFields.length > 0 &&
         requestedEditFields.every((field) => field === 'scheduled_date' || field === 'estimated_hours');
       const isStartingOrder =
-        updates.status === 'em_curso' &&
-        (existing.status === 'aberta' || existing.status === 'atribuida') &&
+        updates.status === 'em_execucao' &&
+        ['aberta', 'em_analise', 'aprovada', 'planeada', 'em_pausa'].includes(existing.status) &&
         Object.prototype.hasOwnProperty.call(updates, 'started_at');
       const allowOperatorPlanningOnStart =
         wantsOperational &&
@@ -256,7 +256,7 @@ export class WorkOrderController {
           }
         }
 
-        if (!isAdmin && !isAssignedUser) {
+        if (!isAdmin && !isManager && !isAssignedUser) {
           res.status(403).json({
             success: false,
             error: 'Somente o responsavel pode atualizar o estado',
@@ -273,6 +273,53 @@ export class WorkOrderController {
             });
             return;
           }
+        }
+
+        if (updates.status === 'fechada') {
+          const actualHours = updates.actual_hours ?? existing.actual_hours;
+          const completedAt = updates.completed_at ?? existing.completed_at;
+
+          if (existing.status !== 'concluida' && !isAdmin) {
+            res.status(400).json({
+              success: false,
+              error: 'A ordem precisa estar concluida antes de fechar',
+            });
+            return;
+          }
+
+          if (!actualHours) {
+            res.status(400).json({
+              success: false,
+              error: 'Registe as horas reais antes de fechar a ordem',
+            });
+            return;
+          }
+
+          if (!completedAt) {
+            res.status(400).json({
+              success: false,
+              error: 'Registe a data de conclusao antes de fechar a ordem',
+            });
+            return;
+          }
+        }
+      }
+
+      // Server-side lifecycle timestamps/metadata
+      if (updates.status === 'em_execucao' && !updates.started_at && !existing.started_at) {
+        updates.started_at = new Date().toISOString();
+      }
+
+      if (updates.status === 'concluida' && !updates.completed_at && !existing.completed_at) {
+        updates.completed_at = new Date().toISOString();
+      }
+
+      if (updates.status === 'fechada') {
+        if (!updates.closed_at) {
+          updates.closed_at = new Date().toISOString();
+        }
+        if (!updates.closed_by && req.user?.userId) {
+          updates.closed_by = req.user.userId;
         }
       }
 

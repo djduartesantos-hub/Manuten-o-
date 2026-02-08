@@ -239,7 +239,14 @@ export class NotificationService {
       where: (fields: any, { and, inArray, lt }: any) =>
         and(
           lt(fields.sla_deadline, now),
-          inArray(fields.status, ['aberta', 'atribuida', 'em_curso']),
+          inArray(fields.status, [
+            'aberta',
+            'em_analise',
+            'aprovada',
+            'planeada',
+            'em_execucao',
+            'em_pausa',
+          ]),
         ),
     });
 

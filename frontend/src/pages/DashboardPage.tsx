@@ -25,6 +25,13 @@ interface Metrics {
   in_progress: number;
   completed: number;
   cancelled: number;
+  analysis?: number;
+  approved?: number;
+  planned?: number;
+  execution?: number;
+  paused?: number;
+  closed?: number;
+  active?: number;
 }
 
 interface KPIs {
@@ -76,32 +83,56 @@ export function DashboardPage() {
       {
         key: 'aberta',
         label: 'Abertas',
-        tone: 'border-[color:var(--dashboard-border-aberta)] bg-[color:var(--dashboard-bg-aberta)] text-[color:var(--dashboard-text-aberta)]',
-        dot: 'bg-[color:var(--dashboard-dot-aberta)]',
+        tone: 'theme-card theme-border theme-text',
+        dot: 'bg-[color:var(--dash-accent)]',
       },
       {
-        key: 'atribuida',
-        label: 'Atribuidas',
-        tone: 'border-[color:var(--dashboard-border-atribuida)] bg-[color:var(--dashboard-bg-atribuida)] text-[color:var(--dashboard-text-atribuida)]',
-        dot: 'bg-[color:var(--dashboard-dot-atribuida)]',
+        key: 'em_analise',
+        label: 'Em análise',
+        tone: 'theme-card theme-border theme-text',
+        dot: 'bg-[color:var(--dash-accent)]',
       },
       {
-        key: 'em_curso',
-        label: 'Em curso',
-        tone: 'border-[color:var(--dashboard-border-em_curso)] bg-[color:var(--dashboard-bg-em_curso)] text-[color:var(--dashboard-text-em_curso)]',
-        dot: 'bg-[color:var(--dashboard-dot-em_curso)]',
+        key: 'aprovada',
+        label: 'Aprovada',
+        tone: 'theme-card theme-border theme-text',
+        dot: 'bg-[color:var(--dash-accent)]',
+      },
+      {
+        key: 'planeada',
+        label: 'Planeada',
+        tone: 'theme-card theme-border theme-text',
+        dot: 'bg-[color:var(--dash-accent-2)]',
+      },
+      {
+        key: 'em_execucao',
+        label: 'Em execução',
+        tone: 'theme-card theme-border theme-text',
+        dot: 'bg-[color:var(--dash-accent)]',
+      },
+      {
+        key: 'em_pausa',
+        label: 'Em pausa',
+        tone: 'theme-card theme-border theme-text',
+        dot: 'bg-[color:var(--dash-accent-2)]',
       },
       {
         key: 'concluida',
         label: 'Concluidas',
-        tone: 'border-[color:var(--dashboard-border-concluida)] bg-[color:var(--dashboard-bg-concluida)] text-[color:var(--dashboard-text-concluida)]',
-        dot: 'bg-[color:var(--dashboard-dot-concluida)]',
+        tone: 'theme-card theme-border theme-text',
+        dot: 'bg-[color:var(--dash-accent)]',
+      },
+      {
+        key: 'fechada',
+        label: 'Fechadas',
+        tone: 'theme-card theme-border theme-text',
+        dot: 'bg-[color:var(--dash-muted)]',
       },
       {
         key: 'cancelada',
         label: 'Canceladas',
-        tone: 'border-[color:var(--dashboard-border-cancelada)] bg-[color:var(--dashboard-bg-cancelada)] text-[color:var(--dashboard-text-cancelada)]',
-        dot: 'bg-[color:var(--dashboard-dot-cancelada)]',
+        tone: 'theme-card theme-border theme-text',
+        dot: 'bg-[color:var(--dash-muted)]',
       },
     ],
     [],
@@ -179,10 +210,41 @@ export function DashboardPage() {
     media: 'bg-emerald-100 text-emerald-700',
     baixa: 'bg-slate-100 text-slate-600',
   };
+  const priorityIcon = (priority?: string | null) => {
+    const value = priority || 'media';
+    if (value === 'critica') {
+      return {
+        Icon: AlertTriangle,
+        className: 'text-rose-600',
+        label: 'Crítica',
+      };
+    }
+    if (value === 'alta') {
+      return {
+        Icon: AlertCircle,
+        className: 'text-amber-600',
+        label: 'Alta',
+      };
+    }
+    if (value === 'baixa') {
+      return {
+        Icon: Clock,
+        className: 'text-slate-500',
+        label: 'Baixa',
+      };
+    }
+    return {
+      Icon: Activity,
+      className: 'text-emerald-600',
+      label: 'Média',
+    };
+  };
 
   const totalOrders = metrics?.total_orders ?? 0;
   const completionRate = totalOrders
-    ? Math.round(((metrics?.completed ?? 0) / totalOrders) * 100)
+    ? Math.round(
+        (((metrics?.completed ?? 0) + (metrics?.closed ?? 0)) / totalOrders) * 100,
+      )
     : 0;
   const backlogShare = totalOrders
     ? Math.round(((kpis?.backlog ?? 0) / totalOrders) * 100)
@@ -198,23 +260,51 @@ export function DashboardPage() {
         bar: 'bg-amber-400/80',
       },
       {
-        key: 'atribuida',
-        label: 'Atribuidas',
-        count: metrics?.assigned_orders ?? 0,
+        key: 'em_analise',
+        label: 'Em análise',
+        count: metrics?.analysis ?? metrics?.assigned_orders ?? 0,
         tone: 'border-sky-200/80 bg-sky-50/70 text-sky-800',
         bar: 'bg-sky-400/80',
       },
       {
-        key: 'em_curso',
-        label: 'Em curso',
-        count: metrics?.in_progress ?? 0,
+        key: 'aprovada',
+        label: 'Aprovadas',
+        count: metrics?.approved ?? 0,
+        tone: 'border-slate-200/80 bg-slate-50/70 text-slate-700',
+        bar: 'bg-slate-400/80',
+      },
+      {
+        key: 'planeada',
+        label: 'Planeadas',
+        count: metrics?.planned ?? 0,
+        tone: 'border-slate-200/80 bg-slate-50/70 text-slate-700',
+        bar: 'bg-slate-400/80',
+      },
+      {
+        key: 'em_execucao',
+        label: 'Em execução',
+        count: metrics?.execution ?? metrics?.in_progress ?? 0,
         tone: 'border-emerald-200/80 bg-emerald-50/70 text-emerald-800',
         bar: 'bg-emerald-400/80',
+      },
+      {
+        key: 'em_pausa',
+        label: 'Em pausa',
+        count: metrics?.paused ?? 0,
+        tone: 'border-amber-200/80 bg-amber-50/70 text-amber-800',
+        bar: 'bg-amber-400/80',
       },
       {
         key: 'concluida',
         label: 'Concluidas',
         count: metrics?.completed ?? 0,
+        tone: 'border-slate-200/80 bg-slate-50/70 text-slate-700',
+        bar: 'bg-slate-400/80',
+      },
+      {
+        key: 'fechada',
+        label: 'Fechadas',
+        count: metrics?.closed ?? 0,
         tone: 'border-slate-200/80 bg-slate-50/70 text-slate-700',
         bar: 'bg-slate-400/80',
       },
@@ -238,7 +328,7 @@ export function DashboardPage() {
     };
 
     return [...orders]
-      .filter((order) => order.status !== 'concluida' && order.status !== 'cancelada')
+      .filter((order) => !['concluida', 'fechada', 'cancelada'].includes(order.status))
       .sort((a, b) => {
         const left = weight[a.priority || 'media'] ?? 0;
         const right = weight[b.priority || 'media'] ?? 0;
@@ -426,11 +516,11 @@ export function DashboardPage() {
                       <Clock className="h-4 w-4" />
                     </div>
                     <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                      atribuicao
+                      analise
                     </span>
                   </div>
                   <p className="mt-4 text-2xl font-semibold text-[color:var(--dash-ink)]">
-                    {metrics?.assigned_orders ?? 0}
+                    {metrics?.analysis ?? metrics?.assigned_orders ?? 0}
                   </p>
                   <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Em fila de equipa</p>
                 </div>
@@ -446,7 +536,7 @@ export function DashboardPage() {
                   <p className="mt-4 text-2xl font-semibold text-[color:var(--dash-ink)]">
                     {metrics?.in_progress ?? 0}
                   </p>
-                  <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Ordens em curso</p>
+                  <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Ordens em execução</p>
                 </div>
               </div>
 
@@ -521,11 +611,32 @@ export function DashboardPage() {
                   <div className="flex flex-wrap items-center gap-2 text-xs text-[color:var(--dash-muted)]">
                     <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] px-3 py-1">
                       <Activity className="h-3.5 w-3.5 text-emerald-300" />
-                      {metrics.in_progress} em curso
+                      {metrics.in_progress} em execução
                     </span>
                     <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] px-3 py-1">
                       <AlertTriangle className="h-3.5 w-3.5 text-amber-300" />
                       {metrics.open_orders} abertas
+                    </span>
+                    <span className="hidden items-center gap-2 rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] px-3 py-1 lg:inline-flex">
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.3em]">
+                        Legenda:
+                      </span>
+                      {(
+                        [
+                          { key: 'critica', label: 'Crítica' },
+                          { key: 'alta', label: 'Alta' },
+                          { key: 'media', label: 'Média' },
+                          { key: 'baixa', label: 'Baixa' },
+                        ] as const
+                      ).map((item) => {
+                        const { Icon, className } = priorityIcon(item.key);
+                        return (
+                          <span key={item.key} className="inline-flex items-center gap-1">
+                            <Icon className={`h-3.5 w-3.5 ${className}`} />
+                            <span className="text-[11px]">{item.label}</span>
+                          </span>
+                        );
+                      })}
                     </span>
                   </div>
                 </div>
@@ -575,13 +686,18 @@ export function DashboardPage() {
                                     : 'Sem ativo'}
                                 </p>
                               </div>
-                              <span
-                                className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
-                                  priorityBadge[order.priority || 'media'] || 'bg-slate-100 text-slate-600'
-                                }`}
-                              >
-                                {order.priority || 'media'}
-                              </span>
+                              {(() => {
+                                const meta = priorityIcon(order.priority);
+                                const Icon = meta.Icon;
+                                return (
+                                  <span
+                                    className="inline-flex items-center rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-2 py-1"
+                                    title={`Prioridade: ${meta.label}`}
+                                  >
+                                    <Icon className={`h-4 w-4 ${meta.className}`} />
+                                  </span>
+                                );
+                              })()}
                             </div>
                             <div className="mt-3 flex items-center justify-between text-[11px] text-[color:var(--dash-muted)]">
                               <span>{formatDateTime(order.created_at)}</span>
@@ -666,13 +782,18 @@ export function DashboardPage() {
                         <p className="text-sm font-semibold text-[color:var(--dash-ink)]">
                           {order.title}
                         </p>
-                        <span
-                          className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
-                            priorityBadge[order.priority || 'media'] || 'bg-slate-100 text-slate-600'
-                          }`}
-                        >
-                          {order.priority || 'media'}
-                        </span>
+                        {(() => {
+                          const meta = priorityIcon(order.priority);
+                          const Icon = meta.Icon;
+                          return (
+                            <span
+                              className="inline-flex items-center rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-2 py-1"
+                              title={`Prioridade: ${meta.label}`}
+                            >
+                              <Icon className={`h-4 w-4 ${meta.className}`} />
+                            </span>
+                          );
+                        })()}
                       </div>
                       <p className="mt-1 text-[11px] text-[color:var(--dash-muted)]">
                         {order.asset

@@ -11,7 +11,17 @@ import { ElasticsearchService } from './elasticsearch.service.js';
 
 export class WorkOrderService {
   private static getStatusCacheKeys(tenantId: string, plantId: string) {
-    const statuses = ['aberta', 'atribuida', 'em_curso', 'concluida', 'cancelada'];
+    const statuses = [
+      'aberta',
+      'em_analise',
+      'aprovada',
+      'planeada',
+      'em_execucao',
+      'em_pausa',
+      'concluida',
+      'fechada',
+      'cancelada',
+    ];
     return [
       CacheKeys.workOrdersList(tenantId, plantId),
       ...statuses.map((status) => CacheKeys.workOrdersList(tenantId, plantId, status)),
@@ -211,6 +221,12 @@ export class WorkOrderService {
     if (Object.prototype.hasOwnProperty.call(normalized, 'started_at')) {
       normalized.started_at = normalized.started_at
         ? new Date(normalized.started_at)
+        : null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(normalized, 'closed_at')) {
+      normalized.closed_at = normalized.closed_at
+        ? new Date(normalized.closed_at)
         : null;
     }
 

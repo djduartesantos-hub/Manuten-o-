@@ -19,13 +19,25 @@ export class DashboardController {
 
       const workOrders = await TenantService.getPlantWorkOrders(tenantId, plantId);
 
+      const isActive = (status: string) =>
+        !['concluida', 'fechada', 'cancelada'].includes(status);
+
       const metrics = {
         total_orders: workOrders.length,
         open_orders: workOrders.filter((wo: any) => wo.status === 'aberta').length,
-        assigned_orders: workOrders.filter((wo: any) => wo.status === 'atribuida').length,
-        in_progress: workOrders.filter((wo: any) => wo.status === 'em_curso').length,
+        assigned_orders: workOrders.filter((wo: any) => wo.status === 'em_analise').length,
+        in_progress: workOrders.filter((wo: any) => wo.status === 'em_execucao').length,
         completed: workOrders.filter((wo: any) => wo.status === 'concluida').length,
         cancelled: workOrders.filter((wo: any) => wo.status === 'cancelada').length,
+
+        // New lifecycle metrics (non-breaking additions)
+        analysis: workOrders.filter((wo: any) => wo.status === 'em_analise').length,
+        approved: workOrders.filter((wo: any) => wo.status === 'aprovada').length,
+        planned: workOrders.filter((wo: any) => wo.status === 'planeada').length,
+        execution: workOrders.filter((wo: any) => wo.status === 'em_execucao').length,
+        paused: workOrders.filter((wo: any) => wo.status === 'em_pausa').length,
+        closed: workOrders.filter((wo: any) => wo.status === 'fechada').length,
+        active: workOrders.filter((wo: any) => isActive(wo.status)).length,
       };
 
       res.json({
@@ -58,7 +70,7 @@ export class DashboardController {
 
       // Calculate KPIs
       const completedOrders = workOrders.filter(
-        (wo: any) => wo.status === 'concluida' && wo.completed_at,
+        (wo: any) => ['concluida', 'fechada'].includes(wo.status) && wo.completed_at,
       );
 
       const mttrHoursList = completedOrders
@@ -116,7 +128,7 @@ export class DashboardController {
         mttr,
         mtbf,
         sla_compliance: slaCompliance,
-        backlog: workOrders.filter((wo: any) => wo.status !== 'concluida').length,
+        backlog: workOrders.filter((wo: any) => !['concluida', 'fechada', 'cancelada'].includes(wo.status)).length,
       };
 
       res.json({

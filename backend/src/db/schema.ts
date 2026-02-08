@@ -16,9 +16,13 @@ import { relations } from 'drizzle-orm';
 // Enums
 export const orderStatusEnum = pgEnum('order_status', [
   'aberta',
-  'atribuida',
-  'em_curso',
+  'em_analise',
+  'aprovada',
+  'planeada',
+  'em_execucao',
+  'em_pausa',
   'concluida',
+  'fechada',
   'cancelada',
 ]);
 
@@ -253,10 +257,13 @@ export const workOrders = pgTable(
     title: text('title').notNull(),
     description: text('description'),
     status: orderStatusEnum('status').notNull().default('aberta'),
+    sub_status: text('sub_status'),
     priority: priorityEnum('priority').notNull().default('media'),
     scheduled_date: timestamp('scheduled_date'),
     started_at: timestamp('started_at', { withTimezone: true }),
     completed_at: timestamp('completed_at', { withTimezone: true }),
+    closed_at: timestamp('closed_at', { withTimezone: true }),
+    closed_by: uuid('closed_by').references(() => users.id, { onDelete: 'set null' }),
     estimated_hours: decimal('estimated_hours', { precision: 8, scale: 2 }),
     actual_hours: decimal('actual_hours', { precision: 8, scale: 2 }),
     notes: text('notes'),
