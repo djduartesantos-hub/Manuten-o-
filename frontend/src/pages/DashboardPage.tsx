@@ -317,16 +317,16 @@ export function DashboardPage() {
                 operacao em tempo real.
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
-                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50/80 px-3 py-1 text-emerald-700">
+                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-emerald-700 dark:text-emerald-300">
                   SLA {kpis?.sla_compliance ?? 0}%
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-amber-200/70 bg-amber-50/80 px-3 py-1 text-amber-700">
+                <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-amber-700 dark:text-amber-300">
                   Backlog {kpis?.backlog ?? 0}
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-3 py-1 text-[color:var(--dash-muted)]">
+                <span className="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 text-sky-700 dark:text-sky-300">
                   MTTR {kpis?.mttr ?? 0}h
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-3 py-1 text-[color:var(--dash-muted)]">
+                <span className="inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-indigo-700 dark:text-indigo-300">
                   MTBF {kpis?.mtbf ?? 0}h
                 </span>
               </div>
@@ -352,8 +352,46 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-              <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
+              <div className="rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm lg:order-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                    Alertas recentes
+                  </p>
+                  <span className="text-[10px] text-[color:var(--dash-muted)]">
+                    {alerts.length} itens
+                  </span>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {alerts.length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-4 py-4 text-center text-xs text-[color:var(--dash-muted)]">
+                      Nenhum alerta recente
+                    </div>
+                  )}
+                  {alerts.slice(0, 3).map((alert) => (
+                    <div
+                      key={alert.id}
+                      className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] px-4 py-3 text-xs text-[color:var(--dash-muted)]"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
+                          severityBadge[alert.severity] || 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {alert.severity}
+                        </span>
+                        <span className="text-[10px] text-[color:var(--dash-muted)]">
+                          {formatDateTime(alert.created_at)}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm font-semibold text-[color:var(--dash-ink)]">
+                        {alert.message}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:order-2">
                 <div className="dash-reveal rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur">
                   <div className="flex items-center justify-between">
                     <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
@@ -409,44 +447,6 @@ export function DashboardPage() {
                     {metrics?.in_progress ?? 0}
                   </p>
                   <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Ordens em curso</p>
-                </div>
-              </div>
-
-              <div className="rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                    Alertas recentes
-                  </p>
-                  <span className="text-[10px] text-[color:var(--dash-muted)]">
-                    {alerts.length} itens
-                  </span>
-                </div>
-                <div className="mt-3 space-y-2">
-                  {alerts.length === 0 && (
-                    <div className="rounded-2xl border border-dashed border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-4 py-4 text-center text-xs text-[color:var(--dash-muted)]">
-                      Nenhum alerta recente
-                    </div>
-                  )}
-                  {alerts.slice(0, 3).map((alert) => (
-                    <div
-                      key={alert.id}
-                      className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] px-4 py-3 text-xs text-[color:var(--dash-muted)]"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
-                          severityBadge[alert.severity] || 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {alert.severity}
-                        </span>
-                        <span className="text-[10px] text-[color:var(--dash-muted)]">
-                          {formatDateTime(alert.created_at)}
-                        </span>
-                      </div>
-                        <p className="mt-2 text-sm font-semibold text-[color:var(--dash-ink)]">
-                        {alert.message}
-                      </p>
-                    </div>
-                  ))}
                 </div>
               </div>
 
@@ -607,35 +607,35 @@ export function DashboardPage() {
                   <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,#38bdf8,var(--dash-accent))]" />
                   <h2 className="text-lg font-semibold text-[color:var(--dash-ink)]">Indicadores-chave</h2>
                   <div className="mt-6 grid gap-4 md:grid-cols-4">
-                    <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="rounded-2xl border border-sky-500/20 bg-sky-500/10 p-4">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
                         MTTR
                       </p>
-                      <p className="mt-2 text-2xl font-semibold text-[color:var(--dash-ink)]">
+                      <p className="mt-2 text-2xl font-semibold text-sky-700 dark:text-sky-300">
                         {kpis.mttr}h
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
                         MTBF
                       </p>
-                      <p className="mt-2 text-2xl font-semibold text-[color:var(--dash-ink)]">
+                      <p className="mt-2 text-2xl font-semibold text-indigo-700 dark:text-indigo-300">
                         {kpis.mtbf}h
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
                         SLA cumprido
                       </p>
-                      <p className="mt-2 text-2xl font-semibold text-[color:var(--dash-ink)]">
+                      <p className="mt-2 text-2xl font-semibold text-emerald-700 dark:text-emerald-300">
                         {kpis.sla_compliance}%
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
                         Backlog
                       </p>
-                      <p className="mt-2 text-2xl font-semibold text-[color:var(--dash-ink)]">
+                      <p className="mt-2 text-2xl font-semibold text-amber-700 dark:text-amber-300">
                         {kpis.backlog}
                       </p>
                     </div>
@@ -688,7 +688,8 @@ export function DashboardPage() {
               </div>
 
                 <div className="relative overflow-hidden rounded-[28px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
-                <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-400/20 blur-2xl" />
+                  <div className="absolute right-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent-2),var(--dash-accent))]" />
+                  <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-400/20 blur-2xl" />
                   <h3 className="text-sm font-semibold text-[color:var(--dash-ink)]">Top ativos</h3>
                 <p className="mt-2 text-xs text-[color:var(--dash-muted)]">
                   Equipamentos com mais ordens recentes.
