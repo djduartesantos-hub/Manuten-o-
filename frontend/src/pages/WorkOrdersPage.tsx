@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+ 
 import { MainLayout } from '../layouts/MainLayout';
 import {
   AlertCircle,
@@ -174,7 +174,7 @@ interface WorkOrderFinishState {
 }
 
 export function WorkOrdersPage() {
-  const navigate = useNavigate();
+
   const { selectedPlant } = useAppStore();
   const { user } = useAuth();
   const diagnosticsEnabled = useMemo(() => {
