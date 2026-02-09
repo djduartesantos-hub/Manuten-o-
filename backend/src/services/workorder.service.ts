@@ -273,6 +273,34 @@ export class WorkOrderService {
         : null;
     }
 
+    if (Object.prototype.hasOwnProperty.call(normalized, 'analysis_started_at')) {
+      normalized.analysis_started_at = normalized.analysis_started_at
+        ? new Date(normalized.analysis_started_at)
+        : null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(normalized, 'paused_at')) {
+      normalized.paused_at = normalized.paused_at ? new Date(normalized.paused_at) : null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(normalized, 'cancelled_at')) {
+      normalized.cancelled_at = normalized.cancelled_at
+        ? new Date(normalized.cancelled_at)
+        : null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(normalized, 'downtime_started_at')) {
+      normalized.downtime_started_at = normalized.downtime_started_at
+        ? new Date(normalized.downtime_started_at)
+        : null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(normalized, 'downtime_ended_at')) {
+      normalized.downtime_ended_at = normalized.downtime_ended_at
+        ? new Date(normalized.downtime_ended_at)
+        : null;
+    }
+
     if (Object.prototype.hasOwnProperty.call(normalized, 'closed_at')) {
       normalized.closed_at = normalized.closed_at
         ? new Date(normalized.closed_at)

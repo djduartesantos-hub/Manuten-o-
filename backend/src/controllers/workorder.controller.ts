@@ -218,6 +218,16 @@ export class WorkOrderController {
         'work_performed',
         'assigned_to',
         'started_at',
+        'analysis_started_at',
+        'paused_at',
+        'pause_reason',
+        'cancelled_at',
+        'cancel_reason',
+        'downtime_started_at',
+        'downtime_ended_at',
+        'downtime_minutes',
+        'downtime_reason',
+        'sub_status',
       ];
 
       const wantsEditFields = editFields.some((field) => Object.prototype.hasOwnProperty.call(updates, field));
@@ -343,6 +353,37 @@ export class WorkOrderController {
             });
             return;
           }
+
+          const workPerformed = String(updates.work_performed ?? existing.work_performed ?? '').trim();
+          if (workPerformed.length < 3) {
+            res.status(400).json({
+              success: false,
+              error: 'Registe o trabalho realizado antes de terminar a ordem',
+            });
+            return;
+          }
+        }
+
+        if (updates.status === 'em_pausa') {
+          const reason = String(updates.pause_reason ?? '').trim();
+          if (reason.length < 3) {
+            res.status(400).json({
+              success: false,
+              error: 'Motivo é obrigatório ao colocar a ordem em pausa',
+            });
+            return;
+          }
+        }
+
+        if (updates.status === 'cancelada') {
+          const reason = String(updates.cancel_reason ?? '').trim();
+          if (reason.length < 3) {
+            res.status(400).json({
+              success: false,
+              error: 'Motivo é obrigatório ao cancelar a ordem',
+            });
+            return;
+          }
         }
 
         if (updates.status === 'fechada') {
@@ -376,12 +417,24 @@ export class WorkOrderController {
       }
 
       // Server-side lifecycle timestamps/metadata
+      if (updates.status === 'em_analise' && !updates.analysis_started_at && !(existing as any).analysis_started_at) {
+        updates.analysis_started_at = new Date().toISOString();
+      }
+
       if (updates.status === 'em_execucao' && !updates.started_at && !existing.started_at) {
         updates.started_at = new Date().toISOString();
       }
 
+      if (updates.status === 'em_pausa' && !updates.paused_at) {
+        updates.paused_at = new Date().toISOString();
+      }
+
       if (updates.status === 'concluida' && !updates.completed_at && !existing.completed_at) {
         updates.completed_at = new Date().toISOString();
+      }
+
+      if (updates.status === 'cancelada' && !updates.cancelled_at) {
+        updates.cancelled_at = new Date().toISOString();
       }
 
       if (updates.status === 'fechada') {
@@ -390,6 +443,46 @@ export class WorkOrderController {
         }
         if (!updates.closed_by && req.user?.userId) {
           updates.closed_by = req.user.userId;
+        }
+      }
+
+      const hasDowntimeStart = Object.prototype.hasOwnProperty.call(updates, 'downtime_started_at');
+      const hasDowntimeEnd = Object.prototype.hasOwnProperty.call(updates, 'downtime_ended_at');
+
+      if (hasDowntimeStart || hasDowntimeEnd) {
+        const normalizeIso = (value: any) => {
+          const raw = value === null || value === undefined ? '' : String(value);
+          const trimmed = raw.trim();
+          return trimmed ? trimmed : null;
+        };
+
+        const startIso = normalizeIso(
+          hasDowntimeStart ? updates.downtime_started_at : (existing as any).downtime_started_at,
+        );
+        const endIso = normalizeIso(
+          hasDowntimeEnd ? updates.downtime_ended_at : (existing as any).downtime_ended_at,
+        );
+
+        if (!startIso && !endIso) {
+          updates.downtime_minutes = null;
+        } else if (!startIso || !endIso) {
+          res.status(400).json({
+            success: false,
+            error: 'Paragem: indique início e fim (ou deixe ambos vazios)',
+          });
+          return;
+        } else {
+          const start = new Date(startIso);
+          const end = new Date(endIso);
+          const diffMs = end.getTime() - start.getTime();
+          if (Number.isNaN(diffMs) || diffMs < 0) {
+            res.status(400).json({
+              success: false,
+              error: 'Paragem: datas inválidas (fim deve ser depois do início)',
+            });
+            return;
+          }
+          updates.downtime_minutes = Math.round(diffMs / 60000);
         }
       }
 

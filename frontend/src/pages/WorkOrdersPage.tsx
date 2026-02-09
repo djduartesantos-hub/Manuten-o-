@@ -100,10 +100,19 @@ interface WorkOrder {
   updated_at?: string;
   sla_deadline?: string | null;
   scheduled_date?: string | null;
+  analysis_started_at?: string | null;
   started_at?: string | null;
+  paused_at?: string | null;
+  pause_reason?: string | null;
   completed_at?: string | null;
   closed_at?: string | null;
   closed_by?: string | null;
+  cancelled_at?: string | null;
+  cancel_reason?: string | null;
+  downtime_started_at?: string | null;
+  downtime_ended_at?: string | null;
+  downtime_minutes?: number | null;
+  downtime_reason?: string | null;
   notes?: string | null;
   work_performed?: string | null;
   tasks?: WorkOrderTask[];
@@ -166,11 +175,16 @@ interface WorkOrderUpdateState {
   scheduled_date: string;
   notes: string;
   estimated_hours: string;
+  pause_reason: string;
+  cancel_reason: string;
 }
 
 interface WorkOrderFinishState {
   actual_hours: string;
   work_performed: string;
+  downtime_started_at: string;
+  downtime_ended_at: string;
+  downtime_reason: string;
 }
 
 export function WorkOrdersPage() {
@@ -242,10 +256,15 @@ export function WorkOrdersPage() {
     scheduled_date: '',
     notes: '',
     estimated_hours: '',
+    pause_reason: '',
+    cancel_reason: '',
   });
   const [finishForm, setFinishForm] = useState<WorkOrderFinishState>({
     actual_hours: '',
     work_performed: '',
+    downtime_started_at: '',
+    downtime_ended_at: '',
+    downtime_reason: '',
   });
   const [showFinishFields, setShowFinishFields] = useState(false);
   const [usageForm, setUsageForm] = useState({
@@ -717,6 +736,27 @@ export function WorkOrdersPage() {
     return `${datePart} ${timePart}`;
   };
 
+  const formatDuration = (from?: string | null, to?: string | null) => {
+    if (!from || !to) return '-';
+    const start = new Date(from);
+    const end = new Date(to);
+    const ms = end.getTime() - start.getTime();
+    if (Number.isNaN(ms) || ms < 0) return '-';
+    const minutes = Math.round(ms / 60000);
+    if (minutes < 60) return `${minutes} min`;
+    const hours = minutes / 60;
+    if (hours < 48) return `${hours.toFixed(1)} h`;
+    const days = Math.floor(hours / 24);
+    const remHours = Math.round(hours - days * 24);
+    return `${days} d ${remHours} h`;
+  };
+
+  const formatMinutes = (value?: number | null) => {
+    if (value === null || value === undefined) return '-';
+    if (value < 60) return `${value} min`;
+    return `${(value / 60).toFixed(1)} h`;
+  };
+
   const formatAuditUser = (log: AuditLog) => {
     if (!log.user) return 'Sistema';
     const name = `${log.user.first_name || ''} ${log.user.last_name || ''}`.trim();
@@ -724,7 +764,13 @@ export function WorkOrdersPage() {
   };
 
   const formatAuditFields = (log: AuditLog) => {
-    const fields = Object.keys(log.new_values || {});
+    const next = (log.new_values || {}) as Record<string, any>;
+    const prev = (log.old_values || {}) as Record<string, any>;
+    if (next.status) {
+      const from = prev.status ? String(prev.status) : '—';
+      return `Estado: ${from} → ${String(next.status)}`;
+    }
+    const fields = Object.keys(next || {});
     if (fields.length === 0) return 'Sem detalhes';
     return `Campos: ${fields.join(', ')}`;
   };
@@ -749,10 +795,15 @@ export function WorkOrdersPage() {
       scheduled_date: toDateTimeLocal(order.scheduled_date),
       notes: order.notes || '',
       estimated_hours: order.estimated_hours || '',
+      pause_reason: order.pause_reason || '',
+      cancel_reason: order.cancel_reason || '',
     });
     setFinishForm({
       actual_hours: order.actual_hours || '',
       work_performed: order.work_performed || '',
+      downtime_started_at: toDateTimeLocal(order.downtime_started_at),
+      downtime_ended_at: toDateTimeLocal(order.downtime_ended_at),
+      downtime_reason: order.downtime_reason || '',
     });
     loadWorkOrderDetails(order.id);
   };
@@ -780,10 +831,15 @@ export function WorkOrdersPage() {
         scheduled_date: toDateTimeLocal(workOrder.scheduled_date),
         notes: workOrder.notes || '',
         estimated_hours: workOrder.estimated_hours || '',
+        pause_reason: workOrder.pause_reason || '',
+        cancel_reason: workOrder.cancel_reason || '',
       });
       setFinishForm({
         actual_hours: workOrder.actual_hours || '',
         work_performed: workOrder.work_performed || '',
+        downtime_started_at: toDateTimeLocal(workOrder.downtime_started_at),
+        downtime_ended_at: toDateTimeLocal(workOrder.downtime_ended_at),
+        downtime_reason: workOrder.downtime_reason || '',
       });
       setShowFinishFields(false);
     } catch (err: any) {
@@ -957,6 +1013,24 @@ export function WorkOrdersPage() {
       if (canOperateOrder) {
         payload.notes = updateForm.notes || undefined;
         if (updateForm.status && updateForm.status !== editingOrder.status) {
+          if (updateForm.status === 'em_pausa') {
+            const reason = updateForm.pause_reason.trim();
+            if (!reason) {
+              setError('Motivo é obrigatório ao colocar a ordem em pausa');
+              return;
+            }
+            payload.pause_reason = reason;
+          }
+
+          if (updateForm.status === 'cancelada') {
+            const reason = updateForm.cancel_reason.trim();
+            if (!reason) {
+              setError('Motivo é obrigatório ao cancelar a ordem');
+              return;
+            }
+            payload.cancel_reason = reason;
+          }
+
           payload.status = updateForm.status;
         }
         if (updateForm.sub_status && updateForm.sub_status.trim()) {
@@ -1042,8 +1116,14 @@ export function WorkOrdersPage() {
     setError(null);
 
     try {
+      const reason = updateForm.pause_reason.trim();
+      if (!reason) {
+        setError('Motivo é obrigatório ao colocar a ordem em pausa');
+        return;
+      }
       await updateWorkOrder(selectedPlant, editingOrder.id, {
         status: 'em_pausa',
+        pause_reason: reason,
         sub_status: updateForm.sub_status?.trim() || undefined,
       });
       setEditingOrder(null);
@@ -1071,11 +1151,32 @@ export function WorkOrdersPage() {
     setError(null);
 
     try {
+      const workPerformed = finishForm.work_performed.trim();
+      if (!workPerformed) {
+        setError('Registe o trabalho realizado antes de terminar a ordem');
+        return;
+      }
+
+      const downtimeStartIso = finishForm.downtime_started_at.trim()
+        ? toIsoFromDatetimeLocal(finishForm.downtime_started_at)
+        : '';
+      const downtimeEndIso = finishForm.downtime_ended_at.trim()
+        ? toIsoFromDatetimeLocal(finishForm.downtime_ended_at)
+        : '';
+
+      if ((finishForm.downtime_started_at.trim() || finishForm.downtime_ended_at.trim()) && (!downtimeStartIso || !downtimeEndIso)) {
+        setError('Paragem: indique início e fim válidos (ou deixe ambos vazios)');
+        return;
+      }
+
       await updateWorkOrder(selectedPlant, editingOrder.id, {
         status: 'concluida',
         completed_at: new Date().toISOString(),
         actual_hours: finishForm.actual_hours || undefined,
-        work_performed: finishForm.work_performed || undefined,
+        work_performed: workPerformed,
+        downtime_started_at: downtimeStartIso || undefined,
+        downtime_ended_at: downtimeEndIso || undefined,
+        downtime_reason: finishForm.downtime_reason.trim() || undefined,
       });
       setEditingOrder(null);
       await loadData();
@@ -1648,6 +1749,40 @@ export function WorkOrdersPage() {
                   </div>
                 </div>
 
+                <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+                    SLA por fase (informativo)
+                  </p>
+                  <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+                    <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-3 text-xs theme-text-muted">
+                      <p className="font-semibold theme-text">Abertura → Análise</p>
+                      <p className="mt-1">
+                        {formatDuration(editingOrder.created_at, editingOrder.analysis_started_at)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-3 text-xs theme-text-muted">
+                      <p className="font-semibold theme-text">Análise → Execução</p>
+                      <p className="mt-1">
+                        {formatDuration(editingOrder.analysis_started_at, editingOrder.started_at)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-3 text-xs theme-text-muted">
+                      <p className="font-semibold theme-text">Execução → Conclusão</p>
+                      <p className="mt-1">
+                        {formatDuration(editingOrder.started_at, editingOrder.completed_at)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-3 text-xs theme-text-muted">
+                      <p className="font-semibold theme-text">Paragem</p>
+                      <p className="mt-1">
+                        {editingOrder.downtime_minutes !== null && editingOrder.downtime_minutes !== undefined
+                          ? formatMinutes(editingOrder.downtime_minutes)
+                          : formatDuration(editingOrder.downtime_started_at, editingOrder.downtime_ended_at)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
               {canShowEditForm && (
                 <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
@@ -1697,22 +1832,64 @@ export function WorkOrdersPage() {
                       </select>
                     </div>
 
-                    {updateForm.status === 'em_pausa' && (
-                      <div className="md:col-span-2">
-                        <label className="mb-1 block text-sm font-medium theme-text">
-                          Sub-estado (opcional)
-                        </label>
-                        <input
-                          className="input"
-                          value={updateForm.sub_status}
-                          onChange={(event) =>
-                            setUpdateForm({ ...updateForm, sub_status: event.target.value })
-                          }
-                          disabled={!editingPermissions?.canOperateOrder}
-                          placeholder="Ex: aguardando_pecas, aguardando_producao"
-                        />
-                      </div>
-                    )}
+                      {updateForm.status === 'em_pausa' && (
+                        <>
+                          <div className="md:col-span-2">
+                            <label className="mb-1 block text-sm font-medium theme-text">
+                              Motivo da pausa
+                            </label>
+                            <textarea
+                              className="input min-h-[96px]"
+                              value={updateForm.pause_reason}
+                              onChange={(event) =>
+                                setUpdateForm({ ...updateForm, pause_reason: event.target.value })
+                              }
+                              disabled={!editingPermissions?.canOperateOrder}
+                              placeholder="Ex: aguardando peças, aguardando produção, falta de acesso"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="mb-1 block text-sm font-medium theme-text">
+                              Sub-estado (opcional)
+                            </label>
+                            <input
+                              className="input"
+                              list="workorder-substatus-options"
+                              value={updateForm.sub_status}
+                              onChange={(event) =>
+                                setUpdateForm({ ...updateForm, sub_status: event.target.value })
+                              }
+                              disabled={!editingPermissions?.canOperateOrder}
+                              placeholder="Ex: aguardando_pecas"
+                            />
+                            <datalist id="workorder-substatus-options">
+                              <option value="aguardando_pecas" />
+                              <option value="aguardando_producao" />
+                              <option value="aguardando_fornecedor" />
+                              <option value="aguardando_autorizacao" />
+                              <option value="aguardando_externo" />
+                              <option value="bloqueada_seguranca" />
+                            </datalist>
+                          </div>
+                        </>
+                      )}
+
+                      {updateForm.status === 'cancelada' && (
+                        <div className="md:col-span-2">
+                          <label className="mb-1 block text-sm font-medium theme-text">
+                            Motivo do cancelamento
+                          </label>
+                          <textarea
+                            className="input min-h-[96px]"
+                            value={updateForm.cancel_reason}
+                            onChange={(event) =>
+                              setUpdateForm({ ...updateForm, cancel_reason: event.target.value })
+                            }
+                            disabled={!editingPermissions?.canOperateOrder}
+                            placeholder="Ex: duplicada, pedido anulado, ativo indisponível"
+                          />
+                        </div>
+                      )}
 
                     {isPlanningStage && (
                       <>
@@ -1898,7 +2075,7 @@ export function WorkOrdersPage() {
                     Finalizar ordem
                   </p>
                   <p className="mt-2 text-sm theme-text-muted">
-                    Ao terminar, pode indicar o trabalho realizado e as horas reais (opcional).
+                    Ao terminar, indique o trabalho realizado (obrigatório). Horas reais e paragem são opcionais.
                   </p>
                   {!showFinishFields ? (
                     <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -1928,7 +2105,7 @@ export function WorkOrdersPage() {
                         </div>
                         <div className="md:col-span-2">
                           <label className="mb-1 block text-sm font-medium theme-text">
-                            Trabalho realizado (opcional)
+                            Trabalho realizado
                           </label>
                           <textarea
                             className="input min-h-[96px]"
@@ -1937,6 +2114,49 @@ export function WorkOrdersPage() {
                               setFinishForm({ ...finishForm, work_performed: event.target.value })
                             }
                             disabled={updating}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-sm font-medium theme-text">
+                            Início da paragem (opcional)
+                          </label>
+                          <input
+                            type="datetime-local"
+                            className="input"
+                            value={finishForm.downtime_started_at}
+                            onChange={(event) =>
+                              setFinishForm({ ...finishForm, downtime_started_at: event.target.value })
+                            }
+                            disabled={updating}
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-sm font-medium theme-text">
+                            Fim da paragem (opcional)
+                          </label>
+                          <input
+                            type="datetime-local"
+                            className="input"
+                            value={finishForm.downtime_ended_at}
+                            onChange={(event) =>
+                              setFinishForm({ ...finishForm, downtime_ended_at: event.target.value })
+                            }
+                            disabled={updating}
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="mb-1 block text-sm font-medium theme-text">
+                            Motivo da paragem (opcional)
+                          </label>
+                          <input
+                            className="input"
+                            value={finishForm.downtime_reason}
+                            onChange={(event) =>
+                              setFinishForm({ ...finishForm, downtime_reason: event.target.value })
+                            }
+                            disabled={updating}
+                            placeholder="Ex: produção parada, falta de energia, aguardando autorização"
                           />
                         </div>
                       </div>
@@ -2217,6 +2437,20 @@ export function WorkOrdersPage() {
                   {editingOrder.status === 'em_execucao' &&
                     editingPermissions?.canOperateOrder && (
                       <>
+                        <div className="w-full">
+                          <label className="mb-1 block text-sm font-medium theme-text">
+                            Motivo da pausa
+                          </label>
+                          <input
+                            className="input"
+                            value={updateForm.pause_reason}
+                            onChange={(event) =>
+                              setUpdateForm({ ...updateForm, pause_reason: event.target.value })
+                            }
+                            disabled={updating}
+                            placeholder="Ex: aguardando peças"
+                          />
+                        </div>
                         <button
                           onClick={handlePauseOrder}
                           className="btn-secondary"
