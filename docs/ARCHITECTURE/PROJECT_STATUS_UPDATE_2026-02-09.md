@@ -220,3 +220,117 @@ Este documento deve ser atualizado sempre que:
 - uma feature “grande” entrar (muda UX/fluxo),
 - houver alteração de schema,
 - ou houver mudança operacional (deploy/migrations).
+
+---
+
+## 9) Roadmap (draft) — melhorias por fases
+
+Este roadmap é um **draft prático**, alinhado com chão de fábrica **e** gestão. Não substitui ainda o ROADMAP oficial; serve para escolhermos prioridades e depois atualizarmos o documento antigo.
+
+### Fase 0 — Quick Wins (sem grandes migrações)
+
+**Ordens**
+- Botão “Cancelar” dedicado (em vez de depender só do dropdown), com motivo obrigatório no próprio CTA.
+- Botão “Colocar em pausa” com motivo obrigatório (já exigido), garantindo UX consistente em todos os fluxos.
+- Campos de fecho padronizados: “causa raiz” e “ação corretiva” (inicialmente opcionais, mas recomendados ao fechar).
+
+**Preventivas**
+- Ações explícitas para “Adiar ciclo / Skip ciclo” com motivo (útil quando não é possível executar).
+- Melhorias de preview para evitar duplicados (visualizar o que vai ser gerado antes de confirmar).
+
+**Relatórios**
+- Export simples “Downtime por ativo / por causa / por período” (se já houver dados suficientes).
+
+---
+
+### Fase 1 — Ordens: rastreabilidade + disciplina operacional
+
+**Objetivo:** tornar o ciclo de vida auditável, disciplinado e fácil de operar.
+
+**Entrega (funcional)**
+- Padronizar “timeline” com eventos chave (estado, responsável, pausa, cancelamento, conclusão, fecho).
+- “Regras de fecho”: ao fechar, pedir (ou recomendar fortemente) causa raiz + ação corretiva.
+- Downtime mais completo:
+  - diferenciar “paragem total” vs “paragem parcial”,
+  - categoria do downtime (produção / segurança / energia / peças / outras),
+  - validar fim > início e permitir limpeza (ambos vazios) sem inconsistência.
+
+**DB/API (provável)**
+- Nova enum/tabela de categorias de downtime (ou `text` controlado).
+- (Opcional) tabela `work_order_events` para timeline “bonita” sem depender só de audit logs.
+
+**Notas**
+- Evitar duplicar auditoria: timeline pode ser derivada de audit logs no início, e evoluir para eventos próprios se necessário.
+
+---
+
+### Fase 2 — Preventivas: tolerância + cadência avançada
+
+**Objetivo:** reduzir drift e aumentar qualidade, sem travar a operação.
+
+**Entrega (funcional)**
+- Tolerância com modo:
+  - **soft**: aviso (sem bloqueio)
+  - **hard**: exige justificação (ou impede) fora de janela
+- Opção por plano: “manter dia/hora fixos” vs “intervalo após conclusão/agendamento”.
+- Resolver duplicados automaticamente (1 schedule ativo por plano/ativo por janela).
+
+**DB/API (provável)**
+- `tolerance_mode` (soft/hard)
+- `schedule_anchor` (fixo vs intervalo)
+- (Opcional) tabela de “regras de geração” por plano para suportar casos mais complexos.
+
+---
+
+### Fase 3 — Stock/Peças: reserva + kits + previsão simples
+
+**Objetivo:** garantir disponibilidade de peças e reduzir falhas por “falta de material”.
+
+**Entrega (funcional)**
+- Reserva de stock por ordem:
+  - reservar quando a ordem entra em execução (ou manual),
+  - libertar ao cancelar/fechar,
+  - consumo real mantém-se com movimentos de stock.
+- “Kits” por tipo de manutenção (por plano e/ou por categoria de ativo).
+- Previsão simples de consumo baseado em preventivas futuras (sem ML no início).
+
+**DB/API (provável)**
+- Tabela `stock_reservations` (work_order_id, spare_part_id, qty, status, created_at)
+- Tabela `maintenance_kits` e `maintenance_kit_items`
+
+---
+
+### Fase 4 — Alertas/SLA: regras por fase e tempo “em pausa”
+
+**Objetivo:** alertas acionáveis e SLAs alinhados com a realidade (paragens não “consomem” SLA se a regra de negócio assim o definir).
+
+**Entrega (funcional)**
+- SLA por prioridade com regra opcional: “tempo em pausa não conta”.
+- Alertas por aging em fase (ex.: demasiado tempo em análise).
+- Notificações quando uma ordem volta de pausa.
+
+**DB/API (provável)**
+- Config SLA: flag `exclude_paused_time`
+- (Opcional) métricas agregadas por fase para dashboards.
+
+---
+
+### Fase 5 — Relatórios/KPIs (fábrica + gestão)
+
+**Objetivo:** transformar downtime e execução em indicadores claros.
+
+**Entrega (funcional)**
+- Downtime por ativo/linha/causa + Pareto (Top 10 causas / Top 10 ativos).
+- KPI: “tempo médio em análise”, “tempo médio em execução”, “% ordens com pausa”, “% concluídas dentro da tolerância” (se a Fase 2 estiver ativa).
+
+**DB/API (provável)**
+- Pode ser derivado de dados existentes, mas pode justificar materialized views / jobs de agregação.
+
+---
+
+## 10) Roadmap oficial — como vamos atualizar depois
+
+Quando concordarmos com as fases acima, o plano é:
+1) Criar um “mapa” fase → secção do ROADMAP atual (Phase 3/4/5),
+2) Atualizar datas e percentagens no DEVELOPMENT_STATUS,
+3) Transformar cada fase em 5-10 issues/tarefas verificáveis.
