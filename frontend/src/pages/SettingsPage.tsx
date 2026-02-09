@@ -1177,8 +1177,9 @@ function PreventiveMaintenanceSettings() {
           plans.map((plan) => (
             <div
               key={plan.id}
-              className="rounded-2xl border theme-border theme-card p-4 shadow-sm"
+              className="relative overflow-hidden rounded-2xl border theme-border theme-card p-4 shadow-sm"
             >
+              <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -1213,13 +1214,13 @@ function PreventiveMaintenanceSettings() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleEdit(plan)}
-                    className="rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text transition hover:bg-[color:var(--dash-surface)]"
+                    className="rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => handleDelete(plan.id)}
-                    className="rounded-full border border-rose-500/20 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-500/10"
+                    className="rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-[color:var(--dash-surface)]"
                   >
                     Eliminar
                   </button>
