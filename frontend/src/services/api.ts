@@ -404,6 +404,70 @@ export async function getSuppliers(plantId: string, search?: string) {
   return apiCall(`/${plantId}/suppliers${query ? `?${query}` : ''}`);
 }
 
+// ============================================================================
+// MAINTENANCE KITS
+// ============================================================================
+
+export async function getMaintenanceKits(filters?: {
+  plan_id?: string;
+  category_id?: string;
+  is_active?: boolean;
+}) {
+  const params = new URLSearchParams();
+  if (filters?.plan_id) params.append('plan_id', filters.plan_id);
+  if (filters?.category_id) params.append('category_id', filters.category_id);
+  if (filters?.is_active !== undefined) params.append('is_active', String(filters.is_active));
+  const query = params.toString();
+  return apiCall(`/maintenance-kits${query ? `?${query}` : ''}`);
+}
+
+export async function getMaintenanceKit(kitId: string) {
+  return apiCall(`/maintenance-kits/${kitId}`);
+}
+
+export async function createMaintenanceKit(data: {
+  name: string;
+  notes?: string;
+  plan_id?: string;
+  category_id?: string;
+  is_active?: boolean;
+}) {
+  return apiCall('/maintenance-kits', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateMaintenanceKit(
+  kitId: string,
+  data: {
+    name?: string;
+    notes?: string;
+    plan_id?: string | null;
+    category_id?: string | null;
+    is_active?: boolean;
+  },
+) {
+  return apiCall(`/maintenance-kits/${kitId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getMaintenanceKitItems(kitId: string) {
+  return apiCall(`/maintenance-kits/${kitId}/items`);
+}
+
+export async function upsertMaintenanceKitItems(
+  kitId: string,
+  data: { items: Array<{ spare_part_id: string; quantity: number }> },
+) {
+  return apiCall(`/maintenance-kits/${kitId}/items`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function createSupplier(plantId: string, data: any) {
   return apiCall(`/${plantId}/suppliers`, {
     method: 'POST',

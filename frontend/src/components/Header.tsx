@@ -102,6 +102,12 @@ export function Header() {
           active: location.pathname === '/spare-parts',
           icon: Package,
         },
+        {
+          label: 'Kits',
+          href: '/maintenance-kits',
+          active: location.pathname === '/maintenance-kits',
+          icon: ClipboardList,
+        },
       ],
     },
     {
