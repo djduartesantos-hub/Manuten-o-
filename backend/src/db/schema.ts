@@ -45,6 +45,12 @@ export const stockMovementTypeEnum = pgEnum('stock_movement_type', [
   'ajuste',
 ]);
 
+export const stockReservationStatusEnum = pgEnum('stock_reservation_status', [
+  'ativa',
+  'libertada',
+  'cancelada',
+]);
+
 // Tenants (Empresas)
 export const tenants = pgTable(
   'tenants',
@@ -448,6 +454,40 @@ export const stockMovements = pgTable(
   (table) => ({
     tenantIdIdx: index('stock_movements_tenant_id_idx').on(table.tenant_id),
     plantIdIdx: index('stock_movements_plant_id_idx').on(table.plant_id),
+  }),
+);
+
+// Stock Reservations (per work order)
+export const stockReservations = pgTable(
+  'stock_reservations',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    plant_id: uuid('plant_id')
+      .notNull()
+      .references(() => plants.id, { onDelete: 'cascade' }),
+    work_order_id: uuid('work_order_id')
+      .notNull()
+      .references(() => workOrders.id, { onDelete: 'cascade' }),
+    spare_part_id: uuid('spare_part_id')
+      .notNull()
+      .references(() => spareParts.id, { onDelete: 'restrict' }),
+    quantity: integer('quantity').notNull(),
+    status: stockReservationStatusEnum('status').notNull().default('ativa'),
+    notes: text('notes'),
+    created_by: uuid('created_by')
+      .notNull()
+      .references(() => users.id),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    released_at: timestamp('released_at', { withTimezone: true }),
+    released_by: uuid('released_by').references(() => users.id),
+    release_reason: text('release_reason'),
+  },
+  (table) => ({
+    tenantIdIdx: index('stock_reservations_tenant_id_idx').on(table.tenant_id),
+    plantIdIdx: index('stock_reservations_plant_id_idx').on(table.plant_id),
+    workOrderIdIdx: index('stock_reservations_work_order_id_idx').on(table.work_order_id),
+    sparePartIdIdx: index('stock_reservations_spare_part_id_idx').on(table.spare_part_id),
   }),
 );
 

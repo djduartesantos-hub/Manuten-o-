@@ -180,6 +180,33 @@ export async function getWorkOrderAuditLogs(plantId: string, workOrderId: string
   return apiCall(`/${plantId}/work-orders/${workOrderId}/audit`);
 }
 
+export async function getWorkOrderReservations(plantId: string, workOrderId: string) {
+  return apiCall(`/${plantId}/work-orders/${workOrderId}/reservations`);
+}
+
+export async function createWorkOrderReservation(
+  plantId: string,
+  workOrderId: string,
+  data: { spare_part_id: string; quantity: number; notes?: string },
+) {
+  return apiCall(`/${plantId}/work-orders/${workOrderId}/reservations`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function releaseWorkOrderReservation(
+  plantId: string,
+  workOrderId: string,
+  reservationId: string,
+  reason?: string,
+) {
+  return apiCall(`/${plantId}/work-orders/${workOrderId}/reservations/${reservationId}/release`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
 export async function getWorkOrderTasks(plantId: string, workOrderId: string) {
   return apiCall(`/${plantId}/work-orders/${workOrderId}/tasks`);
 }
@@ -565,6 +592,12 @@ export async function patchMaintenancePlansToleranceMode() {
 
 export async function patchMaintenancePlansScheduleAnchorMode() {
   return apiCall('/setup/patch/maintenance-plans-schedule-anchor-mode', {
+    method: 'POST',
+  });
+}
+
+export async function patchStockReservations() {
+  return apiCall('/setup/patch/stock-reservations', {
     method: 'POST',
   });
 }

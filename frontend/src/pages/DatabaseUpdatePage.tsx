@@ -10,6 +10,7 @@ import {
   patchWorkOrdersDowntimeRca,
   patchMaintenancePlansToleranceMode,
   patchMaintenancePlansScheduleAnchorMode,
+  patchStockReservations,
   runMigrations,
   seedDemoData,
 } from '../services/api';
@@ -197,6 +198,26 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
     try {
       await patchMaintenancePlansScheduleAnchorMode();
       setSuccess('Patch aplicado. A coluna schedule_anchor_mode foi verificada/adicionada em maintenance_plans.');
+      await fetchStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStockReservationsPatch = async () => {
+    if (!confirm('Aplicar patch para criar a tabela de reservas de stock (por ordem)?')) {
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await patchStockReservations();
+      setSuccess('Patch aplicado. A tabela stock_reservations foi verificada/criada.');
       await fetchStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
@@ -450,6 +471,22 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
             >
               <Wrench className="w-4 h-4" />
               Patch âncora (planos)
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-amber-800">
+                Cria a tabela de reservas de stock (por ordem) para permitir reservar peças.
+              </p>
+            </div>
+            <button
+              onClick={handleStockReservationsPatch}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition"
+            >
+              <Wrench className="w-4 h-4" />
+              Patch reservas (stock)
             </button>
           </div>
         </div>

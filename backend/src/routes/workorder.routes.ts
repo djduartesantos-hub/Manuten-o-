@@ -20,4 +20,18 @@ router.post('/:plantId/work-orders/:workOrderId/tasks', WorkOrderController.addT
 router.patch('/:plantId/work-orders/:workOrderId/tasks/:taskId', WorkOrderController.updateTask);
 router.get('/:plantId/work-orders/:workOrderId/audit', WorkOrderController.listAuditLogs);
 
+// Stock Reservations (Phase 3)
+router.get(
+	'/:plantId/work-orders/:workOrderId/reservations',
+	WorkOrderController.listStockReservations,
+);
+router.post(
+	'/:plantId/work-orders/:workOrderId/reservations',
+	WorkOrderController.createStockReservation,
+);
+router.post(
+	'/:plantId/work-orders/:workOrderId/reservations/:reservationId/release',
+	WorkOrderController.releaseStockReservation,
+);
+
 export default router;

@@ -832,6 +832,34 @@ END $$;`
   }
 
   /**
+   * Patch: create stock_reservations table (Phase 3) if missing
+   */
+  static async patchStockReservations(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user || req.user.role !== 'superadmin') {
+        res.status(403).json({
+          success: false,
+          error: 'Only superadmin can run patches',
+        });
+        return;
+      }
+
+      await SetupController.applyStockReservationsPatchInternal();
+
+      res.json({
+        success: true,
+        message: 'Patch aplicado com sucesso',
+        data: { patch: 'stock_reservations' },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to apply patch',
+      });
+    }
+  }
+
+  /**
    * Apply all known DB corrections (migrations + targeted patches)
    */
   static async applyCorrections(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -850,6 +878,7 @@ END $$;`
       await SetupController.applyWorkOrdersDowntimeRcaPatchInternal();
       await SetupController.applyMaintenancePlansToleranceModePatchInternal();
       await SetupController.applyMaintenancePlansScheduleAnchorModePatchInternal();
+      await SetupController.applyStockReservationsPatchInternal();
 
       res.json({
         success: true,
@@ -863,6 +892,7 @@ END $$;`
             'work_orders_downtime_rca_fields',
             'maintenance_plans_tolerance_mode',
             'maintenance_plans_schedule_anchor_mode',
+            'stock_reservations',
           ],
         },
       });
@@ -937,6 +967,44 @@ END $$;`
           ) THEN
             ALTER TABLE work_orders ADD COLUMN corrective_action TEXT;
           END IF;
+        END IF;
+      END $$;
+    `));
+  }
+
+  private static async applyStockReservationsPatchInternal(): Promise<void> {
+    await db.execute(sql.raw(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_type
+          WHERE typname = 'stock_reservation_status'
+        ) THEN
+          CREATE TYPE stock_reservation_status AS ENUM ('ativa', 'libertada', 'cancelada');
+        END IF;
+
+        IF to_regclass('public.stock_reservations') IS NULL THEN
+          CREATE TABLE stock_reservations (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            tenant_id uuid NOT NULL,
+            plant_id uuid NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
+            work_order_id uuid NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
+            spare_part_id uuid NOT NULL REFERENCES spare_parts(id) ON DELETE RESTRICT,
+            quantity integer NOT NULL,
+            status stock_reservation_status NOT NULL DEFAULT 'ativa',
+            notes text,
+            created_by uuid NOT NULL REFERENCES users(id),
+            created_at timestamptz NOT NULL DEFAULT now(),
+            released_at timestamptz,
+            released_by uuid REFERENCES users(id),
+            release_reason text
+          );
+
+          CREATE INDEX stock_reservations_tenant_id_idx ON stock_reservations(tenant_id);
+          CREATE INDEX stock_reservations_plant_id_idx ON stock_reservations(plant_id);
+          CREATE INDEX stock_reservations_work_order_id_idx ON stock_reservations(work_order_id);
+          CREATE INDEX stock_reservations_spare_part_id_idx ON stock_reservations(spare_part_id);
         END IF;
       END $$;
     `));

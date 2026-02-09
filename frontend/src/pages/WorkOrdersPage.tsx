@@ -23,15 +23,18 @@ import { useAuth } from '../hooks/useAuth';
 import {
   createWorkOrder,
   createStockMovement,
+  createWorkOrderReservation,
   deleteWorkOrder,
   getAssets,
   getApiHealth,
   getPreventiveSchedules,
   getWorkOrder,
   getWorkOrderAuditLogs,
+  getWorkOrderReservations,
   getSpareParts,
   getStockMovementsByPlant,
   getWorkOrders,
+  releaseWorkOrderReservation,
   addWorkOrderTask,
   updateWorkOrderTask,
   updateWorkOrder,
@@ -59,6 +62,21 @@ interface StockMovement {
   unit_cost?: string | null;
   created_at?: string;
   notes?: string | null;
+  spare_part?: {
+    code: string;
+    name: string;
+  } | null;
+}
+
+interface StockReservation {
+  id: string;
+  spare_part_id: string;
+  quantity: number;
+  status: string;
+  notes?: string | null;
+  created_at?: string;
+  released_at?: string | null;
+  release_reason?: string | null;
   spare_part?: {
     code: string;
     name: string;
@@ -294,6 +312,17 @@ export function WorkOrdersPage() {
   const [orderMovements, setOrderMovements] = useState<StockMovement[]>([]);
   const [orderMovementsLoading, setOrderMovementsLoading] = useState(false);
   const [orderMovementsError, setOrderMovementsError] = useState<string | null>(null);
+  const [reservationForm, setReservationForm] = useState({
+    spare_part_id: '',
+    quantity: 1,
+    notes: '',
+  });
+  const [reservationPartSearch, setReservationPartSearch] = useState('');
+  const [reservationSaving, setReservationSaving] = useState(false);
+  const [reservationMessage, setReservationMessage] = useState<string | null>(null);
+  const [orderReservations, setOrderReservations] = useState<StockReservation[]>([]);
+  const [orderReservationsLoading, setOrderReservationsLoading] = useState(false);
+  const [orderReservationsError, setOrderReservationsError] = useState<string | null>(null);
   const [orderTasks, setOrderTasks] = useState<WorkOrderTask[]>([]);
   const [tasksLoading, setTasksLoading] = useState(false);
   const [tasksError, setTasksError] = useState<string | null>(null);
@@ -629,6 +658,22 @@ export function WorkOrdersPage() {
       setOrderMovementsError(err.message || 'Erro ao carregar movimentos da ordem');
     } finally {
       setOrderMovementsLoading(false);
+    }
+  };
+
+  const loadOrderReservations = async (workOrderId: string) => {
+    if (!selectedPlant) return;
+
+    setOrderReservationsLoading(true);
+    setOrderReservationsError(null);
+    try {
+      const data = await getWorkOrderReservations(selectedPlant, workOrderId);
+      setOrderReservations(data || []);
+    } catch (err: any) {
+      setOrderReservations([]);
+      setOrderReservationsError(err.message || 'Erro ao carregar reservas da ordem');
+    } finally {
+      setOrderReservationsLoading(false);
     }
   };
 
@@ -1003,8 +1048,13 @@ export function WorkOrdersPage() {
     setUsageForm({ spare_part_id: '', quantity: 1, unit_cost: '', notes: '' });
     setUsageMessage(null);
     setUsagePartSearch('');
+    setReservationForm({ spare_part_id: '', quantity: 1, notes: '' });
+    setReservationPartSearch('');
+    setReservationMessage(null);
     setOrderMovements([]);
     setOrderMovementsError(null);
+    setOrderReservations([]);
+    setOrderReservationsError(null);
     setOrderTasks([]);
     setTasksError(null);
     setNewTaskDescription('');
@@ -1037,6 +1087,7 @@ export function WorkOrdersPage() {
   useEffect(() => {
     if (!editingOrder || !selectedPlant) return;
     loadOrderMovements(editingOrder.id);
+    loadOrderReservations(editingOrder.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingOrder, selectedPlant]);
 
@@ -1206,6 +1257,64 @@ export function WorkOrdersPage() {
     }
   };
 
+  const handleAddReservation = async () => {
+    if (!selectedPlant || !editingOrder) return;
+    if (['cancelada', 'fechada'].includes(editingOrder.status)) {
+      setReservationMessage('Esta ordem já está finalizada; não é possível reservar.');
+      return;
+    }
+    if (!reservationForm.spare_part_id) {
+      setReservationMessage('Selecione a peça a reservar.');
+      return;
+    }
+    if (!reservationForm.quantity || Number(reservationForm.quantity) <= 0) {
+      setReservationMessage('Indique uma quantidade válida.');
+      return;
+    }
+    if (!editingPermissions?.canOperateOrder && !editingPermissions?.canEditOrder) {
+      setReservationMessage('Sem permissão para reservar peças nesta ordem.');
+      return;
+    }
+
+    setReservationSaving(true);
+    setReservationMessage(null);
+    try {
+      await createWorkOrderReservation(selectedPlant, editingOrder.id, {
+        spare_part_id: reservationForm.spare_part_id,
+        quantity: Number(reservationForm.quantity),
+        notes: reservationForm.notes?.trim() ? reservationForm.notes.trim() : undefined,
+      });
+
+      setReservationForm({ spare_part_id: '', quantity: 1, notes: '' });
+      setReservationMessage('Reserva criada com sucesso.');
+      await loadOrderReservations(editingOrder.id);
+    } catch (err: any) {
+      setReservationMessage(err.message || 'Erro ao criar reserva.');
+    } finally {
+      setReservationSaving(false);
+    }
+  };
+
+  const handleReleaseReservation = async (reservationId: string) => {
+    if (!selectedPlant || !editingOrder) return;
+    if (!editingPermissions?.canOperateOrder && !editingPermissions?.canEditOrder) {
+      setReservationMessage('Sem permissão para libertar reservas nesta ordem.');
+      return;
+    }
+
+    setReservationSaving(true);
+    setReservationMessage(null);
+    try {
+      await releaseWorkOrderReservation(selectedPlant, editingOrder.id, reservationId);
+      setReservationMessage('Reserva libertada.');
+      await loadOrderReservations(editingOrder.id);
+    } catch (err: any) {
+      setReservationMessage(err.message || 'Erro ao libertar reserva.');
+    } finally {
+      setReservationSaving(false);
+    }
+  };
+
   const filteredUsageParts = useMemo(() => {
     const query = usagePartSearch.trim().toLowerCase();
     if (!query) return spareParts;
@@ -1214,6 +1323,15 @@ export function WorkOrdersPage() {
       return label.includes(query);
     });
   }, [spareParts, usagePartSearch]);
+
+  const filteredReservationParts = useMemo(() => {
+    const query = reservationPartSearch.trim().toLowerCase();
+    if (!query) return spareParts;
+    return spareParts.filter((part) => {
+      const label = `${part.code} ${part.name}`.toLowerCase();
+      return label.includes(query);
+    });
+  }, [spareParts, reservationPartSearch]);
 
   const handleUpdate = async () => {
     if (!selectedPlant || !editingOrder) return;
@@ -2750,6 +2868,199 @@ export function WorkOrdersPage() {
                                 </td>
                                 <td className="px-3 py-2 theme-text-muted">
                                   {formatShortDateTime(movement.created_at)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {canShowPartsSection && (
+                <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+                    Reservas de stock
+                  </p>
+                  <p className="mt-2 text-sm theme-text-muted">
+                    Reserve peças para esta ordem. As reservas ativas reduzem o stock disponível.
+                  </p>
+
+                  {reservationMessage && (
+                    <p className="mt-3 text-xs theme-text-muted">{reservationMessage}</p>
+                  )}
+
+                  {!['cancelada', 'fechada'].includes(editingOrder.status) && (
+                    <div className="mt-4 space-y-4">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <div>
+                          <label className="mb-1 block text-sm font-medium theme-text">
+                            Peça
+                          </label>
+                          <input
+                            className="input mb-2"
+                            placeholder="Pesquisar peça"
+                            value={reservationPartSearch}
+                            onChange={(event) => setReservationPartSearch(event.target.value)}
+                            disabled={partsLoading || reservationSaving}
+                          />
+                          <select
+                            className="input"
+                            value={reservationForm.spare_part_id}
+                            onChange={(event) =>
+                              setReservationForm({
+                                ...reservationForm,
+                                spare_part_id: event.target.value,
+                              })
+                            }
+                            disabled={partsLoading || reservationSaving}
+                          >
+                            <option value="">Selecionar...</option>
+                            {filteredReservationParts.map((part) => (
+                              <option key={part.id} value={part.id}>
+                                {part.code} - {part.name}
+                              </option>
+                            ))}
+                          </select>
+                          {!partsLoading && filteredReservationParts.length === 0 && (
+                            <p className="mt-2 text-xs theme-text-muted">
+                              Nenhuma peça encontrada.
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-sm font-medium theme-text">
+                            Quantidade
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            className="input"
+                            value={reservationForm.quantity}
+                            onChange={(event) =>
+                              setReservationForm({
+                                ...reservationForm,
+                                quantity: Number(event.target.value),
+                              })
+                            }
+                            disabled={reservationSaving}
+                          />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className="mb-1 block text-sm font-medium theme-text">
+                            Notas (opcional)
+                          </label>
+                          <input
+                            className="input"
+                            value={reservationForm.notes}
+                            onChange={(event) =>
+                              setReservationForm({
+                                ...reservationForm,
+                                notes: event.target.value,
+                              })
+                            }
+                            disabled={reservationSaving}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          className="btn-primary"
+                          onClick={handleAddReservation}
+                          disabled={reservationSaving}
+                        >
+                          {reservationSaving ? 'A reservar...' : 'Reservar peça'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-5 rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+                        Reservas desta ordem
+                      </p>
+                      {orderReservations.length > 0 && (
+                        <span className="text-xs font-semibold theme-text">
+                          {orderReservations.length} reservas
+                        </span>
+                      )}
+                    </div>
+
+                    {orderReservationsLoading && (
+                      <p className="mt-3 text-xs theme-text-muted">A carregar reservas...</p>
+                    )}
+                    {orderReservationsError && (
+                      <p className="mt-3 text-xs text-rose-600">{orderReservationsError}</p>
+                    )}
+                    {!orderReservationsLoading &&
+                      !orderReservationsError &&
+                      orderReservations.length === 0 && (
+                        <p className="mt-3 text-xs theme-text-muted">
+                          Ainda não há reservas nesta ordem.
+                        </p>
+                      )}
+
+                    {orderReservations.length > 0 && (
+                      <div className="mt-3 overflow-x-auto">
+                        <table className="min-w-full divide-y divide-[color:var(--dash-border)] text-xs">
+                          <thead className="bg-[color:var(--dash-panel)]">
+                            <tr>
+                              <th className="px-3 py-2 text-left font-semibold text-[color:var(--dash-muted)]">
+                                Peça
+                              </th>
+                              <th className="px-3 py-2 text-left font-semibold text-[color:var(--dash-muted)]">
+                                Quantidade
+                              </th>
+                              <th className="px-3 py-2 text-left font-semibold text-[color:var(--dash-muted)]">
+                                Estado
+                              </th>
+                              <th className="px-3 py-2 text-left font-semibold text-[color:var(--dash-muted)]">
+                                Data
+                              </th>
+                              <th className="px-3 py-2 text-left font-semibold text-[color:var(--dash-muted)]">
+                                Ação
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[color:var(--dash-border)]">
+                            {orderReservations.map((reservation) => (
+                              <tr key={reservation.id}>
+                                <td className="px-3 py-2 theme-text">
+                                  {reservation.spare_part
+                                    ? `${reservation.spare_part.code} - ${reservation.spare_part.name}`
+                                    : '-'}
+                                </td>
+                                <td className="px-3 py-2 theme-text">{reservation.quantity}</td>
+                                <td className="px-3 py-2 theme-text">
+                                  {reservation.status === 'ativa'
+                                    ? 'Ativa'
+                                    : reservation.status === 'libertada'
+                                      ? 'Libertada'
+                                      : reservation.status}
+                                </td>
+                                <td className="px-3 py-2 theme-text-muted">
+                                  {formatShortDateTime(reservation.created_at)}
+                                </td>
+                                <td className="px-3 py-2">
+                                  {reservation.status === 'ativa' &&
+                                    !['cancelada', 'fechada'].includes(editingOrder.status) && (
+                                      <button
+                                        className="btn-secondary"
+                                        onClick={() => handleReleaseReservation(reservation.id)}
+                                        disabled={reservationSaving}
+                                      >
+                                        Libertar
+                                      </button>
+                                    )}
+                                  {reservation.status !== 'ativa' && (
+                                    <span className="text-[11px] theme-text-muted">-</span>
+                                  )}
                                 </td>
                               </tr>
                             ))}

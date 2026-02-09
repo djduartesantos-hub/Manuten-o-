@@ -6,6 +6,13 @@ import { AlertService } from '../services/alert.service.js';
 import { AuditService } from '../services/audit.service.js';
 import { logger } from '../config/logger.js';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
+import { StockReservationService } from '../services/stockreservation.service.js';
+import {
+  createStockReservationSchema,
+  releaseStockReservationSchema,
+} from '../schemas/stockreservation.validation.js';
+
+const stockReservationService = new StockReservationService();
 
 export class WorkOrderController {
   private static isAdmin(role?: string) {
@@ -592,6 +599,32 @@ export class WorkOrderController {
         });
       }
 
+      // Release any active stock reservations when an order is finalized.
+      if (
+        updates.status &&
+        updates.status !== existing.status &&
+        ['cancelada', 'fechada'].includes(String(workOrder.status)) &&
+        req.user?.userId
+      ) {
+        stockReservationService
+          .releaseAllForWorkOrder(
+            tenantId,
+            plantId,
+            workOrderId,
+            req.user.userId,
+            `Ordem ${workOrder.status}`,
+          )
+          .catch((err) => {
+            logger.warn('Failed to release reservations on work order finalize', {
+              error: err instanceof Error ? err.message : err,
+              tenantId,
+              plantId,
+              workOrderId,
+              status: workOrder.status,
+            });
+          });
+      }
+
       if (assignmentChanged && updates.assigned_to) {
         await NotificationService.notifyWorkOrderEvent({
           tenantId,
@@ -881,6 +914,181 @@ export class WorkOrderController {
       res.status(500).json({
         success: false,
         error: 'Failed to fetch audit logs',
+      });
+    }
+  }
+
+  static async listStockReservations(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { workOrderId, plantId } = req.params;
+      const tenantId = req.tenantId;
+
+      if (!tenantId || !workOrderId || !plantId) {
+        res.status(400).json({
+          success: false,
+          error: 'Work order ID and plant ID are required',
+        });
+        return;
+      }
+
+      const workOrder = await WorkOrderService.getWorkOrderById(tenantId, workOrderId, plantId);
+      if (!workOrder) {
+        res.status(404).json({
+          success: false,
+          error: 'Work order not found',
+        });
+        return;
+      }
+
+      const reservations = await stockReservationService.listByWorkOrder(tenantId, workOrderId, plantId);
+
+      res.json({
+        success: true,
+        data: reservations,
+        total: reservations.length,
+      });
+    } catch (error) {
+      logger.error('List stock reservations error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch reservations',
+      });
+    }
+  }
+
+  static async createStockReservation(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { workOrderId, plantId } = req.params;
+      const tenantId = req.tenantId;
+      const userId = req.user?.userId;
+      const role = req.user?.role;
+
+      if (!tenantId || !workOrderId || !plantId || !userId) {
+        res.status(400).json({
+          success: false,
+          error: 'Missing required fields',
+        });
+        return;
+      }
+
+      const validation = createStockReservationSchema.safeParse(req.body);
+      if (!validation.success) {
+        res.status(400).json({
+          success: false,
+          error: 'Invalid input',
+          details: validation.error.errors,
+        });
+        return;
+      }
+
+      const workOrder = await WorkOrderService.getWorkOrderById(tenantId, workOrderId, plantId);
+      if (!workOrder) {
+        res.status(404).json({
+          success: false,
+          error: 'Work order not found',
+        });
+        return;
+      }
+
+      const isAdmin = WorkOrderController.isAdmin(role);
+      const isManager = WorkOrderController.isManager(role);
+      const isCreator = Boolean(userId && workOrder.created_by === userId);
+      const isAssignedUser = Boolean(userId && workOrder.assigned_to === userId);
+
+      if (!isAdmin && !isManager && !isCreator && !isAssignedUser) {
+        res.status(403).json({
+          success: false,
+          error: 'Sem permissao para reservar pecas nesta ordem',
+        });
+        return;
+      }
+
+      const reservation = await stockReservationService.createReservation(tenantId, userId, {
+        plant_id: plantId,
+        work_order_id: workOrderId,
+        spare_part_id: validation.data.spare_part_id,
+        quantity: validation.data.quantity,
+        notes: validation.data.notes,
+      });
+
+      res.status(201).json({
+        success: true,
+        data: reservation,
+        message: 'Reserva criada com sucesso',
+      });
+    } catch (error) {
+      logger.error('Create stock reservation error:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to create reservation',
+      });
+    }
+  }
+
+  static async releaseStockReservation(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { workOrderId, plantId, reservationId } = req.params;
+      const tenantId = req.tenantId;
+      const userId = req.user?.userId;
+      const role = req.user?.role;
+
+      if (!tenantId || !workOrderId || !plantId || !reservationId || !userId) {
+        res.status(400).json({
+          success: false,
+          error: 'Missing required fields',
+        });
+        return;
+      }
+
+      const validation = releaseStockReservationSchema.safeParse(req.body);
+      if (!validation.success) {
+        res.status(400).json({
+          success: false,
+          error: 'Invalid input',
+          details: validation.error.errors,
+        });
+        return;
+      }
+
+      const workOrder = await WorkOrderService.getWorkOrderById(tenantId, workOrderId, plantId);
+      if (!workOrder) {
+        res.status(404).json({
+          success: false,
+          error: 'Work order not found',
+        });
+        return;
+      }
+
+      const isAdmin = WorkOrderController.isAdmin(role);
+      const isManager = WorkOrderController.isManager(role);
+      const isCreator = Boolean(userId && workOrder.created_by === userId);
+      const isAssignedUser = Boolean(userId && workOrder.assigned_to === userId);
+
+      if (!isAdmin && !isManager && !isCreator && !isAssignedUser) {
+        res.status(403).json({
+          success: false,
+          error: 'Sem permissao para libertar reservas nesta ordem',
+        });
+        return;
+      }
+
+      const reservation = await stockReservationService.releaseReservation(
+        tenantId,
+        userId,
+        reservationId,
+        validation.data.reason,
+      );
+
+      res.json({
+        success: true,
+        data: reservation,
+        message: 'Reserva libertada com sucesso',
+      });
+    } catch (error) {
+      logger.error('Release stock reservation error:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to release reservation',
       });
     }
   }

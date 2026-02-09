@@ -58,6 +58,14 @@ router.post(
   SetupController.patchMaintenancePlansScheduleAnchorMode,
 );
 
+// POST /api/setup/patch/stock-reservations - Create stock_reservations table if missing
+router.post(
+  '/patch/stock-reservations',
+  authMiddleware,
+  requireRole('superadmin'),
+  SetupController.patchStockReservations,
+);
+
 // POST /api/setup/clear - Clear all data (dangerous!) (requires auth)
 router.post('/clear', authMiddleware, requireRole('superadmin'), SetupController.clearData);
 
