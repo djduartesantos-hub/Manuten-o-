@@ -551,6 +551,12 @@ export async function patchWorkOrders() {
   });
 }
 
+export async function patchWorkOrdersDowntimeRca() {
+  return apiCall('/setup/patch/work-orders-downtime-rca', {
+    method: 'POST',
+  });
+}
+
 export async function applyDbCorrections() {
   return apiCall('/setup/patch/all', {
     method: 'POST',

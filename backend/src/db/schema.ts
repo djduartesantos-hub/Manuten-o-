@@ -344,6 +344,10 @@ export const workOrders = pgTable(
     downtime_ended_at: timestamp('downtime_ended_at', { withTimezone: true }),
     downtime_minutes: integer('downtime_minutes').default(0),
     downtime_reason: text('downtime_reason'),
+    downtime_type: text('downtime_type'),
+    downtime_category: text('downtime_category'),
+    root_cause: text('root_cause'),
+    corrective_action: text('corrective_action'),
     sla_deadline: timestamp('sla_deadline', { withTimezone: true }),
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true })

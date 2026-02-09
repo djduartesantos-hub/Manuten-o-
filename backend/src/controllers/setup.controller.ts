@@ -804,6 +804,34 @@ END $$;`
   }
 
   /**
+   * Patch: add downtime_type/downtime_category/root_cause/corrective_action to work_orders if missing
+   */
+  static async patchWorkOrdersDowntimeRca(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user || req.user.role !== 'superadmin') {
+        res.status(403).json({
+          success: false,
+          error: 'Only superadmin can run patches',
+        });
+        return;
+      }
+
+      await SetupController.applyWorkOrdersDowntimeRcaPatchInternal();
+
+      res.json({
+        success: true,
+        message: 'Patch aplicado com sucesso',
+        data: { patch: 'work_orders_downtime_rca_fields' },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to apply patch',
+      });
+    }
+  }
+
+  /**
    * Apply all known DB corrections (migrations + targeted patches)
    */
   static async applyCorrections(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -819,6 +847,7 @@ END $$;`
       const available = await SetupController.listMigrationFiles();
       const migrations = await SetupController.runMigrationsInternal();
       await SetupController.applyWorkOrdersPatchInternal();
+      await SetupController.applyWorkOrdersDowntimeRcaPatchInternal();
 
       res.json({
         success: true,
@@ -827,7 +856,7 @@ END $$;`
           migrations,
           migrationsDir: available.dir,
           availableMigrationFiles: available.files,
-          patches: ['work_orders_work_performed'],
+          patches: ['work_orders_work_performed', 'work_orders_downtime_rca_fields'],
         },
       });
     } catch (error) {
@@ -851,6 +880,55 @@ END $$;`
               AND column_name = 'work_performed'
           ) THEN
             ALTER TABLE work_orders ADD COLUMN work_performed TEXT;
+          END IF;
+        END IF;
+      END $$;
+    `));
+  }
+
+  private static async applyWorkOrdersDowntimeRcaPatchInternal(): Promise<void> {
+    await db.execute(sql.raw(`
+      DO $$
+      BEGIN
+        IF to_regclass('public.work_orders') IS NOT NULL THEN
+          IF NOT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'work_orders'
+              AND column_name = 'downtime_type'
+          ) THEN
+            ALTER TABLE work_orders ADD COLUMN downtime_type TEXT;
+          END IF;
+
+          IF NOT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'work_orders'
+              AND column_name = 'downtime_category'
+          ) THEN
+            ALTER TABLE work_orders ADD COLUMN downtime_category TEXT;
+          END IF;
+
+          IF NOT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'work_orders'
+              AND column_name = 'root_cause'
+          ) THEN
+            ALTER TABLE work_orders ADD COLUMN root_cause TEXT;
+          END IF;
+
+          IF NOT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'work_orders'
+              AND column_name = 'corrective_action'
+          ) THEN
+            ALTER TABLE work_orders ADD COLUMN corrective_action TEXT;
           END IF;
         END IF;
       END $$;

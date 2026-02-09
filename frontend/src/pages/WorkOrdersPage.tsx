@@ -113,6 +113,10 @@ interface WorkOrder {
   downtime_ended_at?: string | null;
   downtime_minutes?: number | null;
   downtime_reason?: string | null;
+  downtime_type?: string | null;
+  downtime_category?: string | null;
+  root_cause?: string | null;
+  corrective_action?: string | null;
   notes?: string | null;
   work_performed?: string | null;
   tasks?: WorkOrderTask[];
@@ -185,6 +189,10 @@ interface WorkOrderFinishState {
   downtime_started_at: string;
   downtime_ended_at: string;
   downtime_reason: string;
+  downtime_type: string;
+  downtime_category: string;
+  root_cause: string;
+  corrective_action: string;
 }
 
 export function WorkOrdersPage() {
@@ -268,6 +276,10 @@ export function WorkOrdersPage() {
     downtime_started_at: '',
     downtime_ended_at: '',
     downtime_reason: '',
+    downtime_type: '',
+    downtime_category: '',
+    root_cause: '',
+    corrective_action: '',
   });
   const [showFinishFields, setShowFinishFields] = useState(false);
   const [usageForm, setUsageForm] = useState({
@@ -839,7 +851,9 @@ export function WorkOrdersPage() {
           next.downtime_started_at !== undefined ||
           next.downtime_ended_at !== undefined ||
           next.downtime_reason !== undefined ||
-          next.downtime_minutes !== undefined;
+          next.downtime_minutes !== undefined ||
+          next.downtime_type !== undefined ||
+          next.downtime_category !== undefined;
 
         if (!hasDowntimeField) return;
 
@@ -854,6 +868,31 @@ export function WorkOrdersPage() {
         }
         if (typeof next.downtime_reason === 'string' && next.downtime_reason.trim()) {
           details.push(`Paragem: motivo ${next.downtime_reason.trim()}`);
+        }
+        if (typeof next.downtime_type === 'string' && next.downtime_type.trim()) {
+          const raw = next.downtime_type.trim();
+          const label = raw === 'total' ? 'Total' : raw === 'parcial' ? 'Parcial' : raw;
+          details.push(`Paragem: tipo ${label}`);
+        }
+        if (typeof next.downtime_category === 'string' && next.downtime_category.trim()) {
+          const raw = next.downtime_category.trim();
+          const map: Record<string, string> = {
+            producao: 'Produção',
+            seguranca: 'Segurança',
+            energia: 'Energia',
+            pecas: 'Peças',
+            outras: 'Outras',
+          };
+          details.push(`Paragem: categoria ${map[raw] || raw}`);
+        }
+      };
+
+      const includeRcaIfPresent = () => {
+        if (typeof next.root_cause === 'string' && next.root_cause.trim()) {
+          details.push(`Causa raiz: ${next.root_cause.trim()}`);
+        }
+        if (typeof next.corrective_action === 'string' && next.corrective_action.trim()) {
+          details.push(`Ação corretiva: ${next.corrective_action.trim()}`);
         }
       };
 
@@ -900,13 +939,27 @@ export function WorkOrdersPage() {
         next.downtime_started_at !== undefined ||
         next.downtime_ended_at !== undefined ||
         next.downtime_reason !== undefined ||
-        next.downtime_minutes !== undefined
+        next.downtime_minutes !== undefined ||
+        next.downtime_type !== undefined ||
+        next.downtime_category !== undefined
       ) {
         includeDowntimeIfPresent();
         if (details.length === 0) details.push(formatAuditFields(log));
         return {
           id: log.id,
           title: 'Paragem',
+          createdAt: log.created_at,
+          userLabel: formatAuditUser(log),
+          details,
+        };
+      }
+
+      if (next.root_cause !== undefined || next.corrective_action !== undefined) {
+        includeRcaIfPresent();
+        if (details.length === 0) details.push(formatAuditFields(log));
+        return {
+          id: log.id,
+          title: 'Causa raiz / Ação corretiva',
           createdAt: log.created_at,
           userLabel: formatAuditUser(log),
           details,
@@ -973,6 +1026,10 @@ export function WorkOrdersPage() {
       downtime_started_at: toDateTimeLocal(order.downtime_started_at),
       downtime_ended_at: toDateTimeLocal(order.downtime_ended_at),
       downtime_reason: order.downtime_reason || '',
+      downtime_type: order.downtime_type || '',
+      downtime_category: order.downtime_category || '',
+      root_cause: order.root_cause || '',
+      corrective_action: order.corrective_action || '',
     });
     loadWorkOrderDetails(order.id);
   };
@@ -1009,6 +1066,10 @@ export function WorkOrdersPage() {
         downtime_started_at: toDateTimeLocal(workOrder.downtime_started_at),
         downtime_ended_at: toDateTimeLocal(workOrder.downtime_ended_at),
         downtime_reason: workOrder.downtime_reason || '',
+        downtime_type: workOrder.downtime_type || '',
+        downtime_category: workOrder.downtime_category || '',
+        root_cause: workOrder.root_cause || '',
+        corrective_action: workOrder.corrective_action || '',
       });
       setShowFinishFields(false);
     } catch (err: any) {
@@ -1384,6 +1445,10 @@ export function WorkOrdersPage() {
         downtime_started_at: downtimeStartIso || undefined,
         downtime_ended_at: downtimeEndIso || undefined,
         downtime_reason: finishForm.downtime_reason.trim() || undefined,
+        downtime_type: finishForm.downtime_type.trim() || undefined,
+        downtime_category: finishForm.downtime_category.trim() || undefined,
+        root_cause: finishForm.root_cause.trim() || undefined,
+        corrective_action: finishForm.corrective_action.trim() || undefined,
       });
       setEditingOrder(null);
       await loadData();
@@ -1409,6 +1474,17 @@ export function WorkOrdersPage() {
         status: 'fechada',
         actual_hours: finishForm.actual_hours || editingOrder.actual_hours || undefined,
         completed_at: editingOrder.completed_at || undefined,
+        downtime_started_at: finishForm.downtime_started_at.trim()
+          ? toIsoFromDatetimeLocal(finishForm.downtime_started_at)
+          : undefined,
+        downtime_ended_at: finishForm.downtime_ended_at.trim()
+          ? toIsoFromDatetimeLocal(finishForm.downtime_ended_at)
+          : undefined,
+        downtime_reason: finishForm.downtime_reason.trim() || undefined,
+        downtime_type: finishForm.downtime_type.trim() || undefined,
+        downtime_category: finishForm.downtime_category.trim() || undefined,
+        root_cause: finishForm.root_cause.trim() || undefined,
+        corrective_action: finishForm.corrective_action.trim() || undefined,
       });
       setEditingOrder(null);
       await loadData();
@@ -2364,6 +2440,75 @@ export function WorkOrdersPage() {
                             }
                             disabled={updating}
                             placeholder="Ex: produção parada, falta de energia, aguardando autorização"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-sm font-medium theme-text">
+                            Tipo de paragem (opcional)
+                          </label>
+                          <select
+                            className="input"
+                            value={finishForm.downtime_type}
+                            onChange={(event) =>
+                              setFinishForm({ ...finishForm, downtime_type: event.target.value })
+                            }
+                            disabled={updating}
+                          >
+                            <option value="">—</option>
+                            <option value="total">Total</option>
+                            <option value="parcial">Parcial</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-sm font-medium theme-text">
+                            Categoria de paragem (opcional)
+                          </label>
+                          <select
+                            className="input"
+                            value={finishForm.downtime_category}
+                            onChange={(event) =>
+                              setFinishForm({ ...finishForm, downtime_category: event.target.value })
+                            }
+                            disabled={updating}
+                          >
+                            <option value="">—</option>
+                            <option value="producao">Produção</option>
+                            <option value="seguranca">Segurança</option>
+                            <option value="energia">Energia</option>
+                            <option value="pecas">Peças</option>
+                            <option value="outras">Outras</option>
+                          </select>
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className="mb-1 block text-sm font-medium theme-text">
+                            Causa raiz (opcional)
+                          </label>
+                          <textarea
+                            className="input min-h-[84px]"
+                            value={finishForm.root_cause}
+                            onChange={(event) =>
+                              setFinishForm({ ...finishForm, root_cause: event.target.value })
+                            }
+                            disabled={updating}
+                            placeholder="Ex: falha de rolamento, sobrecarga, procedimento incorreto"
+                          />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className="mb-1 block text-sm font-medium theme-text">
+                            Ação corretiva (opcional)
+                          </label>
+                          <textarea
+                            className="input min-h-[84px]"
+                            value={finishForm.corrective_action}
+                            onChange={(event) =>
+                              setFinishForm({ ...finishForm, corrective_action: event.target.value })
+                            }
+                            disabled={updating}
+                            placeholder="Ex: substituição de rolamento, ajuste de parametrização, formação"
                           />
                         </div>
                       </div>

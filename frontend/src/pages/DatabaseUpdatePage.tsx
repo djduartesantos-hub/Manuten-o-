@@ -7,6 +7,7 @@ import {
   initializeDatabase,
   applyDbCorrections,
   patchWorkOrders,
+  patchWorkOrdersDowntimeRca,
   runMigrations,
   seedDemoData,
 } from '../services/api';
@@ -134,6 +135,26 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
     try {
       await patchWorkOrders();
       setSuccess('Patch aplicado. A coluna work_performed foi verificada/adicionada.');
+      await fetchStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleWorkOrdersDowntimeRcaPatch = async () => {
+    if (!confirm('Aplicar patch para adicionar campos de paragem e causa raiz nas ordens?')) {
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await patchWorkOrdersDowntimeRca();
+      setSuccess('Patch aplicado. Campos downtime_type/downtime_category/root_cause/corrective_action foram verificados/adicionados.');
       await fetchStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
@@ -339,6 +360,22 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
             >
               <Wrench className="w-4 h-4" />
               Aplicar patch ordens
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-amber-800">
+                Adiciona os novos campos de paragem e análise (causa raiz / ação corretiva) nas ordens.
+              </p>
+            </div>
+            <button
+              onClick={handleWorkOrdersDowntimeRcaPatch}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition"
+            >
+              <Wrench className="w-4 h-4" />
+              Patch paragem / causa raiz
             </button>
           </div>
         </div>

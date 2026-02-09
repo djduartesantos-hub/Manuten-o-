@@ -319,6 +319,22 @@ export class WorkOrderService {
       normalized.work_performed = normalized.work_performed || null;
     }
 
+    if (Object.prototype.hasOwnProperty.call(normalized, 'downtime_type')) {
+      normalized.downtime_type = normalized.downtime_type || null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(normalized, 'downtime_category')) {
+      normalized.downtime_category = normalized.downtime_category || null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(normalized, 'root_cause')) {
+      normalized.root_cause = normalized.root_cause || null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(normalized, 'corrective_action')) {
+      normalized.corrective_action = normalized.corrective_action || null;
+    }
+
     if (Object.prototype.hasOwnProperty.call(normalized, 'previous_status')) {
       delete normalized.previous_status;
     }

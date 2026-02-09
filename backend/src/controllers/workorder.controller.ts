@@ -227,6 +227,10 @@ export class WorkOrderController {
         'downtime_ended_at',
         'downtime_minutes',
         'downtime_reason',
+        'downtime_type',
+        'downtime_category',
+        'root_cause',
+        'corrective_action',
         'sub_status',
       ];
 
@@ -318,7 +322,7 @@ export class WorkOrderController {
       }
 
       if (wantsOperational) {
-        if (existing.assigned_to && existing.assigned_to !== userId && !isAdmin) {
+        if (existing.assigned_to && existing.assigned_to !== userId && !isAdmin && !isManager) {
           res.status(403).json({
             success: false,
             error: 'Ordem atribuida a outro utilizador',
@@ -342,6 +346,46 @@ export class WorkOrderController {
             error: 'Somente o responsavel pode atualizar o estado',
           });
           return;
+        }
+
+        const normalizeOptionalText = (value: any) => {
+          if (value === null || value === undefined) return null;
+          const trimmed = String(value).trim();
+          return trimmed ? trimmed : null;
+        };
+
+        if (Object.prototype.hasOwnProperty.call(updates, 'root_cause')) {
+          updates.root_cause = normalizeOptionalText(updates.root_cause);
+        }
+
+        if (Object.prototype.hasOwnProperty.call(updates, 'corrective_action')) {
+          updates.corrective_action = normalizeOptionalText(updates.corrective_action);
+        }
+
+        if (Object.prototype.hasOwnProperty.call(updates, 'downtime_type')) {
+          const value = normalizeOptionalText(updates.downtime_type);
+          const allowed = new Set(['total', 'parcial']);
+          if (value && !allowed.has(String(value))) {
+            res.status(400).json({
+              success: false,
+              error: 'Paragem: tipo inválido (use total ou parcial)',
+            });
+            return;
+          }
+          updates.downtime_type = value;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(updates, 'downtime_category')) {
+          const value = normalizeOptionalText(updates.downtime_category);
+          const allowed = new Set(['producao', 'seguranca', 'energia', 'pecas', 'outras']);
+          if (value && !allowed.has(String(value))) {
+            res.status(400).json({
+              success: false,
+              error: 'Paragem: categoria inválida',
+            });
+            return;
+          }
+          updates.downtime_category = value;
         }
 
         if (updates.status === 'concluida') {

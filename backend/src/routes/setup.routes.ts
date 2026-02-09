@@ -26,6 +26,14 @@ router.post(
 	SetupController.patchWorkOrders,
 );
 
+// POST /api/setup/patch/work-orders-downtime-rca - Add downtime_type/downtime_category/root_cause/corrective_action if missing
+router.post(
+  '/patch/work-orders-downtime-rca',
+  authMiddleware,
+  requireRole('superadmin'),
+  SetupController.patchWorkOrdersDowntimeRca,
+);
+
 // POST /api/setup/patch/all - Apply all corrections and migrations
 router.post(
   '/patch/all',
