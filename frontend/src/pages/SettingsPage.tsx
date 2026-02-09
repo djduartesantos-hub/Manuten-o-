@@ -1754,9 +1754,9 @@ function PermissionsSettings() {
         <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
           Controlo de acesso
         </p>
-        <h2 className="mt-2 text-2xl font-semibold theme-text">Permissoes & roles</h2>
+        <h2 className="mt-2 text-2xl font-semibold theme-text">Permissões & Roles</h2>
         <p className="mt-1 text-sm theme-text-muted">
-          Gerencie o acesso por funcao de utilizador.
+          Gira o acesso por função do utilizador.
         </p>
       </div>
 
@@ -1776,7 +1776,7 @@ function PermissionsSettings() {
                 Manager
               </th>
               <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
-                Tecnico
+                Técnico
               </th>
               <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                 Visualizador
@@ -1786,10 +1786,10 @@ function PermissionsSettings() {
           <tbody className="divide-y divide-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
             {[
               { feature: 'Criar Equipamentos', permissions: [true, true, false, false] },
-              { feature: 'Editar Configuracoes', permissions: [true, true, false, false] },
-              { feature: 'Ver Relatorios', permissions: [true, true, true, true] },
+              { feature: 'Editar Configurações', permissions: [true, true, false, false] },
+              { feature: 'Ver Relatórios', permissions: [true, true, true, true] },
               { feature: 'Executar Ordens', permissions: [true, true, true, false] },
-              { feature: 'Deletar Dados', permissions: [true, false, false, false] },
+              { feature: 'Eliminar Dados', permissions: [true, false, false, false] },
               { feature: 'Exportar Dados', permissions: [true, true, false, false] },
               { feature: 'Gerir Utilizadores', permissions: [true, false, false, false] },
             ].map((row, idx) => (
@@ -1817,8 +1817,8 @@ function PermissionsSettings() {
       <div className="mt-6 rounded-[20px] border theme-border theme-card p-4 shadow-sm">
         <p className="text-sm theme-text">
           <span className="badge-success mr-2 text-xs">Nota</span>
-          As permissoes sao pre-configuradas por role. Customizacao de roles sera disponibilizada
-          em futuras versoes.
+          As permissões são pré-configuradas por role. A personalização de roles será
+          disponibilizada em futuras versões.
         </p>
       </div>
     </div>
