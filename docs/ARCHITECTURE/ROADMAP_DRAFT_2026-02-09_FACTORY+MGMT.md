@@ -51,6 +51,10 @@ Este ficheiro é um **ROADMAP novo (draft)** para consolidar as próximas melhor
   - `downtime_category` (text/enum)
 - Alternativa (mais robusta): tabela `work_order_events` (timeline própria).
 
+**Decisão (por agora)**
+- Timeline começa por ser **derivada de audit logs** (mais simples/rápido).
+- `work_order_events` só entra se precisarmos de: eventos manuais, performance, ou relatórios por evento muito específicos.
+
 **Aceitação**
 - Ao fechar, sistema garante que o operador não perde informação (campos visíveis no modal).
 - Timeline mostra pelo menos: transições de estado, motivos de pausa/cancel, downtime e conclusão.
@@ -62,7 +66,7 @@ Este ficheiro é um **ROADMAP novo (draft)** para consolidar as próximas melhor
 **Entrega**
 - Tolerância com modos:
   - soft: aviso
-  - hard: exige justificação (ou bloqueia) fora da janela
+  - hard: exige **justificação** fora da janela (sem bloquear por defeito)
 - Âncora de agendamento:
   - fixo (ex.: sempre 2ª às 08:00)
   - intervalo (baseado em completion/scheduled)
@@ -126,4 +130,4 @@ Este ficheiro é um **ROADMAP novo (draft)** para consolidar as próximas melhor
 Escolher:
 1) Quais 3 itens entram na Fase 0 agora
 2) Se a timeline vai ser derivada de audit logs ou se criamos `work_order_events`
-3) Se tolerância hard é por “justificação” ou “bloqueio”
+3) (Fechado) tolerância hard é por **justificação**

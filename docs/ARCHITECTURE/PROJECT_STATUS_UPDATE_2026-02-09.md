@@ -257,7 +257,7 @@ Este roadmap é um **draft prático**, alinhado com chão de fábrica **e** gest
 
 **DB/API (provável)**
 - Nova enum/tabela de categorias de downtime (ou `text` controlado).
-- (Opcional) tabela `work_order_events` para timeline “bonita” sem depender só de audit logs.
+- Timeline: começar por **derivar de audit logs** (mais simples) e considerar (opcional) uma tabela `work_order_events` quando houver necessidade real.
 
 **Notas**
 - Evitar duplicar auditoria: timeline pode ser derivada de audit logs no início, e evoluir para eventos próprios se necessário.
@@ -271,13 +271,14 @@ Este roadmap é um **draft prático**, alinhado com chão de fábrica **e** gest
 **Entrega (funcional)**
 - Tolerância com modo:
   - **soft**: aviso (sem bloqueio)
-  - **hard**: exige justificação (ou impede) fora de janela
+  - **hard**: exige **justificação** fora da janela (não bloqueia por defeito)
 - Opção por plano: “manter dia/hora fixos” vs “intervalo após conclusão/agendamento”.
 - Resolver duplicados automaticamente (1 schedule ativo por plano/ativo por janela).
 
 **DB/API (provável)**
 - `tolerance_mode` (soft/hard)
 - `schedule_anchor` (fixo vs intervalo)
+- (Decisão) hard = **justificação**, não “bloqueio”
 - (Opcional) tabela de “regras de geração” por plano para suportar casos mais complexos.
 
 ---
