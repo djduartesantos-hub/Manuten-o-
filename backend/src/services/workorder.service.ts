@@ -360,6 +360,36 @@ export class WorkOrderService {
       normalized.status !== null
     ) {
       WorkOrderService.assertValidStatusTransition(String(existing.status), String(normalized.status));
+
+      // SLA pause accounting (only when the work order has the option enabled)
+      const prevStatus = WorkOrderService.normalizeWorkOrderStatus(String(existing.status));
+      const nextStatus = WorkOrderService.normalizeWorkOrderStatus(String(normalized.status));
+      const excludePause = (existing as any).sla_exclude_pause !== false;
+      const now = new Date();
+
+      if (excludePause) {
+        if (prevStatus !== 'em_pausa' && nextStatus === 'em_pausa') {
+          // Start pause clock if not already set
+          if (!(existing as any).sla_pause_started_at && !Object.prototype.hasOwnProperty.call(normalized, 'sla_pause_started_at')) {
+            normalized.sla_pause_started_at = now;
+          }
+        }
+
+        if (prevStatus === 'em_pausa' && nextStatus === 'em_execucao') {
+          const startedAt = (existing as any).sla_pause_started_at
+            ? new Date((existing as any).sla_pause_started_at)
+            : null;
+          const startedMs = startedAt && !Number.isNaN(startedAt.getTime()) ? startedAt.getTime() : null;
+          if (startedMs !== null) {
+            const delta = Math.max(0, now.getTime() - startedMs);
+            const prevPausedMs = Number((existing as any).sla_paused_ms ?? 0);
+            normalized.sla_paused_ms = Math.max(0, prevPausedMs + delta);
+          }
+
+          // Clear active pause marker
+          normalized.sla_pause_started_at = null;
+        }
+      }
     }
 
     const [updated] = await db

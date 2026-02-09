@@ -38,7 +38,7 @@ Este track é o plano **prático** para as próximas iterações, com foco em op
    - Previsão simples (preventivas futuras + kits) (commit 21)
 
 ### Fase 4 — Alertas/SLA: aging por fase + excluir pausa (2-3 semanas)
-- SLA com opção “tempo em pausa não conta”; alertas por aging por fase; notificar ao retomar.
+- ✅ **Concluída (2026-02-09)**: SLA com “tempo em pausa não conta” (deadline efetivo + notificar ao retomar) + alertas por aging por fase.
 
 ### Fase 5 — Relatórios/KPIs: downtime e execução (2-4 semanas)
 - Pareto downtime + KPIs por fase (análise/execução), pausas, compliance com tolerância.

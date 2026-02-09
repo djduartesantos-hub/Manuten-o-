@@ -34,6 +34,14 @@ router.post(
   SetupController.patchWorkOrdersDowntimeRca,
 );
 
+// POST /api/setup/patch/work-orders-sla-pause - Add sla_exclude_pause/sla_paused_ms/sla_pause_started_at if missing
+router.post(
+  '/patch/work-orders-sla-pause',
+  authMiddleware,
+  requireRole('superadmin'),
+  SetupController.patchWorkOrdersSlaPause,
+);
+
 // POST /api/setup/patch/all - Apply all corrections and migrations
 router.post(
   '/patch/all',

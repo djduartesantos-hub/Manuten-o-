@@ -42,7 +42,12 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 - Introduzido registo de **paragem (downtime)** (início/fim/motivo) e cálculo de `downtime_minutes`.
 - “SLA por fase” **informativo** no modal da ordem (tempos por etapa).
 - Histórico/auditoria melhorado para evidenciar transições de estado.
-- **SLA (pausa não conta):** notificações/alertas de SLA em atraso **não disparam durante `em_pausa`**; ao **retomar**, se o SLA já estiver em atraso, é emitida notificação.
+- **SLA (pausa não conta) — completo:** o SLA passa a usar um **deadline efetivo** (deadline base + tempo acumulado em pausa).
+  - Não há ruído durante `em_pausa`.
+  - Ao **retomar**, se o SLA efetivo já estiver em atraso, é emitida notificação.
+  - Suporte por campos em `work_orders`: `sla_exclude_pause`, `sla_paused_ms`, `sla_pause_started_at` + patch idempotente.
+
+- **Alertas: aging por fase (Fase 4):** AlertService passa a suportar alertas por “envelhecimento por fase” (ex.: `aging_open`, `aging_analysis`, `aging_execution`) com threshold em horas/dias.
 
 ### Relatórios
 - **Export simples de downtime (por ativo + período)** em Relatórios (tipo “Downtime”), com export CSV/PDF usando os campos `downtime_*` das ordens (commit 25).
@@ -199,9 +204,13 @@ No modal da ordem no frontend existe um cartão “SLA por fase (informativo)”
 - Paragem
 
 #### SLA: “tempo em pausa não conta” (comportamento de alertas)
-Para alinhar com o track “Fábrica + Gestão” (Fase 4 — Alertas/SLA), foi aplicado um comportamento simples e seguro:
-- **Enquanto a ordem está em `em_pausa`**, o sistema **não emite** notificações/alertas periódicos de “SLA em atraso”.
-- **Ao retomar** (`em_pausa` → `em_execucao`), se o `sla_deadline` já estiver no passado, o sistema emite uma notificação de “SLA em atraso”.
+Para alinhar com o track “Fábrica + Gestão” (Fase 4 — Alertas/SLA), o SLA passou a ser medido por **deadline efetivo**:
+- `effective_deadline = sla_deadline + sla_paused_ms (+ delta de pausa em curso quando aplicável)`
+
+Comportamento:
+- **Enquanto a ordem está em `em_pausa`** (e `sla_exclude_pause=true`), o sistema não emite ruído periódico.
+- **Ao retomar** (`em_pausa` → `em_execucao`), se o deadline efetivo já estiver em atraso, emite notificação.
+- As verificações periódicas de alertas/notificações usam o deadline efetivo (não o valor bruto de `sla_deadline`).
 
 Isto evita ruído durante pausas (por exemplo, “aguardando peças”) e concentra o alerta no momento em que o trabalho recomeça.
 

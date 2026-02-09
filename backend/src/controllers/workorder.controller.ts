@@ -7,6 +7,7 @@ import { AuditService } from '../services/audit.service.js';
 import { logger } from '../config/logger.js';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 import { StockReservationService } from '../services/stockreservation.service.js';
+import { isSlaOverdue } from '../utils/workorder-sla.js';
 import {
   createStockReservationSchema,
   releaseStockReservationSchema,
@@ -603,8 +604,7 @@ export class WorkOrderController {
         const normalizedPrevStatus = normalizeExistingStatus(String(existing.status));
         const normalizedNextStatus = normalizeExistingStatus(String(nextStatus));
         if (normalizedPrevStatus === 'em_pausa' && normalizedNextStatus === 'em_execucao') {
-          const deadline = (workOrder as any).sla_deadline ? new Date((workOrder as any).sla_deadline) : null;
-          if (deadline && deadline.getTime() < Date.now()) {
+          if (isSlaOverdue(workOrder as any, new Date())) {
             await NotificationService.notifySlaOverdueForOrder(workOrder as any, {
               message: `Ordem ${workOrder.title} foi retomada e está com SLA em atraso.`,
             });

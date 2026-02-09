@@ -3,6 +3,7 @@ import { db } from '../config/database.js';
 import { notificationRules, spareParts, stockMovements, userPlants, workOrders } from '../db/schema.js';
 import { CacheKeys, CacheTTL, RedisService } from './redis.service.js';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
+import { isSlaOverdue } from '../utils/workorder-sla.js';
 
 const MANAGER_ROLES = ['gestor_manutencao', 'admin_empresa', 'superadmin'];
 const DEFAULT_RULES = [
@@ -245,6 +246,7 @@ export class NotificationService {
     });
 
     for (const order of rows) {
+      if (!isSlaOverdue(order, now)) continue;
       await NotificationService.notifySlaOverdueForOrder(order);
     }
   }

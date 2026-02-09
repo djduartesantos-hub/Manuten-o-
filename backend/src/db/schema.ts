@@ -413,6 +413,15 @@ export const workOrders = pgTable(
     root_cause: text('root_cause'),
     corrective_action: text('corrective_action'),
     sla_deadline: timestamp('sla_deadline', { withTimezone: true }),
+
+    // SLA / aging helpers
+    // When true, time in pause should not count against SLA (effective deadline is extended by pause time)
+    sla_exclude_pause: boolean('sla_exclude_pause').notNull().default(true),
+    // Accumulated paused time (milliseconds)
+    sla_paused_ms: integer('sla_paused_ms').notNull().default(0),
+    // When currently paused, stores when the pause started (for accumulating delta on resume)
+    sla_pause_started_at: timestamp('sla_pause_started_at', { withTimezone: true }),
+
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true })
       .defaultNow()

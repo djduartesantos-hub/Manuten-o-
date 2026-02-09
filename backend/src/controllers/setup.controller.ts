@@ -906,6 +906,7 @@ END $$;`
       const migrations = await SetupController.runMigrationsInternal();
       await SetupController.applyWorkOrdersPatchInternal();
       await SetupController.applyWorkOrdersDowntimeRcaPatchInternal();
+      await SetupController.applyWorkOrdersSlaPausePatchInternal();
       await SetupController.applyMaintenancePlansToleranceModePatchInternal();
       await SetupController.applyMaintenancePlansScheduleAnchorModePatchInternal();
       await SetupController.applyStockReservationsPatchInternal();
@@ -921,6 +922,7 @@ END $$;`
           patches: [
             'work_orders_work_performed',
             'work_orders_downtime_rca_fields',
+            'work_orders_sla_pause',
             'maintenance_plans_tolerance_mode',
             'maintenance_plans_schedule_anchor_mode',
             'stock_reservations',
@@ -998,6 +1000,73 @@ END $$;`
               AND column_name = 'corrective_action'
           ) THEN
             ALTER TABLE work_orders ADD COLUMN corrective_action TEXT;
+          END IF;
+        END IF;
+      END $$;
+    `));
+  }
+
+  /**
+   * Patch: add SLA pause/exclude helper columns to work_orders if missing
+   */
+  static async patchWorkOrdersSlaPause(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user || req.user.role !== 'superadmin') {
+        res.status(403).json({
+          success: false,
+          error: 'Only superadmin can run patches',
+        });
+        return;
+      }
+
+      await SetupController.applyWorkOrdersSlaPausePatchInternal();
+
+      res.json({
+        success: true,
+        message: 'Patch aplicado com sucesso',
+        data: { patch: 'work_orders_sla_pause' },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to apply patch',
+      });
+    }
+  }
+
+  private static async applyWorkOrdersSlaPausePatchInternal(): Promise<void> {
+    await db.execute(sql.raw(`
+      DO $$
+      BEGIN
+        IF to_regclass('public.work_orders') IS NOT NULL THEN
+          IF NOT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'work_orders'
+              AND column_name = 'sla_exclude_pause'
+          ) THEN
+            ALTER TABLE work_orders ADD COLUMN sla_exclude_pause boolean NOT NULL DEFAULT true;
+          END IF;
+
+          IF NOT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'work_orders'
+              AND column_name = 'sla_paused_ms'
+          ) THEN
+            ALTER TABLE work_orders ADD COLUMN sla_paused_ms integer NOT NULL DEFAULT 0;
+          END IF;
+
+          IF NOT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'work_orders'
+              AND column_name = 'sla_pause_started_at'
+          ) THEN
+            ALTER TABLE work_orders ADD COLUMN sla_pause_started_at timestamptz;
           END IF;
         END IF;
       END $$;

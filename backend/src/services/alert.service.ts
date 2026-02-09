@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { CacheKeys, CacheTTL, RedisService } from './redis.service.js';
 import { logger } from '../config/logger.js';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
+import { getWorkOrderStatusAgingMs, isSlaOverdue } from '../utils/workorder-sla.js';
 
 export class AlertService {
   // ========== ALERT CONFIGURATIONS ==========
@@ -490,7 +491,7 @@ export class AlertService {
 
         const now = new Date();
         for (const order of criticalOrders) {
-          if (order.sla_deadline && new Date(order.sla_deadline) < now) {
+          if (isSlaOverdue(order, now)) {
             await this.createAlert({
               tenant_id: tenantId,
               alert_config_id: config.id,
@@ -500,6 +501,67 @@ export class AlertService {
             }, {
               dedupe: { scope: 'message', windowHours: 24 },
             });
+          }
+        }
+      }
+
+      // Verificar aging por fase
+      if (
+        config.alert_type === 'aging_open' ||
+        config.alert_type === 'aging_analysis' ||
+        config.alert_type === 'aging_execution'
+      ) {
+        const statusesByType: Record<string, string[]> = {
+          aging_open: ['aberta'],
+          aging_analysis: ['em_analise'],
+          // Execution aging: suppress during pause (same rationale as SLA)
+          aging_execution: ['em_execucao'],
+        };
+
+        const targetStatuses = statusesByType[config.alert_type] || [];
+        if (targetStatuses.length > 0) {
+          const orders = await db.query.workOrders.findMany({
+            where: and(
+              eq(workOrders.tenant_id, tenantId),
+              eq(workOrders.asset_id, assetId),
+              inArray(workOrders.status, targetStatuses as any),
+            ),
+          });
+
+          const unit = String(config.time_unit || 'hours');
+          const thresholdMs =
+            unit === 'days'
+              ? config.threshold * 24 * 60 * 60 * 1000
+              : config.threshold * 60 * 60 * 1000;
+          const now = new Date();
+
+          for (const order of orders as any[]) {
+            const agingMs = getWorkOrderStatusAgingMs(order, now);
+            if (agingMs === null) continue;
+            if (agingMs < thresholdMs) continue;
+
+            const phaseLabel =
+              config.alert_type === 'aging_open'
+                ? 'Aberta'
+                : config.alert_type === 'aging_analysis'
+                  ? 'Em Análise'
+                  : 'Em Execução';
+
+            const totalHours = Math.round((agingMs / (60 * 60 * 1000)) * 10) / 10;
+            const thresholdHours = Math.round((thresholdMs / (60 * 60 * 1000)) * 10) / 10;
+
+            await this.createAlert(
+              {
+                tenant_id: tenantId,
+                alert_config_id: config.id,
+                asset_id: assetId,
+                severity: 'high',
+                message: `Aging (${phaseLabel}): Ordem ${order.id} excedeu ${thresholdHours}h (atual ${totalHours}h)`,
+              },
+              {
+                dedupe: { scope: 'message', windowHours: 24 },
+              },
+            );
           }
         }
       }
