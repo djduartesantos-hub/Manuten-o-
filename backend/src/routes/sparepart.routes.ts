@@ -13,6 +13,9 @@ router.use(plantMiddleware);
 // GET /api/tenants/:plantId/spareparts - listar peças
 router.get('/:plantId/spareparts', SparePartController.getSpareParts);
 
+// GET /api/tenants/:plantId/spareparts/forecast - previsão simples de consumo
+router.get('/:plantId/spareparts/forecast', SparePartController.getSparePartsForecast);
+
 // POST /api/tenants/:plantId/spareparts - criar peça
 router.post(
   '/:plantId/spareparts',

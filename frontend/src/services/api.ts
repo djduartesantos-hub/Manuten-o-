@@ -396,6 +396,12 @@ export async function getSpareParts(plantId: string) {
   return apiCall(`/${plantId}/spareparts`);
 }
 
+export async function getSparePartsForecast(plantId: string, days: number = 30) {
+  const params = new URLSearchParams();
+  params.append('days', String(days));
+  return apiCall(`/${plantId}/spareparts/forecast?${params.toString()}`);
+}
+
 export async function getSuppliers(plantId: string, search?: string) {
   const params = new URLSearchParams();
   if (search) params.append('search', search);

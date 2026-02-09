@@ -8,8 +8,10 @@ import {
   updateSparePartSchema,
   createStockMovementSchema,
 } from '../schemas/sparepart.validation.js';
+import { SparePartForecastService } from '../services/sparepartforecast.service.js';
 
 const sparePartService = new SparePartService();
+const sparePartForecastService = new SparePartForecastService();
 
 /**
  * Get all spare parts for tenant
@@ -34,6 +36,32 @@ export async function getSpareParts(req: AuthenticatedRequest, res: Response) {
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch spare parts',
+    });
+  }
+}
+
+/**
+ * Get spare parts forecast for a plant
+ * GET /spareparts/forecast?days=30
+ */
+export async function getSparePartsForecast(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { plantId } = req.params;
+    const daysRaw = req.query?.days;
+    const days = daysRaw ? Number(daysRaw) : 30;
+
+    if (!plantId) {
+      res.status(400).json({ success: false, error: 'Plant ID is required' });
+      return;
+    }
+
+    const result = await sparePartForecastService.getForecast(req.tenantId!, plantId, days);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    console.error('Error fetching spare parts forecast:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch spare parts forecast',
     });
   }
 }

@@ -13,6 +13,7 @@ import { useAppStore } from '../context/store';
 import { useAuth } from '../hooks/useAuth';
 import {
   getSpareParts,
+  getSparePartsForecast,
   getStockMovementsByPlant,
 } from '../services/api';
 import { StockEntryPage } from './StockEntryPage';
@@ -45,12 +46,36 @@ interface StockMovement {
 export function SparePartsPage() {
   const { selectedPlant } = useAppStore();
   const { user } = useAuth();
-  const [activeView, setActiveView] = useState<'parts' | 'movements'>('parts');
+  const [activeView, setActiveView] = useState<'parts' | 'movements' | 'forecast'>('parts');
   const [quickAction, setQuickAction] = useState<'spareparts' | 'stock' | null>(null);
   const [parts, setParts] = useState<SparePart[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [forecastDays, setForecastDays] = useState(30);
+  const [forecastLoading, setForecastLoading] = useState(false);
+  const [forecastError, setForecastError] = useState<string | null>(null);
+  const [forecastRows, setForecastRows] = useState<
+    Array<{
+      spare_part_id: string;
+      code: string;
+      name: string;
+      min_stock: number;
+      current_stock: number;
+      reserved_active: number;
+      predicted_demand: number;
+      projected_available: number;
+    }>
+  >([]);
+  const [forecastMeta, setForecastMeta] = useState<
+    | {
+        horizon_days: number;
+        from: string;
+        to: string;
+        total_schedules: number;
+      }
+    | null
+  >(null);
   const [movementTypeFilter, setMovementTypeFilter] = useState('all');
   const [movementStartDate, setMovementStartDate] = useState('');
   const [movementEndDate, setMovementEndDate] = useState('');
@@ -113,6 +138,34 @@ export function SparePartsPage() {
       setLoading(false);
     }
   }, [selectedPlant]);
+
+  const loadForecast = useCallback(async () => {
+    if (!selectedPlant) return;
+
+    setForecastLoading(true);
+    setForecastError(null);
+    try {
+      const data = await getSparePartsForecast(selectedPlant, forecastDays);
+      const result = (data?.rows ? data : data?.data) || data;
+      setForecastRows(Array.isArray(result?.rows) ? result.rows : []);
+      setForecastMeta(
+        result && typeof result === 'object'
+          ? {
+              horizon_days: result.horizon_days ?? forecastDays,
+              from: result.from,
+              to: result.to,
+              total_schedules: result.total_schedules ?? 0,
+            }
+          : null,
+      );
+    } catch (err: any) {
+      setForecastRows([]);
+      setForecastMeta(null);
+      setForecastError(err.message || 'Erro ao calcular previsão');
+    } finally {
+      setForecastLoading(false);
+    }
+  }, [forecastDays, selectedPlant]);
 
   useEffect(() => {
     loadData();
@@ -341,6 +394,22 @@ export function SparePartsPage() {
                   }`}
                 >
                   Movimentos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveView('forecast');
+                    if (selectedPlant && forecastRows.length === 0 && !forecastLoading) {
+                      loadForecast();
+                    }
+                  }}
+                  className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                    activeView === 'forecast'
+                      ? 'bg-[color:var(--dash-surface)] theme-text'
+                      : 'theme-text-muted hover:bg-[color:var(--dash-surface)]'
+                  }`}
+                >
+                  Previsão
                 </button>
               </div>
               <button
@@ -885,6 +954,164 @@ export function SparePartsPage() {
                       </button>
                     </div>
                   )}
+                </div>
+              </section>
+            )}
+
+            {selectedPlant && activeView === 'forecast' && (
+              <section>
+                <div className="rounded-[28px] border theme-border theme-card shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
+                  <div className="border-b border-[color:var(--dash-border)] p-5">
+                    <h2 className="text-lg font-semibold theme-text">Previsão de consumo</h2>
+                    <p className="text-sm theme-text-muted">
+                      Estimativa simples baseada nas preventivas agendadas e kits ativos.
+                    </p>
+                  </div>
+
+                  <div className="border-b border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-[220px_1fr] md:items-end">
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] theme-text-muted">
+                          Horizonte (dias)
+                        </p>
+                        <input
+                          type="number"
+                          min={1}
+                          max={365}
+                          className="input h-9"
+                          value={forecastDays}
+                          onChange={(event) => setForecastDays(Number(event.target.value))}
+                          disabled={forecastLoading}
+                        />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          onClick={loadForecast}
+                          disabled={forecastLoading}
+                        >
+                          {forecastLoading ? 'A calcular...' : 'Calcular'}
+                        </button>
+                        {forecastMeta && (
+                          <span className="text-xs theme-text-muted">
+                            {forecastMeta.total_schedules} preventivas no período
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {forecastError && (
+                      <div className="mt-3 rounded-2xl border theme-border bg-rose-500/10 p-4 text-sm shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <AlertCircle className="h-5 w-5 text-rose-600" />
+                          <p className="text-sm theme-text">{forecastError}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-4">
+                    {forecastLoading && (
+                      <div className="rounded-2xl border theme-border theme-card p-8 text-center shadow-sm">
+                        <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin theme-text-muted" />
+                        <p className="text-sm theme-text-muted">Calculando previsão...</p>
+                      </div>
+                    )}
+
+                    {!forecastLoading && forecastRows.length === 0 && !forecastError && (
+                      <div className="rounded-2xl border theme-border theme-card p-8 text-center shadow-sm">
+                        <p className="text-sm theme-text-muted">
+                          Sem dados de previsão para este período.
+                        </p>
+                      </div>
+                    )}
+
+                    {!forecastLoading && forecastRows.length > 0 && (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-[color:var(--dash-border)] text-sm">
+                          <thead className="bg-[color:var(--dash-panel)]">
+                            <tr>
+                              <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--dash-muted)]">
+                                Peça
+                              </th>
+                              <th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--dash-muted)]">
+                                Stock
+                              </th>
+                              <th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--dash-muted)]">
+                                Reservado
+                              </th>
+                              <th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--dash-muted)]">
+                                Previsto
+                              </th>
+                              <th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--dash-muted)]">
+                                Disponível proj.
+                              </th>
+                              <th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--dash-muted)]">
+                                Mín.
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[color:var(--dash-border)]">
+                            {forecastRows
+                              .filter((row) => row.predicted_demand > 0 || row.reserved_active > 0)
+                              .slice(0, 200)
+                              .map((row) => {
+                                const isShort = row.projected_available < 0;
+                                const isBelowMin = row.projected_available < (row.min_stock ?? 0);
+                                const badgeClass = isShort
+                                  ? 'badge-danger'
+                                  : isBelowMin
+                                    ? 'badge-warning'
+                                    : 'badge-success';
+                                const badgeLabel = isShort
+                                  ? 'Ruptura'
+                                  : isBelowMin
+                                    ? 'Atenção'
+                                    : 'OK';
+
+                                return (
+                                  <tr key={row.spare_part_id}>
+                                    <td className="px-3 py-2">
+                                      <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                          <p className="font-semibold theme-text">
+                                            {row.code} - {row.name}
+                                          </p>
+                                        </div>
+                                        <span className={badgeClass}>{badgeLabel}</span>
+                                      </div>
+                                    </td>
+                                    <td className="px-3 py-2 text-right theme-text">
+                                      {row.current_stock}
+                                    </td>
+                                    <td className="px-3 py-2 text-right theme-text">
+                                      {row.reserved_active}
+                                    </td>
+                                    <td className="px-3 py-2 text-right theme-text">
+                                      {row.predicted_demand}
+                                    </td>
+                                    <td className="px-3 py-2 text-right theme-text">
+                                      {row.projected_available}
+                                    </td>
+                                    <td className="px-3 py-2 text-right theme-text-muted">
+                                      {row.min_stock ?? 0}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                          </tbody>
+                        </table>
+
+                        {forecastRows.filter((row) => row.predicted_demand > 0 || row.reserved_active > 0)
+                          .length > 200 && (
+                          <p className="mt-3 text-xs theme-text-muted">
+                            A mostrar 200 itens (refine o horizonte para reduzir).
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </section>
             )}
