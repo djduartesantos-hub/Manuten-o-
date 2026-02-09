@@ -217,6 +217,7 @@ export function WorkOrdersPage() {
     scheduled_for: '',
     status: 'agendada',
     notes: '',
+    reschedule_reason: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -536,6 +537,7 @@ export function WorkOrdersPage() {
       scheduled_for: toDatetimeLocal(schedule.scheduled_for),
       status: schedule.status || 'agendada',
       notes: schedule.notes ? String(schedule.notes) : '',
+      reschedule_reason: '',
     });
   };
 
@@ -551,12 +553,24 @@ export function WorkOrdersPage() {
     const scheduledIso =
       toIsoFromDatetimeLocal(preventiveEditForm.scheduled_for) || editingPreventive.scheduled_for;
 
+    if (preventiveEditForm.status === 'reagendada') {
+      const reason = String(preventiveEditForm.reschedule_reason || '').trim();
+      if (reason.length < 3) {
+        setPreventiveError('Motivo é obrigatório ao reagendar/adiar');
+        return;
+      }
+    }
+
     setPreventiveSaving(true);
     try {
       await updatePreventiveSchedule(selectedPlant, editingPreventive.id, {
         status: preventiveEditForm.status,
         scheduled_for: scheduledIso,
         notes: preventiveEditForm.notes || undefined,
+        reschedule_reason:
+          preventiveEditForm.status === 'reagendada'
+            ? String(preventiveEditForm.reschedule_reason || '').trim()
+            : undefined,
       });
       await loadPreventiveSchedules();
       setEditingPreventive(null);
@@ -3137,6 +3151,27 @@ export function WorkOrdersPage() {
                           </select>
                         </div>
 
+                        {preventiveEditForm.status === 'reagendada' && (
+                          <div>
+                            <label className="text-xs font-semibold theme-text-muted">
+                              Motivo (obrigatório)
+                            </label>
+                            <textarea
+                              className="mt-1 w-full rounded-2xl border theme-border bg-[color:var(--dash-panel)] px-4 py-3 text-sm theme-text"
+                              rows={3}
+                              value={preventiveEditForm.reschedule_reason}
+                              onChange={(e) =>
+                                setPreventiveEditForm((p) => ({
+                                  ...p,
+                                  reschedule_reason: e.target.value,
+                                }))
+                              }
+                              placeholder="Ex: produção não permite hoje, falta de acesso, aguardando peças"
+                              disabled={!canManagePreventive || preventiveSaving}
+                            />
+                          </div>
+                        )}
+
                         <div>
                           <label className="text-xs font-semibold theme-text-muted">Notas</label>
                           <textarea
@@ -3156,15 +3191,34 @@ export function WorkOrdersPage() {
                         {!canManagePreventive ? (
                           <span className="text-xs theme-text-muted">Sem permissão para editar.</span>
                         ) : (
-                          <button
-                            type="button"
-                            className="btn-primary inline-flex items-center gap-2"
-                            onClick={savePreventiveEdit}
-                            disabled={preventiveSaving}
-                          >
-                            <Save className="h-4 w-4" />
-                            {preventiveSaving ? 'A guardar...' : 'Guardar alterações'}
-                          </button>
+                          <>
+                            {editingPreventive.status !== 'concluida' &&
+                              editingPreventive.status !== 'fechada' &&
+                              preventiveEditForm.status !== 'reagendada' && (
+                                <button
+                                  type="button"
+                                  className="btn-secondary"
+                                  onClick={() =>
+                                    setPreventiveEditForm((p) => ({
+                                      ...p,
+                                      status: 'reagendada',
+                                    }))
+                                  }
+                                  disabled={preventiveSaving}
+                                >
+                                  Adiar/Skip ciclo
+                                </button>
+                              )}
+                            <button
+                              type="button"
+                              className="btn-primary inline-flex items-center gap-2"
+                              onClick={savePreventiveEdit}
+                              disabled={preventiveSaving}
+                            >
+                              <Save className="h-4 w-4" />
+                              {preventiveSaving ? 'A guardar...' : 'Guardar alterações'}
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
