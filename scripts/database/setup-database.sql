@@ -177,6 +177,7 @@ CREATE TABLE maintenance_plans (
   frequency_type TEXT NOT NULL,
   frequency_value INTEGER NOT NULL,
   meter_threshold DECIMAL(15, 2),
+  auto_schedule BOOLEAN DEFAULT TRUE,
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL

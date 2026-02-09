@@ -183,13 +183,13 @@ After first deployment, update the `CORS_ORIGIN` environment variable:
 
 ### Database Migrations
 
-Migrations run automatically on each deployment via the `postDeploy` hook in `render.yaml`:
+Migrations run automatically on each deployment because the Docker image starts with:
 
-```yaml
-buildCommand: npm run build
-startCommand: npm start
-postDeploy: npm run db:migrate
+```sh
+npm run db:migrate && node dist/server.js
 ```
+
+(See `Dockerfile`.)
 
 To run migrations manually:
 1. Go to Render Dashboard → Web Service

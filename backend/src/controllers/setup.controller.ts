@@ -42,17 +42,27 @@ export class SetupController {
     return null;
   }
 
-  private static async runMigrationsInternal(): Promise<string[]> {
+  private static async listMigrationFiles(): Promise<{ dir: string | null; files: string[] }> {
     const migrationsDir = await SetupController.resolveMigrationsDir();
 
     if (!migrationsDir) {
-      return [];
+      return { dir: null, files: [] };
     }
 
     const entries = await fs.readdir(migrationsDir);
     const migrationFiles = entries
       .filter((file) => file.endsWith('.sql'))
       .sort((a, b) => a.localeCompare(b));
+
+    return { dir: migrationsDir, files: migrationFiles };
+  }
+
+  private static async runMigrationsInternal(): Promise<string[]> {
+    const { dir: migrationsDir, files: migrationFiles } = await SetupController.listMigrationFiles();
+
+    if (!migrationsDir) {
+      return [];
+    }
 
     if (migrationFiles.length === 0) {
       return [];
@@ -731,13 +741,18 @@ END $$;`
         return;
       }
 
+      const available = await SetupController.listMigrationFiles();
       const executed = await SetupController.runMigrationsInternal();
 
-      if (executed.length === 0) {
+      if (available.files.length === 0) {
         res.json({
           success: true,
           message: 'No migrations found',
-          data: { files: [] },
+          data: {
+            migrationsDir: available.dir,
+            availableFiles: [],
+            executedFiles: [],
+          },
         });
         return;
       }
@@ -745,7 +760,12 @@ END $$;`
       res.json({
         success: true,
         message: 'Migrations executed successfully',
-        data: { files: executed },
+        data: {
+          migrationsDir: available.dir,
+          availableFiles: available.files,
+          executedFiles: executed,
+          files: executed,
+        },
       });
     } catch (error) {
       res.status(500).json({
@@ -796,6 +816,7 @@ END $$;`
         return;
       }
 
+      const available = await SetupController.listMigrationFiles();
       const migrations = await SetupController.runMigrationsInternal();
       await SetupController.applyWorkOrdersPatchInternal();
 
@@ -804,6 +825,8 @@ END $$;`
         message: 'Correcoes aplicadas com sucesso',
         data: {
           migrations,
+          migrationsDir: available.dir,
+          availableMigrationFiles: available.files,
           patches: ['work_orders_work_performed'],
         },
       });
