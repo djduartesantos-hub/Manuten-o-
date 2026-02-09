@@ -375,7 +375,7 @@ function AlertsSettings() {
       {/* Form */}
       {showForm && (
         <div className="mb-6 overflow-hidden rounded-[24px] border theme-border theme-card shadow-sm">
-          <div className="h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent),var(--dash-accent-2))]" />
+          <div className="h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
           <form onSubmit={handleSubmit} className="space-y-4 p-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Asset */}
@@ -572,8 +572,9 @@ function AlertsSettings() {
           alerts.map((alert) => (
             <div
               key={alert.id}
-              className="rounded-2xl border theme-border theme-card p-4 shadow-sm"
+                className="relative overflow-hidden rounded-2xl border theme-border theme-card p-4 shadow-sm"
             >
+                <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -611,13 +612,13 @@ function AlertsSettings() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleEdit(alert)}
-                    className="rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
+                    className="rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => handleDelete(alert.id)}
-                    className="rounded-full border theme-border px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-500/10"
+                    className="rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-[color:var(--dash-surface)]"
                   >
                     Eliminar
                   </button>
