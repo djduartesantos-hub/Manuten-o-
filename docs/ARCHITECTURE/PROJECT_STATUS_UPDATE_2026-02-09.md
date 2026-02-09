@@ -43,6 +43,11 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 - “SLA por fase” **informativo** no modal da ordem (tempos por etapa).
 - Histórico/auditoria melhorado para evidenciar transições de estado.
 
+### Stock / Peças (operação)
+- **Reservas de stock por Ordem de Trabalho**: criar/listar/libertar reservas por peça e ordem.
+- **Kits de manutenção** (com itens): CRUD de kits + gestão de itens.
+- **Integração nas Ordens**: ação manual “Aplicar kit” para criar reservas em massa.
+
 ---
 
 ## 2) Referências rápidas (commits principais)
@@ -59,6 +64,11 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 - `c1b3662` — 14 - preventive: schedule anchor fixed vs interval + db patch
 - `89fec6d` — 13 - preventive: anti-duplicados (1 ativo por janela de tolerância)
 - `9a994b8` — 12 - preventive: tolerância soft/hard + justificação obrigatória (modo hard) + db patch
+- `b3457be` — 15 - docs: update project status (Fase 2 complete)
+- `aee4330` — 16 - stock: reservations per work order + db patch
+- `8fcc305` — 17 - kits: maintenance kits + db patch
+- `99f53ac` — 18 - kits: frontend management page
+- `0dabf98` — 19 - work-orders: apply maintenance kit to stock reservations
 
 ---
 
@@ -187,6 +197,34 @@ O frontend já apresentava “Histórico de alterações” via audit logs; foi 
 
 ---
 
+### 3.5 Stock/Peças — reservas por ordem + kits
+
+#### Reservas de stock por ordem
+- Introduzida a capacidade de **reservar stock por Ordem de Trabalho** (sem consumo automático).
+- A reserva reduz o **stock disponível** (disponível = stock − reservado ativo).
+- Operação pensada para chão de fábrica:
+  - criar reserva manualmente,
+  - ver reservas da ordem,
+  - libertar reservas quando já não são necessárias.
+
+**Notas operacionais**
+- Não foram adicionadas “regras extra” (automatismos avançados) por pedido — mantemos a operação manual e explícita.
+
+#### Kits de manutenção (ecrã de gestão)
+- Implementados **Kits de manutenção** com:
+  - cabeçalho do kit (`maintenance_kits`) e itens (`maintenance_kit_items`),
+  - regra: kit pode ser associado a `plan_id` **ou** `category_id` (não ambos),
+  - abordagem de itens **replace-all** (determinística) no endpoint de upsert.
+- Adicionados patches idempotentes + botão na página de atualização da BD (padrão do projeto).
+
+#### Integração nas Ordens: “Aplicar kit”
+- Na secção **Reservas de stock** das Ordens existe agora uma ação manual **Aplicar kit**:
+  - seleciona um kit ativo,
+  - cria reservas para cada item do kit,
+  - mostra feedback de sucesso total/parcial.
+
+---
+
 ## 4) Alterações de Schema (resumo)
 
 ### Preventivas
@@ -198,6 +236,10 @@ Campos adicionados (work_orders):
 - `paused_at`, `pause_reason`
 - `cancelled_at`, `cancel_reason`
 - `downtime_started_at`, `downtime_ended_at`, `downtime_minutes`, `downtime_reason`
+
+### Stock / Peças
+- Nova tabela `stock_reservations`
+- Novas tabelas `maintenance_kits` e `maintenance_kit_items`
 
 ---
 
@@ -232,11 +274,14 @@ Sugestões concretas para atualizar ROADMAP/README com base no que já está fei
 
 Frontend:
 - Ordens (UI principal): `frontend/src/pages/WorkOrdersPage.tsx`
+- Kits (UI de gestão): `frontend/src/pages/MaintenanceKitsPage.tsx`
 - Settings hub: `frontend/src/pages/SettingsPage.tsx`
 
 Backend:
 - Controlador de ordens: `backend/src/controllers/workorder.controller.ts`
 - Service de ordens: `backend/src/services/workorder.service.ts`
+- Service de reservas: `backend/src/services/stockreservation.service.ts`
+- Controller/Service de kits: `backend/src/controllers/maintenancekit.controller.ts`, `backend/src/services/maintenancekit.service.ts`
 - Schema Drizzle: `backend/src/db/schema.ts`
 
 ---
