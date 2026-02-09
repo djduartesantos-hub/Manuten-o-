@@ -924,6 +924,10 @@ function PreventiveMaintenanceSettings({
     status: 'agendada',
     notes: '',
   });
+  const [nextOnCompleteValue, setNextOnCompleteValue] = React.useState('');
+  const [nextOnCompleteUnit, setNextOnCompleteUnit] = React.useState<'days' | 'hours' | 'months'>(
+    'days',
+  );
 
   React.useEffect(() => {
     if (initialSection && (initialSection === 'plans' || initialSection === 'schedules')) {
@@ -936,6 +940,7 @@ function PreventiveMaintenanceSettings({
     frequency_value: 1,
     frequency_unit: 'days',
     description: '',
+    auto_schedule: true,
     tasks: [] as string[],
   });
 
@@ -1016,6 +1021,7 @@ function PreventiveMaintenanceSettings({
           description: formData.description || undefined,
           frequency_type: formData.frequency_unit,
           frequency_value: Number(formData.frequency_value),
+          auto_schedule: formData.auto_schedule,
         }),
       });
 
@@ -1027,6 +1033,7 @@ function PreventiveMaintenanceSettings({
         frequency_value: 1,
         frequency_unit: 'days',
         description: '',
+        auto_schedule: true,
         tasks: [],
       });
       fetchPlans();
@@ -1054,8 +1061,9 @@ function PreventiveMaintenanceSettings({
       asset_id: plan.asset_id,
       name: plan.name,
       frequency_value: plan.frequency_value,
-      frequency_unit: plan.frequency_unit,
+      frequency_unit: plan.frequency_type || plan.frequency_unit || 'days',
       description: plan.description || '',
+      auto_schedule: plan.auto_schedule !== false,
       tasks: plan.tasks || [],
     });
     setShowForm(true);
@@ -1124,11 +1132,33 @@ function PreventiveMaintenanceSettings({
     if (!selectedPlant) return;
     setScheduleError(null);
     try {
-      await updatePreventiveSchedule(selectedPlant, scheduleId, { status });
+      const patch: any = { status };
+      const parsedNext = Number(nextOnCompleteValue);
+      if (status === 'concluida' && nextOnCompleteValue.trim() && Number.isFinite(parsedNext) && parsedNext > 0) {
+        patch.next_interval_value = parsedNext;
+        patch.next_interval_unit = nextOnCompleteUnit;
+      }
+      await updatePreventiveSchedule(selectedPlant, scheduleId, patch);
       await fetchSchedules();
     } catch (err: any) {
       setScheduleError(err?.message || 'Erro ao atualizar agendamento');
     }
+  };
+
+  const selectedSchedulePlan = React.useMemo(() => {
+    if (!scheduleForm.plan_id) return null;
+    return plans.find((p) => p.id === scheduleForm.plan_id) || null;
+  }, [plans, scheduleForm.plan_id]);
+
+  const formatFrequency = (value: any, unit: any) => {
+    const safeValue = Number(value);
+    const safeUnit = String(unit || '').toLowerCase();
+    if (!safeValue || !safeUnit) return '';
+    if (safeUnit === 'days') return `${safeValue} dia(s)`;
+    if (safeUnit === 'months') return `${safeValue} mês(es)`;
+    if (safeUnit === 'hours') return `${safeValue} hora(s)`;
+    if (safeUnit === 'meter') return `${safeValue} (contador)`;
+    return `${safeValue} ${safeUnit}`;
   };
 
   return (
@@ -1267,10 +1297,28 @@ function PreventiveMaintenanceSettings({
                 >
                   <option value="days">Dias</option>
                   <option value="hours">Horas de funcionamento</option>
-                  <option value="cycles">Ciclos</option>
                   <option value="months">Meses</option>
+                  <option value="meter">Ciclos / Contador</option>
                 </select>
               </div>
+            </div>
+
+            <div className="flex items-center justify-between rounded-[18px] border theme-border bg-[color:var(--dash-surface)] p-4">
+              <div>
+                <p className="text-sm font-semibold theme-text">Auto agendamento</p>
+                <p className="mt-1 text-xs theme-text-muted">
+                  Ao concluir uma preventiva, criar o próximo agendamento automaticamente.
+                </p>
+              </div>
+              <label className="inline-flex items-center gap-2 text-sm font-semibold theme-text">
+                <input
+                  type="checkbox"
+                  checked={!!formData.auto_schedule}
+                  onChange={(e) => setFormData({ ...formData, auto_schedule: e.target.checked })}
+                  className="h-4 w-4 rounded border theme-border accent-[color:var(--settings-accent)]"
+                />
+                Ativo
+              </label>
             </div>
 
             {/* Description */}
@@ -1371,7 +1419,7 @@ function PreventiveMaintenanceSettings({
                   <div className="mt-3 grid gap-3 text-sm theme-text-muted sm:grid-cols-2">
                     <div>
                       <span className="font-medium">Frequencia:</span> A cada{' '}
-                      {plan.frequency_value} {plan.frequency_unit}
+                      {plan.frequency_value} {plan.frequency_type || plan.frequency_unit}
                     </div>
                     <div>
                       <span className="font-medium">Tarefas:</span> {plan.tasks?.length || 0}
@@ -1458,6 +1506,19 @@ function PreventiveMaintenanceSettings({
                       </option>
                     ))}
                   </select>
+                  {selectedSchedulePlan && (
+                    <p className="mt-2 text-xs theme-text-muted">
+                      Tipo: <span className="font-semibold theme-text">{selectedSchedulePlan.type || 'preventiva'}</span>
+                      {' • '}Frequência:{' '}
+                      <span className="font-semibold theme-text">
+                        {formatFrequency(
+                          selectedSchedulePlan.frequency_value,
+                          selectedSchedulePlan.frequency_type || selectedSchedulePlan.frequency_unit,
+                        ) || '—'}
+                      </span>
+                      {' • '}Auto: <span className="font-semibold theme-text">{selectedSchedulePlan.auto_schedule === false ? 'desligado' : 'ligado'}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -1513,6 +1574,27 @@ function PreventiveMaintenanceSettings({
                     <option value="em_execucao">Em execução</option>
                     <option value="concluida">Concluída</option>
                     <option value="fechada">Fechada</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium theme-text">Ao concluir, próximo em:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={nextOnCompleteValue}
+                    onChange={(e) => setNextOnCompleteValue(e.target.value)}
+                    placeholder="(usa plano)"
+                    className="input h-10 w-28 py-1"
+                  />
+                  <select
+                    value={nextOnCompleteUnit}
+                    onChange={(e) => setNextOnCompleteUnit(e.target.value as any)}
+                    className="input h-10 py-1"
+                  >
+                    <option value="days">dias</option>
+                    <option value="hours">horas</option>
+                    <option value="months">meses</option>
                   </select>
                 </div>
 

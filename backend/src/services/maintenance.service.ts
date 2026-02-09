@@ -19,6 +19,7 @@ export interface CreateMaintenancePlanInput {
   frequency_type: string;
   frequency_value: number;
   meter_threshold?: string;
+  auto_schedule?: boolean;
   is_active?: boolean;
 }
 
@@ -29,6 +30,7 @@ export interface UpdateMaintenancePlanInput {
   frequency_type?: string;
   frequency_value?: number;
   meter_threshold?: string;
+  auto_schedule?: boolean;
   is_active?: boolean;
 }
 
@@ -59,6 +61,8 @@ export interface UpdatePreventiveScheduleInput {
     | 'fechada'
     | 'reagendada';
   notes?: string;
+  next_interval_value?: number;
+  next_interval_unit?: 'hours' | 'days' | 'months';
 }
 
 function normalizePreventiveStatus(status?: string | null): string {
@@ -115,6 +119,7 @@ export class MaintenanceService {
         frequency_type: maintenancePlans.frequency_type,
         frequency_value: maintenancePlans.frequency_value,
         meter_threshold: maintenancePlans.meter_threshold,
+        auto_schedule: maintenancePlans.auto_schedule,
         is_active: maintenancePlans.is_active,
         asset_name: assets.name,
         created_at: maintenancePlans.created_at,
@@ -162,6 +167,7 @@ export class MaintenanceService {
           frequency_type: maintenancePlans.frequency_type,
           frequency_value: maintenancePlans.frequency_value,
           meter_threshold: maintenancePlans.meter_threshold,
+          auto_schedule: maintenancePlans.auto_schedule,
           is_active: maintenancePlans.is_active,
           asset_name: assets.name,
           created_at: maintenancePlans.created_at,
@@ -457,6 +463,7 @@ export class MaintenanceService {
             is_active: maintenancePlans.is_active,
             frequency_type: maintenancePlans.frequency_type,
             frequency_value: maintenancePlans.frequency_value,
+            auto_schedule: maintenancePlans.auto_schedule,
           })
           .from(maintenancePlans)
           .where(
@@ -468,19 +475,35 @@ export class MaintenanceService {
         const frequencyType = plan?.frequency_type;
         const frequencyValue = Number(plan?.frequency_value || 0);
 
+        const overrideValue =
+          typeof patch.next_interval_value === 'number' && patch.next_interval_value > 0
+            ? patch.next_interval_value
+            : 0;
+        const overrideUnit = patch.next_interval_unit;
+
+        const planAllowsAuto = (plan as any)?.auto_schedule !== false;
+
         const canAutoSchedule =
           !!plan &&
           plan.type === 'preventiva' &&
           plan.is_active !== false &&
-          frequencyValue > 0 &&
-          (frequencyType === 'days' || frequencyType === 'months');
+          ((overrideValue > 0 && !!overrideUnit) ||
+            (planAllowsAuto &&
+              frequencyValue > 0 &&
+              (frequencyType === 'days' || frequencyType === 'months' || frequencyType === 'hours')));
 
         if (canAutoSchedule) {
           const baseDate =
             (schedule?.completed_at as any) || updates.completed_at || new Date();
           const nextDate = new Date(baseDate);
 
-          if (frequencyType === 'days') {
+          if (overrideValue > 0 && overrideUnit) {
+            if (overrideUnit === 'hours') nextDate.setHours(nextDate.getHours() + overrideValue);
+            if (overrideUnit === 'days') nextDate.setDate(nextDate.getDate() + overrideValue);
+            if (overrideUnit === 'months') nextDate.setMonth(nextDate.getMonth() + overrideValue);
+          } else if (frequencyType === 'hours') {
+            nextDate.setHours(nextDate.getHours() + frequencyValue);
+          } else if (frequencyType === 'days') {
             nextDate.setDate(nextDate.getDate() + frequencyValue);
           } else {
             nextDate.setMonth(nextDate.getMonth() + frequencyValue);
@@ -555,6 +578,7 @@ export class MaintenanceService {
         frequency_type: maintenancePlans.frequency_type,
         frequency_value: maintenancePlans.frequency_value,
         meter_threshold: maintenancePlans.meter_threshold,
+        auto_schedule: maintenancePlans.auto_schedule,
         is_active: maintenancePlans.is_active,
         asset_name: assets.name,
         created_at: maintenancePlans.created_at,
@@ -631,6 +655,7 @@ export class MaintenanceService {
         meter_threshold: input.meter_threshold
           ? parseFloat(input.meter_threshold).toString()
           : undefined,
+        auto_schedule: input.auto_schedule,
         is_active: input.is_active ?? true,
       })
       .returning();
@@ -671,6 +696,10 @@ export class MaintenanceService {
           input.meter_threshold !== undefined
             ? parseFloat(input.meter_threshold).toString()
             : plan.meter_threshold,
+        auto_schedule:
+          input.auto_schedule !== undefined
+            ? input.auto_schedule
+            : (plan as any).auto_schedule,
         is_active: input.is_active ?? plan.is_active,
         updated_at: new Date(),
       })

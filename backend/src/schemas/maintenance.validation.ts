@@ -15,10 +15,11 @@ export const createMaintenancePlanSchema = z.object({
   description: z.string().max(2000).optional(),
   type: z.enum(['preventiva', 'corretiva']).default('preventiva'),
   frequency_type: z
-    .enum(['days', 'months', 'meter'])
+    .enum(['days', 'months', 'hours', 'meter'])
     .describe('Tipo de frequência: dias, meses ou leitura de contador'),
   frequency_value: z.number().int().positive('Valor deve ser positivo'),
   meter_threshold: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Formato decimal inválido').optional(),
+  auto_schedule: z.boolean().optional(),
   is_active: z.boolean().default(true),
 });
 
@@ -26,9 +27,10 @@ export const updateMaintenancePlanSchema = z.object({
   name: z.string().min(3).max(200).optional(),
   description: z.string().max(2000).optional(),
   type: z.enum(['preventiva', 'corretiva']).optional(),
-  frequency_type: z.enum(['days', 'months', 'meter']).optional(),
+  frequency_type: z.enum(['days', 'months', 'hours', 'meter']).optional(),
   frequency_value: z.number().int().positive().optional(),
   meter_threshold: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+  auto_schedule: z.boolean().optional(),
   is_active: z.boolean().optional(),
 });
 
@@ -51,6 +53,8 @@ export const updatePreventiveScheduleSchema = z.object({
   scheduled_for: z.string().datetime('scheduled_for deve ser uma data ISO válida').optional(),
   status: preventiveScheduleStatusSchema.optional(),
   notes: z.string().max(2000).optional(),
+  next_interval_value: z.number().int().positive().optional(),
+  next_interval_unit: z.enum(['hours', 'days', 'months']).optional(),
 });
 
 export type CreateMaintenancePlanInput = z.infer<typeof createMaintenancePlanSchema>;

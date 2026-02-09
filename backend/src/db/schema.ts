@@ -204,9 +204,10 @@ export const maintenancePlans = pgTable(
     name: text('name').notNull(),
     description: text('description'),
     type: maintenanceTypeEnum('type').notNull().default('preventiva'),
-    frequency_type: text('frequency_type').notNull(), // 'days', 'months', 'meter'
+    frequency_type: text('frequency_type').notNull(), // 'days', 'months', 'hours', 'meter'
     frequency_value: integer('frequency_value').notNull(),
     meter_threshold: decimal('meter_threshold', { precision: 15, scale: 2 }),
+    auto_schedule: boolean('auto_schedule').default(true),
     is_active: boolean('is_active').default(true),
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true })
