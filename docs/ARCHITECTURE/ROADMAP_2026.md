@@ -16,7 +16,6 @@ Este track é o plano **prático** para as próximas iterações, com foco em op
 
 ### Fase 0 — Quick Wins (1-2 semanas)
 - Ordens: CTAs dedicados para **Pausar/Cancelar** com motivo no próprio fluxo.
-- Ordens: fecho com campos recomendados (opcionais) — causa raiz + ação corretiva.
 - Preventivas: “Adiar/Skip ciclo” com motivo.
 - Relatórios: export simples de downtime (por ativo e por período).
 

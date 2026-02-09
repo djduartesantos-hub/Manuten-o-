@@ -17,10 +17,14 @@ Este ficheiro é um **ROADMAP novo (draft)** para consolidar as próximas melhor
 
 ## Fase 0 — Quick Wins (1-2 semanas)
 
+**Selecionado (vamos começar por aqui)**
+1) Ordens: CTA dedicado **Cancelar** com motivo no próprio fluxo
+2) Ordens: CTA dedicado **Pausar** com motivo no próprio fluxo (sem depender do dropdown)
+3) Preventivas: ação explícita **Adiar/Skip ciclo** com motivo
+
 **Ordens**
 - CTA “Cancelar” com motivo obrigatório no próprio botão.
 - CTA “Pausar” com motivo (já existe) consistente em todos os fluxos.
-- Campos recomendados no fecho: causa raiz + ação corretiva (começar como opcional).
 
 **Preventivas**
 - “Adiar/Skip ciclo” com motivo.
@@ -31,6 +35,11 @@ Este ficheiro é um **ROADMAP novo (draft)** para consolidar as próximas melhor
 
 **DB/API**
 - Preferência por **sem migrações**; se necessário, introduzir apenas campos opcionais.
+
+**Aceitação (Fase 0)**
+- Operador consegue pausar/cancelar sem depender do dropdown de estado.
+- Motivo é obrigatório e validado (frontend + backend) antes de submeter.
+- Não há migração de BD nesta fase.
 
 ---
 
@@ -125,9 +134,8 @@ Este ficheiro é um **ROADMAP novo (draft)** para consolidar as próximas melhor
 
 ---
 
-## Próxima decisão (para fechar o draft)
+## Decisões (estado)
 
-Escolher:
-1) Quais 3 itens entram na Fase 0 agora
-2) Se a timeline vai ser derivada de audit logs ou se criamos `work_order_events`
-3) (Fechado) tolerância hard é por **justificação**
+- **Fase 0 (itens):** fechada (lista acima).
+- **Timeline:** começa por ser **derivada de audit logs**; `work_order_events` só entra se houver necessidade real (eventos manuais, performance, relatórios por evento).
+- **Tolerância hard:** é por **justificação** (sem bloqueio por defeito).

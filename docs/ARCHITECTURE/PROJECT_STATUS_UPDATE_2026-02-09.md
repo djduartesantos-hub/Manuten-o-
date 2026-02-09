@@ -232,7 +232,6 @@ Este roadmap é um **draft prático**, alinhado com chão de fábrica **e** gest
 **Ordens**
 - Botão “Cancelar” dedicado (em vez de depender só do dropdown), com motivo obrigatório no próprio CTA.
 - Botão “Colocar em pausa” com motivo obrigatório (já exigido), garantindo UX consistente em todos os fluxos.
-- Campos de fecho padronizados: “causa raiz” e “ação corretiva” (inicialmente opcionais, mas recomendados ao fechar).
 
 **Preventivas**
 - Ações explícitas para “Adiar ciclo / Skip ciclo” com motivo (útil quando não é possível executar).
@@ -249,7 +248,7 @@ Este roadmap é um **draft prático**, alinhado com chão de fábrica **e** gest
 
 **Entrega (funcional)**
 - Padronizar “timeline” com eventos chave (estado, responsável, pausa, cancelamento, conclusão, fecho).
-- “Regras de fecho”: ao fechar, pedir (ou recomendar fortemente) causa raiz + ação corretiva.
+- “Regras de fecho”: ao fechar, pedir (ou recomendar fortemente) causa raiz + ação corretiva (provável BD/API: `root_cause` e `corrective_action`).
 - Downtime mais completo:
   - diferenciar “paragem total” vs “paragem parcial”,
   - categoria do downtime (produção / segurança / energia / peças / outras),
