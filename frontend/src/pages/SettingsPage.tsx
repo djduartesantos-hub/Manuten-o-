@@ -752,7 +752,7 @@ function NotificationSettings() {
           </p>
         </div>
         <button
-          className="inline-flex items-center gap-2 rounded-full bg-[color:var(--dash-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-full bg-[color:var(--settings-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
           onClick={handleSaveNotificationRules}
           disabled={notificationsSaving || notificationsLoading}
         >
@@ -786,8 +786,9 @@ function NotificationSettings() {
             return (
               <div
                 key={event.value}
-                className="rounded-[22px] border theme-border bg-[color:var(--dash-surface)] p-4"
+                className="relative overflow-hidden rounded-[22px] border theme-border theme-card p-4 shadow-sm"
               >
+                <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold theme-text">{event.label}</p>
