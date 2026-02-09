@@ -597,6 +597,19 @@ export class WorkOrderController {
           type: 'info',
           workOrderId: workOrder.id,
         });
+
+        // If resuming from pause, and SLA is already overdue, notify at resume time.
+        // This aligns with the track decision: paused time should not count.
+        const normalizedPrevStatus = normalizeExistingStatus(String(existing.status));
+        const normalizedNextStatus = normalizeExistingStatus(String(nextStatus));
+        if (normalizedPrevStatus === 'em_pausa' && normalizedNextStatus === 'em_execucao') {
+          const deadline = (workOrder as any).sla_deadline ? new Date((workOrder as any).sla_deadline) : null;
+          if (deadline && deadline.getTime() < Date.now()) {
+            await NotificationService.notifySlaOverdueForOrder(workOrder as any, {
+              message: `Ordem ${workOrder.title} foi retomada e está com SLA em atraso.`,
+            });
+          }
+        }
       }
 
       // Release any active stock reservations when an order is finalized.

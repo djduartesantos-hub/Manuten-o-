@@ -483,7 +483,8 @@ export class AlertService {
           where: and(
             eq(workOrders.tenant_id, tenantId),
             eq(workOrders.asset_id, assetId),
-            notInArray(workOrders.status, ['concluida', 'fechada', 'cancelada'] as any),
+            // When paused, SLA time should not count; alerting happens when work resumes.
+            notInArray(workOrders.status, ['concluida', 'fechada', 'cancelada', 'em_pausa'] as any),
           ),
         });
 

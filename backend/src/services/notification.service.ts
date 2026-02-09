@@ -239,31 +239,49 @@ export class NotificationService {
       where: (fields: any, { and, lt, notInArray }: any) =>
         and(
           lt(fields.sla_deadline, now),
-          notInArray(fields.status, ['concluida', 'fechada', 'cancelada']),
+          // When paused, SLA time should not count; notify on resume instead.
+          notInArray(fields.status, ['concluida', 'fechada', 'cancelada', 'em_pausa']),
         ),
     });
 
     for (const order of rows) {
-      const rule = await NotificationService.getRule(order.tenant_id, 'sla_overdue');
-      if (!NotificationService.shouldSend(rule)) continue;
-      const cacheKey = `sla-overdue:${order.id}`;
-      const alreadyNotified = await RedisService.exists(cacheKey);
-      if (alreadyNotified) continue;
-
-      await RedisService.set(cacheKey, '1', 6 * 60 * 60);
-
-      await NotificationService.notifyWorkOrderEvent({
-        tenantId: order.tenant_id,
-        plantId: order.plant_id,
-        eventType: 'sla_overdue',
-        assignedTo: order.assigned_to,
-        createdBy: order.created_by,
-        title: 'SLA em atraso',
-        message: `Ordem ${order.title} passou o SLA e precisa de atencao.`,
-        type: 'warning',
-        workOrderId: order.id,
-      });
+      await NotificationService.notifySlaOverdueForOrder(order);
     }
+  }
+
+  static async notifySlaOverdueForOrder(
+    order: {
+      id: string;
+      tenant_id: string;
+      plant_id: string;
+      title: string;
+      assigned_to?: string | null;
+      created_by?: string | null;
+    },
+    options?: {
+      message?: string;
+    },
+  ) {
+    const rule = await NotificationService.getRule(order.tenant_id, 'sla_overdue');
+    if (!NotificationService.shouldSend(rule)) return;
+
+    const cacheKey = `sla-overdue:${order.id}`;
+    const alreadyNotified = await RedisService.exists(cacheKey);
+    if (alreadyNotified) return;
+
+    await RedisService.set(cacheKey, '1', 6 * 60 * 60);
+
+    await NotificationService.notifyWorkOrderEvent({
+      tenantId: order.tenant_id,
+      plantId: order.plant_id,
+      eventType: 'sla_overdue',
+      assignedTo: order.assigned_to,
+      createdBy: order.created_by,
+      title: 'SLA em atraso',
+      message: options?.message || `Ordem ${order.title} passou o SLA e precisa de atencao.`,
+      type: 'warning',
+      workOrderId: order.id,
+    });
   }
 
   static async checkLowStockForPart(tenantId: string, plantId: string, sparePartId: string) {

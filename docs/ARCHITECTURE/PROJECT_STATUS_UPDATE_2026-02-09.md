@@ -42,6 +42,7 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 - Introduzido registo de **paragem (downtime)** (início/fim/motivo) e cálculo de `downtime_minutes`.
 - “SLA por fase” **informativo** no modal da ordem (tempos por etapa).
 - Histórico/auditoria melhorado para evidenciar transições de estado.
+- **SLA (pausa não conta):** notificações/alertas de SLA em atraso **não disparam durante `em_pausa`**; ao **retomar**, se o SLA já estiver em atraso, é emitida notificação.
 
 ### Stock / Peças (operação)
 - **Reservas de stock por Ordem de Trabalho**: criar/listar/libertar reservas por peça e ordem.
@@ -192,6 +193,13 @@ No modal da ordem no frontend existe um cartão “SLA por fase (informativo)”
 - Análise → Execução
 - Execução → Conclusão
 - Paragem
+
+#### SLA: “tempo em pausa não conta” (comportamento de alertas)
+Para alinhar com o track “Fábrica + Gestão” (Fase 4 — Alertas/SLA), foi aplicado um comportamento simples e seguro:
+- **Enquanto a ordem está em `em_pausa`**, o sistema **não emite** notificações/alertas periódicos de “SLA em atraso”.
+- **Ao retomar** (`em_pausa` → `em_execucao`), se o `sla_deadline` já estiver no passado, o sistema emite uma notificação de “SLA em atraso”.
+
+Isto evita ruído durante pausas (por exemplo, “aguardando peças”) e concentra o alerta no momento em que o trabalho recomeça.
 
 #### Auditoria / Timeline
 O frontend já apresentava “Histórico de alterações” via audit logs; foi melhorado para mostrar claramente:
