@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../types/index.js';
 import { WorkOrderService } from '../services/workorder.service.js';
 import { NotificationService } from '../services/notification.service.js';
+import { AlertService } from '../services/alert.service.js';
 import { AuditService } from '../services/audit.service.js';
 import { logger } from '../config/logger.js';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
@@ -125,6 +126,15 @@ export class WorkOrderController {
             assigned_to: workOrder.assigned_to,
           },
           ip_address: req.ip,
+        });
+      }
+
+      if (workOrder.asset_id) {
+        void AlertService.checkAndTriggerAlerts(tenantId, workOrder.asset_id).catch((err) => {
+          logger.warn('Alert check failed after work order create', {
+            error: err instanceof Error ? err.message : err,
+            workOrderId: workOrder.id,
+          });
         });
       }
 
@@ -338,6 +348,19 @@ export class WorkOrderController {
         updates,
         plantId,
       );
+
+      const shouldTriggerAlerts = Boolean(
+        updates.status || updates.sla_deadline || updates.asset_id || updates.completed_at || updates.priority,
+      );
+      const assetIdForAlerts = workOrder.asset_id || existing.asset_id;
+      if (shouldTriggerAlerts && assetIdForAlerts) {
+        void AlertService.checkAndTriggerAlerts(tenantId, assetIdForAlerts).catch((err) => {
+          logger.warn('Alert check failed after work order update', {
+            error: err instanceof Error ? err.message : err,
+            workOrderId: workOrder.id,
+          });
+        });
+      }
 
       if (req.user?.userId) {
         const fields = Object.keys(updates || {});

@@ -4,7 +4,7 @@ import {
   alertsHistory,
   workOrders,
 } from '../db/schema.js';
-import { eq, and, desc, inArray, notInArray } from 'drizzle-orm';
+import { eq, and, desc, inArray, notInArray, gt } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { CacheKeys, CacheTTL, RedisService } from './redis.service.js';
 import { logger } from '../config/logger.js';
@@ -166,13 +166,48 @@ export class AlertService {
 
   // ========== ALERTS HISTORY ==========
 
-  static async createAlert(data: {
-    tenant_id: string;
-    alert_config_id: string;
-    asset_id: string;
-    severity: string;
-    message: string;
-  }) {
+  static async createAlert(
+    data: {
+      tenant_id: string;
+      alert_config_id: string;
+      asset_id: string;
+      severity: string;
+      message: string;
+    },
+    options?: {
+      dedupe?: {
+        scope: 'config' | 'message';
+        windowHours?: number;
+      };
+    },
+  ) {
+    const dedupeScope = options?.dedupe?.scope;
+    if (dedupeScope) {
+      const windowHours = options?.dedupe?.windowHours ?? 24;
+      const since = new Date(Date.now() - windowHours * 60 * 60 * 1000);
+
+      const conditions = [
+        eq(alertsHistory.tenant_id, data.tenant_id),
+        eq(alertsHistory.alert_config_id, data.alert_config_id),
+        eq(alertsHistory.asset_id, data.asset_id),
+        eq(alertsHistory.is_resolved, false),
+        gt(alertsHistory.created_at, since),
+      ];
+
+      if (dedupeScope === 'message') {
+        conditions.push(eq(alertsHistory.message, data.message));
+      }
+
+      const existing = await db.query.alertsHistory.findFirst({
+        where: and(...conditions),
+        orderBy: desc(alertsHistory.created_at),
+      });
+
+      if (existing) {
+        return existing;
+      }
+    }
+
     const [alert] = await db
       .insert(alertsHistory)
       .values({
@@ -461,6 +496,8 @@ export class AlertService {
               asset_id: assetId,
               severity: 'critical',
               message: `SLA crítico: Ordem ${order.id} passou do prazo`,
+            }, {
+              dedupe: { scope: 'message', windowHours: 24 },
             });
           }
         }
@@ -493,6 +530,8 @@ export class AlertService {
                   ? 'high'
                   : 'medium',
               message: `Manutenção em atraso. Última manutenção há ${daysSinceLastMaintenance} dias.`,
+            }, {
+              dedupe: { scope: 'config', windowHours: 24 },
             });
           }
         }
