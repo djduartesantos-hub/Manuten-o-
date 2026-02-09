@@ -1732,7 +1732,7 @@ function DocumentsLibrarySettings() {
                     </a>
                     <button
                       onClick={() => handleDeleteDocument(doc.id)}
-                      className="rounded-full border border-rose-500/20 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-500/10"
+                      className="rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-[color:var(--dash-surface)]"
                     >
                       Eliminar
                     </button>
