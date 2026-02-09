@@ -20,6 +20,11 @@ export interface CreateMaintenancePlanInput {
   frequency_value: number;
   meter_threshold?: string;
   auto_schedule?: boolean;
+  schedule_basis?: 'completion' | 'scheduled';
+  tolerance_unit?: 'hours' | 'days';
+  tolerance_before_value?: number;
+  tolerance_after_value?: number;
+  tasks?: string[];
   is_active?: boolean;
 }
 
@@ -31,6 +36,11 @@ export interface UpdateMaintenancePlanInput {
   frequency_value?: number;
   meter_threshold?: string;
   auto_schedule?: boolean;
+  schedule_basis?: 'completion' | 'scheduled';
+  tolerance_unit?: 'hours' | 'days';
+  tolerance_before_value?: number;
+  tolerance_after_value?: number;
+  tasks?: string[];
   is_active?: boolean;
 }
 
@@ -63,6 +73,7 @@ export interface UpdatePreventiveScheduleInput {
   notes?: string;
   next_interval_value?: number;
   next_interval_unit?: 'hours' | 'days' | 'months';
+  reschedule_reason?: string;
 }
 
 function normalizePreventiveStatus(status?: string | null): string {
@@ -120,6 +131,10 @@ export class MaintenanceService {
         frequency_value: maintenancePlans.frequency_value,
         meter_threshold: maintenancePlans.meter_threshold,
         auto_schedule: maintenancePlans.auto_schedule,
+        schedule_basis: (maintenancePlans as any).schedule_basis,
+        tolerance_unit: (maintenancePlans as any).tolerance_unit,
+        tolerance_before_value: (maintenancePlans as any).tolerance_before_value,
+        tolerance_after_value: (maintenancePlans as any).tolerance_after_value,
         is_active: maintenancePlans.is_active,
         asset_name: assets.name,
         created_at: maintenancePlans.created_at,
@@ -168,6 +183,10 @@ export class MaintenanceService {
           frequency_value: maintenancePlans.frequency_value,
           meter_threshold: maintenancePlans.meter_threshold,
           auto_schedule: maintenancePlans.auto_schedule,
+          schedule_basis: (maintenancePlans as any).schedule_basis,
+          tolerance_unit: (maintenancePlans as any).tolerance_unit,
+          tolerance_before_value: (maintenancePlans as any).tolerance_before_value,
+          tolerance_after_value: (maintenancePlans as any).tolerance_after_value,
           is_active: maintenancePlans.is_active,
           asset_name: assets.name,
           created_at: maintenancePlans.created_at,
@@ -178,6 +197,38 @@ export class MaintenanceService {
         .where(eq(maintenancePlans.tenant_id, tenant_id));
 
       plans = await fallbackQuery.orderBy(desc(maintenancePlans.created_at));
+    }
+
+    // Enriquecer com tarefas (checklist) do plano
+    if (plans.length > 0) {
+      try {
+        const planIds = plans.map((p: any) => p.id).filter(Boolean);
+        if (planIds.length > 0) {
+          const taskRows = await db
+            .select({
+              plan_id: maintenanceTasks.plan_id,
+              description: maintenanceTasks.description,
+              sequence: maintenanceTasks.sequence,
+            })
+            .from(maintenanceTasks)
+            .where(and(eq(maintenanceTasks.tenant_id, tenant_id), inArray(maintenanceTasks.plan_id, planIds)))
+            .orderBy(asc(maintenanceTasks.sequence));
+
+          const byPlan: Record<string, string[]> = {};
+          for (const t of taskRows as any[]) {
+            if (!t?.plan_id) continue;
+            if (!byPlan[t.plan_id]) byPlan[t.plan_id] = [];
+            byPlan[t.plan_id].push(t.description);
+          }
+
+          plans = plans.map((p: any) => ({
+            ...p,
+            tasks: byPlan[p.id] || [],
+          }));
+        }
+      } catch (e) {
+        logger.warn('Failed to attach maintenance tasks to plans:', e);
+      }
     }
 
     if (!hasFilters && plans.length > 0) {
@@ -223,6 +274,7 @@ export class MaintenanceService {
         closed_by: preventiveMaintenanceSchedules.closed_by,
         rescheduled_at: preventiveMaintenanceSchedules.rescheduled_at,
         rescheduled_from: preventiveMaintenanceSchedules.rescheduled_from,
+        reschedule_reason: preventiveMaintenanceSchedules.reschedule_reason,
         created_at: preventiveMaintenanceSchedules.created_at,
         updated_at: preventiveMaintenanceSchedules.updated_at,
         plan_name: maintenancePlans.name,
@@ -398,6 +450,10 @@ export class MaintenanceService {
         updates.notes = patch.notes;
       }
 
+      if (patch.reschedule_reason !== undefined) {
+        updates.reschedule_reason = String(patch.reschedule_reason || '').trim() || null;
+      }
+
       let newScheduledFor: Date | undefined;
       if (patch.scheduled_for) {
         const parsed = new Date(patch.scheduled_for);
@@ -429,6 +485,11 @@ export class MaintenanceService {
           if (!newScheduledFor) {
             throw new Error('Para reagendar, envie scheduled_for');
           }
+          const reason = String(patch.reschedule_reason || '').trim();
+          if (!reason) {
+            throw new Error('Motivo é obrigatório ao reagendar');
+          }
+          updates.reschedule_reason = reason;
           updates.rescheduled_at = new Date();
           updates.rescheduled_from = row.scheduled_for;
         }
@@ -464,6 +525,7 @@ export class MaintenanceService {
             frequency_type: maintenancePlans.frequency_type,
             frequency_value: maintenancePlans.frequency_value,
             auto_schedule: maintenancePlans.auto_schedule,
+            schedule_basis: (maintenancePlans as any).schedule_basis,
           })
           .from(maintenancePlans)
           .where(
@@ -493,8 +555,15 @@ export class MaintenanceService {
               (frequencyType === 'days' || frequencyType === 'months' || frequencyType === 'hours')));
 
         if (canAutoSchedule) {
-          const baseDate =
+          const completedBaseDate =
             (schedule?.completed_at as any) || updates.completed_at || new Date();
+          const basis = String((plan as any)?.schedule_basis || 'completion');
+          const baseDate =
+            overrideValue > 0
+              ? completedBaseDate
+              : basis === 'scheduled'
+                ? ((row.scheduled_for as any) || completedBaseDate)
+                : completedBaseDate;
           const nextDate = new Date(baseDate);
 
           if (overrideValue > 0 && overrideUnit) {
@@ -579,6 +648,10 @@ export class MaintenanceService {
         frequency_value: maintenancePlans.frequency_value,
         meter_threshold: maintenancePlans.meter_threshold,
         auto_schedule: maintenancePlans.auto_schedule,
+        schedule_basis: (maintenancePlans as any).schedule_basis,
+        tolerance_unit: (maintenancePlans as any).tolerance_unit,
+        tolerance_before_value: (maintenancePlans as any).tolerance_before_value,
+        tolerance_after_value: (maintenancePlans as any).tolerance_after_value,
         is_active: maintenancePlans.is_active,
         asset_name: assets.name,
         created_at: maintenancePlans.created_at,
@@ -604,14 +677,30 @@ export class MaintenanceService {
       throw new Error('Maintenance plan not found');
     }
 
+    // Attach tasks (checklist)
+    let enriched: any = plan[0];
+    try {
+      const taskRows = await db
+        .select({ description: maintenanceTasks.description, sequence: maintenanceTasks.sequence })
+        .from(maintenanceTasks)
+        .where(and(eq(maintenanceTasks.tenant_id, tenant_id), eq(maintenanceTasks.plan_id, plan_id)))
+        .orderBy(asc(maintenanceTasks.sequence));
+      enriched = {
+        ...enriched,
+        tasks: (taskRows as any[]).map((t) => t.description),
+      };
+    } catch (e) {
+      enriched = { ...enriched, tasks: [] };
+    }
+
     try {
       const cacheKey = CacheKeys.maintenancePlan(tenant_id, plan_id);
-      await RedisService.setJSON(cacheKey, plan[0], CacheTTL.PLANS);
+      await RedisService.setJSON(cacheKey, enriched, CacheTTL.PLANS);
     } catch (cacheError) {
       logger.warn('Cache write error:', cacheError);
     }
 
-    return plan[0];
+    return enriched;
   }
 
   /**
@@ -642,23 +731,49 @@ export class MaintenanceService {
       throw new Error('Asset does not belong to this plant');
     }
 
-    const [plan] = await db
-      .insert(maintenancePlans)
-      .values({
-        tenant_id,
-        asset_id: input.asset_id,
-        name: input.name,
-        description: input.description,
-        type: input.type,
-        frequency_type: input.frequency_type,
-        frequency_value: input.frequency_value,
-        meter_threshold: input.meter_threshold
-          ? parseFloat(input.meter_threshold).toString()
-          : undefined,
-        auto_schedule: input.auto_schedule,
-        is_active: input.is_active ?? true,
-      })
-      .returning();
+    const normalizedTasks = Array.isArray((input as any).tasks)
+      ? (input as any).tasks
+          .map((t: any) => String(t || '').trim())
+          .filter((t: string) => t.length > 0)
+      : [];
+
+    const createdPlanId = await db.transaction(async (tx: any) => {
+      const [plan] = await tx
+        .insert(maintenancePlans)
+        .values({
+          tenant_id,
+          asset_id: input.asset_id,
+          name: input.name,
+          description: input.description,
+          type: input.type,
+          frequency_type: input.frequency_type,
+          frequency_value: input.frequency_value,
+          meter_threshold: input.meter_threshold
+            ? parseFloat(input.meter_threshold).toString()
+            : undefined,
+          auto_schedule: input.auto_schedule,
+          schedule_basis: (input as any).schedule_basis,
+          tolerance_unit: (input as any).tolerance_unit,
+          tolerance_before_value: (input as any).tolerance_before_value,
+          tolerance_after_value: (input as any).tolerance_after_value,
+          is_active: input.is_active ?? true,
+        })
+        .returning();
+
+      if (normalizedTasks.length > 0) {
+        await tx.insert(maintenanceTasks).values(
+          normalizedTasks.map((description: string, index: number) => ({
+            tenant_id,
+            plan_id: plan.id,
+            description,
+            sequence: index,
+            created_at: new Date(),
+          })),
+        );
+      }
+
+      return plan.id;
+    });
 
     // Invalidate cache
     try {
@@ -670,7 +785,7 @@ export class MaintenanceService {
       logger.warn('Maintenance cache invalidation error:', cacheError);
     }
 
-    return this.getMaintenancePlanById(tenant_id, plan.id, plant_id);
+    return this.getMaintenancePlanById(tenant_id, createdPlanId, plant_id);
   }
 
   /**
@@ -684,26 +799,71 @@ export class MaintenanceService {
   ) {
     const plan = await this.getMaintenancePlanById(tenant_id, plan_id, plant_id);
 
-    await db
-      .update(maintenancePlans)
-      .set({
-        name: input.name ?? plan.name,
-        description: input.description ?? plan.description,
-        type: input.type ?? plan.type,
-        frequency_type: input.frequency_type ?? plan.frequency_type,
-        frequency_value: input.frequency_value ?? plan.frequency_value,
-        meter_threshold:
-          input.meter_threshold !== undefined
-            ? parseFloat(input.meter_threshold).toString()
-            : plan.meter_threshold,
-        auto_schedule:
-          input.auto_schedule !== undefined
-            ? input.auto_schedule
-            : (plan as any).auto_schedule,
-        is_active: input.is_active ?? plan.is_active,
-        updated_at: new Date(),
-      })
-      .where(eq(maintenancePlans.id, plan_id));
+    const normalizedTasks =
+      (input as any).tasks !== undefined
+        ? Array.isArray((input as any).tasks)
+          ? (input as any).tasks
+              .map((t: any) => String(t || '').trim())
+              .filter((t: string) => t.length > 0)
+          : []
+        : undefined;
+
+    await db.transaction(async (tx: any) => {
+      await tx
+        .update(maintenancePlans)
+        .set({
+          name: input.name ?? plan.name,
+          description: input.description ?? plan.description,
+          type: input.type ?? plan.type,
+          frequency_type: input.frequency_type ?? plan.frequency_type,
+          frequency_value: input.frequency_value ?? plan.frequency_value,
+          meter_threshold:
+            input.meter_threshold !== undefined
+              ? parseFloat(input.meter_threshold).toString()
+              : plan.meter_threshold,
+          auto_schedule:
+            input.auto_schedule !== undefined
+              ? input.auto_schedule
+              : (plan as any).auto_schedule,
+          schedule_basis:
+            (input as any).schedule_basis !== undefined
+              ? (input as any).schedule_basis
+              : (plan as any).schedule_basis,
+          tolerance_unit:
+            (input as any).tolerance_unit !== undefined
+              ? (input as any).tolerance_unit
+              : (plan as any).tolerance_unit,
+          tolerance_before_value:
+            (input as any).tolerance_before_value !== undefined
+              ? (input as any).tolerance_before_value
+              : (plan as any).tolerance_before_value,
+          tolerance_after_value:
+            (input as any).tolerance_after_value !== undefined
+              ? (input as any).tolerance_after_value
+              : (plan as any).tolerance_after_value,
+          is_active: input.is_active ?? plan.is_active,
+          updated_at: new Date(),
+        })
+        .where(eq(maintenancePlans.id, plan_id));
+
+      if (normalizedTasks !== undefined) {
+        await tx
+          .delete(maintenanceTasks)
+          .where(and(eq(maintenanceTasks.tenant_id, tenant_id), eq(maintenanceTasks.plan_id, plan_id)));
+
+        if (normalizedTasks.length > 0) {
+          await tx.insert(maintenanceTasks).values(
+            normalizedTasks.map((description: string, index: number) => ({
+              tenant_id,
+              plan_id,
+              description,
+              sequence: index,
+              created_at: new Date(),
+            })),
+          );
+        }
+      }
+    });
 
     // Invalidate cache
     try {

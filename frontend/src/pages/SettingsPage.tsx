@@ -907,12 +907,104 @@ function PreventiveMaintenanceSettings({
   initialSection?: PreventiveSection;
 }) {
   const { selectedPlant } = useAppStore();
+
+  const planTemplates = React.useMemo(
+    () =>
+      [
+        {
+          id: 'factory-pump-weekly-lube',
+          label: 'Bomba (fábrica) • Lubrificação semanal',
+          data: {
+            name: 'Lubrificação semanal',
+            description: 'Rotina de lubrificação e inspeção visual.',
+            frequency_value: 7,
+            frequency_unit: 'days',
+            auto_schedule: true,
+            schedule_basis: 'completion',
+            tolerance_unit: 'days',
+            tolerance_before_value: 1,
+            tolerance_after_value: 2,
+            tasks: [
+              'Verificar ruídos/vibração anormal',
+              'Verificar fugas e aperto de conexões',
+              'Lubrificar pontos conforme manual',
+              'Limpar zona e registar observações',
+            ],
+          },
+        },
+        {
+          id: 'factory-compressor-monthly-check',
+          label: 'Compressor (fábrica) • Inspeção mensal',
+          data: {
+            name: 'Inspeção mensal do compressor',
+            description: 'Inspeção preventiva mensal (pressão, filtros, purga).',
+            frequency_value: 1,
+            frequency_unit: 'months',
+            auto_schedule: true,
+            schedule_basis: 'scheduled',
+            tolerance_unit: 'days',
+            tolerance_before_value: 3,
+            tolerance_after_value: 5,
+            tasks: [
+              'Inspecionar filtros e substituir se necessário',
+              'Verificar fugas (ar/óleo) e apertos',
+              'Testar válvula de segurança',
+              'Drenar condensado e verificar purgadores',
+            ],
+          },
+        },
+        {
+          id: 'factory-conveyor-weekly-check',
+          label: 'Transportador (fábrica) • Inspeção semanal',
+          data: {
+            name: 'Inspeção semanal do transportador',
+            description: 'Inspeção de correias, roletes e alinhamento.',
+            frequency_value: 7,
+            frequency_unit: 'days',
+            auto_schedule: true,
+            schedule_basis: 'completion',
+            tolerance_unit: 'days',
+            tolerance_before_value: 1,
+            tolerance_after_value: 1,
+            tasks: [
+              'Verificar tensão e alinhamento da correia',
+              'Inspecionar roletes e ruídos',
+              'Verificar proteções e sensores',
+              'Limpar acumulações e registar anomalias',
+            ],
+          },
+        },
+        {
+          id: 'factory-daily-rounds',
+          label: 'Ronda (fábrica) • Checklist diária',
+          data: {
+            name: 'Ronda diária (checklist)',
+            description: 'Checklist rápida para detetar anomalias cedo.',
+            frequency_value: 1,
+            frequency_unit: 'days',
+            auto_schedule: true,
+            schedule_basis: 'scheduled',
+            tolerance_unit: 'hours',
+            tolerance_before_value: 6,
+            tolerance_after_value: 12,
+            tasks: [
+              'Verificar alarmes/avisos e registar ocorrências',
+              'Verificar níveis e fugas visíveis (óleo/água/ar)',
+              'Verificar segurança: proteções e área limpa',
+            ],
+          },
+        },
+      ] as const,
+    [],
+  );
+
   const [section, setSection] = React.useState<PreventiveSection>(initialSection || 'plans');
   const [plans, setPlans] = React.useState<any[]>([]);
   const [assets, setAssets] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [showForm, setShowForm] = React.useState(false);
   const [editingPlan, setEditingPlan] = React.useState<any>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = React.useState('');
   const [scheduleLoading, setScheduleLoading] = React.useState(false);
   const [scheduleError, setScheduleError] = React.useState<string | null>(null);
   const [schedules, setSchedules] = React.useState<any[]>([]);
@@ -929,6 +1021,15 @@ function PreventiveMaintenanceSettings({
     'days',
   );
 
+  const [pendingReschedule, setPendingReschedule] = React.useState<
+    | null
+    | {
+        scheduleId: string;
+        scheduled_for_local: string;
+        reason: string;
+      }
+  >(null);
+
   React.useEffect(() => {
     if (initialSection && (initialSection === 'plans' || initialSection === 'schedules')) {
       setSection(initialSection);
@@ -941,8 +1042,57 @@ function PreventiveMaintenanceSettings({
     frequency_unit: 'days',
     description: '',
     auto_schedule: true,
+    schedule_basis: 'completion' as 'completion' | 'scheduled',
+    tolerance_unit: 'days' as 'days' | 'hours',
+    tolerance_before_value: 0,
+    tolerance_after_value: 0,
     tasks: [] as string[],
   });
+
+  const toDatetimeLocalFromIso = (value: string) => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const computeNextPreview = React.useCallback(
+    (plan: any) => {
+      if (!plan) return '';
+
+      const overrideValue = Number(nextOnCompleteValue);
+      const hasOverride = nextOnCompleteValue.trim() && Number.isFinite(overrideValue) && overrideValue > 0;
+      const now = new Date();
+
+      const freqValue = Number(plan.frequency_value || 0);
+      const freqType = String(plan.frequency_type || plan.frequency_unit || '').toLowerCase();
+      const basis = String(plan.schedule_basis || 'completion');
+
+      const baseForPlan =
+        basis === 'scheduled'
+          ? new Date(toIsoFromDatetimeLocal(scheduleForm.scheduled_for) || now.toISOString())
+          : now;
+
+      const base = hasOverride ? now : baseForPlan;
+      const next = new Date(base);
+
+      if (hasOverride) {
+        const unit = nextOnCompleteUnit;
+        if (unit === 'hours') next.setHours(next.getHours() + overrideValue);
+        if (unit === 'days') next.setDate(next.getDate() + overrideValue);
+        if (unit === 'months') next.setMonth(next.getMonth() + overrideValue);
+      } else {
+        if (!freqValue) return '';
+        if (freqType === 'hours') next.setHours(next.getHours() + freqValue);
+        else if (freqType === 'days') next.setDate(next.getDate() + freqValue);
+        else next.setMonth(next.getMonth() + freqValue);
+      }
+
+      return next.toLocaleString();
+    },
+    [nextOnCompleteUnit, nextOnCompleteValue, scheduleForm.scheduled_for],
+  );
 
   React.useEffect(() => {
     fetchPlans();
@@ -1022,6 +1172,11 @@ function PreventiveMaintenanceSettings({
           frequency_type: formData.frequency_unit,
           frequency_value: Number(formData.frequency_value),
           auto_schedule: formData.auto_schedule,
+          schedule_basis: formData.schedule_basis,
+          tolerance_unit: formData.tolerance_unit,
+          tolerance_before_value: Number(formData.tolerance_before_value) || 0,
+          tolerance_after_value: Number(formData.tolerance_after_value) || 0,
+          tasks: (formData.tasks || []).map((t) => t.trim()).filter(Boolean),
         }),
       });
 
@@ -1034,8 +1189,13 @@ function PreventiveMaintenanceSettings({
         frequency_unit: 'days',
         description: '',
         auto_schedule: true,
+        schedule_basis: 'completion',
+        tolerance_unit: 'days',
+        tolerance_before_value: 0,
+        tolerance_after_value: 0,
         tasks: [],
       });
+      setSelectedTemplateId('');
       fetchPlans();
     } catch (error) {
       console.error('Failed to save plan:', error);
@@ -1064,8 +1224,13 @@ function PreventiveMaintenanceSettings({
       frequency_unit: plan.frequency_type || plan.frequency_unit || 'days',
       description: plan.description || '',
       auto_schedule: plan.auto_schedule !== false,
+      schedule_basis: plan.schedule_basis || 'completion',
+      tolerance_unit: plan.tolerance_unit || 'days',
+      tolerance_before_value: Number(plan.tolerance_before_value || 0),
+      tolerance_after_value: Number(plan.tolerance_after_value || 0),
       tasks: plan.tasks || [],
     });
+    setSelectedTemplateId('');
     setShowForm(true);
   };
 
@@ -1128,20 +1293,59 @@ function PreventiveMaintenanceSettings({
     }
   };
 
-  const handleScheduleStatusChange = async (scheduleId: string, status: string) => {
+  const handleScheduleStatusChange = async (schedule: any, status: string) => {
     if (!selectedPlant) return;
     setScheduleError(null);
     try {
+      if (status === 'reagendada') {
+        setPendingReschedule({
+          scheduleId: schedule.id,
+          scheduled_for_local: toDatetimeLocalFromIso(schedule.scheduled_for),
+          reason: '',
+        });
+        return;
+      }
+
+      if (pendingReschedule?.scheduleId === schedule.id) {
+        setPendingReschedule(null);
+      }
+
       const patch: any = { status };
       const parsedNext = Number(nextOnCompleteValue);
       if (status === 'concluida' && nextOnCompleteValue.trim() && Number.isFinite(parsedNext) && parsedNext > 0) {
         patch.next_interval_value = parsedNext;
         patch.next_interval_unit = nextOnCompleteUnit;
       }
-      await updatePreventiveSchedule(selectedPlant, scheduleId, patch);
+      await updatePreventiveSchedule(selectedPlant, schedule.id, patch);
       await fetchSchedules();
     } catch (err: any) {
       setScheduleError(err?.message || 'Erro ao atualizar agendamento');
+    }
+  };
+
+  const confirmReschedule = async () => {
+    if (!selectedPlant || !pendingReschedule) return;
+    const scheduledIso = toIsoFromDatetimeLocal(pendingReschedule.scheduled_for_local);
+    if (!scheduledIso) {
+      setScheduleError('Data inválida para reagendar');
+      return;
+    }
+    const reason = pendingReschedule.reason.trim();
+    if (!reason) {
+      setScheduleError('Motivo é obrigatório ao reagendar');
+      return;
+    }
+    setScheduleError(null);
+    try {
+      await updatePreventiveSchedule(selectedPlant, pendingReschedule.scheduleId, {
+        status: 'reagendada',
+        scheduled_for: scheduledIso,
+        reschedule_reason: reason,
+      });
+      setPendingReschedule(null);
+      await fetchSchedules();
+    } catch (err: any) {
+      setScheduleError(err?.message || 'Erro ao reagendar');
     }
   };
 
@@ -1234,6 +1438,46 @@ function PreventiveMaintenanceSettings({
           <div className="h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
           <form onSubmit={handleSubmit} className="space-y-4 p-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {!editingPlan && (
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium theme-text mb-1">
+                    Template (opcional)
+                  </label>
+                  <select
+                    value={selectedTemplateId}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setSelectedTemplateId(next);
+                      const tpl = planTemplates.find((t) => t.id === next);
+                      if (!tpl) return;
+                      setFormData((prev) => ({
+                        ...prev,
+                        name: tpl.data.name,
+                        description: tpl.data.description,
+                        frequency_value: tpl.data.frequency_value,
+                        frequency_unit: tpl.data.frequency_unit,
+                        auto_schedule: tpl.data.auto_schedule,
+                        schedule_basis: tpl.data.schedule_basis as any,
+                        tolerance_unit: tpl.data.tolerance_unit as any,
+                        tolerance_before_value: tpl.data.tolerance_before_value,
+                        tolerance_after_value: tpl.data.tolerance_after_value,
+                        tasks: [...tpl.data.tasks],
+                      }));
+                    }}
+                    className="input"
+                  >
+                    <option value="">Selecionar…</option>
+                    {planTemplates.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs theme-text-muted">
+                    Preenche nome, frequência, base, tolerância e tarefas.
+                  </p>
+                </div>
+              )}
               {/* Asset */}
               <div>
                 <label className="block text-sm font-medium theme-text mb-1">
@@ -1300,6 +1544,72 @@ function PreventiveMaintenanceSettings({
                   <option value="months">Meses</option>
                   <option value="meter">Ciclos / Contador</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium theme-text mb-1">
+                  Base do próximo agendamento
+                </label>
+                <select
+                  value={formData.schedule_basis}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      schedule_basis: e.target.value as any,
+                    })
+                  }
+                  className="input"
+                >
+                  <option value="completion">A partir da conclusão</option>
+                  <option value="scheduled">Manter cadência (data programada)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium theme-text mb-1">
+                  Tolerância (informativo)
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm theme-text-muted">−</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.tolerance_before_value}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tolerance_before_value: Number(e.target.value || 0),
+                      })
+                    }
+                    className="input h-10 w-24 py-1"
+                  />
+                  <span className="text-sm theme-text-muted">/ +</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.tolerance_after_value}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tolerance_after_value: Number(e.target.value || 0),
+                      })
+                    }
+                    className="input h-10 w-24 py-1"
+                  />
+                  <select
+                    value={formData.tolerance_unit}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tolerance_unit: e.target.value as any,
+                      })
+                    }
+                    className="input h-10 py-1"
+                  >
+                    <option value="days">dias</option>
+                    <option value="hours">horas</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -1424,6 +1734,17 @@ function PreventiveMaintenanceSettings({
                     <div>
                       <span className="font-medium">Tarefas:</span> {plan.tasks?.length || 0}
                     </div>
+                    <div>
+                      <span className="font-medium">Base:</span>{' '}
+                      {String(plan.schedule_basis || 'completion') === 'scheduled'
+                        ? 'cadência (programado)'
+                        : 'conclusão'}
+                    </div>
+                    <div>
+                      <span className="font-medium">Janela:</span>{' '}
+                      −{Number(plan.tolerance_before_value || 0)}/+{Number(plan.tolerance_after_value || 0)}{' '}
+                      {String(plan.tolerance_unit || 'days') === 'hours' ? 'horas' : 'dias'}
+                    </div>
                   </div>
                   {plan.description && (
                     <p className="mt-2 text-sm theme-text-muted italic">"{plan.description}"</p>
@@ -1517,6 +1838,17 @@ function PreventiveMaintenanceSettings({
                         ) || '—'}
                       </span>
                       {' • '}Auto: <span className="font-semibold theme-text">{selectedSchedulePlan.auto_schedule === false ? 'desligado' : 'ligado'}</span>
+                      {' • '}Base:{' '}
+                      <span className="font-semibold theme-text">
+                        {String(selectedSchedulePlan.schedule_basis || 'completion') === 'scheduled'
+                          ? 'cadência'
+                          : 'conclusão'}
+                      </span>
+                      {' • '}Janela:{' '}
+                      <span className="font-semibold theme-text">
+                        −{Number(selectedSchedulePlan.tolerance_before_value || 0)}/+{Number(selectedSchedulePlan.tolerance_after_value || 0)}{' '}
+                        {String(selectedSchedulePlan.tolerance_unit || 'days') === 'hours' ? 'h' : 'd'}
+                      </span>
                     </p>
                   )}
                 </div>
@@ -1596,6 +1928,11 @@ function PreventiveMaintenanceSettings({
                     <option value="hours">horas</option>
                     <option value="months">meses</option>
                   </select>
+                  {selectedSchedulePlan && (
+                    <span className="text-xs theme-text-muted">
+                      Prévia: <span className="font-semibold theme-text">{computeNextPreview(selectedSchedulePlan) || '—'}</span>
+                    </span>
+                  )}
                 </div>
 
                 <button
@@ -1640,7 +1977,7 @@ function PreventiveMaintenanceSettings({
                       <div className="flex flex-wrap items-center gap-2">
                         <select
                           value={schedule.status || 'agendada'}
-                          onChange={(e) => handleScheduleStatusChange(schedule.id, e.target.value)}
+                          onChange={(e) => handleScheduleStatusChange(schedule, e.target.value)}
                           className="input h-9 py-1"
                         >
                           <option value="agendada">Agendada</option>
@@ -1649,6 +1986,70 @@ function PreventiveMaintenanceSettings({
                           <option value="concluida">Concluída</option>
                           <option value="fechada">Fechada</option>
                         </select>
+
+                        {pendingReschedule && pendingReschedule.scheduleId === schedule.id && (
+                          <div className="flex flex-col gap-2 rounded-[16px] border theme-border bg-[color:var(--dash-panel)] p-3">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-xs font-semibold theme-text-muted mb-1">
+                                  Nova data
+                                </label>
+                                <input
+                                  type="datetime-local"
+                                  value={pendingReschedule.scheduled_for_local}
+                                  onChange={(e) =>
+                                    setPendingReschedule((prev) =>
+                                      prev
+                                        ? {
+                                            ...prev,
+                                            scheduled_for_local: e.target.value,
+                                          }
+                                        : prev,
+                                    )
+                                  }
+                                  className="input h-9 py-1"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold theme-text-muted mb-1">
+                                  Motivo
+                                </label>
+                                <input
+                                  type="text"
+                                  value={pendingReschedule.reason}
+                                  onChange={(e) =>
+                                    setPendingReschedule((prev) =>
+                                      prev
+                                        ? {
+                                            ...prev,
+                                            reason: e.target.value,
+                                          }
+                                        : prev,
+                                    )
+                                  }
+                                  placeholder="ex: sem peças / produção crítica"
+                                  className="input h-9 py-1"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={confirmReschedule}
+                                className="inline-flex items-center justify-center rounded-full bg-[color:var(--settings-accent)] px-3 py-1 text-xs font-semibold text-white shadow-sm transition hover:opacity-90"
+                              >
+                                Confirmar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPendingReschedule(null)}
+                                className="inline-flex items-center justify-center rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

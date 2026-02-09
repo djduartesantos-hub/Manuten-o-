@@ -8,6 +8,9 @@ const preventiveScheduleStatusSchema = z.enum([
   'reagendada',
 ]);
 
+const scheduleBasisSchema = z.enum(['completion', 'scheduled']);
+const toleranceUnitSchema = z.enum(['hours', 'days']);
+
 // Maintenance Plan Schemas
 export const createMaintenancePlanSchema = z.object({
   asset_id: z.string().uuid('Asset ID deve ser UUID'),
@@ -20,6 +23,11 @@ export const createMaintenancePlanSchema = z.object({
   frequency_value: z.number().int().positive('Valor deve ser positivo'),
   meter_threshold: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Formato decimal inválido').optional(),
   auto_schedule: z.boolean().optional(),
+  schedule_basis: scheduleBasisSchema.optional(),
+  tolerance_unit: toleranceUnitSchema.optional(),
+  tolerance_before_value: z.number().int().nonnegative().optional(),
+  tolerance_after_value: z.number().int().nonnegative().optional(),
+  tasks: z.array(z.string().min(3).max(500)).optional(),
   is_active: z.boolean().default(true),
 });
 
@@ -31,6 +39,11 @@ export const updateMaintenancePlanSchema = z.object({
   frequency_value: z.number().int().positive().optional(),
   meter_threshold: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   auto_schedule: z.boolean().optional(),
+  schedule_basis: scheduleBasisSchema.optional(),
+  tolerance_unit: toleranceUnitSchema.optional(),
+  tolerance_before_value: z.number().int().nonnegative().optional(),
+  tolerance_after_value: z.number().int().nonnegative().optional(),
+  tasks: z.array(z.string().min(3).max(500)).optional(),
   is_active: z.boolean().optional(),
 });
 
@@ -55,6 +68,24 @@ export const updatePreventiveScheduleSchema = z.object({
   notes: z.string().max(2000).optional(),
   next_interval_value: z.number().int().positive().optional(),
   next_interval_unit: z.enum(['hours', 'days', 'months']).optional(),
+  reschedule_reason: z.string().min(3).max(500).optional(),
+}).superRefine((data, ctx) => {
+  if (data.status === 'reagendada') {
+    if (!data.scheduled_for) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['scheduled_for'],
+        message: 'Para reagendar, envie scheduled_for',
+      });
+    }
+    if (!data.reschedule_reason || data.reschedule_reason.trim().length < 3) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['reschedule_reason'],
+        message: 'Motivo é obrigatório ao reagendar',
+      });
+    }
+  }
 });
 
 export type CreateMaintenancePlanInput = z.infer<typeof createMaintenancePlanSchema>;

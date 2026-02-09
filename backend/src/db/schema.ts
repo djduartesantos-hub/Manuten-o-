@@ -208,6 +208,14 @@ export const maintenancePlans = pgTable(
     frequency_value: integer('frequency_value').notNull(),
     meter_threshold: decimal('meter_threshold', { precision: 15, scale: 2 }),
     auto_schedule: boolean('auto_schedule').default(true),
+    // Define de onde vem a base para calcular o próximo agendamento automático:
+    // - 'completion': a partir da conclusão
+    // - 'scheduled': manter cadência a partir da data programada
+    schedule_basis: text('schedule_basis').default('completion'),
+    // Janela/tolerância (informativo): permitir executar X antes/depois
+    tolerance_unit: text('tolerance_unit').default('days'),
+    tolerance_before_value: integer('tolerance_before_value').default(0),
+    tolerance_after_value: integer('tolerance_after_value').default(0),
     is_active: boolean('is_active').default(true),
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true })
@@ -269,6 +277,7 @@ export const preventiveMaintenanceSchedules = pgTable(
 
     rescheduled_from: timestamp('rescheduled_from', { withTimezone: true }),
     rescheduled_at: timestamp('rescheduled_at', { withTimezone: true }),
+    reschedule_reason: text('reschedule_reason'),
 
     notes: text('notes'),
     created_by: uuid('created_by')
