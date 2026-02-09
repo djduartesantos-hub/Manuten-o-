@@ -223,6 +223,7 @@ export function WorkOrdersPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [editingOrder, setEditingOrder] = useState<WorkOrder | null>(null);
+  const [showPauseAction, setShowPauseAction] = useState(false);
   const [showCancelAction, setShowCancelAction] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [ordersDiagnostics, setOrdersDiagnostics] = useState({
@@ -329,6 +330,7 @@ export function WorkOrdersPage() {
   }, [statusFilter, searchTerm, viewMode]);
 
   useEffect(() => {
+    setShowPauseAction(false);
     setShowCancelAction(false);
   }, [editingOrder?.id]);
 
@@ -2481,26 +2483,50 @@ export function WorkOrdersPage() {
                     editingPermissions?.canOperateOrder && (
                       <>
                         <div className="w-full">
-                          <label className="mb-1 block text-sm font-medium theme-text">
-                            Motivo da pausa
-                          </label>
-                          <input
-                            className="input"
-                            value={updateForm.pause_reason}
-                            onChange={(event) =>
-                              setUpdateForm({ ...updateForm, pause_reason: event.target.value })
-                            }
-                            disabled={updating}
-                            placeholder="Ex: aguardando peças"
-                          />
+                          {!showPauseAction ? (
+                            <button
+                              onClick={() => {
+                                setShowPauseAction(true);
+                                setShowCancelAction(false);
+                              }}
+                              className="btn-secondary"
+                              disabled={updating}
+                            >
+                              Pausar ordem
+                            </button>
+                          ) : (
+                            <div className="space-y-2">
+                              <label className="block text-sm font-medium theme-text">
+                                Motivo da pausa
+                              </label>
+                              <input
+                                className="input"
+                                value={updateForm.pause_reason}
+                                onChange={(event) =>
+                                  setUpdateForm({ ...updateForm, pause_reason: event.target.value })
+                                }
+                                disabled={updating}
+                                placeholder="Ex: aguardando peças"
+                              />
+                              <div className="flex flex-wrap items-center gap-2">
+                                <button
+                                  onClick={handlePauseOrder}
+                                  className="btn-secondary"
+                                  disabled={updating}
+                                >
+                                  Confirmar pausa
+                                </button>
+                                <button
+                                  onClick={() => setShowPauseAction(false)}
+                                  className="btn-secondary"
+                                  disabled={updating}
+                                >
+                                  Voltar
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <button
-                          onClick={handlePauseOrder}
-                          className="btn-secondary"
-                          disabled={updating}
-                        >
-                          Pausar
-                        </button>
                       </>
                     )}
 
@@ -2511,7 +2537,10 @@ export function WorkOrdersPage() {
                       <div className="w-full">
                         {!showCancelAction ? (
                           <button
-                            onClick={() => setShowCancelAction(true)}
+                            onClick={() => {
+                              setShowCancelAction(true);
+                              setShowPauseAction(false);
+                            }}
                             className="btn-secondary"
                             disabled={updating}
                           >
