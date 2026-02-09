@@ -1582,7 +1582,15 @@ function DocumentsLibrarySettings() {
       </div>
 
       {/* Asset Selector */}
-      <div className="mb-6 rounded-[24px] border theme-border theme-card p-4 shadow-sm">
+      {!selectedPlant && (
+        <div className="mb-6 rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text">
+          <span className="badge-warning mr-2 text-xs">Atencao</span>
+          Selecione uma planta para ver e carregar documentos.
+        </div>
+      )}
+
+      <div className="relative mb-6 overflow-hidden rounded-[24px] border theme-border theme-card p-4 shadow-sm">
+        <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
         <label className="block text-sm font-medium theme-text mb-2">
           Selecionar equipamento
         </label>
@@ -1590,6 +1598,7 @@ function DocumentsLibrarySettings() {
           value={selectedAsset}
           onChange={(e) => setSelectedAsset(e.target.value)}
           className="input"
+          disabled={!selectedPlant || assets.length === 0}
         >
           <option value="">-- Selecionar --</option>
           {assets.map((asset) => (
@@ -1642,8 +1651,15 @@ function DocumentsLibrarySettings() {
             Carregando...
           </div>
         ) : documents.length === 0 ? (
-          <div className="rounded-2xl border border-dashed theme-border bg-[color:var(--dash-surface)] p-10 text-center text-sm theme-text-muted">
-            {selectedAsset ? 'Nenhum documento para este equipamento' : 'Selecione um equipamento'}
+          <div className="rounded-2xl border border-dashed theme-border bg-[color:var(--dash-surface)] p-10 text-center">
+            <div className="text-sm theme-text-muted">
+              {selectedAsset ? 'Nenhum documento para este equipamento' : 'Selecione um equipamento'}
+            </div>
+            {!selectedAsset && selectedPlant && (
+              <div className="mt-4">
+                <span className="badge-warning text-xs">Selecao necessaria</span>
+              </div>
+            )}
           </div>
         ) : (
           documents.map((doc) => (
