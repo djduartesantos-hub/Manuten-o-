@@ -1,4 +1,4 @@
-import React, { useState, type CSSProperties } from 'react';
+import React, { useState } from 'react';
 import { MainLayout } from '../layouts/MainLayout';
 import { useAppStore } from '../context/store';
 import {
@@ -51,7 +51,7 @@ type SettingTab =
   | 'management';
 
 export function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<SettingTab>('alerts');
+  const [activePanel, setActivePanel] = useState<SettingTab | null>(null);
 
   const tabs: { id: SettingTab; label: string; icon: React.ReactNode; description: string }[] =
     [
@@ -99,21 +99,22 @@ export function SettingsPage() {
       },
     ];
 
+  const activeMeta = tabs.find((tab) => tab.id === activePanel) || null;
+
   return (
     <MainLayout>
       <div
         className="relative space-y-10 font-display theme-text"
       >
-        <section className="relative overflow-hidden rounded-[32px] border theme-border bg-[radial-gradient(circle_at_top,var(--dash-panel)_0%,var(--dash-bg)_55%)] p-8 shadow-[0_28px_80px_-60px_rgba(15,118,110,0.5)]">
-          <div className="absolute -right-12 -top-20 h-56 w-56 rounded-full bg-emerald-200/60 blur-3xl" />
-          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-blue-200/50 blur-3xl" />
-          <div className="absolute right-12 top-10 h-2 w-20 rounded-full bg-[color:var(--settings-accent)] opacity-40" />
+        <section className="relative overflow-hidden rounded-[32px] border border-[color:var(--dash-border)] bg-[radial-gradient(circle_at_top,var(--dash-panel)_0%,var(--dash-bg)_55%)] p-8 shadow-[0_28px_80px_-60px_rgba(15,23,42,0.35)]">
+          <div className="absolute -right-12 -top-20 h-56 w-56 rounded-full bg-[color:var(--dash-panel-2)] blur-3xl opacity-50" />
+          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-[color:var(--dash-surface)] blur-3xl opacity-40" />
           <div className="relative flex flex-col items-start gap-5 md:flex-row md:items-center">
-            <div className="rounded-2xl border border-emerald-100 bg-[color:var(--dash-panel)] p-3 shadow-sm">
-              <SettingsIcon className="h-6 w-6 text-[color:var(--settings-accent)]" />
+            <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3 shadow-sm">
+              <SettingsIcon className="h-6 w-6 text-[color:var(--dash-accent)]" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
                 Centro de controle
               </p>
               <h1 className="mt-2 text-3xl font-semibold theme-text sm:text-4xl lg:text-5xl">
@@ -126,51 +127,93 @@ export function SettingsPage() {
           </div>
         </section>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-          <div className="lg:col-span-1">
-            <nav className="space-y-2 rounded-[28px] border theme-border theme-card p-4 shadow-sm backdrop-blur">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative w-full rounded-2xl border px-4 py-3 text-left transition-all ${
-                    activeTab === tab.id
-                      ? 'border-emerald-200 bg-[color:var(--dash-surface)] text-[color:var(--settings-accent)] shadow-sm'
-                      : 'border-transparent text-[color:var(--dash-muted)] hover:border-[color:var(--dash-border)] hover:bg-[color:var(--dash-surface)]'
-                  }`}
-                >
-                  {activeTab === tab.id && (
-                    <span className="absolute left-2 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-[color:var(--settings-accent)]" />
-                  )}
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-xl bg-[color:var(--dash-panel)] p-2 text-[color:var(--settings-accent)] shadow-sm">
-                      {tab.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{tab.label}</div>
-                      <p className="text-xs theme-text-muted truncate">{tab.description}</p>
-                    </div>
-                    {activeTab === tab.id && (
-                      <ChevronRight className="h-4 w-4 flex-shrink-0" />
-                    )}
-                  </div>
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          <div className="lg:col-span-3">
-            <div className="rounded-[28px] border theme-border theme-card p-6 shadow-[0_20px_60px_-45px_rgba(15,118,110,0.4)]">
-              {activeTab === 'alerts' && <AlertsSettings />}
-              {activeTab === 'notifications' && <NotificationSettings />}
-              {activeTab === 'preventive' && <PreventiveMaintenanceSettings />}
-              {activeTab === 'warnings' && <PredictiveWarningsSettings />}
-              {activeTab === 'documents' && <DocumentsLibrarySettings />}
-              {activeTab === 'permissions' && <PermissionsSettings />}
-              {activeTab === 'management' && <ManagementSettings />}
+        <section className="rounded-[32px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                Secoes
+              </p>
+              <h2 className="mt-2 text-xl font-semibold text-[color:var(--dash-ink)]">
+                Escolha o que quer configurar
+              </h2>
+              <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                Layout por cards para ficar mais limpo e objetivo.
+              </p>
             </div>
           </div>
-        </div>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActivePanel(tab.id)}
+                className="group rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-5 text-left shadow-[0_12px_28px_-22px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:bg-[color:var(--dash-surface-2)] hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[color:var(--dash-ink)] truncate">
+                      {tab.label}
+                    </p>
+                    <p className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                      {tab.description}
+                    </p>
+                  </div>
+                  <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] text-[color:var(--dash-accent)] shadow-sm">
+                    {tab.icon}
+                  </span>
+                </div>
+                <div className="mt-4 text-xs font-semibold text-[color:var(--dash-accent)]">
+                  Abrir
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {activePanel && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setActivePanel(null)}
+              aria-hidden="true"
+            />
+            <div className="relative w-[1100px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] overflow-hidden rounded-[32px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] shadow-[0_30px_80px_-55px_rgba(15,23,42,0.65)]">
+              <div className="flex items-start justify-between gap-4 border-b border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-6">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[color:var(--dash-muted)]">
+                    Configuracoes
+                  </p>
+                  <h3 className="mt-2 text-lg font-semibold text-[color:var(--dash-ink)] truncate">
+                    {activeMeta?.label}
+                  </h3>
+                  {activeMeta?.description && (
+                    <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                      {activeMeta.description}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="btn-secondary h-9 px-3"
+                  onClick={() => setActivePanel(null)}
+                >
+                  Fechar
+                </button>
+              </div>
+
+              <div className="max-h-[calc(100vh-10rem)] overflow-y-auto p-6">
+                {activePanel === 'alerts' && <AlertsSettings />}
+                {activePanel === 'notifications' && <NotificationSettings />}
+                {activePanel === 'preventive' && <PreventiveMaintenanceSettings />}
+                {activePanel === 'warnings' && <PredictiveWarningsSettings />}
+                {activePanel === 'documents' && <DocumentsLibrarySettings />}
+                {activePanel === 'permissions' && <PermissionsSettings />}
+                {activePanel === 'management' && <ManagementSettings />}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </MainLayout>
   );
@@ -717,7 +760,8 @@ function NotificationSettings() {
       </div>
 
       {notificationsError && (
-        <div className="rounded-2xl border theme-border bg-rose-500/10 p-4 text-sm theme-text">
+        <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text">
+          <span className="badge-danger mr-2 text-xs">Erro</span>
           {notificationsError}
         </div>
       )}
@@ -1085,7 +1129,7 @@ function PreventiveMaintenanceSettings() {
                     <button
                       type="button"
                       onClick={() => removeTask(idx)}
-                      className="rounded-full border border-rose-500/20 px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-500/10"
+                      className="rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
                     >
                       ✕
                     </button>
@@ -1157,7 +1201,7 @@ function PreventiveMaintenanceSettings() {
                     <div className="mt-3 space-y-1">
                       {plan.tasks.map((task: string, idx: number) => (
                         <div key={idx} className="flex items-start gap-2 text-sm theme-text-muted">
-                          <span className="text-emerald-500">•</span>
+                          <span className="text-[color:var(--dash-accent)]">•</span>
                           <span>{task}</span>
                         </div>
                       ))}
@@ -1232,19 +1276,6 @@ function PredictiveWarningsSettings() {
     }
   };
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical':
-        return 'bg-red-100 text-red-800 border-red-300';
-      case 'high':
-        return 'bg-orange-100 text-orange-800 border-orange-300';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      default:
-        return 'bg-green-100 text-green-800 border-green-300';
-    }
-  };
-
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case 'critical':
@@ -1255,6 +1286,19 @@ function PredictiveWarningsSettings() {
         return '🟡';
       default:
         return '🟢';
+    }
+  };
+
+  const getSeverityBadge = (severity: string) => {
+    switch (severity) {
+      case 'critical':
+        return { label: 'Critico', className: 'badge-danger' };
+      case 'high':
+        return { label: 'Alto', className: 'badge-warning' };
+      case 'medium':
+        return { label: 'Medio', className: 'badge-warning' };
+      default:
+        return { label: 'Baixo', className: 'badge-success' };
     }
   };
 
@@ -1295,45 +1339,56 @@ function PredictiveWarningsSettings() {
           Analisando historico...
         </div>
       ) : warnings.length === 0 ? (
-        <div className="rounded-[24px] border border-emerald-500/20 bg-emerald-500/10 p-10 text-center">
+        <div className="rounded-[24px] border theme-border theme-card p-10 text-center shadow-sm">
           <div className="text-3xl">✅</div>
-          <p className="mt-2 text-sm font-semibold text-emerald-800">Nenhum risco detectado</p>
-          <p className="mt-1 text-xs text-emerald-700">
+          <p className="mt-3 text-sm font-semibold theme-text">Nenhum risco detectado</p>
+          <p className="mt-1 text-xs theme-text-muted">
             Este equipamento esta a funcionar normalmente.
           </p>
+          <div className="mt-4">
+            <span className="badge-success text-xs">Saudavel</span>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
           {warnings.map((warning, idx) => (
             <div
               key={idx}
-              className={`rounded-[22px] border p-4 shadow-sm ${getSeverityColor(
-                warning.severity,
-              )}`}
+              className="relative overflow-hidden rounded-[22px] border theme-border theme-card p-4 shadow-sm"
             >
+              <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
               <div className="flex items-start gap-3">
                 <div className="text-2xl">{getSeverityIcon(warning.severity)}</div>
                 <div className="flex-1">
-                  <div className="font-semibold">{warning.message}</div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="font-semibold theme-text">{warning.message}</div>
+                    <span className={`${getSeverityBadge(warning.severity).className} text-xs`}>
+                      {getSeverityBadge(warning.severity).label}
+                    </span>
+                  </div>
                   <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
                     {warning.pattern && (
                       <div>
-                        <span className="font-medium">Padrao detectado:</span> {warning.pattern}
+                        <span className="font-medium theme-text">Padrao detectado:</span>{' '}
+                        <span className="theme-text-muted">{warning.pattern}</span>
                       </div>
                     )}
                     {warning.mtbf && (
                       <div>
-                        <span className="font-medium">MTBF:</span> {warning.mtbf} horas
+                        <span className="font-medium theme-text">MTBF:</span>{' '}
+                        <span className="theme-text-muted">{warning.mtbf} horas</span>
                       </div>
                     )}
                     {warning.failure_rate && (
                       <div>
-                        <span className="font-medium">Taxa falha:</span> {warning.failure_rate}%
+                        <span className="font-medium theme-text">Taxa falha:</span>{' '}
+                        <span className="theme-text-muted">{warning.failure_rate}%</span>
                       </div>
                     )}
                     {warning.confidence && (
                       <div>
-                        <span className="font-medium">Confianca:</span> {warning.confidence}%
+                        <span className="font-medium theme-text">Confianca:</span>{' '}
+                        <span className="theme-text-muted">{warning.confidence}%</span>
                       </div>
                     )}
                   </div>
@@ -1352,23 +1407,29 @@ function PredictiveWarningsSettings() {
       {/* Analysis Summary */}
       {selectedAsset && warnings.length > 0 && (
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-[20px] border border-rose-500/20 bg-rose-500/10 p-4 text-center">
-            <div className="text-2xl font-semibold text-rose-600">
+          <div className="rounded-[20px] border theme-border theme-card p-4 text-center shadow-sm">
+            <div className="text-2xl font-semibold theme-text">
               {warnings.filter((w) => w.severity === 'critical').length}
             </div>
-            <div className="text-xs text-rose-700">Criticos</div>
+            <div className="mt-2">
+              <span className="badge-danger text-xs">Criticos</span>
+            </div>
           </div>
-          <div className="rounded-[20px] border border-orange-500/20 bg-orange-500/10 p-4 text-center">
-            <div className="text-2xl font-semibold text-orange-600">
+          <div className="rounded-[20px] border theme-border theme-card p-4 text-center shadow-sm">
+            <div className="text-2xl font-semibold theme-text">
               {warnings.filter((w) => w.severity === 'high').length}
             </div>
-            <div className="text-xs text-orange-700">Altos</div>
+            <div className="mt-2">
+              <span className="badge-warning text-xs">Altos</span>
+            </div>
           </div>
-          <div className="rounded-[20px] border border-yellow-500/20 bg-yellow-500/10 p-4 text-center">
-            <div className="text-2xl font-semibold text-yellow-600">
+          <div className="rounded-[20px] border theme-border theme-card p-4 text-center shadow-sm">
+            <div className="text-2xl font-semibold theme-text">
               {warnings.filter((w) => w.severity === 'medium').length}
             </div>
-            <div className="text-xs text-yellow-700">Medios</div>
+            <div className="mt-2">
+              <span className="badge-warning text-xs">Medios</span>
+            </div>
           </div>
         </div>
       )}
@@ -1555,7 +1616,7 @@ function DocumentsLibrarySettings() {
                 />
               </div>
               {uploading && (
-                <p className="mt-2 text-sm text-emerald-600">Enviando...</p>
+                <p className="mt-2 text-sm text-[color:var(--dash-accent)]">Enviando...</p>
               )}
             </div>
           </div>
@@ -1592,14 +1653,10 @@ function DocumentsLibrarySettings() {
                     </div>
                   </div>
                   {isExpired(doc.expires_at) && (
-                    <span className="ml-2 rounded-full bg-rose-100 px-2 py-1 text-xs font-semibold text-rose-700">
-                      Expirado
-                    </span>
+                    <span className="ml-2 badge-danger text-xs">Expirado</span>
                   )}
                   {isExpiring(doc.expires_at) && (
-                    <span className="ml-2 rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">
-                      Expira em breve
-                    </span>
+                    <span className="ml-2 badge-warning text-xs">Expira em breve</span>
                   )}
                 </div>
                 <ChevronRight
@@ -1715,8 +1772,8 @@ function PermissionsSettings() {
                 {row.permissions.map((perm, i) => (
                   <td key={i} className="px-6 py-4 text-center">
                     {perm ? (
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100">
-                        <span className="text-emerald-700 font-bold">✓</span>
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border theme-border bg-[color:var(--dash-panel)]">
+                        <span className="text-[color:var(--dash-accent)] font-bold">✓</span>
                       </span>
                     ) : (
                       <span className="theme-text-muted">—</span>
@@ -1729,10 +1786,11 @@ function PermissionsSettings() {
         </table>
       </div>
 
-      <div className="mt-6 rounded-[20px] border border-emerald-500/20 bg-emerald-500/10 p-4">
-        <p className="text-sm text-emerald-800">
-          <strong>Nota:</strong> As permissoes sao pre-configuradas por role. Customizacao de roles
-          sera disponibilizada em futuras versoes.
+      <div className="mt-6 rounded-[20px] border theme-border theme-card p-4 shadow-sm">
+        <p className="text-sm theme-text">
+          <span className="badge-success mr-2 text-xs">Nota</span>
+          As permissoes sao pre-configuradas por role. Customizacao de roles sera disponibilizada
+          em futuras versoes.
         </p>
       </div>
     </div>
@@ -2106,7 +2164,8 @@ function ManagementSettings() {
       </div>
 
       {error && (
-        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-700 shadow-sm">
+        <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text shadow-sm">
+          <span className="badge-danger mr-2 text-xs">Erro</span>
           {error}
         </div>
       )}
@@ -2132,13 +2191,11 @@ function ManagementSettings() {
                     <p className="text-sm font-semibold theme-text">{tool.title}</p>
                     <p className="mt-1 text-xs theme-text-muted">{tool.description}</p>
                   </div>
-                  <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 transition group-hover:bg-emerald-100">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-2xl border theme-border bg-[color:var(--dash-surface)] text-[color:var(--dash-accent)] transition group-hover:bg-[color:var(--dash-surface-2)]">
                     <Icon className="h-4 w-4" />
                   </span>
                 </div>
-                <div className="mt-3 text-xs font-semibold text-emerald-700">
-                  Abrir
-                </div>
+                <div className="mt-3 text-xs font-semibold text-[color:var(--dash-accent)]">Abrir</div>
               </button>
             );
           })}
@@ -2166,11 +2223,11 @@ function ManagementSettings() {
                     <p className="text-sm font-semibold theme-text">{panel.title}</p>
                     <p className="mt-1 text-xs theme-text-muted">{panel.description}</p>
                   </div>
-                  <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 transition group-hover:bg-emerald-100">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-2xl border theme-border bg-[color:var(--dash-surface)] text-[color:var(--dash-accent)] transition group-hover:bg-[color:var(--dash-surface-2)]">
                     <Icon className="h-4 w-4" />
                   </span>
                 </div>
-                <div className="mt-3 text-xs font-semibold text-emerald-700">Abrir</div>
+                <div className="mt-3 text-xs font-semibold text-[color:var(--dash-accent)]">Abrir</div>
               </button>
             );
           })}
@@ -2223,7 +2280,7 @@ function ManagementSettings() {
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-semibold ${
                           plant.is_active
-                            ? 'bg-emerald-100 text-emerald-700'
+                            ? 'bg-[color:var(--dash-surface)] text-[color:var(--dash-accent)]'
                             : 'bg-[color:var(--dash-surface)] theme-text-muted'
                         }`}
                       >
@@ -2236,7 +2293,7 @@ function ManagementSettings() {
                         <Pencil className="h-4 w-4" />
                       </button>
                       <button
-                        className="text-xs text-rose-500 hover:text-rose-600"
+                        className="text-xs theme-text-muted hover:text-[color:var(--dash-text)]"
                         onClick={() => handleDeactivatePlant(plant.id)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -2291,7 +2348,8 @@ function ManagementSettings() {
           </div>
 
           {!selectedPlant && (
-            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-700">
+            <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text">
+              <span className="badge-warning mr-2 text-xs">Atencao</span>
               Selecione uma planta no topo para visualizar equipamentos.
             </div>
           )}
@@ -2382,7 +2440,7 @@ function ManagementSettings() {
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold ${
                       user.is_active
-                        ? 'bg-emerald-500/10 text-[color:var(--dash-text)]'
+                        ? 'bg-[color:var(--dash-surface)] text-[color:var(--dash-accent)]'
                         : 'bg-[color:var(--dash-surface)] theme-text-muted'
                     }`}
                   >
