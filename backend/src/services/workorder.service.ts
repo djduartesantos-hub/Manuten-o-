@@ -10,6 +10,57 @@ import { logger } from '../config/logger.js';
 import { ElasticsearchService } from './elasticsearch.service.js';
 
 export class WorkOrderService {
+  private static normalizeWorkOrderStatus(status?: string | null): string {
+    if (!status) return '';
+    if (status === 'aprovada' || status === 'planeada' || status === 'atribuida') return 'em_analise';
+    if (status === 'em_curso') return 'em_execucao';
+    return status;
+  }
+
+  private static assertValidStatusTransition(currentRaw: string, nextRaw: string) {
+    const current = this.normalizeWorkOrderStatus(currentRaw);
+    const next = this.normalizeWorkOrderStatus(nextRaw);
+
+    if (!current || !next || current === next) return;
+
+    // Estados finais: não permitem transições.
+    if (current === 'fechada' || current === 'cancelada') {
+      throw new Error('Esta ordem já está finalizada e não pode mudar de estado');
+    }
+
+    // Cancelamento pode acontecer em qualquer estado não-final.
+    if (next === 'cancelada') return;
+
+    // Pausa é opcional e só pode ser aplicada em execução.
+    if (next === 'em_pausa') {
+      if (current !== 'em_execucao') {
+        throw new Error('Só é possível pausar uma ordem em execução');
+      }
+      return;
+    }
+
+    // Voltar da pausa.
+    if (current === 'em_pausa') {
+      if (next !== 'em_execucao') {
+        throw new Error('Uma ordem em pausa só pode voltar para Em Execução');
+      }
+      return;
+    }
+
+    // Sequência obrigatória (fase a fase): aberta -> em_analise -> em_execucao -> concluida -> fechada
+    const allowedNextByStatus: Record<string, string[]> = {
+      aberta: ['em_analise'],
+      em_analise: ['em_execucao'],
+      em_execucao: ['concluida', 'em_pausa'],
+      concluida: ['fechada'],
+    };
+
+    const allowed = allowedNextByStatus[current] || [];
+    if (!allowed.includes(next)) {
+      throw new Error(`Transição de estado inválida: ${current} → ${next}`);
+    }
+  }
+
   private static getStatusCacheKeys(tenantId: string, plantId: string) {
     const statuses = [
       'aberta',
@@ -257,6 +308,14 @@ export class WorkOrderService {
 
     if (!existing) {
       throw new Error('Work order not found');
+    }
+
+    if (
+      Object.prototype.hasOwnProperty.call(normalized, 'status') &&
+      normalized.status !== undefined &&
+      normalized.status !== null
+    ) {
+      WorkOrderService.assertValidStatusTransition(String(existing.status), String(normalized.status));
     }
 
     const [updated] = await db

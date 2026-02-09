@@ -322,6 +322,43 @@ export function WorkOrdersPage() {
     [],
   );
 
+  const allowedStatusOptionsForEdit = useMemo(() => {
+    if (!editingOrder) return null;
+
+    const labelByStatus: Record<string, string> = {
+      aberta: 'Aberta',
+      em_analise: 'Em Análise',
+      em_execucao: 'Em Execução',
+      em_pausa: 'Em Pausa',
+      concluida: 'Concluída',
+      fechada: 'Fechada',
+      cancelada: 'Cancelada',
+    };
+
+    const current = String(editingOrder.status || 'aberta');
+    const currentNormalized = current;
+
+    const nextByStatus: Record<string, string[]> = {
+      aberta: ['em_analise', 'cancelada'],
+      em_analise: ['em_execucao', 'cancelada'],
+      em_execucao: ['em_pausa', 'concluida', 'cancelada'],
+      em_pausa: ['em_execucao', 'cancelada'],
+      concluida: ['fechada', 'cancelada'],
+      fechada: [],
+      cancelada: [],
+    };
+
+    const allowed = [currentNormalized, ...(nextByStatus[currentNormalized] || [])];
+    const unique = Array.from(new Set(allowed));
+
+    return unique
+      .filter((value) => {
+        if (value === 'fechada') return isAdmin || isManager;
+        return true;
+      })
+      .map((value) => ({ value, label: labelByStatus[value] || value }));
+  }, [editingOrder, isAdmin, isManager]);
+
   const loadData = async () => {
     if (!selectedPlant || !selectedPlant.trim()) {
       setOrdersDiagnostics({
@@ -1644,13 +1681,19 @@ export function WorkOrdersPage() {
                         }
                         disabled={!editingPermissions?.canOperateOrder}
                       >
-                        <option value="aberta">Aberta</option>
-                        <option value="em_analise">Em Análise</option>
-                        <option value="em_execucao">Em Execução</option>
-                        <option value="em_pausa">Em Pausa</option>
-                        <option value="concluida">Concluída</option>
-                        <option value="fechada">Fechada</option>
-                        <option value="cancelada">Cancelada</option>
+                        {(allowedStatusOptionsForEdit || [
+                          { value: 'aberta', label: 'Aberta' },
+                          { value: 'em_analise', label: 'Em Análise' },
+                          { value: 'em_execucao', label: 'Em Execução' },
+                          { value: 'em_pausa', label: 'Em Pausa' },
+                          { value: 'concluida', label: 'Concluída' },
+                          { value: 'fechada', label: 'Fechada' },
+                          { value: 'cancelada', label: 'Cancelada' },
+                        ]).map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
 

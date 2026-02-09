@@ -236,7 +236,58 @@ export class WorkOrderController {
         return status;
       };
 
+      const assertValidTransition = (currentRaw: string, nextRaw: string) => {
+        const current = normalizeExistingStatus(currentRaw);
+        const next = normalizeExistingStatus(nextRaw);
+
+        if (!current || !next || current === next) return;
+
+        if (current === 'fechada' || current === 'cancelada') {
+          throw new Error('Esta ordem já está finalizada e não pode mudar de estado');
+        }
+
+        if (next === 'cancelada') return;
+
+        if (next === 'em_pausa') {
+          if (current !== 'em_execucao') {
+            throw new Error('Só é possível pausar uma ordem em execução');
+          }
+          return;
+        }
+
+        if (current === 'em_pausa') {
+          if (next !== 'em_execucao') {
+            throw new Error('Uma ordem em pausa só pode voltar para Em Execução');
+          }
+          return;
+        }
+
+        const allowedNextByStatus: Record<string, string[]> = {
+          aberta: ['em_analise'],
+          em_analise: ['em_execucao'],
+          em_execucao: ['concluida', 'em_pausa'],
+          concluida: ['fechada'],
+        };
+
+        const allowed = allowedNextByStatus[current] || [];
+        if (!allowed.includes(next)) {
+          throw new Error(`Transição de estado inválida: ${current} → ${next}`);
+        }
+      };
+
       const normalizedExistingStatus = normalizeExistingStatus(existing.status);
+
+      if (Object.prototype.hasOwnProperty.call(updates, 'status') && updates.status) {
+        try {
+          assertValidTransition(String(existing.status), String(updates.status));
+        } catch (e: any) {
+          res.status(400).json({
+            success: false,
+            error: e?.message || 'Transição de estado inválida',
+          });
+          return;
+        }
+      }
 
       const isStartingOrder =
         updates.status === 'em_execucao' &&
