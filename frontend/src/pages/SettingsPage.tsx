@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import { useAppStore } from '../context/store';
 import {
@@ -9,6 +10,9 @@ import {
   getAdminRoles,
   getAdminUsers,
   getAssets,
+  createPreventiveSchedule,
+  getPreventiveSchedules,
+  updatePreventiveSchedule,
   getNotificationRules,
   updateAdminPlant,
   updateAdminUser,
@@ -51,7 +55,10 @@ type SettingTab =
   | 'management';
 
 export function SettingsPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [activePanel, setActivePanel] = useState<SettingTab | null>(null);
+  const [preventiveSub, setPreventiveSub] = useState<'plans' | 'schedules' | null>(null);
 
   const tabs: { id: SettingTab; label: string; icon: React.ReactNode; description: string }[] =
     [
@@ -71,7 +78,7 @@ export function SettingsPage() {
         id: 'preventive',
         label: 'Manutenção Preventiva',
         icon: <Cog className="w-5 h-5" />,
-        description: 'Crie planos de manutenção preventiva',
+        description: 'Planos e agendamentos preventivos',
       },
       {
         id: 'warnings',
@@ -100,6 +107,30 @@ export function SettingsPage() {
     ];
 
   const activeMeta = tabs.find((tab) => tab.id === activePanel) || null;
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const panel = params.get('panel') as SettingTab | null;
+    const sub = params.get('sub');
+
+    if (panel && tabs.some((t) => t.id === panel)) {
+      setActivePanel(panel);
+      if (panel === 'preventive') {
+        if (sub === 'schedules' || sub === 'plans') setPreventiveSub(sub);
+      } else {
+        setPreventiveSub(null);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
+
+  const closePanel = () => {
+    setActivePanel(null);
+    setPreventiveSub(null);
+    if (location.search) {
+      navigate('/settings', { replace: true });
+    }
+  };
 
   return (
     <MainLayout>
@@ -175,7 +206,7 @@ export function SettingsPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div
               className="absolute inset-0 bg-black/40"
-              onClick={() => setActivePanel(null)}
+              onClick={closePanel}
               aria-hidden="true"
             />
             <div className="relative w-[1100px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] overflow-hidden rounded-[32px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] shadow-[0_30px_80px_-55px_rgba(15,23,42,0.65)]">
@@ -196,7 +227,7 @@ export function SettingsPage() {
                 <button
                   type="button"
                   className="btn-secondary h-9 px-3"
-                  onClick={() => setActivePanel(null)}
+                  onClick={closePanel}
                 >
                   Fechar
                 </button>
@@ -205,7 +236,9 @@ export function SettingsPage() {
               <div className="max-h-[calc(100vh-10rem)] overflow-y-auto p-6">
                 {activePanel === 'alerts' && <AlertsSettings />}
                 {activePanel === 'notifications' && <NotificationSettings />}
-                {activePanel === 'preventive' && <PreventiveMaintenanceSettings />}
+                {activePanel === 'preventive' && (
+                  <PreventiveMaintenanceSettings initialSection={preventiveSub || undefined} />
+                )}
                 {activePanel === 'warnings' && <PredictiveWarningsSettings />}
                 {activePanel === 'documents' && <DocumentsLibrarySettings />}
                 {activePanel === 'permissions' && <PermissionsSettings />}
@@ -859,13 +892,44 @@ function NotificationSettings() {
   );
 }
 
-function PreventiveMaintenanceSettings() {
+type PreventiveSection = 'plans' | 'schedules';
+
+function toIsoFromDatetimeLocal(value: string) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString();
+}
+
+function PreventiveMaintenanceSettings({
+  initialSection,
+}: {
+  initialSection?: PreventiveSection;
+}) {
   const { selectedPlant } = useAppStore();
+  const [section, setSection] = React.useState<PreventiveSection>(initialSection || 'plans');
   const [plans, setPlans] = React.useState<any[]>([]);
   const [assets, setAssets] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [showForm, setShowForm] = React.useState(false);
   const [editingPlan, setEditingPlan] = React.useState<any>(null);
+  const [scheduleLoading, setScheduleLoading] = React.useState(false);
+  const [scheduleError, setScheduleError] = React.useState<string | null>(null);
+  const [schedules, setSchedules] = React.useState<any[]>([]);
+  const [scheduleFilter, setScheduleFilter] = React.useState<'all' | string>('all');
+  const [creatingSchedule, setCreatingSchedule] = React.useState(false);
+  const [scheduleForm, setScheduleForm] = React.useState({
+    plan_id: '',
+    scheduled_for: '',
+    status: 'agendada',
+    notes: '',
+  });
+
+  React.useEffect(() => {
+    if (initialSection && (initialSection === 'plans' || initialSection === 'schedules')) {
+      setSection(initialSection);
+    }
+  }, [initialSection]);
   const [formData, setFormData] = React.useState({
     asset_id: '',
     name: '',
@@ -878,7 +942,13 @@ function PreventiveMaintenanceSettings() {
   React.useEffect(() => {
     fetchPlans();
     fetchAssets();
-  }, []);
+  }, [selectedPlant]);
+
+  React.useEffect(() => {
+    if (section !== 'schedules') return;
+    fetchSchedules();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [section, selectedPlant]);
 
   const fetchPlans = async () => {
     try {
@@ -893,6 +963,25 @@ function PreventiveMaintenanceSettings() {
       console.error('Failed to fetch plans:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSchedules = async () => {
+    if (!selectedPlant) {
+      setSchedules([]);
+      return;
+    }
+
+    setScheduleLoading(true);
+    setScheduleError(null);
+    try {
+      const data = await getPreventiveSchedules(selectedPlant);
+      setSchedules(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      setScheduleError(err?.message || 'Erro ao carregar agendamentos');
+      setSchedules([]);
+    } finally {
+      setScheduleLoading(false);
     }
   };
 
@@ -992,8 +1081,99 @@ function PreventiveMaintenanceSettings() {
     });
   };
 
+  const visibleSchedules = React.useMemo(() => {
+    if (scheduleFilter === 'all') return schedules;
+    return schedules.filter((s) => s.status === scheduleFilter);
+  }, [schedules, scheduleFilter]);
+
+  const handleCreateSchedule = async () => {
+    if (!selectedPlant) {
+      setScheduleError('Selecione uma fábrica primeiro');
+      return;
+    }
+    if (!scheduleForm.plan_id || !scheduleForm.scheduled_for) {
+      setScheduleError('Selecione o plano e a data');
+      return;
+    }
+    const scheduledIso = toIsoFromDatetimeLocal(scheduleForm.scheduled_for);
+    if (!scheduledIso) {
+      setScheduleError('Data inválida');
+      return;
+    }
+
+    setCreatingSchedule(true);
+    setScheduleError(null);
+    try {
+      await createPreventiveSchedule(selectedPlant, {
+        plan_id: scheduleForm.plan_id,
+        scheduled_for: scheduledIso,
+        status: scheduleForm.status,
+        notes: scheduleForm.notes || undefined,
+      });
+
+      setScheduleForm({ plan_id: '', scheduled_for: '', status: 'agendada', notes: '' });
+      await fetchSchedules();
+    } catch (err: any) {
+      setScheduleError(err?.message || 'Erro ao criar agendamento');
+    } finally {
+      setCreatingSchedule(false);
+    }
+  };
+
+  const handleScheduleStatusChange = async (scheduleId: string, status: string) => {
+    if (!selectedPlant) return;
+    setScheduleError(null);
+    try {
+      await updatePreventiveSchedule(selectedPlant, scheduleId, { status });
+      await fetchSchedules();
+    } catch (err: any) {
+      setScheduleError(err?.message || 'Erro ao atualizar agendamento');
+    }
+  };
+
   return (
     <div>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
+            Manutenção preventiva
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold theme-text">
+            Planos e preventivas agendadas
+          </h2>
+          <p className="mt-1 text-sm theme-text-muted">
+            Gerencie rotinas por equipamento e agendamentos preventivos.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 rounded-full border theme-border theme-card p-1">
+          <button
+            type="button"
+            onClick={() => setSection('plans')}
+            className={`px-4 py-2 text-sm font-semibold rounded-full transition ${
+              section === 'plans'
+                ? 'bg-[color:var(--settings-accent)] text-white'
+                : 'theme-text-muted hover:theme-text'
+            }`}
+          >
+            Planos
+          </button>
+          <button
+            type="button"
+            onClick={() => setSection('schedules')}
+            className={`px-4 py-2 text-sm font-semibold rounded-full transition ${
+              section === 'schedules'
+                ? 'bg-[color:var(--settings-accent)] text-white'
+                : 'theme-text-muted hover:theme-text'
+            }`}
+          >
+            Agendadas
+          </button>
+        </div>
+      </div>
+
+      {section === 'plans' && (
+        <>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
@@ -1230,6 +1410,172 @@ function PreventiveMaintenanceSettings() {
           ))
         )}
       </div>
+        </>
+      )}
+
+      {section === 'schedules' && (
+        <div className="space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
+                Agendamentos
+              </p>
+              <h3 className="mt-2 text-xl font-semibold theme-text">Preventivas agendadas</h3>
+              <p className="mt-1 text-sm theme-text-muted">
+                Crie e acompanhe agendamentos preventivos sem alterar as ordens.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={fetchSchedules}
+              disabled={scheduleLoading}
+            >
+              Atualizar
+            </button>
+          </div>
+
+          {scheduleError && (
+            <div className="rounded-[20px] border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {scheduleError}
+            </div>
+          )}
+
+          <div className="overflow-hidden rounded-[24px] border theme-border theme-card shadow-sm">
+            <div className="p-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium theme-text mb-1">Plano</label>
+                  <select
+                    value={scheduleForm.plan_id}
+                    onChange={(e) => setScheduleForm({ ...scheduleForm, plan_id: e.target.value })}
+                    className="input"
+                  >
+                    <option value="">Selecionar...</option>
+                    {plans.map((plan) => (
+                      <option key={plan.id} value={plan.id}>
+                        {plan.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium theme-text mb-1">Data</label>
+                  <input
+                    type="datetime-local"
+                    value={scheduleForm.scheduled_for}
+                    onChange={(e) =>
+                      setScheduleForm({ ...scheduleForm, scheduled_for: e.target.value })
+                    }
+                    className="input"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium theme-text mb-1">Status</label>
+                  <select
+                    value={scheduleForm.status}
+                    onChange={(e) => setScheduleForm({ ...scheduleForm, status: e.target.value })}
+                    className="input"
+                  >
+                    <option value="agendada">Agendada</option>
+                    <option value="reagendada">Reagendada</option>
+                    <option value="em_execucao">Em execução</option>
+                    <option value="concluida">Concluída</option>
+                    <option value="fechada">Fechada</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium theme-text mb-1">Notas</label>
+                  <input
+                    type="text"
+                    value={scheduleForm.notes}
+                    onChange={(e) => setScheduleForm({ ...scheduleForm, notes: e.target.value })}
+                    placeholder="Opcional"
+                    className="input"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium theme-text">Filtrar:</label>
+                  <select
+                    value={scheduleFilter}
+                    onChange={(e) => setScheduleFilter(e.target.value)}
+                    className="input h-10 py-1"
+                  >
+                    <option value="all">Todos</option>
+                    <option value="agendada">Agendada</option>
+                    <option value="reagendada">Reagendada</option>
+                    <option value="em_execucao">Em execução</option>
+                    <option value="concluida">Concluída</option>
+                    <option value="fechada">Fechada</option>
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCreateSchedule}
+                  disabled={creatingSchedule}
+                  className="inline-flex items-center gap-2 rounded-full bg-[color:var(--settings-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
+                >
+                  <Plus className="h-4 w-4" />
+                  Criar agendamento
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-[24px] border theme-border theme-card shadow-sm">
+            <div className="p-5">
+              {scheduleLoading ? (
+                <p className="text-sm theme-text-muted">Carregando agendamentos...</p>
+              ) : visibleSchedules.length === 0 ? (
+                <p className="text-sm theme-text-muted">Sem agendamentos.</p>
+              ) : (
+                <div className="space-y-3">
+                  {visibleSchedules.map((schedule: any) => (
+                    <div
+                      key={schedule.id}
+                      className="flex flex-col gap-2 rounded-[18px] border theme-border bg-[color:var(--dash-surface)] p-4 md:flex-row md:items-center md:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold theme-text truncate">
+                          {schedule.plan_name || schedule.planName || schedule.plan_id}
+                        </p>
+                        <p className="text-xs theme-text-muted">
+                          {schedule.asset_name || schedule.assetName ? `Equip.: ${schedule.asset_name || schedule.assetName} • ` : ''}
+                          {schedule.scheduled_for ? new Date(schedule.scheduled_for).toLocaleString() : '—'}
+                        </p>
+                        {schedule.notes && (
+                          <p className="mt-1 text-xs theme-text-muted truncate">{schedule.notes}</p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <select
+                          value={schedule.status || 'agendada'}
+                          onChange={(e) => handleScheduleStatusChange(schedule.id, e.target.value)}
+                          className="input h-9 py-1"
+                        >
+                          <option value="agendada">Agendada</option>
+                          <option value="reagendada">Reagendada</option>
+                          <option value="em_execucao">Em execução</option>
+                          <option value="concluida">Concluída</option>
+                          <option value="fechada">Fechada</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

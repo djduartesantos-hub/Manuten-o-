@@ -14,8 +14,6 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { WorkOrdersPage } from './pages/WorkOrdersPage';
 import { AssetsPage } from './pages/AssetsPage';
-import { MaintenancePlansPage } from './pages/MaintenancePlansPage';
-import { PreventiveSchedulesPage } from './pages/PreventiveSchedulesPage';
 import { SparePartsPage } from './pages/SparePartsPage';
 import { SuppliersPage } from './pages/SuppliersPage';
 import { ReportsPage } from './pages/ReportsPage';
@@ -108,7 +106,7 @@ function App() {
               path="/maintenance-plans"
               element={
                 <ProtectedRoute>
-                  <MaintenancePlansPage />
+                  <Navigate to="/settings?panel=preventive&sub=plans" replace />
                 </ProtectedRoute>
               }
             />
@@ -116,7 +114,7 @@ function App() {
               path="/preventive-schedules"
               element={
                 <ProtectedRoute>
-                  <PreventiveSchedulesPage />
+                  <Navigate to="/settings?panel=preventive&sub=schedules" replace />
                 </ProtectedRoute>
               }
             />

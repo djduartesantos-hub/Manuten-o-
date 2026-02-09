@@ -84,18 +84,6 @@ export function Header() {
           active: location.pathname === '/work-orders',
           icon: ClipboardList,
         },
-        {
-          label: 'Planos',
-          href: '/maintenance-plans',
-          active: location.pathname === '/maintenance-plans',
-          icon: Calendar,
-        },
-        {
-          label: 'Preventiva agendada',
-          href: '/preventive-schedules',
-          active: location.pathname === '/preventive-schedules',
-          icon: CalendarClock,
-        },
       ],
     },
     {
