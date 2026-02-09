@@ -9,6 +9,7 @@ const preventiveScheduleStatusSchema = z.enum([
 ]);
 
 const scheduleBasisSchema = z.enum(['completion', 'scheduled']);
+const scheduleAnchorModeSchema = z.enum(['interval', 'fixed']);
 const toleranceUnitSchema = z.enum(['hours', 'days']);
 const toleranceModeSchema = z.enum(['soft', 'hard']);
 
@@ -25,6 +26,7 @@ export const createMaintenancePlanSchema = z.object({
   meter_threshold: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Formato decimal inválido').optional(),
   auto_schedule: z.boolean().optional(),
   schedule_basis: scheduleBasisSchema.optional(),
+  schedule_anchor_mode: scheduleAnchorModeSchema.optional(),
   tolerance_unit: toleranceUnitSchema.optional(),
   tolerance_before_value: z.number().int().nonnegative().optional(),
   tolerance_after_value: z.number().int().nonnegative().optional(),
@@ -42,6 +44,7 @@ export const updateMaintenancePlanSchema = z.object({
   meter_threshold: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   auto_schedule: z.boolean().optional(),
   schedule_basis: scheduleBasisSchema.optional(),
+  schedule_anchor_mode: scheduleAnchorModeSchema.optional(),
   tolerance_unit: toleranceUnitSchema.optional(),
   tolerance_before_value: z.number().int().nonnegative().optional(),
   tolerance_after_value: z.number().int().nonnegative().optional(),

@@ -9,6 +9,7 @@ import {
   patchWorkOrders,
   patchWorkOrdersDowntimeRca,
   patchMaintenancePlansToleranceMode,
+  patchMaintenancePlansScheduleAnchorMode,
   runMigrations,
   seedDemoData,
 } from '../services/api';
@@ -176,6 +177,26 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
     try {
       await patchMaintenancePlansToleranceMode();
       setSuccess('Patch aplicado. A coluna tolerance_mode foi verificada/adicionada em maintenance_plans.');
+      await fetchStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMaintenancePlansScheduleAnchorModePatch = async () => {
+    if (!confirm('Aplicar patch para adicionar schedule_anchor_mode nos planos de manutenção?')) {
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await patchMaintenancePlansScheduleAnchorMode();
+      setSuccess('Patch aplicado. A coluna schedule_anchor_mode foi verificada/adicionada em maintenance_plans.');
       await fetchStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
@@ -413,6 +434,22 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
             >
               <Wrench className="w-4 h-4" />
               Patch tolerância (planos)
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-amber-800">
+                Adiciona a âncora de cadência (fixo vs intervalo) nos planos de manutenção.
+              </p>
+            </div>
+            <button
+              onClick={handleMaintenancePlansScheduleAnchorModePatch}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition"
+            >
+              <Wrench className="w-4 h-4" />
+              Patch âncora (planos)
             </button>
           </div>
         </div>

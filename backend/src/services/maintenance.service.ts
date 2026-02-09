@@ -25,6 +25,7 @@ export interface CreateMaintenancePlanInput {
   tolerance_before_value?: number;
   tolerance_after_value?: number;
   tolerance_mode?: 'soft' | 'hard';
+  schedule_anchor_mode?: 'interval' | 'fixed';
   tasks?: string[];
   is_active?: boolean;
 }
@@ -44,6 +45,7 @@ export interface UpdateMaintenancePlanInput {
   tolerance_mode?: 'soft' | 'hard';
   tasks?: string[];
   is_active?: boolean;
+  schedule_anchor_mode?: 'interval' | 'fixed';
 }
 
 export interface CreateMaintenanceTaskInput {
@@ -134,6 +136,7 @@ export class MaintenanceService {
         meter_threshold: maintenancePlans.meter_threshold,
         auto_schedule: maintenancePlans.auto_schedule,
         schedule_basis: (maintenancePlans as any).schedule_basis,
+        schedule_anchor_mode: (maintenancePlans as any).schedule_anchor_mode,
         tolerance_unit: (maintenancePlans as any).tolerance_unit,
         tolerance_before_value: (maintenancePlans as any).tolerance_before_value,
         tolerance_after_value: (maintenancePlans as any).tolerance_after_value,
@@ -187,6 +190,7 @@ export class MaintenanceService {
           meter_threshold: maintenancePlans.meter_threshold,
           auto_schedule: maintenancePlans.auto_schedule,
           schedule_basis: (maintenancePlans as any).schedule_basis,
+          schedule_anchor_mode: (maintenancePlans as any).schedule_anchor_mode,
           tolerance_unit: (maintenancePlans as any).tolerance_unit,
           tolerance_before_value: (maintenancePlans as any).tolerance_before_value,
           tolerance_after_value: (maintenancePlans as any).tolerance_after_value,
@@ -535,7 +539,8 @@ export class MaintenanceService {
           }
           updates.reschedule_reason = reason;
           updates.rescheduled_at = new Date();
-          updates.rescheduled_from = row.scheduled_for;
+          // Guardar a primeira data programada como âncora (não sobrescrever em reagendamentos subsequentes)
+          updates.rescheduled_from = row.rescheduled_from || row.scheduled_for;
         }
       }
 
@@ -570,6 +575,7 @@ export class MaintenanceService {
             frequency_value: maintenancePlans.frequency_value,
             auto_schedule: maintenancePlans.auto_schedule,
             schedule_basis: (maintenancePlans as any).schedule_basis,
+            schedule_anchor_mode: (maintenancePlans as any).schedule_anchor_mode,
             tolerance_unit: (maintenancePlans as any).tolerance_unit,
             tolerance_before_value: (maintenancePlans as any).tolerance_before_value,
             tolerance_after_value: (maintenancePlans as any).tolerance_after_value,
@@ -605,11 +611,16 @@ export class MaintenanceService {
           const completedBaseDate =
             (schedule?.completed_at as any) || updates.completed_at || new Date();
           const basis = String((plan as any)?.schedule_basis || 'completion');
+          const anchorMode = String((plan as any)?.schedule_anchor_mode || 'interval');
+          const anchoredScheduledFor =
+            anchorMode === 'fixed'
+              ? ((row.rescheduled_from as any) || (row.scheduled_for as any) || completedBaseDate)
+              : ((row.scheduled_for as any) || completedBaseDate);
           const baseDate =
             overrideValue > 0
               ? completedBaseDate
               : basis === 'scheduled'
-                ? ((row.scheduled_for as any) || completedBaseDate)
+                ? anchoredScheduledFor
                 : completedBaseDate;
           const nextDate = new Date(baseDate);
 
@@ -708,6 +719,7 @@ export class MaintenanceService {
         meter_threshold: maintenancePlans.meter_threshold,
         auto_schedule: maintenancePlans.auto_schedule,
         schedule_basis: (maintenancePlans as any).schedule_basis,
+        schedule_anchor_mode: (maintenancePlans as any).schedule_anchor_mode,
         tolerance_unit: (maintenancePlans as any).tolerance_unit,
         tolerance_before_value: (maintenancePlans as any).tolerance_before_value,
         tolerance_after_value: (maintenancePlans as any).tolerance_after_value,
@@ -813,6 +825,7 @@ export class MaintenanceService {
             : undefined,
           auto_schedule: input.auto_schedule,
           schedule_basis: (input as any).schedule_basis,
+              schedule_anchor_mode: (input as any).schedule_anchor_mode,
           tolerance_unit: (input as any).tolerance_unit,
           tolerance_before_value: (input as any).tolerance_before_value,
           tolerance_after_value: (input as any).tolerance_after_value,
@@ -960,6 +973,10 @@ export class MaintenanceService {
 
       // Invalidate cache
       try {
+                schedule_anchor_mode:
+                  (input as any).schedule_anchor_mode !== undefined
+                    ? (input as any).schedule_anchor_mode
+                    : (plan as any).schedule_anchor_mode,
         await RedisService.delMultiple([
           CacheKeys.maintenancePlans(tenant_id, plant_id),
           CacheKeys.maintenancePlan(tenant_id, plan_id),

@@ -849,6 +849,7 @@ END $$;`
       await SetupController.applyWorkOrdersPatchInternal();
       await SetupController.applyWorkOrdersDowntimeRcaPatchInternal();
       await SetupController.applyMaintenancePlansToleranceModePatchInternal();
+      await SetupController.applyMaintenancePlansScheduleAnchorModePatchInternal();
 
       res.json({
         success: true,
@@ -861,6 +862,7 @@ END $$;`
             'work_orders_work_performed',
             'work_orders_downtime_rca_fields',
             'maintenance_plans_tolerance_mode',
+            'maintenance_plans_schedule_anchor_mode',
           ],
         },
       });
@@ -981,6 +983,53 @@ END $$;`
               AND column_name = 'tolerance_mode'
           ) THEN
             ALTER TABLE maintenance_plans ADD COLUMN tolerance_mode TEXT DEFAULT 'soft';
+          END IF;
+        END IF;
+      END $$;
+    `));
+  }
+
+  /**
+   * Patch: add schedule_anchor_mode to maintenance_plans if missing
+   */
+  static async patchMaintenancePlansScheduleAnchorMode(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user || req.user.role !== 'superadmin') {
+        res.status(403).json({
+          success: false,
+          error: 'Only superadmin can run patches',
+        });
+        return;
+      }
+
+      await SetupController.applyMaintenancePlansScheduleAnchorModePatchInternal();
+
+      res.json({
+        success: true,
+        message: 'Patch aplicado com sucesso',
+        data: { patch: 'maintenance_plans_schedule_anchor_mode' },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to apply patch',
+      });
+    }
+  }
+
+  private static async applyMaintenancePlansScheduleAnchorModePatchInternal(): Promise<void> {
+    await db.execute(sql.raw(`
+      DO $$
+      BEGIN
+        IF to_regclass('public.maintenance_plans') IS NOT NULL THEN
+          IF NOT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'maintenance_plans'
+              AND column_name = 'schedule_anchor_mode'
+          ) THEN
+            ALTER TABLE maintenance_plans ADD COLUMN schedule_anchor_mode TEXT DEFAULT 'interval';
           END IF;
         END IF;
       END $$;

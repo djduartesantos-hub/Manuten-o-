@@ -212,6 +212,11 @@ export const maintenancePlans = pgTable(
     // - 'completion': a partir da conclusão
     // - 'scheduled': manter cadência a partir da data programada
     schedule_basis: text('schedule_basis').default('completion'),
+
+    // Âncora de agendamento:
+    // - interval: usa a data programada atual (pode haver drift após reagendamentos)
+    // - fixed: mantém cadência usando a data original (rescheduled_from) quando existir
+    schedule_anchor_mode: text('schedule_anchor_mode').default('interval'),
     // Janela/tolerância (informativo): permitir executar X antes/depois
     tolerance_unit: text('tolerance_unit').default('days'),
     tolerance_before_value: integer('tolerance_before_value').default(0),

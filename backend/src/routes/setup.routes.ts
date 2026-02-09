@@ -50,6 +50,14 @@ router.post(
   SetupController.patchMaintenancePlansToleranceMode,
 );
 
+// POST /api/setup/patch/maintenance-plans-schedule-anchor-mode - Add schedule_anchor_mode if missing
+router.post(
+  '/patch/maintenance-plans-schedule-anchor-mode',
+  authMiddleware,
+  requireRole('superadmin'),
+  SetupController.patchMaintenancePlansScheduleAnchorMode,
+);
+
 // POST /api/setup/clear - Clear all data (dangerous!) (requires auth)
 router.post('/clear', authMiddleware, requireRole('superadmin'), SetupController.clearData);
 

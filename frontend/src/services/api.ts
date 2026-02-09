@@ -563,6 +563,12 @@ export async function patchMaintenancePlansToleranceMode() {
   });
 }
 
+export async function patchMaintenancePlansScheduleAnchorMode() {
+  return apiCall('/setup/patch/maintenance-plans-schedule-anchor-mode', {
+    method: 'POST',
+  });
+}
+
 export async function applyDbCorrections() {
   return apiCall('/setup/patch/all', {
     method: 'POST',

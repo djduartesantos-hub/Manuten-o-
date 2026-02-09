@@ -1043,6 +1043,7 @@ function PreventiveMaintenanceSettings({
     description: '',
     auto_schedule: true,
     schedule_basis: 'completion' as 'completion' | 'scheduled',
+    schedule_anchor_mode: 'interval' as 'interval' | 'fixed',
     tolerance_unit: 'days' as 'days' | 'hours',
     tolerance_before_value: 0,
     tolerance_after_value: 0,
@@ -1174,6 +1175,7 @@ function PreventiveMaintenanceSettings({
           frequency_value: Number(formData.frequency_value),
           auto_schedule: formData.auto_schedule,
           schedule_basis: formData.schedule_basis,
+          schedule_anchor_mode: formData.schedule_anchor_mode,
           tolerance_unit: formData.tolerance_unit,
           tolerance_before_value: Number(formData.tolerance_before_value) || 0,
           tolerance_after_value: Number(formData.tolerance_after_value) || 0,
@@ -1192,6 +1194,7 @@ function PreventiveMaintenanceSettings({
         description: '',
         auto_schedule: true,
         schedule_basis: 'completion',
+        schedule_anchor_mode: 'interval',
         tolerance_unit: 'days',
         tolerance_before_value: 0,
         tolerance_after_value: 0,
@@ -1228,6 +1231,7 @@ function PreventiveMaintenanceSettings({
       description: plan.description || '',
       auto_schedule: plan.auto_schedule !== false,
       schedule_basis: plan.schedule_basis || 'completion',
+      schedule_anchor_mode: (plan.schedule_anchor_mode as any) || 'interval',
       tolerance_unit: plan.tolerance_unit || 'days',
       tolerance_before_value: Number(plan.tolerance_before_value || 0),
       tolerance_after_value: Number(plan.tolerance_after_value || 0),
@@ -1462,6 +1466,7 @@ function PreventiveMaintenanceSettings({
                         frequency_unit: tpl.data.frequency_unit,
                         auto_schedule: tpl.data.auto_schedule,
                         schedule_basis: tpl.data.schedule_basis as any,
+                        schedule_anchor_mode: (tpl.data as any).schedule_anchor_mode || 'interval',
                         tolerance_unit: tpl.data.tolerance_unit as any,
                         tolerance_before_value: tpl.data.tolerance_before_value,
                         tolerance_after_value: tpl.data.tolerance_after_value,
@@ -1568,6 +1573,28 @@ function PreventiveMaintenanceSettings({
                   <option value="completion">A partir da conclusão</option>
                   <option value="scheduled">Manter cadência (data programada)</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium theme-text mb-1">
+                  Âncora de cadência
+                </label>
+                <select
+                  value={formData.schedule_anchor_mode}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      schedule_anchor_mode: e.target.value as any,
+                    })
+                  }
+                  className="input"
+                >
+                  <option value="interval">Intervalo (usa data atual)</option>
+                  <option value="fixed">Fixo (evita drift após reagendar)</option>
+                </select>
+                <p className="mt-1 text-xs theme-text-muted">
+                  Em “Fixo”, a cadência usa a primeira data programada mesmo após reagendamentos.
+                </p>
               </div>
 
               <div>
