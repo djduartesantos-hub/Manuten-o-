@@ -570,6 +570,9 @@ export class MaintenanceService {
             frequency_value: maintenancePlans.frequency_value,
             auto_schedule: maintenancePlans.auto_schedule,
             schedule_basis: (maintenancePlans as any).schedule_basis,
+            tolerance_unit: (maintenancePlans as any).tolerance_unit,
+            tolerance_before_value: (maintenancePlans as any).tolerance_before_value,
+            tolerance_after_value: (maintenancePlans as any).tolerance_after_value,
           })
           .from(maintenancePlans)
           .where(
@@ -622,6 +625,17 @@ export class MaintenanceService {
             nextDate.setMonth(nextDate.getMonth() + frequencyValue);
           }
 
+          // Anti-duplicados: garantir "1 ativo por janela".
+          // Se existir já um schedule ativo dentro da janela de tolerância do plano (em torno do nextDate), não criar outro.
+          const toleranceUnit = String((plan as any)?.tolerance_unit || 'days');
+          const toleranceBefore = Number((plan as any)?.tolerance_before_value || 0);
+          const toleranceAfter = Number((plan as any)?.tolerance_after_value || 0);
+          const toleranceMultiplierMs =
+            toleranceUnit === 'hours' ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+
+          const windowStart = new Date(nextDate.getTime() - toleranceBefore * toleranceMultiplierMs);
+          const windowEnd = new Date(nextDate.getTime() + toleranceAfter * toleranceMultiplierMs);
+
           const existingNext = await tx
             .select({ id: preventiveMaintenanceSchedules.id })
             .from(preventiveMaintenanceSchedules)
@@ -635,7 +649,8 @@ export class MaintenanceService {
                   'reagendada',
                   'em_execucao',
                 ] as any),
-                gte(preventiveMaintenanceSchedules.scheduled_for, nextDate),
+                gte(preventiveMaintenanceSchedules.scheduled_for, windowStart),
+                lte(preventiveMaintenanceSchedules.scheduled_for, windowEnd),
               ),
             )
             .limit(1);
