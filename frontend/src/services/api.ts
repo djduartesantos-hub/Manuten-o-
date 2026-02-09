@@ -602,6 +602,12 @@ export async function patchStockReservations() {
   });
 }
 
+export async function patchMaintenanceKits() {
+  return apiCall('/setup/patch/maintenance-kits', {
+    method: 'POST',
+  });
+}
+
 export async function applyDbCorrections() {
   return apiCall('/setup/patch/all', {
     method: 'POST',

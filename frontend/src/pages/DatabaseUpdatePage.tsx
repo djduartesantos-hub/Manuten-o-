@@ -11,6 +11,7 @@ import {
   patchMaintenancePlansToleranceMode,
   patchMaintenancePlansScheduleAnchorMode,
   patchStockReservations,
+  patchMaintenanceKits,
   runMigrations,
   seedDemoData,
 } from '../services/api';
@@ -218,6 +219,26 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
     try {
       await patchStockReservations();
       setSuccess('Patch aplicado. A tabela stock_reservations foi verificada/criada.');
+      await fetchStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMaintenanceKitsPatch = async () => {
+    if (!confirm('Aplicar patch para criar as tabelas de kits de manutenção?')) {
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await patchMaintenanceKits();
+      setSuccess('Patch aplicado. As tabelas maintenance_kits e maintenance_kit_items foram verificadas/criadas.');
       await fetchStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
@@ -487,6 +508,22 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
             >
               <Wrench className="w-4 h-4" />
               Patch reservas (stock)
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-amber-800">
+                Cria as tabelas de kits de manutenção para associar listas de peças a planos/categorias.
+              </p>
+            </div>
+            <button
+              onClick={handleMaintenanceKitsPatch}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition"
+            >
+              <Wrench className="w-4 h-4" />
+              Patch kits (manutenção)
             </button>
           </div>
         </div>

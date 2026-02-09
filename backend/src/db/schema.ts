@@ -243,6 +243,55 @@ export const maintenancePlans = pgTable(
   }),
 );
 
+// Maintenance Kits (tenant-level, optionally linked to plan or asset category)
+export const maintenanceKits = pgTable(
+  'maintenance_kits',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    name: text('name').notNull(),
+    notes: text('notes'),
+    plan_id: uuid('plan_id').references(() => maintenancePlans.id, { onDelete: 'set null' }),
+    category_id: uuid('category_id').references(() => assetCategories.id, { onDelete: 'set null' }),
+    is_active: boolean('is_active').default(true),
+    created_by: uuid('created_by')
+      .notNull()
+      .references(() => users.id),
+    updated_by: uuid('updated_by').references(() => users.id),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index('maintenance_kits_tenant_id_idx').on(table.tenant_id),
+    planIdIdx: index('maintenance_kits_plan_id_idx').on(table.plan_id),
+    categoryIdIdx: index('maintenance_kits_category_id_idx').on(table.category_id),
+  }),
+);
+
+export const maintenanceKitItems = pgTable(
+  'maintenance_kit_items',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    kit_id: uuid('kit_id')
+      .notNull()
+      .references(() => maintenanceKits.id, { onDelete: 'cascade' }),
+    spare_part_id: uuid('spare_part_id')
+      .notNull()
+      .references(() => spareParts.id, { onDelete: 'restrict' }),
+    quantity: integer('quantity').notNull(),
+    created_by: uuid('created_by')
+      .notNull()
+      .references(() => users.id),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index('maintenance_kit_items_tenant_id_idx').on(table.tenant_id),
+    kitIdIdx: index('maintenance_kit_items_kit_id_idx').on(table.kit_id),
+    sparePartIdIdx: index('maintenance_kit_items_spare_part_id_idx').on(table.spare_part_id),
+  }),
+);
+
 // Maintenance Tasks (Checklists)
 export const maintenanceTasks = pgTable(
   'maintenance_tasks',

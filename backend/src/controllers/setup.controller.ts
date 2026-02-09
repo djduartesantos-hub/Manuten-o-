@@ -637,6 +637,8 @@ export class SetupController {
       'work_orders',
       'maintenance_tasks',
       'maintenance_plans',
+      'maintenance_kit_items',
+      'maintenance_kits',
       'assets',
       'spare_parts',
       'suppliers',
@@ -860,6 +862,34 @@ END $$;`
   }
 
   /**
+   * Patch: create maintenance_kits + maintenance_kit_items tables (Phase 3) if missing
+   */
+  static async patchMaintenanceKits(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user || req.user.role !== 'superadmin') {
+        res.status(403).json({
+          success: false,
+          error: 'Only superadmin can run patches',
+        });
+        return;
+      }
+
+      await SetupController.applyMaintenanceKitsPatchInternal();
+
+      res.json({
+        success: true,
+        message: 'Patch aplicado com sucesso',
+        data: { patch: 'maintenance_kits' },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to apply patch',
+      });
+    }
+  }
+
+  /**
    * Apply all known DB corrections (migrations + targeted patches)
    */
   static async applyCorrections(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -879,6 +909,7 @@ END $$;`
       await SetupController.applyMaintenancePlansToleranceModePatchInternal();
       await SetupController.applyMaintenancePlansScheduleAnchorModePatchInternal();
       await SetupController.applyStockReservationsPatchInternal();
+      await SetupController.applyMaintenanceKitsPatchInternal();
 
       res.json({
         success: true,
@@ -893,6 +924,7 @@ END $$;`
             'maintenance_plans_tolerance_mode',
             'maintenance_plans_schedule_anchor_mode',
             'stock_reservations',
+            'maintenance_kits',
           ],
         },
       });
@@ -1005,6 +1037,51 @@ END $$;`
           CREATE INDEX stock_reservations_plant_id_idx ON stock_reservations(plant_id);
           CREATE INDEX stock_reservations_work_order_id_idx ON stock_reservations(work_order_id);
           CREATE INDEX stock_reservations_spare_part_id_idx ON stock_reservations(spare_part_id);
+        END IF;
+      END $$;
+    `));
+  }
+
+  private static async applyMaintenanceKitsPatchInternal(): Promise<void> {
+    await db.execute(sql.raw(`
+      DO $$
+      BEGIN
+        IF to_regclass('public.maintenance_kits') IS NULL THEN
+          CREATE TABLE maintenance_kits (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            tenant_id uuid NOT NULL,
+            name text NOT NULL,
+            notes text,
+            plan_id uuid REFERENCES maintenance_plans(id) ON DELETE SET NULL,
+            category_id uuid REFERENCES asset_categories(id) ON DELETE SET NULL,
+            is_active boolean NOT NULL DEFAULT true,
+            created_by uuid NOT NULL REFERENCES users(id),
+            updated_by uuid REFERENCES users(id),
+            created_at timestamptz NOT NULL DEFAULT now(),
+            updated_at timestamptz NOT NULL DEFAULT now(),
+            CONSTRAINT maintenance_kits_plan_or_category_ck CHECK (NOT (plan_id IS NOT NULL AND category_id IS NOT NULL))
+          );
+
+          CREATE INDEX maintenance_kits_tenant_id_idx ON maintenance_kits(tenant_id);
+          CREATE INDEX maintenance_kits_plan_id_idx ON maintenance_kits(plan_id);
+          CREATE INDEX maintenance_kits_category_id_idx ON maintenance_kits(category_id);
+        END IF;
+
+        IF to_regclass('public.maintenance_kit_items') IS NULL THEN
+          CREATE TABLE maintenance_kit_items (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            tenant_id uuid NOT NULL,
+            kit_id uuid NOT NULL REFERENCES maintenance_kits(id) ON DELETE CASCADE,
+            spare_part_id uuid NOT NULL REFERENCES spare_parts(id) ON DELETE RESTRICT,
+            quantity integer NOT NULL,
+            created_by uuid NOT NULL REFERENCES users(id),
+            created_at timestamptz NOT NULL DEFAULT now(),
+            CONSTRAINT maintenance_kit_items_quantity_ck CHECK (quantity > 0)
+          );
+
+          CREATE INDEX maintenance_kit_items_tenant_id_idx ON maintenance_kit_items(tenant_id);
+          CREATE INDEX maintenance_kit_items_kit_id_idx ON maintenance_kit_items(kit_id);
+          CREATE INDEX maintenance_kit_items_spare_part_id_idx ON maintenance_kit_items(spare_part_id);
         END IF;
       END $$;
     `));

@@ -66,6 +66,14 @@ router.post(
   SetupController.patchStockReservations,
 );
 
+// POST /api/setup/patch/maintenance-kits - Create maintenance_kits + maintenance_kit_items tables if missing
+router.post(
+  '/patch/maintenance-kits',
+  authMiddleware,
+  requireRole('superadmin'),
+  SetupController.patchMaintenanceKits,
+);
+
 // POST /api/setup/clear - Clear all data (dangerous!) (requires auth)
 router.post('/clear', authMiddleware, requireRole('superadmin'), SetupController.clearData);
 

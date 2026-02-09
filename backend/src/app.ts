@@ -10,6 +10,7 @@ import assetRoutes from './routes/asset.routes.js';
 import assetCategoryRoutes from './routes/asset-category.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import maintenanceRoutes from './routes/maintenance.routes.js';
+import maintenanceKitRoutes from './routes/maintenancekit.routes.js';
 import sparePartRoutes from './routes/sparepart.routes.js';
 import supplierRoutes from './routes/supplier.routes.js';
 import alertRoutes from './routes/alert.routes.js';
@@ -51,6 +52,7 @@ export function createApp(): Express {
   app.use('/api', assetRoutes);
   app.use('/api', assetCategoryRoutes);
   app.use('/api', maintenanceRoutes);
+  app.use('/api', maintenanceKitRoutes);
   app.use('/api', sparePartRoutes);
   app.use('/api', supplierRoutes);
   app.use('/api/dashboard', dashboardRoutes);
