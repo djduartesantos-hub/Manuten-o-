@@ -31,7 +31,11 @@ Este track é o plano **prático** para as próximas iterações, com foco em op
 - Âncora de agendamento (fixo vs intervalo) e anti-duplicados “1 ativo por janela”.
 
 ### Fase 3 — Stock/Peças: reserva + kits + previsão (3-5 semanas)
-- Reserva de peças por ordem; kits por plano/categoria; previsão simples (planeado vs stock).
+- ✅ **Concluída (2026-02-09)**: reserva de peças por ordem; kits por plano/categoria; previsão simples (planeado vs stock).
+   - Reservas por ordem + patch BD (commit 16)
+   - Kits + patch BD + UI gestão (commits 17-18)
+   - Aplicar kit na Ordem (commit 19)
+   - Previsão simples (preventivas futuras + kits) (commit 21)
 
 ### Fase 4 — Alertas/SLA: aging por fase + excluir pausa (2-3 semanas)
 - SLA com opção “tempo em pausa não conta”; alertas por aging por fase; notificar ao retomar.

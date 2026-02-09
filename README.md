@@ -113,7 +113,7 @@ chmod +x scripts/setup/setup-local.sh
 ✅ Manter conformidade RGPD com auditoria total  
 ✅ Escalar para múltiplas empresas com isolamento de dados  
 
-**Status Atual:** Phase 2 (Maintenance Planning & Spare Parts) ✅ Completo | Phase 3 (Settings & Configuration) 🔄 Em Desenvolvimento
+**Status Atual:** Phase 3 (Stock/Peças) ✅ Completo — reservas por ordem, kits e previsão simples | Próximo: Quick Wins (UX de Pausar/Cancelar) + Alertas/SLA (track “fábrica + gestão”)
 
 ---
 

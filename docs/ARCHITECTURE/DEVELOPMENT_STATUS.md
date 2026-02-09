@@ -38,6 +38,14 @@ Overall Project:          ██████████████████
 - [x] Spare parts inventory
 - [x] Stock movements tracking
 
+### Phase 3 (track “Fábrica + Gestão”): Stock/Peças ✅
+- [x] Reservas de stock por Ordem de Trabalho (criar/listar/libertar)
+- [x] Kits de manutenção (por plano ou por categoria) + gestão de itens
+- [x] Integração nas Ordens: “Aplicar kit” cria reservas em massa
+- [x] Previsão simples de consumo (preventivas futuras + kits) com disponível projetado
+
+**Referência:** ver [PROJECT_STATUS_UPDATE_2026-02-09.md](./PROJECT_STATUS_UPDATE_2026-02-09.md) (commits 16-22).
+
 ### Phase 2B: Advanced Reports
 - [x] 4 report types (General, By Asset, By Technician, Temporal)
 - [x] Metrics: MTTR, MTBF, SLA Compliance, Completion Rate
