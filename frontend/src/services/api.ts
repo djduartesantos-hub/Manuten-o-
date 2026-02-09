@@ -654,6 +654,12 @@ export async function patchWorkOrdersDowntimeRca() {
   });
 }
 
+export async function patchWorkOrdersSlaPause() {
+  return apiCall('/setup/patch/work-orders-sla-pause', {
+    method: 'POST',
+  });
+}
+
 export async function patchMaintenancePlansToleranceMode() {
   return apiCall('/setup/patch/maintenance-plans-tolerance-mode', {
     method: 'POST',

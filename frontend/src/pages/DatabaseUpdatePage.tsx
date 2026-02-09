@@ -8,6 +8,7 @@ import {
   applyDbCorrections,
   patchWorkOrders,
   patchWorkOrdersDowntimeRca,
+  patchWorkOrdersSlaPause,
   patchMaintenancePlansToleranceMode,
   patchMaintenancePlansScheduleAnchorMode,
   patchStockReservations,
@@ -159,6 +160,26 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
     try {
       await patchWorkOrdersDowntimeRca();
       setSuccess('Patch aplicado. Campos downtime_type/downtime_category/root_cause/corrective_action foram verificados/adicionados.');
+      await fetchStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleWorkOrdersSlaPausePatch = async () => {
+    if (!confirm('Aplicar patch para SLA (tempo em pausa não conta) nas ordens?')) {
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await patchWorkOrdersSlaPause();
+      setSuccess('Patch aplicado. Campos SLA (pausa não conta) foram verificados/adicionados em work_orders.');
       await fetchStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
@@ -460,6 +481,22 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
             >
               <Wrench className="w-4 h-4" />
               Patch paragem / causa raiz
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-amber-800">
+                Adiciona os campos para SLA efetivo (tempo em pausa não conta) nas ordens.
+              </p>
+            </div>
+            <button
+              onClick={handleWorkOrdersSlaPausePatch}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition"
+            >
+              <Wrench className="w-4 h-4" />
+              Patch SLA (pausa)
             </button>
           </div>
 
