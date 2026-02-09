@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import {
   AlertCircle,
@@ -34,6 +35,7 @@ import {
   addWorkOrderTask,
   updateWorkOrderTask,
   updateWorkOrder,
+  updatePreventiveSchedule,
 } from '../services/api';
 import { DiagnosticsPanel } from '../components/DiagnosticsPanel';
 
@@ -123,11 +125,29 @@ interface WorkOrder {
 
 interface PreventiveSchedule {
   id: string;
+  plan_id?: string;
+  asset_id?: string;
   scheduled_for: string;
   status: string;
+  notes?: string | null;
   plan_name?: string | null;
   asset_name?: string | null;
   asset_code?: string | null;
+}
+
+function toDatetimeLocal(value?: string | null) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function toIsoFromDatetimeLocal(value: string) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString();
 }
 
 interface WorkOrderFormState {
@@ -154,6 +174,7 @@ interface WorkOrderFinishState {
 }
 
 export function WorkOrdersPage() {
+  const navigate = useNavigate();
   const { selectedPlant } = useAppStore();
   const { user } = useAuth();
   const diagnosticsEnabled = useMemo(() => {
@@ -173,8 +194,16 @@ export function WorkOrdersPage() {
   const [activeSection, setActiveSection] = useState<'orders' | 'preventive'>('orders');
   const [preventiveSchedules, setPreventiveSchedules] = useState<PreventiveSchedule[]>([]);
   const [preventiveStatusFilter, setPreventiveStatusFilter] = useState('');
+  const [preventiveViewMode, setPreventiveViewMode] = useState<'table' | 'cards'>('table');
   const [preventiveLoading, setPreventiveLoading] = useState(false);
   const [preventiveError, setPreventiveError] = useState<string | null>(null);
+  const [editingPreventive, setEditingPreventive] = useState<PreventiveSchedule | null>(null);
+  const [preventiveSaving, setPreventiveSaving] = useState(false);
+  const [preventiveEditForm, setPreventiveEditForm] = useState({
+    scheduled_for: '',
+    status: 'agendada',
+    notes: '',
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -246,6 +275,7 @@ export function WorkOrdersPage() {
   const userRole = user?.role || '';
   const isAdmin = userRole === 'admin_empresa' || userRole === 'superadmin';
   const isManager = userRole === 'gestor_manutencao';
+  const canManagePreventive = ['superadmin', 'admin_empresa', 'gestor_manutencao', 'supervisor'].includes(userRole);
 
   useEffect(() => {
     const saved = localStorage.getItem('workOrdersFilters');
@@ -283,8 +313,6 @@ export function WorkOrdersPage() {
       { value: '', label: 'Todos' },
       { value: 'aberta', label: 'Aberta' },
       { value: 'em_analise', label: 'Em Análise' },
-      { value: 'aprovada', label: 'Aprovada' },
-      { value: 'planeada', label: 'Planeada' },
       { value: 'em_execucao', label: 'Em Execução' },
       { value: 'em_pausa', label: 'Em Pausa' },
       { value: 'concluida', label: 'Concluída' },
@@ -348,7 +376,15 @@ export function WorkOrdersPage() {
       ]);
 
       if (ordersResult.status === 'ok') {
-        const normalizedOrders = (ordersResult.value || []).filter((order: WorkOrder) => {
+        const normalizedOrders = (ordersResult.value || [])
+          .map((order: WorkOrder) => {
+            const mappedStatus =
+              order.status === 'aprovada' || order.status === 'planeada'
+                ? 'em_analise'
+                : order.status;
+            return { ...order, status: mappedStatus };
+          })
+          .filter((order: WorkOrder) => {
           if (!searchTerm) return true;
           const haystack = `${order.title} ${order.description || ''} ${order.asset?.code || ''} ${order.asset?.name || ''}`.toLowerCase();
           return haystack.includes(searchTerm.toLowerCase());
@@ -422,12 +458,49 @@ export function WorkOrdersPage() {
         selectedPlant,
         preventiveStatusFilter ? { status: preventiveStatusFilter } : undefined,
       );
-      setPreventiveSchedules(Array.isArray(data) ? data : []);
+      setPreventiveSchedules(Array.isArray(data) ? (data as any) : []);
     } catch (err: any) {
       setPreventiveSchedules([]);
       setPreventiveError(err.message || 'Erro ao carregar preventivas');
     } finally {
       setPreventiveLoading(false);
+    }
+  };
+
+  const openPreventiveEditor = (schedule: PreventiveSchedule) => {
+    setEditingPreventive(schedule);
+    setPreventiveEditForm({
+      scheduled_for: toDatetimeLocal(schedule.scheduled_for),
+      status: schedule.status || 'agendada',
+      notes: schedule.notes ? String(schedule.notes) : '',
+    });
+  };
+
+  const closePreventiveEditor = () => {
+    if (preventiveSaving) return;
+    setEditingPreventive(null);
+  };
+
+  const savePreventiveEdit = async () => {
+    if (!selectedPlant || !editingPreventive) return;
+    if (!canManagePreventive) return;
+
+    const scheduledIso =
+      toIsoFromDatetimeLocal(preventiveEditForm.scheduled_for) || editingPreventive.scheduled_for;
+
+    setPreventiveSaving(true);
+    try {
+      await updatePreventiveSchedule(selectedPlant, editingPreventive.id, {
+        status: preventiveEditForm.status,
+        scheduled_for: scheduledIso,
+        notes: preventiveEditForm.notes || undefined,
+      });
+      await loadPreventiveSchedules();
+      setEditingPreventive(null);
+    } catch (err: any) {
+      setPreventiveError(err?.message || 'Erro ao atualizar preventiva');
+    } finally {
+      setPreventiveSaving(false);
     }
   };
 
@@ -1098,8 +1171,6 @@ export function WorkOrdersPage() {
   const statusLabels: Record<string, string> = {
     aberta: 'Aberta',
     em_analise: 'Em Análise',
-    aprovada: 'Aprovada',
-    planeada: 'Planeada',
     em_execucao: 'Em Execução',
     em_pausa: 'Em Pausa',
     concluida: 'Concluída',
@@ -1109,8 +1180,6 @@ export function WorkOrdersPage() {
   const statusBadgeClass: Record<string, string> = {
     aberta: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
     em_analise: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
-    aprovada: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
-    planeada: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
     em_execucao: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
     em_pausa: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
     concluida: 'border theme-border bg-[color:var(--dash-surface)] theme-text',
@@ -1195,7 +1264,7 @@ export function WorkOrdersPage() {
   const isPlanningStage =
     Boolean(
       editingOrder &&
-        ['aberta', 'em_analise', 'aprovada', 'planeada'].includes(editingOrder.status),
+        ['aberta', 'em_analise'].includes(editingOrder.status),
     );
 
   return (
@@ -1577,8 +1646,6 @@ export function WorkOrdersPage() {
                       >
                         <option value="aberta">Aberta</option>
                         <option value="em_analise">Em Análise</option>
-                        <option value="aprovada">Aprovada</option>
-                        <option value="planeada">Planeada</option>
                         <option value="em_execucao">Em Execução</option>
                         <option value="em_pausa">Em Pausa</option>
                         <option value="concluida">Concluída</option>
@@ -2083,7 +2150,7 @@ export function WorkOrdersPage() {
                   Acoes
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {['aberta', 'em_analise', 'aprovada', 'planeada', 'em_pausa'].includes(editingOrder.status) &&
+                  {['aberta', 'em_analise', 'em_pausa'].includes(editingOrder.status) &&
                     editingPermissions?.canAssumeOrder && (
                       <>
                         {editingOrder.status === 'aberta' && (
@@ -2178,6 +2245,7 @@ export function WorkOrdersPage() {
                         onClick={() => {
                           setActiveSection('preventive');
                           setViewMode('table');
+                          setPreventiveViewMode('table');
                         }}
                       >
                         Preventiva
@@ -2224,23 +2292,50 @@ export function WorkOrdersPage() {
                         </div>
                       </>
                     ) : (
-                      <div className="inline-flex items-center gap-2 rounded-2xl border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-xs font-semibold theme-text-muted">
-                        <SlidersHorizontal className="h-4 w-4 text-emerald-600" />
-                        <select
-                          className="bg-transparent text-xs font-semibold text-[color:var(--dash-text)] focus:outline-none"
-                          value={preventiveStatusFilter}
-                          onChange={(event) => setPreventiveStatusFilter(event.target.value)}
-                        >
-                          <option value="">Todos</option>
-                          <option value="planeada">Planeada</option>
-                          <option value="agendada">Agendada</option>
-                          <option value="confirmada">Confirmada</option>
-                          <option value="em_execucao">Em execução</option>
-                          <option value="concluida">Concluída</option>
-                          <option value="fechada">Fechada</option>
-                          <option value="reagendada">Reagendada</option>
-                        </select>
-                      </div>
+                      <>
+                        <div className="inline-flex items-center gap-2 rounded-2xl border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-xs font-semibold theme-text-muted">
+                          <SlidersHorizontal className="h-4 w-4 text-emerald-600" />
+                          <select
+                            className="bg-transparent text-xs font-semibold text-[color:var(--dash-text)] focus:outline-none"
+                            value={preventiveStatusFilter}
+                            onChange={(event) => setPreventiveStatusFilter(event.target.value)}
+                          >
+                            <option value="">Todos</option>
+                            <option value="agendada">Agendada</option>
+                            <option value="em_execucao">Em execução</option>
+                            <option value="concluida">Concluída</option>
+                            <option value="fechada">Fechada</option>
+                            <option value="reagendada">Reagendada</option>
+                          </select>
+                        </div>
+
+                        <div className="flex items-center gap-1 rounded-full border theme-border bg-[color:var(--dash-panel)] px-2 py-1">
+                          <button
+                            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                              preventiveViewMode === 'table'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'text-[color:var(--dash-muted)] hover:text-[color:var(--dash-text)]'
+                            }`}
+                            onClick={() => setPreventiveViewMode('table')}
+                            aria-label="Vista tabela"
+                            title="Tabela"
+                          >
+                            <List className="h-4 w-4" />
+                          </button>
+                          <button
+                            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                              preventiveViewMode === 'cards'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'text-[color:var(--dash-muted)] hover:text-[color:var(--dash-text)]'
+                            }`}
+                            onClick={() => setPreventiveViewMode('cards')}
+                            aria-label="Vista cards"
+                            title="Cards"
+                          >
+                            <LayoutGrid className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
@@ -2250,7 +2345,7 @@ export function WorkOrdersPage() {
                 <div className="flex flex-col gap-2 border-b border-[color:var(--dash-border)] p-5 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h2 className="text-lg font-semibold theme-text">
-                      {activeSection === 'orders' ? 'Ordens' : 'Preventiva / planeada'}
+                      {activeSection === 'orders' ? 'Ordens' : 'Preventiva'}
                     </h2>
                     <p className="text-sm theme-text-muted">
                       {activeSection === 'orders'
@@ -2456,60 +2551,228 @@ export function WorkOrdersPage() {
                   </div>
                 )}
 
-                {activeSection === 'preventive' &&
-                  !preventiveLoading &&
-                  !preventiveError && (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
-                        <thead className="bg-[color:var(--dash-surface)]">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
-                              Data
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
-                              Ativo
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
-                              Plano
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
-                              Estado
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
-                          {preventiveSchedules.length === 0 && (
+                {activeSection === 'preventive' && !preventiveLoading && !preventiveError && (
+                  <>
+                    {preventiveViewMode === 'table' ? (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
+                          <thead className="bg-[color:var(--dash-surface)]">
                             <tr>
-                              <td
-                                colSpan={4}
-                                className="px-6 py-8 text-center theme-text-muted"
+                              <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
+                                Data
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
+                                Ativo
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
+                                Plano
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
+                                Estado
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium uppercase text-[color:var(--dash-muted)]">
+                                Abrir
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
+                            {preventiveSchedules.length === 0 && (
+                              <tr>
+                                <td colSpan={5} className="px-6 py-8 text-center theme-text-muted">
+                                  Sem preventivas agendadas.
+                                </td>
+                              </tr>
+                            )}
+                            {preventiveSchedules.map((s) => (
+                              <tr
+                                key={s.id}
+                                className="group cursor-pointer transition-all duration-200 hover:bg-emerald-500/10"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => openPreventiveEditor(s)}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    openPreventiveEditor(s);
+                                  }
+                                }}
+                                title="Clique para editar"
                               >
-                                Sem preventivas agendadas.
-                              </td>
-                            </tr>
-                          )}
-                          {preventiveSchedules.map((s) => (
-                            <tr key={s.id} className="hover:bg-[color:var(--dash-surface)]">
-                              <td className="px-6 py-4 text-sm theme-text">
+                                <td className="px-6 py-4 text-sm theme-text">
+                                  {new Date(s.scheduled_for).toLocaleString()}
+                                </td>
+                                <td className="px-6 py-4 text-sm theme-text">
+                                  {s.asset_code
+                                    ? `${s.asset_code} - ${s.asset_name || ''}`
+                                    : s.asset_name || '—'}
+                                </td>
+                                <td className="px-6 py-4 text-sm theme-text">
+                                  {s.plan_name || '—'}
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span
+                                    className="rounded-full border theme-border bg-[color:var(--dash-surface)] px-2 py-1 text-xs font-semibold theme-text"
+                                  >
+                                    {String(s.status)
+                                      .replace('em_execucao', 'Em execução')
+                                      .replace('concluida', 'Concluída')
+                                      .replace('reagendada', 'Reagendada')
+                                      .replace('agendada', 'Agendada')
+                                      .replace('fechada', 'Fechada')}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-xs font-semibold theme-text-muted">
+                                  Clique para editar
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2">
+                        {preventiveSchedules.length === 0 ? (
+                          <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-8 text-center text-sm theme-text-muted">
+                            Sem preventivas agendadas.
+                          </div>
+                        ) : (
+                          preventiveSchedules.map((s) => (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() => openPreventiveEditor(s)}
+                              className="text-left rounded-2xl border theme-border theme-card p-4 shadow-[0_12px_26px_-20px_rgba(15,23,42,0.35)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)] focus:outline-none"
+                              title="Clique para editar"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-sm font-semibold theme-text">
+                                    {s.plan_name || 'Plano'}
+                                  </p>
+                                  <p className="mt-1 text-xs theme-text-muted">
+                                    {s.asset_code
+                                      ? `${s.asset_code} - ${s.asset_name || ''}`
+                                      : s.asset_name || '—'}
+                                  </p>
+                                </div>
+                                <span className="rounded-full border theme-border bg-[color:var(--dash-surface)] px-3 py-1 text-xs font-semibold theme-text">
+                                  {String(s.status)
+                                    .replace('em_execucao', 'Em execução')
+                                    .replace('concluida', 'Concluída')
+                                    .replace('reagendada', 'Reagendada')
+                                    .replace('agendada', 'Agendada')
+                                    .replace('fechada', 'Fechada')}
+                                </span>
+                              </div>
+                              <div className="mt-3 flex items-center gap-2 text-xs theme-text-muted">
+                                <Clock className="h-3.5 w-3.5" />
                                 {new Date(s.scheduled_for).toLocaleString()}
-                              </td>
-                              <td className="px-6 py-4 text-sm theme-text">
-                                {s.asset_code
-                                  ? `${s.asset_code} - ${s.asset_name || ''}`
-                                  : s.asset_name || '—'}
-                              </td>
-                              <td className="px-6 py-4 text-sm theme-text">
-                                {s.plan_name || '—'}
-                              </td>
-                              <td className="px-6 py-4 text-sm theme-text-muted">
-                                {s.status}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {editingPreventive && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div
+                      className="absolute inset-0 bg-black/40"
+                      onClick={closePreventiveEditor}
+                      aria-hidden="true"
+                    />
+                    <div className="relative w-[520px] max-w-[calc(100vw-2rem)] rounded-[28px] border theme-border theme-card p-6 shadow-[0_28px_80px_-60px_rgba(15,23,42,0.65)]">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.28em] theme-text-muted">
+                            Preventiva
+                          </p>
+                          <h3 className="mt-2 text-lg font-semibold theme-text">
+                            {editingPreventive.plan_name || 'Agendamento preventivo'}
+                          </h3>
+                          <p className="mt-1 text-xs theme-text-muted">
+                            {editingPreventive.asset_code
+                              ? `${editingPreventive.asset_code} - ${editingPreventive.asset_name || ''}`
+                              : editingPreventive.asset_name || '—'}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn-secondary h-9 px-3"
+                          onClick={closePreventiveEditor}
+                          disabled={preventiveSaving}
+                        >
+                          Fechar
+                        </button>
+                      </div>
+
+                      <div className="mt-5 grid gap-4">
+                        <div>
+                          <label className="text-xs font-semibold theme-text-muted">Data</label>
+                          <input
+                            type="datetime-local"
+                            className="mt-1 w-full rounded-2xl border theme-border bg-[color:var(--dash-panel)] px-4 py-3 text-sm theme-text"
+                            value={preventiveEditForm.scheduled_for}
+                            onChange={(e) =>
+                              setPreventiveEditForm((p) => ({ ...p, scheduled_for: e.target.value }))
+                            }
+                            disabled={!canManagePreventive || preventiveSaving}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-semibold theme-text-muted">Estado</label>
+                          <select
+                            className="mt-1 w-full rounded-2xl border theme-border bg-[color:var(--dash-panel)] px-4 py-3 text-sm theme-text"
+                            value={preventiveEditForm.status}
+                            onChange={(e) =>
+                              setPreventiveEditForm((p) => ({ ...p, status: e.target.value }))
+                            }
+                            disabled={!canManagePreventive || preventiveSaving}
+                          >
+                            <option value="agendada">Agendada</option>
+                            <option value="reagendada">Reagendada</option>
+                            <option value="em_execucao">Em execução</option>
+                            <option value="concluida">Concluída</option>
+                            <option value="fechada">Fechada</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-semibold theme-text-muted">Notas</label>
+                          <textarea
+                            className="mt-1 w-full rounded-2xl border theme-border bg-[color:var(--dash-panel)] px-4 py-3 text-sm theme-text"
+                            rows={3}
+                            value={preventiveEditForm.notes}
+                            onChange={(e) =>
+                              setPreventiveEditForm((p) => ({ ...p, notes: e.target.value }))
+                            }
+                            placeholder="Opcional"
+                            disabled={!canManagePreventive || preventiveSaving}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+                        {!canManagePreventive ? (
+                          <span className="text-xs theme-text-muted">Sem permissão para editar.</span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn-primary inline-flex items-center gap-2"
+                            onClick={savePreventiveEdit}
+                            disabled={preventiveSaving}
+                          >
+                            <Save className="h-4 w-4" />
+                            {preventiveSaving ? 'A guardar...' : 'Guardar alterações'}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  )}
+                  </div>
+                )}
 
                 {!loading && !error && viewMode === 'kanban' && (
                   <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">

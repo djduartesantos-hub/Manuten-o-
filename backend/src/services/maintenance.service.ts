@@ -42,9 +42,7 @@ export interface CreatePreventiveScheduleInput {
   plan_id: string;
   scheduled_for: string;
   status?:
-    | 'planeada'
     | 'agendada'
-    | 'confirmada'
     | 'em_execucao'
     | 'concluida'
     | 'fechada'
@@ -55,14 +53,17 @@ export interface CreatePreventiveScheduleInput {
 export interface UpdatePreventiveScheduleInput {
   scheduled_for?: string;
   status?:
-    | 'planeada'
     | 'agendada'
-    | 'confirmada'
     | 'em_execucao'
     | 'concluida'
     | 'fechada'
     | 'reagendada';
   notes?: string;
+}
+
+function normalizePreventiveStatus(status?: string | null): string {
+  if (!status) return '';
+  return status === 'planeada' || status === 'confirmada' ? 'agendada' : status;
 }
 
 export class MaintenanceService {
@@ -242,7 +243,11 @@ export class MaintenanceService {
     }
 
     query = query.where(and(...conditions));
-    return await query.orderBy(desc(preventiveMaintenanceSchedules.scheduled_for));
+    const rows = await query.orderBy(desc(preventiveMaintenanceSchedules.scheduled_for));
+    return rows.map((row: any) => ({
+      ...row,
+      status: normalizePreventiveStatus(row.status),
+    }));
   }
 
   /**
@@ -250,7 +255,7 @@ export class MaintenanceService {
    */
   async getUpcomingPreventiveSchedules(tenant_id: string, plant_id: string, limit = 5) {
     const now = new Date();
-    return await db
+    const rows = await db
       .select({
         id: preventiveMaintenanceSchedules.id,
         plan_id: preventiveMaintenanceSchedules.plan_id,
@@ -269,9 +274,7 @@ export class MaintenanceService {
           eq(preventiveMaintenanceSchedules.tenant_id, tenant_id),
           eq(preventiveMaintenanceSchedules.plant_id, plant_id),
           inArray(preventiveMaintenanceSchedules.status, [
-            'planeada',
             'agendada',
-            'confirmada',
             'reagendada',
           ] as any),
           gte(preventiveMaintenanceSchedules.scheduled_for, now),
@@ -279,6 +282,11 @@ export class MaintenanceService {
       )
       .orderBy(asc(preventiveMaintenanceSchedules.scheduled_for))
       .limit(limit);
+
+    return rows.map((row: any) => ({
+      ...row,
+      status: normalizePreventiveStatus(row.status),
+    }));
   }
 
   /**
@@ -319,6 +327,8 @@ export class MaintenanceService {
       throw new Error('Plano não pertence à planta selecionada');
     }
 
+    const normalizedStatus = normalizePreventiveStatus(input.status) || 'agendada';
+
     const inserted = await db
       .insert(preventiveMaintenanceSchedules)
       .values({
@@ -327,7 +337,7 @@ export class MaintenanceService {
         plan_id: input.plan_id,
         asset_id: planRow.asset_id,
         scheduled_for: scheduledForDate,
-        status: (input.status || 'planeada') as any,
+        status: normalizedStatus as any,
         notes: input.notes,
         created_by,
       })
@@ -371,6 +381,8 @@ export class MaintenanceService {
       throw new Error('Preventive schedule not found');
     }
 
+    const previousStatus = row.status as string;
+
     const updates: any = {};
 
     if (patch.notes !== undefined) {
@@ -388,12 +400,7 @@ export class MaintenanceService {
     }
 
     if (patch.status) {
-      updates.status = patch.status as any;
-
-      if (patch.status === 'confirmada' && !row.confirmed_at) {
-        updates.confirmed_at = new Date();
-        updates.confirmed_by = user_id || null;
-      }
+      updates.status = normalizePreventiveStatus(patch.status) as any;
 
       if (patch.status === 'em_execucao' && !row.started_at) {
         updates.started_at = new Date();
@@ -431,7 +438,14 @@ export class MaintenanceService {
       )
       .returning();
 
-    return updated?.[0];
+    const schedule = updated?.[0];
+    const newStatus = normalizePreventiveStatus((schedule?.status ?? previousStatus) as string);
+
+    return {
+      schedule,
+      previousStatus: normalizePreventiveStatus(previousStatus),
+      newStatus,
+    };
   }
 
   /**

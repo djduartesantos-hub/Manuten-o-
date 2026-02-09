@@ -19,25 +19,34 @@ export class DashboardController {
 
       const workOrders = await TenantService.getPlantWorkOrders(tenantId, plantId);
 
+      const normalizeStatus = (status: string) =>
+        status === 'aprovada' || status === 'planeada' ? 'em_analise' : status;
+
       const isActive = (status: string) =>
         !['concluida', 'fechada', 'cancelada'].includes(status);
 
+      const normalized = workOrders.map((wo: any) => ({
+        ...wo,
+        status: normalizeStatus(wo.status),
+      }));
+
+      const countByStatus = (status: string) =>
+        normalized.filter((wo: any) => wo.status === status).length;
+
       const metrics = {
         total_orders: workOrders.length,
-        open_orders: workOrders.filter((wo: any) => wo.status === 'aberta').length,
-        assigned_orders: workOrders.filter((wo: any) => wo.status === 'em_analise').length,
-        in_progress: workOrders.filter((wo: any) => wo.status === 'em_execucao').length,
-        completed: workOrders.filter((wo: any) => wo.status === 'concluida').length,
-        cancelled: workOrders.filter((wo: any) => wo.status === 'cancelada').length,
+        open_orders: countByStatus('aberta'),
+        assigned_orders: countByStatus('em_analise'),
+        in_progress: countByStatus('em_execucao'),
+        completed: countByStatus('concluida'),
+        cancelled: countByStatus('cancelada'),
 
         // New lifecycle metrics (non-breaking additions)
-        analysis: workOrders.filter((wo: any) => wo.status === 'em_analise').length,
-        approved: workOrders.filter((wo: any) => wo.status === 'aprovada').length,
-        planned: workOrders.filter((wo: any) => wo.status === 'planeada').length,
-        execution: workOrders.filter((wo: any) => wo.status === 'em_execucao').length,
-        paused: workOrders.filter((wo: any) => wo.status === 'em_pausa').length,
-        closed: workOrders.filter((wo: any) => wo.status === 'fechada').length,
-        active: workOrders.filter((wo: any) => isActive(wo.status)).length,
+        analysis: countByStatus('em_analise'),
+        execution: countByStatus('em_execucao'),
+        paused: countByStatus('em_pausa'),
+        closed: countByStatus('fechada'),
+        active: normalized.filter((wo: any) => isActive(wo.status)).length,
       };
 
       res.json({

@@ -190,7 +190,7 @@ function App() {
           <Toaster
             position="top-right"
             toastOptions={{
-              duration: 7000,
+              duration: 11000,
             }}
           />
         </SocketProvider>

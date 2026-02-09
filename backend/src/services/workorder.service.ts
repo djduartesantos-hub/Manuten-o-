@@ -14,8 +14,6 @@ export class WorkOrderService {
     const statuses = [
       'aberta',
       'em_analise',
-      'aprovada',
-      'planeada',
       'em_execucao',
       'em_pausa',
       'concluida',

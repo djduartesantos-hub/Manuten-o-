@@ -29,8 +29,6 @@ export const UpdateWorkOrderSchema = z.object({
     .enum([
       'aberta',
       'em_analise',
-      'aprovada',
-      'planeada',
       'em_execucao',
       'em_pausa',
       'concluida',

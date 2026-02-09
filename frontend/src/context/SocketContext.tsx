@@ -25,7 +25,7 @@ function showPrettyToast(
 ) {
   const duration =
     opts?.duration ??
-    (kind === 'error' ? 10000 : kind === 'warning' ? 9000 : 7000);
+    (kind === 'error' ? 16000 : kind === 'warning' ? 14000 : 11000);
 
   const config =
     kind === 'success'
@@ -111,6 +111,16 @@ function showPrettyToast(
     ),
     { duration },
   );
+}
+
+function labelPreventiveStatus(status?: string | null) {
+  const value = status || '';
+  if (value === 'em_execucao') return 'Em execução';
+  if (value === 'concluida') return 'Concluída';
+  if (value === 'reagendada') return 'Reagendada';
+  if (value === 'agendada') return 'Agendada';
+  if (value === 'fechada') return 'Fechada';
+  return value || '—';
 }
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
@@ -264,15 +274,34 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       const kind: ToastKind =
         data?.type === 'error' ? 'error' : data?.type === 'success' ? 'success' : 'info';
 
-      const metaParts: string[] = [];
-      if (data?.entity) metaParts.push(String(data.entity));
-      if (data?.action) metaParts.push(String(data.action));
+      const actorName = data?.actor?.username ? String(data.actor.username) : '';
 
-      showPrettyToast(kind, data.message, {
-        title: kind === 'success' ? 'Notificação' : kind === 'error' ? 'Erro' : 'Informação',
-        meta: metaParts.length ? metaParts.join(' • ') : undefined,
-        duration: kind === 'error' ? 11000 : 8000,
-      });
+      if (data?.entity === 'preventive-schedule' && data?.action === 'updated') {
+        const previousLabel = labelPreventiveStatus(data?.previousStatus);
+        const newLabel = labelPreventiveStatus(data?.newStatus);
+        const message =
+          data?.previousStatus && data?.newStatus
+            ? `Estado: ${previousLabel} → ${newLabel}`
+            : data?.newStatus
+              ? `Estado: ${newLabel}`
+              : 'Agendamento preventivo atualizado';
+
+        showPrettyToast('info', message, {
+          title: 'Agendamento preventivo atualizado',
+          meta: actorName ? `Atualizado por ${actorName}` : undefined,
+          duration: 14000,
+        });
+      } else {
+        const metaParts: string[] = [];
+        if (data?.entity) metaParts.push(String(data.entity));
+        if (data?.action) metaParts.push(String(data.action));
+
+        showPrettyToast(kind, data.message, {
+          title: kind === 'success' ? 'Notificação' : kind === 'error' ? 'Erro' : 'Informação',
+          meta: actorName ? `Por ${actorName}` : metaParts.length ? metaParts.join(' • ') : undefined,
+          duration: kind === 'error' ? 18000 : 13000,
+        });
+      }
 
       if (data.entity === 'asset') {
         window.dispatchEvent(new CustomEvent('realtime:assets'));
@@ -289,7 +318,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       showPrettyToast('error', 'Erro na conexão', {
         title: 'Conexão',
         meta: 'tempo real • socket',
-        duration: 11000,
+        duration: 14000,
       });
     });
 

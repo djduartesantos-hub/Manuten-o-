@@ -642,10 +642,23 @@ export async function updatePreventiveSchedule(req: AuthenticatedRequest, res: R
         entity: 'preventive-schedule',
         action: 'updated',
         message: 'Agendamento preventivo atualizado',
+        scheduleId: schedule_id,
+        previousStatus: (updated as any)?.previousStatus,
+        newStatus: (updated as any)?.newStatus,
+        actor: req.user
+          ? {
+              userId: req.user.userId,
+              username: req.user.username,
+            }
+          : undefined,
       });
     }
 
-    res.json({ success: true, data: updated, message: 'Preventive schedule updated' });
+    res.json({
+      success: true,
+      data: (updated as any)?.schedule,
+      message: 'Preventive schedule updated',
+    });
   } catch (error) {
     console.error('Error updating preventive schedule:', error);
     res.status(error instanceof Error && error.message.includes('not found') ? 404 : 400).json({

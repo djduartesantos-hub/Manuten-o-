@@ -19,9 +19,7 @@ import {
 } from '../services/api';
 
 type PreventiveScheduleStatus =
-  | 'planeada'
   | 'agendada'
-  | 'confirmada'
   | 'em_execucao'
   | 'concluida'
   | 'fechada'
@@ -49,9 +47,7 @@ interface PreventiveSchedule {
 }
 
 const statusMeta: Record<PreventiveScheduleStatus, { label: string; className: string }> = {
-  planeada: { label: 'Planeada', className: 'bg-slate-100 text-slate-700' },
   agendada: { label: 'Agendada', className: 'bg-amber-100 text-amber-700' },
-  confirmada: { label: 'Confirmada', className: 'bg-sky-100 text-sky-700' },
   em_execucao: { label: 'Em execução', className: 'bg-emerald-100 text-emerald-700' },
   concluida: { label: 'Concluída', className: 'bg-emerald-100 text-emerald-700' },
   fechada: { label: 'Fechada', className: 'bg-slate-100 text-slate-700' },
@@ -87,7 +83,7 @@ export function PreventiveSchedulesPage() {
   const [form, setForm] = useState({
     plan_id: '',
     scheduled_for: '',
-    status: 'planeada' as PreventiveScheduleStatus,
+    status: 'agendada' as PreventiveScheduleStatus,
     notes: '',
   });
 
@@ -159,7 +155,7 @@ export function PreventiveSchedulesPage() {
         notes: form.notes || undefined,
       });
 
-      setForm({ plan_id: '', scheduled_for: '', status: 'planeada', notes: '' });
+      setForm({ plan_id: '', scheduled_for: '', status: 'agendada', notes: '' });
       setShowCreate(false);
       await loadData();
     } catch (err: any) {
@@ -213,15 +209,6 @@ export function PreventiveSchedulesPage() {
                 <RefreshCcw className="h-4 w-4" />
                 Atualizar
               </button>
-              {canManage && (
-                <button
-                  className="btn-primary inline-flex items-center gap-2"
-                  onClick={() => setShowCreate((v) => !v)}
-                >
-                  <Plus className="h-4 w-4" />
-                  {showCreate ? 'Fechar' : 'Novo agendamento'}
-                </button>
-              )}
             </div>
           </div>
         </section>
@@ -257,9 +244,7 @@ export function PreventiveSchedulesPage() {
                       <option value="all">Todos os estados</option>
                       {(
                         [
-                          'planeada',
                           'agendada',
-                          'confirmada',
                           'em_execucao',
                           'concluida',
                           'fechada',
@@ -354,9 +339,7 @@ export function PreventiveSchedulesPage() {
                                   >
                                     {(
                                       [
-                                        'planeada',
                                         'agendada',
-                                        'confirmada',
                                         'em_execucao',
                                         'concluida',
                                         'fechada',
@@ -389,6 +372,12 @@ export function PreventiveSchedulesPage() {
             </div>
 
             <aside className="space-y-6">
+              <div className="rounded-[28px] border theme-border theme-card p-6 shadow-sm">
+                <h3 className="text-sm font-semibold theme-text">Total de agendamentos</h3>
+                <p className="mt-2 text-3xl font-semibold theme-text">{schedules.length}</p>
+                <p className="mt-1 text-xs theme-text-muted">Total carregado para a planta selecionada.</p>
+              </div>
+
               <div className="rounded-[28px] border theme-border theme-card p-6 shadow-sm">
                 <h3 className="text-sm font-semibold theme-text">Criar agendamento</h3>
                 <p className="mt-2 text-xs theme-text-muted">
@@ -449,7 +438,7 @@ export function PreventiveSchedulesPage() {
                         }
                       >
                         {(
-                          ['planeada', 'agendada', 'confirmada', 'reagendada'] as PreventiveScheduleStatus[]
+                          ['agendada', 'reagendada'] as PreventiveScheduleStatus[]
                         ).map((st) => (
                           <option key={st} value={st}>
                             {statusMeta[st].label}
@@ -493,7 +482,7 @@ export function PreventiveSchedulesPage() {
                 <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-200/50 blur-2xl" />
                 <h3 className="text-sm font-semibold">Dica</h3>
                 <p className="mt-2 text-xs theme-text-muted">
-                  Use “Confirmada” quando a equipa validar a intervenção e “Reagendada” para alterar a data.
+                  Use “Agendada” para rotinas e “Reagendada” para alterar a data.
                 </p>
               </div>
             </aside>

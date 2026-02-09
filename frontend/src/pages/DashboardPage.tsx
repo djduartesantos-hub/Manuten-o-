@@ -34,8 +34,6 @@ interface Metrics {
   completed: number;
   cancelled: number;
   analysis?: number;
-  approved?: number;
-  planned?: number;
   execution?: number;
   paused?: number;
   closed?: number;
@@ -120,20 +118,6 @@ export function DashboardPage() {
         tone: 'theme-card theme-border theme-text',
         iconTone: 'text-sky-700',
         Icon: Search,
-      },
-      {
-        key: 'aprovada',
-        label: 'Aprovada',
-        tone: 'theme-card theme-border theme-text',
-        iconTone: 'text-indigo-700',
-        Icon: CheckCircle2,
-      },
-      {
-        key: 'planeada',
-        label: 'Planeada',
-        tone: 'theme-card theme-border theme-text',
-        iconTone: 'text-cyan-800',
-        Icon: CalendarClock,
       },
       {
         key: 'em_execucao',
@@ -235,7 +219,17 @@ export function DashboardPage() {
       ]);
       setMetrics(metricsData);
       setKPIs(kpisData);
-      setOrders(Array.isArray(ordersData) ? ordersData : []);
+      setOrders(
+        Array.isArray(ordersData)
+          ? ordersData.map((order: any) => ({
+              ...order,
+              status:
+                order.status === 'aprovada' || order.status === 'planeada'
+                  ? 'em_analise'
+                  : order.status,
+            }))
+          : [],
+      );
       setAlerts(Array.isArray(alertsData) ? alertsData : []);
       setUpcomingPreventive(Array.isArray(upcomingPreventiveData) ? upcomingPreventiveData : []);
     } catch (err) {
@@ -328,27 +322,7 @@ export function DashboardPage() {
         bar: 'bg-sky-400/80',
         Icon: Search,
         iconTone: 'bg-sky-100 text-sky-700',
-        description: 'Ordens em triagem/validação antes de aprovação.',
-      },
-      {
-        key: 'aprovada',
-        label: 'Aprovadas',
-        count: metrics?.approved ?? 0,
-        tone: 'border-indigo-200/80 bg-indigo-50/70 text-indigo-800',
-        bar: 'bg-indigo-400/80',
-        Icon: CheckCircle2,
-        iconTone: 'bg-indigo-100 text-indigo-700',
-        description: 'Ordens aprovadas e prontas para planear.',
-      },
-      {
-        key: 'planeada',
-        label: 'Planeadas',
-        count: metrics?.planned ?? 0,
-        tone: 'border-cyan-200/80 bg-cyan-50/70 text-cyan-800',
-        bar: 'bg-cyan-400/80',
-        Icon: CalendarClock,
-        iconTone: 'bg-cyan-100 text-cyan-800',
-        description: 'Ordens com execução planeada/agendada.',
+        description: 'Ordens em triagem/validação antes de iniciar.',
       },
       {
         key: 'em_execucao',

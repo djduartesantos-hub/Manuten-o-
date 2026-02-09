@@ -219,9 +219,14 @@ export class WorkOrderController {
       const onlyPlanningEdits =
         requestedEditFields.length > 0 &&
         requestedEditFields.every((field) => field === 'scheduled_date' || field === 'estimated_hours');
+
+      const normalizedExistingStatus =
+        existing.status === 'aprovada' || existing.status === 'planeada'
+          ? 'em_analise'
+          : existing.status;
       const isStartingOrder =
         updates.status === 'em_execucao' &&
-        ['aberta', 'em_analise', 'aprovada', 'planeada', 'em_pausa'].includes(existing.status) &&
+        ['aberta', 'em_analise', 'em_pausa'].includes(normalizedExistingStatus) &&
         Object.prototype.hasOwnProperty.call(updates, 'started_at');
       const allowOperatorPlanningOnStart =
         wantsOperational &&

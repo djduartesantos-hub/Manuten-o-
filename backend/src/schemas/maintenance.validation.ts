@@ -1,9 +1,7 @@
 import { z } from 'zod';
 
 const preventiveScheduleStatusSchema = z.enum([
-  'planeada',
   'agendada',
-  'confirmada',
   'em_execucao',
   'concluida',
   'fechada',

@@ -236,17 +236,10 @@ export class NotificationService {
   static async checkSlaOverdue(): Promise<void> {
     const now = new Date();
     const rows = await db.query.workOrders.findMany({
-      where: (fields: any, { and, inArray, lt }: any) =>
+      where: (fields: any, { and, lt, notInArray }: any) =>
         and(
           lt(fields.sla_deadline, now),
-          inArray(fields.status, [
-            'aberta',
-            'em_analise',
-            'aprovada',
-            'planeada',
-            'em_execucao',
-            'em_pausa',
-          ]),
+          notInArray(fields.status, ['concluida', 'fechada', 'cancelada']),
         ),
     });
 

@@ -158,8 +158,6 @@ export function SearchPage() {
               <option value="">Status (ordens)</option>
               <option value="aberta">Aberta</option>
               <option value="em_analise">Em Análise</option>
-              <option value="aprovada">Aprovada</option>
-              <option value="planeada">Planeada</option>
               <option value="em_execucao">Em Execução</option>
               <option value="em_pausa">Em Pausa</option>
               <option value="concluida">Concluida</option>

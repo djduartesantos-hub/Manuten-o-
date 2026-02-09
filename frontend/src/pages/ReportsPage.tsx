@@ -60,7 +60,15 @@ export function ReportsPage() {
       setError(null);
       try {
         const orders = await getWorkOrders(selectedPlant);
-        setWorkOrders(orders || []);
+        setWorkOrders(
+          (orders || []).map((order: WorkOrder) => ({
+            ...order,
+            status:
+              order.status === 'aprovada' || order.status === 'planeada'
+                ? 'em_analise'
+                : order.status,
+          })),
+        );
       } catch (err: any) {
         setError(err.message || 'Erro ao carregar relatórios');
       } finally {
@@ -425,8 +433,6 @@ export function ReportsPage() {
                 <option value="">Status (todos)</option>
                 <option value="aberta">Aberta</option>
                 <option value="em_analise">Em Análise</option>
-                <option value="aprovada">Aprovada</option>
-                <option value="planeada">Planeada</option>
                 <option value="em_execucao">Em Execução</option>
                 <option value="em_pausa">Em Pausa</option>
                 <option value="concluida">Concluída</option>
@@ -601,8 +607,6 @@ export function ReportsPage() {
                               {
                                 aberta: 'Aberta',
                                 em_analise: 'Em Análise',
-                                aprovada: 'Aprovada',
-                                planeada: 'Planeada',
                                 em_execucao: 'Em Execução',
                                 em_pausa: 'Em Pausa',
                                 concluida: 'Concluída',

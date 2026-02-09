@@ -56,13 +56,15 @@ export class SocketManager {
 
         try {
           const decoded = jwt.verify(token, JWT_SECRET) as any;
+          const userId = decoded?.userId ?? decoded?.id;
+          const tenantId = decoded?.tenantId ?? decoded?.tenant_id;
           socket.user = {
-            id: decoded.userId,
-            tenantId: decoded.tenantId,
+            id: userId,
+            tenantId,
             role: decoded.role,
           };
 
-          logger.info(`Socket authenticated: ${socket.id} | User: ${decoded.userId}`);
+          logger.info(`Socket authenticated: ${socket.id} | User: ${userId}`);
           next();
         } catch (jwtError) {
           logger.warn('JWT verification failed:', jwtError instanceof Error ? jwtError.message : jwtError);
