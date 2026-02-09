@@ -24,6 +24,7 @@ export interface CreateMaintenancePlanInput {
   tolerance_unit?: 'hours' | 'days';
   tolerance_before_value?: number;
   tolerance_after_value?: number;
+  tolerance_mode?: 'soft' | 'hard';
   tasks?: string[];
   is_active?: boolean;
 }
@@ -40,6 +41,7 @@ export interface UpdateMaintenancePlanInput {
   tolerance_unit?: 'hours' | 'days';
   tolerance_before_value?: number;
   tolerance_after_value?: number;
+  tolerance_mode?: 'soft' | 'hard';
   tasks?: string[];
   is_active?: boolean;
 }
@@ -135,6 +137,7 @@ export class MaintenanceService {
         tolerance_unit: (maintenancePlans as any).tolerance_unit,
         tolerance_before_value: (maintenancePlans as any).tolerance_before_value,
         tolerance_after_value: (maintenancePlans as any).tolerance_after_value,
+        tolerance_mode: (maintenancePlans as any).tolerance_mode,
         is_active: maintenancePlans.is_active,
         asset_name: assets.name,
         created_at: maintenancePlans.created_at,
@@ -187,6 +190,7 @@ export class MaintenanceService {
           tolerance_unit: (maintenancePlans as any).tolerance_unit,
           tolerance_before_value: (maintenancePlans as any).tolerance_before_value,
           tolerance_after_value: (maintenancePlans as any).tolerance_after_value,
+          tolerance_mode: (maintenancePlans as any).tolerance_mode,
           is_active: maintenancePlans.is_active,
           asset_name: assets.name,
           created_at: maintenancePlans.created_at,
@@ -423,6 +427,7 @@ export class MaintenanceService {
           created_by: preventiveMaintenanceSchedules.created_by,
           status: preventiveMaintenanceSchedules.status,
           scheduled_for: preventiveMaintenanceSchedules.scheduled_for,
+          notes: preventiveMaintenanceSchedules.notes,
           confirmed_at: preventiveMaintenanceSchedules.confirmed_at,
           started_at: preventiveMaintenanceSchedules.started_at,
           completed_at: preventiveMaintenanceSchedules.completed_at,
@@ -473,6 +478,45 @@ export class MaintenanceService {
         }
 
         if (patch.status === 'concluida' && !row.completed_at) {
+          // Fase 2: tolerância hard exige justificação fora da janela.
+          const planRows = await tx
+            .select({
+              id: maintenancePlans.id,
+              tolerance_mode: (maintenancePlans as any).tolerance_mode,
+              tolerance_unit: (maintenancePlans as any).tolerance_unit,
+              tolerance_before_value: (maintenancePlans as any).tolerance_before_value,
+              tolerance_after_value: (maintenancePlans as any).tolerance_after_value,
+            })
+            .from(maintenancePlans)
+            .where(and(eq(maintenancePlans.id, row.plan_id), eq(maintenancePlans.tenant_id, tenant_id)))
+            .limit(1);
+
+          const plan = planRows?.[0];
+          const toleranceMode = String((plan as any)?.tolerance_mode || 'soft');
+
+          const scheduledFor = (newScheduledFor || row.scheduled_for) as any;
+          const scheduledAt = scheduledFor ? new Date(scheduledFor) : null;
+
+          const unit = String((plan as any)?.tolerance_unit || 'days');
+          const before = Number((plan as any)?.tolerance_before_value || 0);
+          const after = Number((plan as any)?.tolerance_after_value || 0);
+          const multiplierMs = unit === 'hours' ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+
+          const hasWindow = scheduledAt && Number.isFinite(before) && Number.isFinite(after) && (before > 0 || after > 0);
+          if (toleranceMode === 'hard' && hasWindow && scheduledAt) {
+            const now = new Date();
+            const start = new Date(scheduledAt.getTime() - before * multiplierMs);
+            const end = new Date(scheduledAt.getTime() + after * multiplierMs);
+
+            const outside = now.getTime() < start.getTime() || now.getTime() > end.getTime();
+            if (outside) {
+              const justification = String(patch.notes ?? row.notes ?? '').trim();
+              if (justification.length < 3) {
+                throw new Error('Fora da tolerância: registe uma justificação nas notas para concluir (modo hard)');
+              }
+            }
+          }
+
           updates.completed_at = new Date();
         }
 
@@ -652,6 +696,7 @@ export class MaintenanceService {
         tolerance_unit: (maintenancePlans as any).tolerance_unit,
         tolerance_before_value: (maintenancePlans as any).tolerance_before_value,
         tolerance_after_value: (maintenancePlans as any).tolerance_after_value,
+        tolerance_mode: (maintenancePlans as any).tolerance_mode,
         is_active: maintenancePlans.is_active,
         asset_name: assets.name,
         created_at: maintenancePlans.created_at,
@@ -756,6 +801,7 @@ export class MaintenanceService {
           tolerance_unit: (input as any).tolerance_unit,
           tolerance_before_value: (input as any).tolerance_before_value,
           tolerance_after_value: (input as any).tolerance_after_value,
+          tolerance_mode: (input as any).tolerance_mode,
           is_active: input.is_active ?? true,
         })
         .returning();
@@ -841,6 +887,10 @@ export class MaintenanceService {
             (input as any).tolerance_after_value !== undefined
               ? (input as any).tolerance_after_value
               : (plan as any).tolerance_after_value,
+          tolerance_mode:
+            (input as any).tolerance_mode !== undefined
+              ? (input as any).tolerance_mode
+              : (plan as any).tolerance_mode,
           is_active: input.is_active ?? plan.is_active,
           updated_at: new Date(),
         })

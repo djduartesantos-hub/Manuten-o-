@@ -557,6 +557,12 @@ export async function patchWorkOrdersDowntimeRca() {
   });
 }
 
+export async function patchMaintenancePlansToleranceMode() {
+  return apiCall('/setup/patch/maintenance-plans-tolerance-mode', {
+    method: 'POST',
+  });
+}
+
 export async function applyDbCorrections() {
   return apiCall('/setup/patch/all', {
     method: 'POST',

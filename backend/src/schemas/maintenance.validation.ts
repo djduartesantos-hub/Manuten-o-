@@ -10,6 +10,7 @@ const preventiveScheduleStatusSchema = z.enum([
 
 const scheduleBasisSchema = z.enum(['completion', 'scheduled']);
 const toleranceUnitSchema = z.enum(['hours', 'days']);
+const toleranceModeSchema = z.enum(['soft', 'hard']);
 
 // Maintenance Plan Schemas
 export const createMaintenancePlanSchema = z.object({
@@ -27,6 +28,7 @@ export const createMaintenancePlanSchema = z.object({
   tolerance_unit: toleranceUnitSchema.optional(),
   tolerance_before_value: z.number().int().nonnegative().optional(),
   tolerance_after_value: z.number().int().nonnegative().optional(),
+  tolerance_mode: toleranceModeSchema.optional(),
   tasks: z.array(z.string().min(3).max(500)).optional(),
   is_active: z.boolean().default(true),
 });
@@ -43,6 +45,7 @@ export const updateMaintenancePlanSchema = z.object({
   tolerance_unit: toleranceUnitSchema.optional(),
   tolerance_before_value: z.number().int().nonnegative().optional(),
   tolerance_after_value: z.number().int().nonnegative().optional(),
+  tolerance_mode: toleranceModeSchema.optional(),
   tasks: z.array(z.string().min(3).max(500)).optional(),
   is_active: z.boolean().optional(),
 });

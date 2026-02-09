@@ -42,6 +42,14 @@ router.post(
   SetupController.applyCorrections,
 );
 
+// POST /api/setup/patch/maintenance-plans-tolerance-mode - Add tolerance_mode if missing
+router.post(
+  '/patch/maintenance-plans-tolerance-mode',
+  authMiddleware,
+  requireRole('superadmin'),
+  SetupController.patchMaintenancePlansToleranceMode,
+);
+
 // POST /api/setup/clear - Clear all data (dangerous!) (requires auth)
 router.post('/clear', authMiddleware, requireRole('superadmin'), SetupController.clearData);
 

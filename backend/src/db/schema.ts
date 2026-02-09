@@ -216,6 +216,10 @@ export const maintenancePlans = pgTable(
     tolerance_unit: text('tolerance_unit').default('days'),
     tolerance_before_value: integer('tolerance_before_value').default(0),
     tolerance_after_value: integer('tolerance_after_value').default(0),
+    // Modo de tolerância:
+    // - soft: aviso (sem enforcement)
+    // - hard: exige justificação fora da janela
+    tolerance_mode: text('tolerance_mode').default('soft'),
     is_active: boolean('is_active').default(true),
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true })

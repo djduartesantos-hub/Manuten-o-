@@ -848,6 +848,7 @@ END $$;`
       const migrations = await SetupController.runMigrationsInternal();
       await SetupController.applyWorkOrdersPatchInternal();
       await SetupController.applyWorkOrdersDowntimeRcaPatchInternal();
+      await SetupController.applyMaintenancePlansToleranceModePatchInternal();
 
       res.json({
         success: true,
@@ -856,7 +857,11 @@ END $$;`
           migrations,
           migrationsDir: available.dir,
           availableMigrationFiles: available.files,
-          patches: ['work_orders_work_performed', 'work_orders_downtime_rca_fields'],
+          patches: [
+            'work_orders_work_performed',
+            'work_orders_downtime_rca_fields',
+            'maintenance_plans_tolerance_mode',
+          ],
         },
       });
     } catch (error) {
@@ -929,6 +934,53 @@ END $$;`
               AND column_name = 'corrective_action'
           ) THEN
             ALTER TABLE work_orders ADD COLUMN corrective_action TEXT;
+          END IF;
+        END IF;
+      END $$;
+    `));
+  }
+
+  /**
+   * Patch: add tolerance_mode to maintenance_plans if missing
+   */
+  static async patchMaintenancePlansToleranceMode(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user || req.user.role !== 'superadmin') {
+        res.status(403).json({
+          success: false,
+          error: 'Only superadmin can run patches',
+        });
+        return;
+      }
+
+      await SetupController.applyMaintenancePlansToleranceModePatchInternal();
+
+      res.json({
+        success: true,
+        message: 'Patch aplicado com sucesso',
+        data: { patch: 'maintenance_plans_tolerance_mode' },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to apply patch',
+      });
+    }
+  }
+
+  private static async applyMaintenancePlansToleranceModePatchInternal(): Promise<void> {
+    await db.execute(sql.raw(`
+      DO $$
+      BEGIN
+        IF to_regclass('public.maintenance_plans') IS NOT NULL THEN
+          IF NOT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'maintenance_plans'
+              AND column_name = 'tolerance_mode'
+          ) THEN
+            ALTER TABLE maintenance_plans ADD COLUMN tolerance_mode TEXT DEFAULT 'soft';
           END IF;
         END IF;
       END $$;

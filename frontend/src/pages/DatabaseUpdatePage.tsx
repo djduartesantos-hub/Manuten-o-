@@ -8,6 +8,7 @@ import {
   applyDbCorrections,
   patchWorkOrders,
   patchWorkOrdersDowntimeRca,
+  patchMaintenancePlansToleranceMode,
   runMigrations,
   seedDemoData,
 } from '../services/api';
@@ -155,6 +156,26 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
     try {
       await patchWorkOrdersDowntimeRca();
       setSuccess('Patch aplicado. Campos downtime_type/downtime_category/root_cause/corrective_action foram verificados/adicionados.');
+      await fetchStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMaintenancePlansToleranceModePatch = async () => {
+    if (!confirm('Aplicar patch para adicionar tolerance_mode nos planos de manutenção?')) {
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await patchMaintenancePlansToleranceMode();
+      setSuccess('Patch aplicado. A coluna tolerance_mode foi verificada/adicionada em maintenance_plans.');
       await fetchStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
@@ -376,6 +397,22 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
             >
               <Wrench className="w-4 h-4" />
               Patch paragem / causa raiz
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-amber-800">
+                Adiciona o modo de tolerância (soft/hard) nos planos de manutenção.
+              </p>
+            </div>
+            <button
+              onClick={handleMaintenancePlansToleranceModePatch}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition"
+            >
+              <Wrench className="w-4 h-4" />
+              Patch tolerância (planos)
             </button>
           </div>
         </div>

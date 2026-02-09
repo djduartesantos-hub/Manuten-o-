@@ -1046,6 +1046,7 @@ function PreventiveMaintenanceSettings({
     tolerance_unit: 'days' as 'days' | 'hours',
     tolerance_before_value: 0,
     tolerance_after_value: 0,
+    tolerance_mode: 'soft' as 'soft' | 'hard',
     tasks: [] as string[],
   });
 
@@ -1176,6 +1177,7 @@ function PreventiveMaintenanceSettings({
           tolerance_unit: formData.tolerance_unit,
           tolerance_before_value: Number(formData.tolerance_before_value) || 0,
           tolerance_after_value: Number(formData.tolerance_after_value) || 0,
+          tolerance_mode: formData.tolerance_mode,
           tasks: (formData.tasks || []).map((t) => t.trim()).filter(Boolean),
         }),
       });
@@ -1193,6 +1195,7 @@ function PreventiveMaintenanceSettings({
         tolerance_unit: 'days',
         tolerance_before_value: 0,
         tolerance_after_value: 0,
+        tolerance_mode: 'soft',
         tasks: [],
       });
       setSelectedTemplateId('');
@@ -1228,6 +1231,7 @@ function PreventiveMaintenanceSettings({
       tolerance_unit: plan.tolerance_unit || 'days',
       tolerance_before_value: Number(plan.tolerance_before_value || 0),
       tolerance_after_value: Number(plan.tolerance_after_value || 0),
+      tolerance_mode: (plan.tolerance_mode as any) || 'soft',
       tasks: plan.tasks || [],
     });
     setSelectedTemplateId('');
@@ -1461,6 +1465,7 @@ function PreventiveMaintenanceSettings({
                         tolerance_unit: tpl.data.tolerance_unit as any,
                         tolerance_before_value: tpl.data.tolerance_before_value,
                         tolerance_after_value: tpl.data.tolerance_after_value,
+                        tolerance_mode: (tpl.data as any).tolerance_mode || 'soft',
                         tasks: [...tpl.data.tasks],
                       }));
                     }}
@@ -1610,6 +1615,28 @@ function PreventiveMaintenanceSettings({
                     <option value="hours">horas</option>
                   </select>
                 </div>
+                <p className="mt-1 text-xs theme-text-muted">
+                  Define a janela aceitável antes/depois da data.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium theme-text mb-1">
+                  Modo de tolerância
+                </label>
+                <select
+                  value={formData.tolerance_mode}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      tolerance_mode: e.target.value as any,
+                    })
+                  }
+                  className="input"
+                >
+                  <option value="soft">Soft (não exige justificação)</option>
+                  <option value="hard">Hard (exige justificação fora da janela)</option>
+                </select>
               </div>
             </div>
 
@@ -1881,12 +1908,12 @@ function PreventiveMaintenanceSettings({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium theme-text mb-1">Notas</label>
+                  <label className="block text-sm font-medium theme-text mb-1">Notas / justificação</label>
                   <input
                     type="text"
                     value={scheduleForm.notes}
                     onChange={(e) => setScheduleForm({ ...scheduleForm, notes: e.target.value })}
-                    placeholder="Opcional"
+                    placeholder="Obrigatório se plano estiver em hard e estiver fora da janela"
                     className="input"
                   />
                 </div>
