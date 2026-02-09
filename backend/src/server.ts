@@ -8,6 +8,7 @@ import { setSocketManager } from './utils/socket-instance.js';
 import { initJobProcessors } from './jobs/processors.js';
 import { ElasticsearchService } from './services/elasticsearch.service.js';
 import { NotificationService } from './services/notification.service.js';
+import { AlertService } from './services/alert.service.js';
 
 const PORT = process.env.PORT || 3000;
 
@@ -63,6 +64,13 @@ async function startServer() {
     setInterval(() => {
       NotificationService.checkLowStockAll().catch((error) => {
         logger.warn('Low stock check failed:', error instanceof Error ? error.message : error);
+      });
+    }, 10 * 60 * 1000);
+
+    // SLA-critical alerts (history + dashboard card) based on configured alert rules
+    setInterval(() => {
+      AlertService.checkSlaCriticalAll().catch((error) => {
+        logger.warn('SLA-critical alert generation failed:', error instanceof Error ? error.message : error);
       });
     }, 10 * 60 * 1000);
 

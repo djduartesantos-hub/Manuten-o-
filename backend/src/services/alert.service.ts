@@ -538,4 +538,47 @@ export class AlertService {
       }
     }
   }
+
+  /**
+   * Periodic check: run SLA-critical evaluation for all active SLA configs.
+   * This ensures alerts are generated even if no one updates a work order.
+   */
+  static async checkSlaCriticalAll(): Promise<{ checked: number; errors: number }> {
+    const configs = await db.query.alertConfigurations.findMany({
+      where: and(eq(alertConfigurations.is_active, true), eq(alertConfigurations.alert_type, 'sla_critical')),
+      columns: {
+        tenant_id: true,
+        asset_id: true,
+      },
+    });
+
+    // Deduplicate (tenant_id, asset_id)
+    const uniquePairs = new Set<string>();
+    const pairs: Array<{ tenantId: string; assetId: string }> = [];
+    for (const cfg of configs as any[]) {
+      const tenantId = cfg.tenant_id as string | undefined;
+      const assetId = cfg.asset_id as string | undefined;
+      if (!tenantId || !assetId) continue;
+      const key = `${tenantId}:${assetId}`;
+      if (uniquePairs.has(key)) continue;
+      uniquePairs.add(key);
+      pairs.push({ tenantId, assetId });
+    }
+
+    let errors = 0;
+    for (const pair of pairs) {
+      try {
+        await AlertService.checkAndTriggerAlerts(pair.tenantId, pair.assetId);
+      } catch (error) {
+        errors += 1;
+        logger.warn('SLA-critical periodic alert check failed', {
+          error: error instanceof Error ? error.message : error,
+          tenantId: pair.tenantId,
+          assetId: pair.assetId,
+        });
+      }
+    }
+
+    return { checked: pairs.length, errors };
+  }
 }
