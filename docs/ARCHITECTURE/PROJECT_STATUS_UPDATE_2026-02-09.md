@@ -44,6 +44,9 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 - Histórico/auditoria melhorado para evidenciar transições de estado.
 - **SLA (pausa não conta):** notificações/alertas de SLA em atraso **não disparam durante `em_pausa`**; ao **retomar**, se o SLA já estiver em atraso, é emitida notificação.
 
+### Relatórios
+- **Export simples de downtime (por ativo + período)** em Relatórios (tipo “Downtime”), com export CSV/PDF usando os campos `downtime_*` das ordens (commit 25).
+
 ### Stock / Peças (operação)
 - **Reservas de stock por Ordem de Trabalho**: criar/listar/libertar reservas por peça e ordem.
 - **Kits de manutenção** (com itens): CRUD de kits + gestão de itens.
@@ -72,6 +75,7 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 - `99f53ac` — 18 - kits: frontend management page
 - `0dabf98` — 19 - work-orders: apply maintenance kit to stock reservations
 - `09881e3` — 21 - stock: spare parts forecast (preventives + kits)
+- `cb62550` — 25 - reports: downtime export (por ativo + período)
 
 ---
 
