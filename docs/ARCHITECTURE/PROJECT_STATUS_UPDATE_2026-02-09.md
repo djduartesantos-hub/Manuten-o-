@@ -19,7 +19,9 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 - Frequência suportada em **dias, meses e horas**.
 - Opções de governação e qualidade do agendamento:
   - base de cadência (por conclusão vs por data agendada),
-  - janela de tolerância (informativa),
+  - janela de tolerância (soft vs hard),
+  - proteção anti-duplicados (1 ativo por janela),
+  - âncora de agendamento (fixo vs intervalo),
   - motivo obrigatório quando reagenda,
   - preview do próximo agendamento,
   - templates,
@@ -54,6 +56,9 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 - `012c486` — preventive “pacote fábrica”: basis/tolerance/tasks/reason/templates/preview
 - `13e8351` — work-orders: sequência obrigatória de estados
 - `1b172c7` — 01 - work-orders: motivos pausa/cancel, downtime e SLA por fase
+- `c1b3662` — 14 - preventive: schedule anchor fixed vs interval + db patch
+- `89fec6d` — 13 - preventive: anti-duplicados (1 ativo por janela de tolerância)
+- `9a994b8` — 12 - preventive: tolerância soft/hard + justificação obrigatória (modo hard) + db patch
 
 ---
 
@@ -94,7 +99,29 @@ Isto reduz drift de calendário dependendo do tipo de operação.
 
 #### Janela de tolerância (informativa)
 - Configuração para tolerância antes/depois (em dias/horas conforme definido)
-- A tolerância foi implementada principalmente como **informação operacional** (não como bloqueio duro), para não travar fluxos.
+
+**Modos:**
+- **`soft`**: tolerância informativa (sem bloqueio)
+- **`hard`**: ao **concluir** fora da janela, exige **justificação** nas notas (`notes`) do agendamento
+
+Isto garante disciplina quando necessário, sem impor bloqueio por defeito.
+
+**Notas operacionais:**
+- A coluna `tolerance_mode` é aplicada por plano e exposta no UI.
+- Foi incluído patch idempotente para adicionar `maintenance_plans.tolerance_mode` via a página “Atualizar Base de Dados”.
+
+#### Proteção anti-duplicados (1 ativo por janela)
+- Ao concluir e auto-gerar o próximo schedule, o backend verifica se já existe um schedule **ativo** para o mesmo plano dentro da janela de tolerância do “próximo” (intervalo `[nextDate - tolerance_before, nextDate + tolerance_after]`).
+- Se existir, **não cria duplicado**.
+
+#### Âncora de agendamento (fixo vs intervalo)
+Introduzido `schedule_anchor_mode` no plano:
+- **`interval`**: cadência baseada na data agendada atual (permite drift quando há reagendamentos)
+- **`fixed`**: cadência baseada na âncora original (`rescheduled_from` quando existe) para manter um “dia/hora alvo” estável
+
+**Notas operacionais:**
+- `rescheduled_from` é preservado (não é sobrescrito em reagendamentos seguintes), para manter a âncora.
+- Incluído patch idempotente para adicionar `maintenance_plans.schedule_anchor_mode` via “Atualizar Base de Dados”.
 
 #### Reagendamento com motivo obrigatório
 - Sempre que uma preventiva fica em estado “reagendada”, o frontend exige `reschedule_reason` e o backend valida.
@@ -196,7 +223,7 @@ Sugestões concretas para atualizar ROADMAP/README com base no que já está fei
    - Ordens: máquina de estados, motivos obrigatórios, downtime, SLA por fase informativo, requisitos de conclusão.
 
 3) **Backlog que ficou para uma fase seguinte**
-   - Enforcement duro da tolerância (bloqueio/regra) — atualmente maioritariamente informativo.
+- Tolerância: clarificar no ROADMAP que o modo **hard** existe e a regra é “exige justificação fora da janela” (em vez de um bloqueio total sem escape).
    - Meter readings / gatilhos por contador (há base no schema, mas não é foco deste pacote).
 
 ---
