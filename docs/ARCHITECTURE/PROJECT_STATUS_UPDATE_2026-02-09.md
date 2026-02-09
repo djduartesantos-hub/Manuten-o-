@@ -47,6 +47,7 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 - **Reservas de stock por Ordem de Trabalho**: criar/listar/libertar reservas por peça e ordem.
 - **Kits de manutenção** (com itens): CRUD de kits + gestão de itens.
 - **Integração nas Ordens**: ação manual “Aplicar kit” para criar reservas em massa.
+- **Previsão simples de consumo**: horizonte em dias com estimativa (preventivas futuras + kits) e disponível projetado.
 
 ---
 
@@ -69,6 +70,7 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 - `8fcc305` — 17 - kits: maintenance kits + db patch
 - `99f53ac` — 18 - kits: frontend management page
 - `0dabf98` — 19 - work-orders: apply maintenance kit to stock reservations
+- `09881e3` — 21 - stock: spare parts forecast (preventives + kits)
 
 ---
 
@@ -222,6 +224,14 @@ O frontend já apresentava “Histórico de alterações” via audit logs; foi 
   - seleciona um kit ativo,
   - cria reservas para cada item do kit,
   - mostra feedback de sucesso total/parcial.
+
+#### Previsão simples de consumo (preventivas futuras + kits)
+- Adicionada uma **previsão simples** em Inventário → Peças, focada no essencial (sem ML):
+  - escolhe um horizonte (dias),
+  - o backend conta preventivas com estado `agendada`/`reagendada` no período,
+  - multiplica pelos itens dos kits ativos (por `plan_id`, com fallback a `category_id` quando não há kit por plano),
+  - calcula por peça: stock atual, reservado ativo, previsto e disponível projetado.
+- Endpoint: `GET /api/tenants/:plantId/spareparts/forecast?days=30`
 
 ---
 
