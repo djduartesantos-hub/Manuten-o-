@@ -32,6 +32,12 @@ interface WorkOrder {
   sla_deadline?: string | null;
   estimated_hours?: number | null;
   actual_hours?: number | null;
+  downtime_started_at?: string | null;
+  downtime_ended_at?: string | null;
+  downtime_minutes?: number | null;
+  downtime_reason?: string | null;
+  downtime_type?: string | null;
+  downtime_category?: string | null;
   asset?: {
     code: string;
     name: string;
@@ -44,7 +50,9 @@ export function ReportsPage() {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [reportType, setReportType] = useState<'general' | 'asset' | 'technician' | 'temporal'>('general');
+  const [reportType, setReportType] = useState<
+    'general' | 'asset' | 'technician' | 'temporal' | 'downtime'
+  >('general');
 
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
@@ -85,6 +93,12 @@ export function ReportsPage() {
       if (priorityFilter && order.priority !== priorityFilter) return false;
       if (assetFilter && order.asset?.code !== assetFilter) return false;
 
+      if (reportType === 'downtime') {
+        const minutes = Number(order.downtime_minutes ?? 0);
+        const hasInterval = Boolean(order.downtime_started_at && order.downtime_ended_at);
+        if (!hasInterval && minutes <= 0) return false;
+      }
+
       if (searchTerm) {
         const haystack = `${order.title} ${order.description || ''} ${order.asset?.code || ''} ${
           order.asset?.name || ''
@@ -93,18 +107,37 @@ export function ReportsPage() {
       }
 
       if (dateFrom) {
-        const created = order.created_at ? new Date(order.created_at).getTime() : 0;
-        if (created < new Date(dateFrom).getTime()) return false;
+        const referenceIso =
+          reportType === 'downtime' ? order.downtime_started_at || '' : order.created_at || '';
+        const reference = referenceIso ? new Date(referenceIso).getTime() : 0;
+        if (reference < new Date(dateFrom).getTime()) return false;
       }
 
       if (dateTo) {
-        const created = order.created_at ? new Date(order.created_at).getTime() : 0;
-        if (created > new Date(dateTo).getTime() + 24 * 60 * 60 * 1000) return false;
+        const referenceIso =
+          reportType === 'downtime' ? order.downtime_started_at || '' : order.created_at || '';
+        const reference = referenceIso ? new Date(referenceIso).getTime() : 0;
+        if (reference > new Date(dateTo).getTime() + 24 * 60 * 60 * 1000) return false;
       }
 
       return true;
     });
-  }, [workOrders, statusFilter, priorityFilter, dateFrom, dateTo, searchTerm, assetFilter]);
+  }, [workOrders, statusFilter, priorityFilter, dateFrom, dateTo, searchTerm, assetFilter, reportType]);
+
+  const downtimeOrders = useMemo(() => {
+    if (reportType !== 'downtime') return [];
+    return filteredOrders
+      .map((order) => {
+        const minutes = Number(order.downtime_minutes ?? 0);
+        const startedAt = order.downtime_started_at ? new Date(order.downtime_started_at).getTime() : 0;
+        return {
+          ...order,
+          __downtimeMinutes: minutes,
+          __downtimeStartedAt: startedAt,
+        };
+      })
+      .sort((a, b) => b.__downtimeStartedAt - a.__downtimeStartedAt);
+  }, [filteredOrders, reportType]);
 
   // Calculate MTTR (Mean Time To Repair) and MTBF (Mean Time Between Failures)
   const calculateMetrics = useMemo(() => {
@@ -285,11 +318,40 @@ export function ReportsPage() {
   const exportPdf = () => {
     const doc = new jsPDF();
     doc.setFontSize(16);
-    doc.text('Relatório de Ordens de Serviço', 14, 20);
+    doc.text(
+      reportType === 'downtime' ? 'Relatório de Downtime' : 'Relatório de Ordens de Serviço',
+      14,
+      20,
+    );
 
     doc.setFontSize(10);
+    if (reportType === 'downtime') {
+      const totalMinutes = downtimeOrders.reduce((acc, order) => acc + Number((order as any).__downtimeMinutes || 0), 0);
+      doc.text(`Tipo: downtime | Registos: ${downtimeOrders.length} | Total: ${totalMinutes} min`, 14, 28);
+
+      autoTable(doc, {
+        startY: 36,
+        head: [['Ordem', 'Ativo', 'Início', 'Fim', 'Min', 'Motivo']],
+        body: downtimeOrders.slice(0, 60).map((order) => [
+          order.title.substring(0, 22),
+          order.asset ? order.asset.code : '-',
+          order.downtime_started_at ? new Date(order.downtime_started_at).toLocaleString('pt-PT') : '-',
+          order.downtime_ended_at ? new Date(order.downtime_ended_at).toLocaleString('pt-PT') : '-',
+          String((order as any).__downtimeMinutes ?? ''),
+          (order.downtime_reason || '').substring(0, 26),
+        ]),
+      });
+
+      doc.save('relatorio-downtime.pdf');
+      return;
+    }
+
     doc.text(`Tipo: ${reportType} | Total: ${summary.total} | Em atraso: ${summary.overdue}`, 14, 28);
-    doc.text(`MTTR: ${calculateMetrics.mttr}h | MTBF: ${calculateMetrics.mtbf}d | Conformidade SLA: ${calculateMetrics.slaCompliance}%`, 14, 35);
+    doc.text(
+      `MTTR: ${calculateMetrics.mttr}h | MTBF: ${calculateMetrics.mtbf}d | Conformidade SLA: ${calculateMetrics.slaCompliance}%`,
+      14,
+      35,
+    );
 
     autoTable(doc, {
       startY: 42,
@@ -308,7 +370,55 @@ export function ReportsPage() {
   };
 
   const exportCsv = () => {
-    const headers = ['ID', 'Título', 'Status', 'Prioridade', 'Ativo', 'Horas Estimadas', 'Horas Reais', 'Criada em', 'Atualizada em'];
+    if (reportType === 'downtime') {
+      const headers = [
+        'Ordem ID',
+        'Ordem',
+        'Ativo',
+        'Início downtime',
+        'Fim downtime',
+        'Downtime (min)',
+        'Tipo',
+        'Categoria',
+        'Motivo',
+      ];
+      const rows = downtimeOrders.map((order) => [
+        order.id,
+        order.title,
+        order.asset ? `${order.asset.code} - ${order.asset.name}` : '',
+        order.downtime_started_at ? new Date(order.downtime_started_at).toLocaleString('pt-PT') : '',
+        order.downtime_ended_at ? new Date(order.downtime_ended_at).toLocaleString('pt-PT') : '',
+        (order as any).__downtimeMinutes ?? '',
+        order.downtime_type || '',
+        order.downtime_category || '',
+        order.downtime_reason || '',
+      ]);
+
+      const csvContent = [
+        headers,
+        ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `downtime-${new Date().toISOString().split('T')[0]}.csv`);
+      link.click();
+      return;
+    }
+
+    const headers = [
+      'ID',
+      'Título',
+      'Status',
+      'Prioridade',
+      'Ativo',
+      'Horas Estimadas',
+      'Horas Reais',
+      'Criada em',
+      'Atualizada em',
+    ];
     const rows = filteredOrders.map((order) => [
       order.id,
       order.title,
@@ -393,7 +503,7 @@ export function ReportsPage() {
           <div className="card mb-6 p-4">
             <h2 className="text-sm font-semibold text-[color:var(--reports-type-title)] mb-3">Tipo de Relatório</h2>
             <div className="flex flex-wrap gap-2">
-              {['general', 'asset', 'technician', 'temporal'].map((type) => (
+              {['general', 'asset', 'technician', 'temporal', 'downtime'].map((type) => (
                 <button
                   key={type}
                   onClick={() => setReportType(type as any)}
@@ -407,6 +517,7 @@ export function ReportsPage() {
                   {type === 'asset' && 'Por Ativo'}
                   {type === 'technician' && 'Por Técnico'}
                   {type === 'temporal' && 'Temporal'}
+                  {type === 'downtime' && 'Downtime'}
                 </button>
               ))}
             </div>
@@ -480,34 +591,55 @@ export function ReportsPage() {
           </div>
 
           {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-            <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
-              <p className="text-xs theme-text-muted uppercase tracking-wider">Total Filtrado</p>
-              <p className="text-2xl font-bold theme-text mt-2">{summary.total}</p>
+          {reportType !== 'downtime' ? (
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+                <p className="text-xs theme-text-muted uppercase tracking-wider">Total Filtrado</p>
+                <p className="text-2xl font-bold theme-text mt-2">{summary.total}</p>
+              </div>
+              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+                <p className="text-xs theme-text-muted uppercase tracking-wider">Em Atraso (SLA)</p>
+                <p className="text-2xl font-bold text-rose-600 mt-2">{summary.overdue}</p>
+              </div>
+              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+                <p className="text-xs theme-text-muted uppercase tracking-wider">MTTR (horas)</p>
+                <p className="text-2xl font-bold text-[color:var(--dash-accent)] mt-2">
+                  {calculateMetrics.mttr}
+                </p>
+              </div>
+              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+                <p className="text-xs theme-text-muted uppercase tracking-wider">Conformidade SLA</p>
+                <p className="text-2xl font-bold text-emerald-600 mt-2">
+                  {calculateMetrics.slaCompliance}%
+                </p>
+              </div>
+              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+                <p className="text-xs theme-text-muted uppercase tracking-wider">Taxa Conclusão</p>
+                <p className="text-2xl font-bold theme-text mt-2">
+                  {calculateMetrics.completionRate}%
+                </p>
+              </div>
             </div>
-            <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
-              <p className="text-xs theme-text-muted uppercase tracking-wider">Em Atraso (SLA)</p>
-              <p className="text-2xl font-bold text-rose-600 mt-2">{summary.overdue}</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+                <p className="text-xs theme-text-muted uppercase tracking-wider">Registos de downtime</p>
+                <p className="text-2xl font-bold theme-text mt-2">{downtimeOrders.length}</p>
+              </div>
+              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+                <p className="text-xs theme-text-muted uppercase tracking-wider">Total (min)</p>
+                <p className="text-2xl font-bold theme-text mt-2">
+                  {downtimeOrders.reduce((acc, o) => acc + Number((o as any).__downtimeMinutes || 0), 0)}
+                </p>
+              </div>
+              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+                <p className="text-xs theme-text-muted uppercase tracking-wider">Total (horas)</p>
+                <p className="text-2xl font-bold theme-text mt-2">
+                  {(downtimeOrders.reduce((acc, o) => acc + Number((o as any).__downtimeMinutes || 0), 0) / 60).toFixed(1)}
+                </p>
+              </div>
             </div>
-            <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
-              <p className="text-xs theme-text-muted uppercase tracking-wider">MTTR (horas)</p>
-              <p className="text-2xl font-bold text-[color:var(--dash-accent)] mt-2">
-                {calculateMetrics.mttr}
-              </p>
-            </div>
-            <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
-              <p className="text-xs theme-text-muted uppercase tracking-wider">Conformidade SLA</p>
-              <p className="text-2xl font-bold text-emerald-600 mt-2">
-                {calculateMetrics.slaCompliance}%
-              </p>
-            </div>
-            <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
-              <p className="text-xs theme-text-muted uppercase tracking-wider">Taxa Conclusão</p>
-              <p className="text-2xl font-bold theme-text mt-2">
-                {calculateMetrics.completionRate}%
-              </p>
-            </div>
-          </div>
+          )}
 
           {/* Charts based on report type */}
           {reportType === 'general' && (
@@ -553,11 +685,24 @@ export function ReportsPage() {
             </div>
           )}
 
+          {reportType === 'downtime' && (
+            <div className="rounded-[28px] border theme-border theme-card mb-6 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold theme-text mb-2">Export simples de downtime</h3>
+              <p className="text-sm theme-text-muted">
+                Use os filtros (ativo e período) e exporte em CSV/PDF.
+              </p>
+            </div>
+          )}
+
           {/* Data Table */}
           <div className="overflow-hidden rounded-[28px] border theme-border theme-card shadow-sm">
             <div className="p-4 border-b theme-border">
-              <h2 className="text-lg font-semibold theme-text">Ordens Filtradas</h2>
-              <p className="text-sm theme-text-muted">{filteredOrders.length} registros</p>
+              <h2 className="text-lg font-semibold theme-text">
+                {reportType === 'downtime' ? 'Downtime filtrado' : 'Ordens Filtradas'}
+              </h2>
+              <p className="text-sm theme-text-muted">
+                {reportType === 'downtime' ? downtimeOrders.length : filteredOrders.length} registros
+              </p>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
@@ -565,21 +710,34 @@ export function ReportsPage() {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Ordem</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Ativo</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Prioridade</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Horas</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Criada em</th>
+                    {reportType !== 'downtime' ? (
+                      <>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Prioridade</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Horas</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Criada em</th>
+                      </>
+                    ) : (
+                      <>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Início</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Fim</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Min</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Motivo</th>
+                      </>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="bg-[color:var(--dash-panel)] divide-y divide-[color:var(--dash-border)]">
-                  {filteredOrders.length === 0 && (
+                  {(reportType === 'downtime' ? downtimeOrders.length === 0 : filteredOrders.length === 0) && (
                     <tr>
                       <td colSpan={6} className="px-6 py-6 text-center theme-text-muted">
-                        Nenhuma ordem encontrada
+                        {reportType === 'downtime'
+                          ? 'Nenhum downtime encontrado'
+                          : 'Nenhuma ordem encontrada'}
                       </td>
                     </tr>
                   )}
-                  {filteredOrders.map((order) => (
+                  {(reportType === 'downtime' ? downtimeOrders : filteredOrders).map((order: any) => (
                     <tr key={order.id} className="hover:bg-[color:var(--dash-surface)]">
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium theme-text">{order.title}</div>
@@ -588,56 +746,86 @@ export function ReportsPage() {
                       <td className="px-6 py-4 text-sm theme-text">
                         {order.asset ? `${order.asset.code}` : '-'}
                       </td>
-                      <td className="px-6 py-4 text-sm">
-                        <span
-                          className={`chip text-xs font-medium px-2 py-1 rounded-full ${
-                            order.status === 'concluida' || order.status === 'fechada'
-                              ? 'bg-emerald-500/10 theme-text'
-                              : order.status === 'cancelada'
-                              ? 'bg-rose-500/10 theme-text'
-                              : order.status === 'em_execucao'
-                              ? 'bg-sky-500/10 theme-text'
-                              : order.status === 'em_pausa'
-                              ? 'bg-amber-500/10 theme-text'
-                              : 'bg-[color:var(--dash-surface)] theme-text-muted'
-                          }`}
-                        >
-                          {
-                            (
+
+                      {reportType !== 'downtime' ? (
+                        <>
+                          <td className="px-6 py-4 text-sm">
+                            <span
+                              className={`chip text-xs font-medium px-2 py-1 rounded-full ${
+                                order.status === 'concluida' || order.status === 'fechada'
+                                  ? 'bg-emerald-500/10 theme-text'
+                                  : order.status === 'cancelada'
+                                  ? 'bg-rose-500/10 theme-text'
+                                  : order.status === 'em_execucao'
+                                  ? 'bg-sky-500/10 theme-text'
+                                  : order.status === 'em_pausa'
+                                  ? 'bg-amber-500/10 theme-text'
+                                  : 'bg-[color:var(--dash-surface)] theme-text-muted'
+                              }`}
+                            >
                               {
-                                aberta: 'Aberta',
-                                em_analise: 'Em Análise',
-                                em_execucao: 'Em Execução',
-                                em_pausa: 'Em Pausa',
-                                concluida: 'Concluída',
-                                fechada: 'Fechada',
-                                cancelada: 'Cancelada',
-                              } as Record<string, string>
-                            )[order.status] || order.status
-                          }
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <span
-                          className={`chip text-xs font-medium px-2 py-1 rounded-full ${
-                            order.priority === 'critica'
-                              ? 'bg-rose-500/10 theme-text'
-                              : order.priority === 'alta'
-                              ? 'bg-amber-500/10 theme-text'
-                              : order.priority === 'media'
-                              ? 'bg-emerald-500/10 theme-text'
-                              : 'bg-[color:var(--dash-surface)] theme-text-muted'
-                          }`}
-                        >
-                          {order.priority || '-'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm theme-text">
-                        {order.actual_hours ? `${order.actual_hours}h` : order.estimated_hours ? `${order.estimated_hours}h (est.)` : '-'}
-                      </td>
-                      <td className="px-6 py-4 text-sm theme-text">
-                        {order.created_at ? new Date(order.created_at).toLocaleDateString('pt-PT') : '-'}
-                      </td>
+                                (
+                                  {
+                                    aberta: 'Aberta',
+                                    em_analise: 'Em Análise',
+                                    em_execucao: 'Em Execução',
+                                    em_pausa: 'Em Pausa',
+                                    concluida: 'Concluída',
+                                    fechada: 'Fechada',
+                                    cancelada: 'Cancelada',
+                                  } as Record<string, string>
+                                )[order.status] || order.status
+                              }
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm">
+                            <span
+                              className={`chip text-xs font-medium px-2 py-1 rounded-full ${
+                                order.priority === 'critica'
+                                  ? 'bg-rose-500/10 theme-text'
+                                  : order.priority === 'alta'
+                                  ? 'bg-amber-500/10 theme-text'
+                                  : order.priority === 'media'
+                                  ? 'bg-emerald-500/10 theme-text'
+                                  : 'bg-[color:var(--dash-surface)] theme-text-muted'
+                              }`}
+                            >
+                              {order.priority || '-'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm theme-text">
+                            {order.actual_hours
+                              ? `${order.actual_hours}h`
+                              : order.estimated_hours
+                              ? `${order.estimated_hours}h (est.)`
+                              : '-'}
+                          </td>
+                          <td className="px-6 py-4 text-sm theme-text">
+                            {order.created_at
+                              ? new Date(order.created_at).toLocaleDateString('pt-PT')
+                              : '-'}
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="px-6 py-4 text-sm theme-text">
+                            {order.downtime_started_at
+                              ? new Date(order.downtime_started_at).toLocaleString('pt-PT')
+                              : '-'}
+                          </td>
+                          <td className="px-6 py-4 text-sm theme-text">
+                            {order.downtime_ended_at
+                              ? new Date(order.downtime_ended_at).toLocaleString('pt-PT')
+                              : '-'}
+                          </td>
+                          <td className="px-6 py-4 text-sm theme-text">
+                            {String(order.__downtimeMinutes ?? '')}
+                          </td>
+                          <td className="px-6 py-4 text-sm theme-text-muted">
+                            {order.downtime_reason || '-'}
+                          </td>
+                        </>
+                      )}
                     </tr>
                   ))}
                 </tbody>
