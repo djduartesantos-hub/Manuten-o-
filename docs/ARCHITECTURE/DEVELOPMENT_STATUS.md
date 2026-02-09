@@ -1,8 +1,12 @@
 # 📊 Development Status Dashboard
 
-**Last Updated:** 4 February 2026 (Phase 3A Complete)  
+**Last Updated:** 9 February 2026  
 **Project:** Manuten-o CMMS v1.3.0-beta.2  
-**Status:** Production Ready + Phase 3 COMPLETE ✅
+**Status:** Dashboard (parcial) + track “fábrica + gestão” em curso
+
+> Para detalhe do que mudou recentemente (BD/API/UX) e decisões (tolerância hard = justificação; timeline via audit logs), ver:
+> - [PROJECT_STATUS_UPDATE_2026-02-09.md](./PROJECT_STATUS_UPDATE_2026-02-09.md)
+> - [ROADMAP_DRAFT_2026-02-09_FACTORY+MGMT.md](./ROADMAP_DRAFT_2026-02-09_FACTORY+MGMT.md)
 
 ---
 

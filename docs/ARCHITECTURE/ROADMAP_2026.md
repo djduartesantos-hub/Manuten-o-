@@ -1,8 +1,44 @@
-# 💡 Roadmap de Desenvolvimento - Manuten-o CMMS v1.3.0-beta.1
+# 💡 Roadmap de Desenvolvimento - Manuten-o CMMS v1.3.0-beta.2
 
-**Status Atual:** Phase 3 - Settings & Configuration Hub (EM DESENVOLVIMENTO)  
-**Última Atualização:** 4 Fevereiro 2026  
-**Versão:** 2.0 (Atualizado com Phase 3 Progress)
+**Status Atual:** Roadmap 2026 (em revisão)  
+**Última Atualização:** 9 Fevereiro 2026  
+**Versão:** 2.1 (alinhado com melhorias “fábrica + gestão”)
+
+> Nota: este ficheiro estava desatualizado. Para o detalhe das mudanças recentes (BD/API/UX) ver:
+> - [PROJECT_STATUS_UPDATE_2026-02-09.md](./PROJECT_STATUS_UPDATE_2026-02-09.md)
+> - [ROADMAP_DRAFT_2026-02-09_FACTORY+MGMT.md](./ROADMAP_DRAFT_2026-02-09_FACTORY+MGMT.md)
+
+---
+
+## 🏭 Track “Fábrica + Gestão” (2026-02-09)
+
+Este track é o plano **prático** para as próximas iterações, com foco em operação e governança. O detalhe vive no draft; aqui fica o resumo acionável.
+
+### Fase 0 — Quick Wins (1-2 semanas)
+- Ordens: CTAs dedicados para **Pausar/Cancelar** com motivo no próprio fluxo.
+- Ordens: fecho com campos recomendados (opcionais) — causa raiz + ação corretiva.
+- Preventivas: “Adiar/Skip ciclo” com motivo.
+- Relatórios: export simples de downtime (por ativo e por período).
+
+### Fase 1 — Ordens: timeline + requisitos de fecho (2-3 semanas)
+- Timeline legível (eventos chave) consistente com audit logs.
+- Downtime enriquecido (tipo/categoria) e validações mais robustas.
+- Fecho com recomendação (ou regra por role) de causa raiz/ação corretiva.
+
+**Decisão (por agora):** timeline começa **derivada de audit logs**; `work_order_events` só entra se houver necessidade real.
+
+### Fase 2 — Preventivas: tolerância + âncora (3-4 semanas)
+- Tolerância: `soft` (aviso) e `hard` (exige **justificação** fora da janela; sem bloqueio por defeito).
+- Âncora de agendamento (fixo vs intervalo) e anti-duplicados “1 ativo por janela”.
+
+### Fase 3 — Stock/Peças: reserva + kits + previsão (3-5 semanas)
+- Reserva de peças por ordem; kits por plano/categoria; previsão simples (planeado vs stock).
+
+### Fase 4 — Alertas/SLA: aging por fase + excluir pausa (2-3 semanas)
+- SLA com opção “tempo em pausa não conta”; alertas por aging por fase; notificar ao retomar.
+
+### Fase 5 — Relatórios/KPIs: downtime e execução (2-4 semanas)
+- Pareto downtime + KPIs por fase (análise/execução), pausas, compliance com tolerância.
 
 ---
 

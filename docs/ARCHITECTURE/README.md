@@ -37,9 +37,13 @@ Documentação técnica sobre arquitetura, roadmap e status de desenvolvimento.
 
 ## 📊 Status Rápido
 
-**Versão Atual:** v1.3.0-beta.1  
-**Fase Atual:** Phase 3 (55% completo)  
+**Versão Atual:** v1.3.0-beta.2  
+**Status (docs):** atualizado a 9 Fevereiro 2026  
 **Timeline:** Fevereiro-Setembro 2026
+
+Para contexto recente e decisões operacionais:
+- [PROJECT_STATUS_UPDATE_2026-02-09.md](./PROJECT_STATUS_UPDATE_2026-02-09.md)
+- [ROADMAP_DRAFT_2026-02-09_FACTORY+MGMT.md](./ROADMAP_DRAFT_2026-02-09_FACTORY+MGMT.md)
 
 Próximas 3 semanas: 4 componentes de UI (AlertsSettings, PredictiveWarnings, DocumentsLibrary, MaintenancePlannerSettings)
 
