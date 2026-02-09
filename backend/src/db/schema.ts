@@ -175,7 +175,7 @@ export const assets = pgTable(
     serial_number: text('serial_number'),
     location: text('location'),
     status: text('status').default('operacional'),
-    acquisition_date: timestamp('acquisition_date'),
+    acquisition_date: timestamp('acquisition_date', { withTimezone: true }),
     acquisition_cost: decimal('acquisition_cost', { precision: 15, scale: 2 }),
     meter_type: text('meter_type'), // 'hours', 'km', 'cycles', etc
     current_meter_value: decimal('current_meter_value', { precision: 15, scale: 2 }),
@@ -317,7 +317,7 @@ export const workOrders = pgTable(
     status: orderStatusEnum('status').notNull().default('aberta'),
     sub_status: text('sub_status'),
     priority: priorityEnum('priority').notNull().default('media'),
-    scheduled_date: timestamp('scheduled_date'),
+    scheduled_date: timestamp('scheduled_date', { withTimezone: true }),
     started_at: timestamp('started_at', { withTimezone: true }),
     completed_at: timestamp('completed_at', { withTimezone: true }),
     closed_at: timestamp('closed_at', { withTimezone: true }),
