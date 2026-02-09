@@ -89,11 +89,11 @@ export function SettingsPage() {
         id: 'permissions',
         label: 'Permissões & Roles',
         icon: <Shield className="w-5 h-5" />,
-        description: 'Gerencie acesso por role',
+        description: 'Gerir acesso por role',
       },
       {
         id: 'management',
-        label: 'Gestao administrativa',
+        label: 'Gestão administrativa',
         icon: <Users className="w-5 h-5" />,
         description: 'Plantas, utilizadores, roles e equipamentos',
       },
@@ -1891,7 +1891,7 @@ function ManagementSettings() {
       setUsers(usersData || []);
       setRoles(rolesData || []);
     } catch (err: any) {
-      setError(err.message || 'Falha ao carregar dados de gestao');
+      setError(err.message || 'Falha ao carregar dados de gestão');
     } finally {
       setLoading(false);
     }
@@ -2135,19 +2135,19 @@ function ManagementSettings() {
     {
       id: 'setup' as const,
       title: 'Setup BD',
-      description: 'Estado e administracao da base de dados.',
+      description: 'Estado e administração da base de dados.',
       icon: Database,
     },
     {
       id: 'migrations' as const,
       title: 'Atualizar BD',
-      description: 'Executar migracoes e aplicar seeds.',
+      description: 'Executar migrações e aplicar seeds.',
       icon: Wrench,
     },
     {
       id: 'bootstrap' as const,
       title: 'Setup inicial',
-      description: 'Recriar a base do zero (acao destrutiva).',
+      description: 'Recriar a base do zero (ação destrutiva).',
       icon: Server,
     },
   ];
@@ -2156,7 +2156,7 @@ function ManagementSettings() {
     {
       id: 'plants' as const,
       title: 'Plantas',
-      description: 'Gestao completa de plantas e atribuicoes.',
+      description: 'Gestão completa de plantas e atribuições.',
       icon: Building2,
     },
     {
@@ -2174,7 +2174,7 @@ function ManagementSettings() {
     {
       id: 'stock' as const,
       title: 'Stock de peças',
-      description: 'Registar entradas e reposicoes de inventario.',
+      description: 'Registar entradas e reposições de inventário.',
       icon: Boxes,
     },
   ];
@@ -2183,11 +2183,11 @@ function ManagementSettings() {
     <div className="space-y-6">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
-          Administracao
+          Administração
         </p>
-        <h2 className="mt-2 text-2xl font-semibold theme-text">Gestao administrativa</h2>
+        <h2 className="mt-2 text-2xl font-semibold theme-text">Gestão administrativa</h2>
         <p className="mt-1 text-sm theme-text-muted">
-          Controle plantas, utilizadores, roles e equipamentos sem sair das configuracoes.
+          Controle plantas, utilizadores, roles e equipamentos sem sair das configurações.
         </p>
       </div>
 
@@ -2202,7 +2202,7 @@ function ManagementSettings() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold theme-text">Ferramentas da base de dados</h3>
-            <p className="text-sm theme-text-muted">Menu rapido de configuracao e migracoes.</p>
+            <p className="text-sm theme-text-muted">Menu rápido de configuração e migrações.</p>
           </div>
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
@@ -2212,7 +2212,7 @@ function ManagementSettings() {
               <button
                 key={tool.id}
                 onClick={() => setActiveDbTool(tool.id)}
-                className="group rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 text-left shadow-[0_12px_24px_-20px_rgba(15,23,42,0.4)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
+                className="group rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 text-left shadow-sm transition hover:bg-[color:var(--dash-surface)]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -2234,7 +2234,7 @@ function ManagementSettings() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold theme-text">Menu administrativo</h3>
-            <p className="text-sm theme-text-muted">Aceda as paginas de gestao.</p>
+            <p className="text-sm theme-text-muted">Aceda às páginas de gestão.</p>
           </div>
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
@@ -2244,7 +2244,7 @@ function ManagementSettings() {
               <button
                 key={panel.id}
                 onClick={() => setActiveAdminPanel(panel.id)}
-                className="group rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 text-left shadow-[0_12px_24px_-20px_rgba(15,23,42,0.4)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
+                className="group rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 text-left shadow-sm transition hover:bg-[color:var(--dash-surface)]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -2274,7 +2274,7 @@ function ManagementSettings() {
           </div>
           {singlePlantLocked && (
             <p className="text-xs theme-text-muted">
-              Modo de fabrica unica ativo. A criacao de novas plantas esta bloqueada.
+              Modo de fábrica única ativo. A criação de novas plantas está bloqueada.
             </p>
           )}
 
@@ -2293,7 +2293,7 @@ function ManagementSettings() {
               return (
                 <div
                   key={plant.id}
-                  className="rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 shadow-[0_12px_26px_-20px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
+                  className="rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 shadow-sm transition hover:bg-[color:var(--dash-surface)]"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -2301,7 +2301,7 @@ function ManagementSettings() {
                         {plant.code} - {plant.name}
                       </p>
                       <p className="text-xs theme-text-muted">
-                        {plant.city || 'Cidade'} · {plant.country || 'Pais'}
+                        {plant.city || 'Cidade'} · {plant.country || 'País'}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -2377,7 +2377,7 @@ function ManagementSettings() {
 
           {!selectedPlant && (
             <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text">
-              <span className="badge-warning mr-2 text-xs">Atencao</span>
+              <span className="badge-warning mr-2 text-xs">Atenção</span>
               Selecione uma planta no topo para visualizar equipamentos.
             </div>
           )}
@@ -2392,7 +2392,7 @@ function ManagementSettings() {
                 {assets.slice(0, 5).map((asset) => (
                   <div
                     key={asset.id}
-                    className="rounded-[20px] border theme-border bg-[color:var(--dash-panel)] p-3 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.3)] transition hover:-translate-y-1 hover:shadow-[0_16px_32px_-22px_rgba(15,23,42,0.4)]"
+                    className="rounded-[20px] border theme-border bg-[color:var(--dash-panel)] p-3 shadow-sm transition hover:bg-[color:var(--dash-surface)]"
                   >
                     <div>
                       <p className="text-sm font-medium theme-text">{asset.name}</p>
@@ -2451,7 +2451,7 @@ function ManagementSettings() {
           {users.map((user) => (
             <div
               key={user.id}
-              className="rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 shadow-[0_12px_26px_-20px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
+              className="rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 shadow-sm transition hover:bg-[color:var(--dash-surface)]"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -2496,7 +2496,7 @@ function ManagementSettings() {
               setEditingPlantId(null);
             }}
           />
-          <div className="relative w-full max-w-2xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+          <div className="relative w-full max-w-2xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-lg">
             <button
               onClick={() => {
                 setPlantModalOpen(false);
@@ -2526,7 +2526,7 @@ function ManagementSettings() {
               </div>
               <div>
                 <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
-                  Codigo
+                  Código
                 </label>
                 <input
                   className="input"
@@ -2546,7 +2546,7 @@ function ManagementSettings() {
               </div>
               <div>
                 <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
-                  Pais
+                  País
                 </label>
                 <input
                   className="input"
@@ -2569,7 +2569,7 @@ function ManagementSettings() {
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <button className="btn-primary" onClick={handleUpdatePlant} disabled={saving}>
-                Guardar alteracoes
+                Guardar alterações
               </button>
               <button
                 className="btn-secondary"
@@ -2594,7 +2594,7 @@ function ManagementSettings() {
               setEditingUserId(null);
             }}
           />
-          <div className="relative w-full max-w-2xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+          <div className="relative w-full max-w-2xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-lg">
             <button
               onClick={() => {
                 setUserModalOpen(false);
@@ -2648,7 +2648,7 @@ function ManagementSettings() {
                   />
                   <input
                     className="input"
-                    placeholder="Password temporaria"
+                    placeholder="Password temporária"
                     value={newUser.password}
                     onChange={(event) => setNewUser({ ...newUser, password: event.target.value })}
                   />
@@ -2724,7 +2724,7 @@ function ManagementSettings() {
                 </button>
               ) : (
                 <button className="btn-primary" onClick={handleUpdateUser} disabled={saving}>
-                  Guardar alteracoes
+                  Guardar alterações
                 </button>
               )}
               <button
@@ -2750,7 +2750,7 @@ function ManagementSettings() {
               setPlantUsersPlant(null);
             }}
           />
-          <div className="relative w-full max-w-3xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+          <div className="relative w-full max-w-3xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-lg">
             <button
               onClick={() => {
                 setPlantUsersModalOpen(false);
@@ -2798,7 +2798,7 @@ function ManagementSettings() {
                 onClick={handleSavePlantUsers}
                 disabled={plantUsersSaving}
               >
-                Guardar atribuicoes
+                Guardar atribuições
               </button>
               <button
                 className="btn-secondary"
@@ -2820,7 +2820,7 @@ function ManagementSettings() {
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             onClick={() => setActiveDbTool(null)}
           />
-          <div className="relative w-full max-w-5xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+          <div className="relative w-full max-w-5xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-lg">
             <button
               onClick={() => setActiveDbTool(null)}
               className="absolute right-4 top-4 rounded-full border theme-border theme-card px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
@@ -2842,7 +2842,7 @@ function ManagementSettings() {
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             onClick={() => setActiveAdminPanel(null)}
           />
-          <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+          <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-lg">
             <button
               onClick={() => setActiveAdminPanel(null)}
               className="absolute right-6 top-6 z-10 rounded-full border theme-border theme-card px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
@@ -2862,7 +2862,7 @@ function ManagementSettings() {
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             onClick={() => setActiveAdminPanel(null)}
           />
-          <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+          <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-lg">
             <button
               onClick={() => setActiveAdminPanel(null)}
               className="absolute right-6 top-6 z-10 rounded-full border theme-border theme-card px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
@@ -2882,7 +2882,7 @@ function ManagementSettings() {
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             onClick={() => setActiveAdminPanel(null)}
           />
-          <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+          <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-lg">
             <button
               onClick={() => setActiveAdminPanel(null)}
               className="absolute right-6 top-6 z-10 rounded-full border theme-border theme-card px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
@@ -2902,7 +2902,7 @@ function ManagementSettings() {
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             onClick={() => setActiveAdminPanel(null)}
           />
-          <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-[0_30px_60px_-40px_rgba(15,23,42,0.6)]">
+          <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-lg">
             <button
               onClick={() => setActiveAdminPanel(null)}
               className="absolute right-6 top-6 z-10 rounded-full border theme-border theme-card px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
