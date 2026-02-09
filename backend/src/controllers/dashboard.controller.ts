@@ -18,12 +18,14 @@ export class DashboardController {
       }
 
       const workOrders = await TenantService.getPlantWorkOrders(tenantId, plantId);
-
-      const normalizeStatus = (status: string) =>
-        status === 'aprovada' || status === 'planeada' ? 'em_analise' : status;
-
       const isActive = (status: string) =>
         !['concluida', 'fechada', 'cancelada'].includes(status);
+
+      const normalizeStatus = (status: string) => {
+        if (status === 'aprovada' || status === 'planeada' || status === 'atribuida') return 'em_analise';
+        if (status === 'em_curso') return 'em_execucao';
+        return status;
+      };
 
       const normalized = workOrders.map((wo: any) => ({
         ...wo,

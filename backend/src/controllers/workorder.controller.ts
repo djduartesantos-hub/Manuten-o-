@@ -220,10 +220,14 @@ export class WorkOrderController {
         requestedEditFields.length > 0 &&
         requestedEditFields.every((field) => field === 'scheduled_date' || field === 'estimated_hours');
 
-      const normalizedExistingStatus =
-        existing.status === 'aprovada' || existing.status === 'planeada'
-          ? 'em_analise'
-          : existing.status;
+      const normalizeExistingStatus = (status: string) => {
+        if (status === 'aprovada' || status === 'planeada' || status === 'atribuida') return 'em_analise';
+        if (status === 'em_curso') return 'em_execucao';
+        return status;
+      };
+
+      const normalizedExistingStatus = normalizeExistingStatus(existing.status);
+
       const isStartingOrder =
         updates.status === 'em_execucao' &&
         ['aberta', 'em_analise', 'em_pausa'].includes(normalizedExistingStatus) &&

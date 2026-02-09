@@ -17,8 +17,6 @@ import { relations } from 'drizzle-orm';
 export const orderStatusEnum = pgEnum('order_status', [
   'aberta',
   'em_analise',
-  'aprovada',
-  'planeada',
   'em_execucao',
   'em_pausa',
   'concluida',
@@ -32,9 +30,7 @@ export const maintenanceTypeEnum = pgEnum('maintenance_type', [
 ]);
 
 export const preventiveScheduleStatusEnum = pgEnum('preventive_schedule_status', [
-  'planeada',
   'agendada',
-  'confirmada',
   'em_execucao',
   'concluida',
   'fechada',
