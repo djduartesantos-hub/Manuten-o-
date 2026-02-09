@@ -223,6 +223,7 @@ export function WorkOrdersPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [editingOrder, setEditingOrder] = useState<WorkOrder | null>(null);
+  const [showCancelAction, setShowCancelAction] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [ordersDiagnostics, setOrdersDiagnostics] = useState({
     status: 'idle',
@@ -326,6 +327,10 @@ export function WorkOrdersPage() {
       JSON.stringify({ statusFilter, searchTerm, viewMode }),
     );
   }, [statusFilter, searchTerm, viewMode]);
+
+  useEffect(() => {
+    setShowCancelAction(false);
+  }, [editingOrder?.id]);
 
   const statusOptions = useMemo(
     () => [
@@ -1130,6 +1135,44 @@ export function WorkOrdersPage() {
       await loadData();
     } catch (err: any) {
       setError(err.message || 'Erro ao pausar ordem');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    if (!selectedPlant || !editingOrder || !userId) return;
+
+    const canOperateOrder = isAdmin || isManager || editingOrder.assigned_to === userId;
+    if (!canOperateOrder) {
+      setError('Sem permissao para cancelar esta ordem');
+      return;
+    }
+
+    if (editingOrder.status === 'cancelada' || editingOrder.status === 'fechada') {
+      setError('Esta ordem ja esta finalizada');
+      return;
+    }
+
+    setUpdating(true);
+    setError(null);
+
+    try {
+      const reason = updateForm.cancel_reason.trim();
+      if (!reason) {
+        setError('Motivo é obrigatório ao cancelar a ordem');
+        return;
+      }
+
+      await updateWorkOrder(selectedPlant, editingOrder.id, {
+        status: 'cancelada',
+        cancel_reason: reason,
+      });
+
+      setEditingOrder(null);
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao cancelar ordem');
     } finally {
       setUpdating(false);
     }
@@ -2459,6 +2502,54 @@ export function WorkOrdersPage() {
                           Pausar
                         </button>
                       </>
+                    )}
+
+                  {allowedStatusOptionsForEdit?.some((opt) => opt.value === 'cancelada') &&
+                    editingPermissions?.canOperateOrder &&
+                    editingOrder.status !== 'cancelada' &&
+                    editingOrder.status !== 'fechada' && (
+                      <div className="w-full">
+                        {!showCancelAction ? (
+                          <button
+                            onClick={() => setShowCancelAction(true)}
+                            className="btn-secondary"
+                            disabled={updating}
+                          >
+                            Cancelar ordem
+                          </button>
+                        ) : (
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium theme-text">
+                              Motivo do cancelamento
+                            </label>
+                            <textarea
+                              className="input min-h-[96px]"
+                              value={updateForm.cancel_reason}
+                              onChange={(event) =>
+                                setUpdateForm({ ...updateForm, cancel_reason: event.target.value })
+                              }
+                              disabled={updating}
+                              placeholder="Ex: duplicada, pedido anulado, ativo indisponível"
+                            />
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button
+                                onClick={handleCancelOrder}
+                                className="btn-secondary"
+                                disabled={updating}
+                              >
+                                Confirmar cancelamento
+                              </button>
+                              <button
+                                onClick={() => setShowCancelAction(false)}
+                                className="btn-secondary"
+                                disabled={updating}
+                              >
+                                Voltar
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
 
                   {editingOrder.status === 'concluida' && (isAdmin || isManager) && (
