@@ -784,17 +784,165 @@ export function WorkOrdersPage() {
     return name || log.user.id || 'Utilizador';
   };
 
+  const formatStatusLabelForAudit = (value: any) => {
+    const key = String(value || '').trim();
+    const map: Record<string, string> = {
+      aberta: 'Aberta',
+      em_analise: 'Em Análise',
+      em_execucao: 'Em Execução',
+      em_pausa: 'Em Pausa',
+      concluida: 'Concluída',
+      fechada: 'Fechada',
+      cancelada: 'Cancelada',
+    };
+    return map[key] || key || '—';
+  };
+
   const formatAuditFields = (log: AuditLog) => {
     const next = (log.new_values || {}) as Record<string, any>;
     const prev = (log.old_values || {}) as Record<string, any>;
     if (next.status) {
-      const from = prev.status ? String(prev.status) : '—';
-      return `Estado: ${from} → ${String(next.status)}`;
+      const from = prev.status ? formatStatusLabelForAudit(prev.status) : '—';
+      const to = formatStatusLabelForAudit(next.status);
+      return `Estado: ${from} → ${to}`;
     }
     const fields = Object.keys(next || {});
     if (fields.length === 0) return 'Sem detalhes';
     return `Campos: ${fields.join(', ')}`;
   };
+
+  type AuditTimelineItem = {
+    id: string;
+    title: string;
+    createdAt?: string | null;
+    userLabel: string;
+    details: string[];
+  };
+
+  const auditTimeline = useMemo<AuditTimelineItem[]>(() => {
+    const items = (auditLogs || []).map((log) => {
+      const next = (log.new_values || {}) as Record<string, any>;
+      const prev = (log.old_values || {}) as Record<string, any>;
+      const details: string[] = [];
+
+      const includeReasonIfPresent = () => {
+        if (typeof next.pause_reason === 'string' && next.pause_reason.trim()) {
+          details.push(`Motivo de pausa: ${next.pause_reason.trim()}`);
+        }
+        if (typeof next.cancel_reason === 'string' && next.cancel_reason.trim()) {
+          details.push(`Motivo de cancelamento: ${next.cancel_reason.trim()}`);
+        }
+      };
+
+      const includeDowntimeIfPresent = () => {
+        const hasDowntimeField =
+          next.downtime_started_at !== undefined ||
+          next.downtime_ended_at !== undefined ||
+          next.downtime_reason !== undefined ||
+          next.downtime_minutes !== undefined;
+
+        if (!hasDowntimeField) return;
+
+        if (next.downtime_started_at) {
+          details.push(`Paragem: início ${formatShortDateTime(next.downtime_started_at)}`);
+        }
+        if (next.downtime_ended_at) {
+          details.push(`Paragem: fim ${formatShortDateTime(next.downtime_ended_at)}`);
+        }
+        if (typeof next.downtime_minutes === 'number') {
+          details.push(`Paragem: duração ${formatMinutes(next.downtime_minutes)}`);
+        }
+        if (typeof next.downtime_reason === 'string' && next.downtime_reason.trim()) {
+          details.push(`Paragem: motivo ${next.downtime_reason.trim()}`);
+        }
+      };
+
+      if (next.status) {
+        const from = prev.status ? formatStatusLabelForAudit(prev.status) : '—';
+        const to = formatStatusLabelForAudit(next.status);
+        details.push(`Estado: ${from} → ${to}`);
+        includeReasonIfPresent();
+        includeDowntimeIfPresent();
+        return {
+          id: log.id,
+          title: 'Transição de estado',
+          createdAt: log.created_at,
+          userLabel: formatAuditUser(log),
+          details,
+        };
+      }
+
+      if (next.pause_reason !== undefined) {
+        includeReasonIfPresent();
+        if (details.length === 0) details.push(formatAuditFields(log));
+        return {
+          id: log.id,
+          title: 'Pausa',
+          createdAt: log.created_at,
+          userLabel: formatAuditUser(log),
+          details,
+        };
+      }
+
+      if (next.cancel_reason !== undefined) {
+        includeReasonIfPresent();
+        if (details.length === 0) details.push(formatAuditFields(log));
+        return {
+          id: log.id,
+          title: 'Cancelamento',
+          createdAt: log.created_at,
+          userLabel: formatAuditUser(log),
+          details,
+        };
+      }
+
+      if (
+        next.downtime_started_at !== undefined ||
+        next.downtime_ended_at !== undefined ||
+        next.downtime_reason !== undefined ||
+        next.downtime_minutes !== undefined
+      ) {
+        includeDowntimeIfPresent();
+        if (details.length === 0) details.push(formatAuditFields(log));
+        return {
+          id: log.id,
+          title: 'Paragem',
+          createdAt: log.created_at,
+          userLabel: formatAuditUser(log),
+          details,
+        };
+      }
+
+      if (next.work_performed !== undefined) {
+        const value = typeof next.work_performed === 'string' ? next.work_performed.trim() : '';
+        if (value) details.push(`Trabalho realizado: ${value}`);
+        if (details.length === 0) details.push(formatAuditFields(log));
+        return {
+          id: log.id,
+          title: 'Trabalho realizado',
+          createdAt: log.created_at,
+          userLabel: formatAuditUser(log),
+          details,
+        };
+      }
+
+      // Fallback
+      details.push(formatAuditFields(log));
+      return {
+        id: log.id,
+        title: String(log.action || 'Atualização'),
+        createdAt: log.created_at,
+        userLabel: formatAuditUser(log),
+        details,
+      };
+    });
+
+    return items.sort((a, b) => {
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return tb - ta;
+    });
+  }, [auditLogs]);
 
   const handleStartEdit = (order: WorkOrder) => {
     setEditingOrder(order);
@@ -2243,7 +2391,7 @@ export function WorkOrdersPage() {
 
               <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
-                  Historico de alteracoes
+                  Timeline
                 </p>
                 {auditError && (
                   <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -2258,27 +2406,28 @@ export function WorkOrdersPage() {
                     Sem alteracoes registadas ainda.
                   </p>
                 )}
-                {auditLogs.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    {auditLogs.map((log) => (
-                      <div
-                        key={log.id}
-                        className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] px-3 py-2 text-xs theme-text-muted"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="font-semibold theme-text">
-                            {log.action}
-                          </span>
-                          <span className="text-[11px] theme-text-muted">
-                            {formatShortDateTime(log.created_at)}
-                          </span>
+                {auditTimeline.length > 0 && (
+                  <div className="mt-4 space-y-3">
+                    {auditTimeline.map((item, index) => (
+                      <div key={item.id} className="relative pl-6">
+                        <div className="absolute left-[9px] top-3 h-3 w-3 rounded-full border theme-border bg-[color:var(--dash-surface)]" />
+                        {index < auditTimeline.length - 1 && (
+                          <div className="absolute left-[14px] top-6 bottom-0 w-px bg-[color:var(--dash-border)]" />
+                        )}
+                        <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] px-3 py-2 text-xs theme-text-muted">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-semibold theme-text">{item.title}</span>
+                            <span className="text-[11px] theme-text-muted">
+                              {formatShortDateTime(item.createdAt)}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-[11px] theme-text-muted">{item.userLabel}</p>
+                          {item.details.map((line) => (
+                            <p key={line} className="mt-1 text-[11px] theme-text-muted">
+                              {line}
+                            </p>
+                          ))}
                         </div>
-                        <p className="mt-1 text-[11px] theme-text-muted">
-                          {formatAuditUser(log)}
-                        </p>
-                        <p className="mt-1 text-[11px] theme-text-muted">
-                          {formatAuditFields(log)}
-                        </p>
                       </div>
                     ))}
                   </div>
