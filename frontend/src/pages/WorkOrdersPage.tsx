@@ -27,6 +27,8 @@ import {
   deleteWorkOrder,
   getAssets,
   getApiHealth,
+  getMaintenanceKitItems,
+  getMaintenanceKits,
   getPreventiveSchedules,
   getWorkOrder,
   getWorkOrderAuditLogs,
@@ -78,6 +80,26 @@ interface StockReservation {
   released_at?: string | null;
   release_reason?: string | null;
   spare_part?: {
+    code: string;
+    name: string;
+  } | null;
+}
+
+interface MaintenanceKit {
+  id: string;
+  name: string;
+  is_active?: boolean;
+  plan_id?: string | null;
+  category_id?: string | null;
+}
+
+interface MaintenanceKitItem {
+  id: string;
+  kit_id: string;
+  spare_part_id: string;
+  quantity: number;
+  spare_part?: {
+    id: string;
     code: string;
     name: string;
   } | null;
@@ -323,6 +345,12 @@ export function WorkOrdersPage() {
   const [orderReservations, setOrderReservations] = useState<StockReservation[]>([]);
   const [orderReservationsLoading, setOrderReservationsLoading] = useState(false);
   const [orderReservationsError, setOrderReservationsError] = useState<string | null>(null);
+  const [maintenanceKits, setMaintenanceKits] = useState<MaintenanceKit[]>([]);
+  const [maintenanceKitsLoading, setMaintenanceKitsLoading] = useState(false);
+  const [maintenanceKitsError, setMaintenanceKitsError] = useState<string | null>(null);
+  const [selectedMaintenanceKitId, setSelectedMaintenanceKitId] = useState('');
+  const [kitApplySaving, setKitApplySaving] = useState(false);
+  const [kitApplyMessage, setKitApplyMessage] = useState<string | null>(null);
   const [orderTasks, setOrderTasks] = useState<WorkOrderTask[]>([]);
   const [tasksLoading, setTasksLoading] = useState(false);
   const [tasksError, setTasksError] = useState<string | null>(null);
@@ -677,6 +705,20 @@ export function WorkOrdersPage() {
     }
   };
 
+  const loadMaintenanceKits = async () => {
+    setMaintenanceKitsLoading(true);
+    setMaintenanceKitsError(null);
+    try {
+      const data = await getMaintenanceKits({ is_active: true });
+      setMaintenanceKits(data || []);
+    } catch (err: any) {
+      setMaintenanceKits([]);
+      setMaintenanceKitsError(err.message || 'Erro ao carregar kits de manutenção');
+    } finally {
+      setMaintenanceKitsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const checkHealth = async () => {
       if (!diagnosticsEnabled) return;
@@ -707,6 +749,14 @@ export function WorkOrdersPage() {
     loadSpareParts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlant]);
+
+  useEffect(() => {
+    if (!editingOrder) return;
+    setSelectedMaintenanceKitId('');
+    setKitApplyMessage(null);
+    loadMaintenanceKits();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingOrder?.id]);
 
   const handleDiagnosticsPressStart = () => {
     if (typeof window === 'undefined') return;
@@ -1312,6 +1362,78 @@ export function WorkOrdersPage() {
       setReservationMessage(err.message || 'Erro ao libertar reserva.');
     } finally {
       setReservationSaving(false);
+    }
+  };
+
+  const handleApplyMaintenanceKit = async () => {
+    if (!selectedPlant || !editingOrder) return;
+    if (['cancelada', 'fechada'].includes(editingOrder.status)) {
+      setKitApplyMessage('Esta ordem já está finalizada; não é possível aplicar kits.');
+      return;
+    }
+    if (!selectedMaintenanceKitId) {
+      setKitApplyMessage('Selecione um kit para aplicar.');
+      return;
+    }
+    if (!editingPermissions?.canOperateOrder && !editingPermissions?.canEditOrder) {
+      setKitApplyMessage('Sem permissão para reservar peças nesta ordem.');
+      return;
+    }
+
+    const kit = maintenanceKits.find((item) => item.id === selectedMaintenanceKitId);
+    setKitApplySaving(true);
+    setKitApplyMessage(null);
+    try {
+      const items = (await getMaintenanceKitItems(selectedMaintenanceKitId)) as MaintenanceKitItem[];
+      if (!items || items.length === 0) {
+        setKitApplyMessage('Este kit não tem itens configurados.');
+        return;
+      }
+
+      let createdCount = 0;
+      const failures: Array<{ sparePartId: string; message: string }> = [];
+      const note = kit?.name ? `Kit: ${kit.name}` : 'Kit aplicado';
+
+      for (const item of items) {
+        try {
+          await createWorkOrderReservation(selectedPlant, editingOrder.id, {
+            spare_part_id: item.spare_part_id,
+            quantity: Number(item.quantity),
+            notes: note,
+          });
+          createdCount += 1;
+        } catch (err: any) {
+          failures.push({
+            sparePartId: item.spare_part_id,
+            message: err?.message || 'Falha ao reservar',
+          });
+        }
+      }
+
+      await loadOrderReservations(editingOrder.id);
+
+      if (failures.length === 0) {
+        setKitApplyMessage(`Kit aplicado. ${createdCount} reservas criadas.`);
+        return;
+      }
+
+      const partLabelById = spareParts.reduce<Record<string, string>>((acc, part) => {
+        acc[part.id] = `${part.code} - ${part.name}`;
+        return acc;
+      }, {});
+
+      const details = failures
+        .slice(0, 3)
+        .map((fail) => `${partLabelById[fail.sparePartId] || fail.sparePartId}: ${fail.message}`)
+        .join(' | ');
+
+      setKitApplyMessage(
+        `Kit aplicado com falhas. ${createdCount} OK, ${failures.length} falharam. ${details}`,
+      );
+    } catch (err: any) {
+      setKitApplyMessage(err.message || 'Erro ao aplicar kit.');
+    } finally {
+      setKitApplySaving(false);
     }
   };
 
@@ -2894,6 +3016,65 @@ export function WorkOrdersPage() {
 
                   {!['cancelada', 'fechada'].includes(editingOrder.status) && (
                     <div className="mt-4 space-y-4">
+                      <div className="rounded-2xl border theme-border bg-[color:var(--dash-panel)] p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+                          Aplicar kit
+                        </p>
+                        <p className="mt-2 text-sm theme-text-muted">
+                          Cria reservas para todas as peças do kit selecionado.
+                        </p>
+
+                        {maintenanceKitsError && (
+                          <p className="mt-2 text-xs text-rose-600">{maintenanceKitsError}</p>
+                        )}
+                        {kitApplyMessage && (
+                          <p className="mt-2 text-xs theme-text-muted">{kitApplyMessage}</p>
+                        )}
+
+                        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium theme-text">
+                              Kit
+                            </label>
+                            <select
+                              className="input"
+                              value={selectedMaintenanceKitId}
+                              onChange={(event) => setSelectedMaintenanceKitId(event.target.value)}
+                              disabled={maintenanceKitsLoading || kitApplySaving || reservationSaving}
+                            >
+                              <option value="">
+                                {maintenanceKitsLoading ? 'A carregar...' : 'Selecionar...'}
+                              </option>
+                              {maintenanceKits.map((kit) => (
+                                <option key={kit.id} value={kit.id}>
+                                  {kit.name}
+                                </option>
+                              ))}
+                            </select>
+                            {!maintenanceKitsLoading && maintenanceKits.length === 0 && (
+                              <p className="mt-2 text-xs theme-text-muted">
+                                Não existem kits ativos.
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex items-end">
+                            <button
+                              className="btn-secondary w-full"
+                              onClick={handleApplyMaintenanceKit}
+                              disabled={
+                                kitApplySaving ||
+                                reservationSaving ||
+                                maintenanceKitsLoading ||
+                                !selectedMaintenanceKitId
+                              }
+                            >
+                              {kitApplySaving ? 'A aplicar...' : 'Aplicar kit'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <div>
                           <label className="mb-1 block text-sm font-medium theme-text">
