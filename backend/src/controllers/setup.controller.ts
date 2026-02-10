@@ -24,9 +24,16 @@ import { v4 as uuidv4 } from 'uuid';
 
 export class SetupController {
   private static async usersTableExists(): Promise<boolean> {
-    const res = await db.execute(sql`SELECT to_regclass('public.users') as regclass;`);
-    const value = (res.rows?.[0] as any)?.regclass;
-    return !!value;
+    const res = await db.execute(sql`
+      SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_name = 'users'
+          AND table_schema NOT IN ('pg_catalog', 'information_schema')
+      ) AS exists;
+    `);
+    const value = (res.rows?.[0] as any)?.exists;
+    return value === true || value === 't' || value === 1 || value === 'true';
   }
 
   private static async ensureSchemaReady(): Promise<void> {

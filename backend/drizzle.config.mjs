@@ -3,33 +3,42 @@ import fs from 'node:fs';
 
 dotenv.config();
 
-function resolveDbCredentials() {
-  const fallback =
-    'postgresql://cmms_user:cmms_password@localhost:5432/cmms_enterprise';
-  const connectionString = process.env.DATABASE_URL || fallback;
-
+function shouldUseSsl(connectionString) {
   const explicit = process.env.PG_SSL ?? process.env.DATABASE_SSL;
-  const useSsl = explicit
-    ? explicit === 'true' || explicit === '1'
-    : process.env.NODE_ENV === 'production';
+  if (explicit) {
+    return explicit === 'true' || explicit === '1';
+  }
 
   try {
     const url = new URL(connectionString);
-    const database = url.pathname.replace(/^\//, '') || 'postgres';
-    const port = url.port ? Number(url.port) : 5432;
-    const user = url.username ? decodeURIComponent(url.username) : undefined;
-    const password = url.password ? decodeURIComponent(url.password) : undefined;
-
-    return {
-      host: url.hostname,
-      port,
-      user,
-      password,
-      database,
-      ssl: useSsl,
-    };
+    const sslmode = url.searchParams.get('sslmode');
+    const ssl = url.searchParams.get('ssl');
+    if (ssl === 'true' || ssl === '1') return true;
+    if (sslmode && sslmode !== 'disable' && sslmode !== 'allow') return true;
   } catch {
-    return { connectionString };
+    // ignore
+  }
+
+  return process.env.NODE_ENV === 'production';
+}
+
+function normalizeConnectionString(connectionString) {
+  if (!connectionString) return connectionString;
+  try {
+    const url = new URL(connectionString);
+
+    // Ensure SSL is enabled for managed Postgres where required.
+    // drizzle-kit url mode relies on the connection string; adding `ssl=true`
+    // keeps the exact DB target while enabling TLS.
+    if (shouldUseSsl(connectionString)) {
+      if (!url.searchParams.has('ssl') && !url.searchParams.has('sslmode')) {
+        url.searchParams.set('ssl', 'true');
+      }
+    }
+
+    return url.toString();
+  } catch {
+    return connectionString;
   }
 }
 
@@ -44,7 +53,11 @@ export default {
   driver: 'pg',
   schema: schemaPath,
   out: './drizzle',
-  dbCredentials: resolveDbCredentials(),
+  dbCredentials: {
+    connectionString: normalizeConnectionString(
+      process.env.DATABASE_URL || 'postgresql://cmms_user:cmms_password@localhost:5432/cmms_enterprise',
+    ),
+  },
   verbose: true,
   // In production (e.g. Render), this must be non-interactive.
   // Keep strict confirmations enabled for local/dev by default.
