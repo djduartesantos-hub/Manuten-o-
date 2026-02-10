@@ -1,6 +1,6 @@
 import { db } from '../config/database.js';
 import { users, userPlants, plants } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { comparePasswords, hashPassword } from '../auth/jwt.js';
 
 export class AuthService {
@@ -16,20 +16,34 @@ export class AuthService {
   }
   static async findUserByUsername(tenantId: string, username: string) {
     const normalized = username.trim().toLowerCase();
-    const user = await db.query.users.findFirst({
-      where: (fields: any, { eq, and }: any) =>
-        and(eq(fields.tenant_id, tenantId), eq(fields.username, normalized)),
-    });
-    return user;
+    const result = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.tenant_id, tenantId),
+          sql`lower(${users.username}) = ${normalized}`,
+        ),
+      )
+      .limit(1);
+
+    return result[0];
   }
 
   static async findUserByEmail(tenantId: string, email: string) {
     const normalized = email.trim().toLowerCase();
-    const user = await db.query.users.findFirst({
-      where: (fields: any, { eq, and }: any) =>
-        and(eq(fields.tenant_id, tenantId), eq(fields.email, normalized)),
-    });
-    return user;
+    const result = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.tenant_id, tenantId),
+          sql`lower(${users.email}) = ${normalized}`,
+        ),
+      )
+      .limit(1);
+
+    return result[0];
   }
 
   static async findUserById(userId: string) {
@@ -104,6 +118,7 @@ export class AuthService {
     phone?: string;
   }) {
     const normalizedUsername = data.username.trim().toLowerCase();
+    const normalizedEmail = data.email.trim().toLowerCase();
     const passwordHash = await hashPassword(data.password);
 
     const [user] = await db
@@ -111,7 +126,7 @@ export class AuthService {
       .values({
         tenant_id: data.tenant_id,
         username: normalizedUsername,
-        email: data.email,
+        email: normalizedEmail,
         password_hash: passwordHash,
         first_name: data.first_name,
         last_name: data.last_name,

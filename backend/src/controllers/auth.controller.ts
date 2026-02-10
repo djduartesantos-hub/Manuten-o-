@@ -4,8 +4,47 @@ import { AuthService } from '../services/auth.service.js';
 import { generateToken, generateRefreshToken } from '../auth/jwt.js';
 import { logger } from '../config/logger.js';
 import { DEFAULT_TENANT_ID } from '../config/constants.js';
+import { db } from '../config/database.js';
+import { users } from '../db/schema.js';
+import { sql } from 'drizzle-orm';
 
 export class AuthController {
+  static async status(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const tenantId = req.tenantId || DEFAULT_TENANT_ID;
+      const tenantSlug = req.tenantSlug;
+
+      const userCountResult = await db.execute(
+        sql`SELECT COUNT(*)::int AS count FROM users WHERE tenant_id = ${tenantId};`,
+      );
+      const usersInTenant = Number((userCountResult.rows?.[0] as any)?.count ?? 0);
+
+      const adminByUsername = await AuthService.findUserByUsername(tenantId, 'admin');
+      const adminByEmail = await AuthService.findUserByEmail(tenantId, 'admin@cmms.com');
+      const techByUsername = await AuthService.findUserByUsername(tenantId, 'tech');
+      const techByEmail = await AuthService.findUserByEmail(tenantId, 'tech@cmms.com');
+
+      res.json({
+        success: true,
+        data: {
+          tenantId,
+          tenantSlug,
+          usersInTenant,
+          demoUsers: {
+            admin: Boolean(adminByUsername || adminByEmail),
+            tech: Boolean(techByUsername || techByEmail),
+          },
+        },
+      });
+    } catch (error) {
+      logger.error('Auth status error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Status check failed',
+      });
+    }
+  }
+
   static async login(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { username, password } = req.body;
