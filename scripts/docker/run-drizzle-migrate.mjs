@@ -3,6 +3,15 @@ import pg from 'pg';
 
 const { Client } = pg;
 
+let stdoutTail = '';
+let stderrTail = '';
+const MAX_TAIL_CHARS = 16 * 1024;
+
+function appendTail(current, chunk) {
+  const next = current + chunk;
+  return next.length > MAX_TAIL_CHARS ? next.slice(next.length - MAX_TAIL_CHARS) : next;
+}
+
 function redactDatabaseUrl(urlString) {
   if (!urlString) return urlString;
   try {
@@ -57,6 +66,12 @@ async function verifyUsersTable() {
 
     const exists = existsRes.rows?.[0]?.exists === true;
     if (!exists) {
+      const combined = `${stdoutTail}\n${stderrTail}`.trim();
+      if (combined) {
+        console.error('[drizzle-migrate] db:migrate output tail (truncated):');
+        console.error(combined);
+      }
+
       console.error('[drizzle-migrate] Schema verification failed: users table still missing');
       console.error('[drizzle-migrate] Connected meta:', meta.rows?.[0]);
       console.error('[drizzle-migrate] DATABASE_URL:', redactDatabaseUrl(connectionString));
@@ -115,15 +130,6 @@ if (!verbose && autoApprove) {
   } catch {
     // ignore
   }
-}
-
-let stdoutTail = '';
-let stderrTail = '';
-const MAX_TAIL_CHARS = 64 * 1024;
-
-function appendTail(current, chunk) {
-  const next = current + chunk;
-  return next.length > MAX_TAIL_CHARS ? next.slice(next.length - MAX_TAIL_CHARS) : next;
 }
 
 if (!verbose) {
