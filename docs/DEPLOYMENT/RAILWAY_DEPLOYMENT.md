@@ -10,7 +10,7 @@ Este projeto está preparado para **deploy no Railway** usando o **Dockerfile na
 - **DB migrations automáticas no arranque**:
   - espera o Postgres estar pronto
   - aplica Drizzle (`npm run db:migrate`)
-  - aplica migrações SQL em `scripts/database/migrations/*.sql`
+  - (opcional) migrações SQL legadas em `scripts/database/migrations/*.sql` só se `RUN_SQL_MIGRATIONS=true`
 
 ## 1) Criar o projeto
 
@@ -38,6 +38,10 @@ Opcional (para controlar credenciais iniciais):
 - `ADMIN_EMAIL`
 - `ADMIN_USERNAME`
 - `ADMIN_PASSWORD`
+
+Opcional (apenas para bases de dados antigas/legadas):
+
+- `RUN_SQL_MIGRATIONS=true`
 
 > Nota: o Railway injeta `PORT` automaticamente. O backend já lê `process.env.PORT`.
 
