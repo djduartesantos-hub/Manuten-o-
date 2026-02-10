@@ -73,4 +73,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "const port=process.env.PORT||3000;require('http').get('http://localhost:'+port+'/health',(r)=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"
 
 # Start the application (run migrations first)
-CMD ["sh", "-c", "node scripts/docker/wait-for-db.mjs && npm run db:migrate && node scripts/docker/run-sql-migrations.mjs && node dist/server.js"]
+CMD ["sh", "-c", "node scripts/docker/wait-for-db.mjs && node scripts/docker/run-drizzle-migrate.mjs && node scripts/docker/run-sql-migrations.mjs && node dist/server.js"]
