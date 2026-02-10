@@ -44,7 +44,8 @@ cd backend && npm install && npm run dev
 cd frontend && npm install && npm run dev
 ```
 
-✅ **Login:** `admin@cmms.com` / `Admin@123456`  
+✅ **Login (username ou email):** `admin` ou `admin@cmms.com` / `Admin@123456`  
+✅ **Técnico (demo):** `tech` ou `tech@cmms.com` / `Tech@123456`  
 ✅ **URL:** `http://localhost:5173/t/demo/login`
 📋 **Adicionar dados demo:** Menu `🔧 Setup BD` após login  
 📖 [**QUICK_START.md**](./QUICK_START.md) - Guia detalhado
@@ -1076,8 +1077,11 @@ MIT License - Veja [LICENSE](./LICENSE) para detalhes
 
 ```
 Empresa:  demo
-Email:    admin@cmms.com
+Login:    admin ou admin@cmms.com
 Senha:    Admin@123456
+
+Técnico:  tech ou tech@cmms.com
+Senha:    Tech@123456
 ```
 
 ---

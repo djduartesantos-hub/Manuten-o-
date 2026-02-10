@@ -91,7 +91,8 @@ npm run db:seed
 This will create:
 - Demo tenant: "CMMS Enterprise Demo"
 - Demo plant: "Fábrica Principal"
-- Admin user: `admin@cmms.com` / `Admin@123456`
+- Admin user (username or email): `admin` or `admin@cmms.com` / `Admin@123456`
+- Tech user (username or email): `tech` or `tech@cmms.com` / `Tech@123456`
 - Sample assets, plans, tasks, spare parts
 
 ✅ You should see: `Database seed completed successfully!`

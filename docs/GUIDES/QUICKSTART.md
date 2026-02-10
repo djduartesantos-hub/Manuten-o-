@@ -69,10 +69,13 @@ Password: cmms_password
 
 ### **Demo Login**
 ```
-Email:    admin@cmms.com
+Login:    admin ou admin@cmms.com
 Password: Admin@123456
 Tenant:   demo
 URL:      http://localhost:5173/t/demo/login
+
+Tech:     tech ou tech@cmms.com
+Password: Tech@123456
 ```
 
 ---
@@ -96,7 +99,7 @@ npm run dev
 
 ### **3. Fazer Login**
 - Abrir: http://localhost:5173/t/demo/login
-- Email: `admin@cmms.com`
+- Login (username ou email): `admin` ou `admin@cmms.com`
 - Password: `Admin@123456`
 
 ---
@@ -185,7 +188,7 @@ psql -U postgres -f setup-database.sql
 2. **Esperar** que termine (2-3 minutos)
 3. **Iniciar**: `cd backend && npm run dev`
 4. **Abrir**: http://localhost:5173
-5. **Login**: admin@cmms.com / Admin@123456
+5. **Login (username ou email)**: admin ou admin@cmms.com / Admin@123456
 
 **Pronto!** 🎉
 

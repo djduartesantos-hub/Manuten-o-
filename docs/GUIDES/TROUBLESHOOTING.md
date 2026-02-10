@@ -270,7 +270,7 @@ Deve ver: `✅ Database connected successfully`
 
 ### **5. Consegue fazer login?**
 - Abrir http://localhost:5173
-- Email: admin@cmms.com
+- Login (username ou email): admin ou admin@cmms.com
 - Password: Admin@123456
 
 ---

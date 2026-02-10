@@ -23,7 +23,7 @@ import { AdminSetupPage } from './pages/AdminSetupPage';
 import { PlantsPage } from './pages/PlantsPage';
 import { DatabaseUpdatePage } from './pages/DatabaseUpdatePage';
 import { SetupInitPage } from './pages/SetupInitPage';
-import { MaintenanceKitsPage } from './pages/MaintenanceKitsPage';
+import { MaintenanceKitsListPage } from './pages/MaintenanceKitsListPage';
 
 
 import { ThemeProvider } from './context/ThemeContext';
@@ -131,7 +131,7 @@ function App() {
               path="/maintenance-kits"
               element={
                 <ProtectedRoute>
-                  <MaintenanceKitsPage />
+                  <MaintenanceKitsListPage />
                 </ProtectedRoute>
               }
             />

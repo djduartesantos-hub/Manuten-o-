@@ -184,10 +184,19 @@ A BD contém as seguintes tabelas principais:
 
 O script SQL insere automaticamente dados de demonstração:
 
+> Nota: o login aceita **username ou email** (no mesmo campo).
+
 ### **Admin Default**
+- **Username:** `admin`
 - **Email:** `admin@cmms.com`
 - **Password:** `Admin@123456`
 - **Role:** `superadmin`
+
+### **Técnico Default**
+- **Username:** `tech`
+- **Email:** `tech@cmms.com`
+- **Password:** `Tech@123456`
+- **Role:** `tecnico`
 
 ### **Tenant Demo**
 - **Nome:** CMMS Enterprise Demo

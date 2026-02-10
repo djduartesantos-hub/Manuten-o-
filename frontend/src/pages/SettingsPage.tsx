@@ -43,12 +43,14 @@ import { PlantsPage } from './PlantsPage';
 import { SuppliersPage } from './SuppliersPage';
 import { StockEntryPage } from './StockEntryPage';
 import { SparePartRegisterPage } from './SparePartRegisterPage';
+import { MaintenanceKitsPage } from './MaintenanceKitsPage';
 
 type SettingTab =
   | 'general'
   | 'alerts'
   | 'notifications'
   | 'preventive'
+  | 'kits'
   | 'warnings'
   | 'documents'
   | 'permissions'
@@ -79,6 +81,12 @@ export function SettingsPage() {
         label: 'Manutenção Preventiva',
         icon: <Cog className="w-5 h-5" />,
         description: 'Planos e agendamentos preventivos',
+      },
+      {
+        id: 'kits',
+        label: 'Kits',
+        icon: <Boxes className="w-5 h-5" />,
+        description: 'Configurar kits de manutencao (pecas e quantidades)',
       },
       {
         id: 'warnings',
@@ -239,6 +247,7 @@ export function SettingsPage() {
                 {activePanel === 'preventive' && (
                   <PreventiveMaintenanceSettings initialSection={preventiveSub || undefined} />
                 )}
+                {activePanel === 'kits' && <MaintenanceKitsPage embedded />}
                 {activePanel === 'warnings' && <PredictiveWarningsSettings />}
                 {activePanel === 'documents' && <DocumentsLibrarySettings />}
                 {activePanel === 'permissions' && <PermissionsSettings />}

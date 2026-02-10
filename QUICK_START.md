@@ -47,11 +47,17 @@ Após executar o script SQL, você deve ver:
 
 ## 🔐 Credenciais de Acesso
 
+> Nota: o campo de login aceita **username ou email**.
+
 ```
-Email:    admin@cmms.com
+Empresa:  demo
+Login:    admin ou admin@cmms.com
 Password: Admin@123456
 Role:     superadmin
 URL:      http://localhost:5173/t/demo/login
+
+Técnico:  tech ou tech@cmms.com
+Password: Tech@123456
 ```
 
 ## 🚀 Passo 3: Iniciar Aplicação

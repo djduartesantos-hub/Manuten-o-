@@ -66,7 +66,7 @@ type ItemDraft = {
   quantity: string;
 };
 
-export function MaintenanceKitsPage() {
+export function MaintenanceKitsPage({ embedded }: { embedded?: boolean }) {
   const { selectedPlant } = useAppStore();
   const [kits, setKits] = useState<MaintenanceKit[]>([]);
   const [categories, setCategories] = useState<AssetCategory[]>([]);
@@ -320,10 +320,9 @@ export function MaintenanceKitsPage() {
     </div>
   );
 
-  return (
-    <MainLayout wide>
-      <div className="p-6 max-w-6xl mx-auto">
-        {header}
+  const content = (
+    <div className={embedded ? 'max-w-6xl mx-auto' : 'p-6 max-w-6xl mx-auto'}>
+      {header}
 
         {error && (
           <div className="mb-4 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -635,7 +634,16 @@ export function MaintenanceKitsPage() {
             </div>
           </div>
         )}
-      </div>
+    </div>
+  );
+
+  if (embedded) {
+    return <div className="p-0">{content}</div>;
+  }
+
+  return (
+    <MainLayout wide>
+      {content}
     </MainLayout>
   );
 }

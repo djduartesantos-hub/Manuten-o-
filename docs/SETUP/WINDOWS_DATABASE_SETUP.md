@@ -155,8 +155,10 @@ O frontend rodará em: http://localhost:5173
 
 Após rodar o seed, pode fazer login com:
 
-- **Email:** admin@cmms.com
+- **Login (username ou email):** admin ou admin@cmms.com
 - **Password:** Admin@123456
+- **Técnico (demo):** tech ou tech@cmms.com
+- **Password (técnico):** Tech@123456
 - **Tenant:** demo
 
 ---

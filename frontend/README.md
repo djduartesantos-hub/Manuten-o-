@@ -49,8 +49,12 @@ Enterprise Computerized Maintenance Management System (CMMS) - Frontend Applicat
 ## Demo Credentials
 
 - **Tenant (slug)**: demo
-- **Email**: admin@cmms.com
+- **Login (username or email)**: admin or admin@cmms.com
 - **Password**: Admin@123456
+
+Technician demo user:
+- **Login (username or email)**: tech or tech@cmms.com
+- **Password**: Tech@123456
 
 ## Development
 
