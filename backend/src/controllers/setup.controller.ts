@@ -64,7 +64,18 @@ export class SetupController {
     });
 
     if (!(await SetupController.usersTableExists())) {
-      throw new Error('Database schema is not ready (users table missing)');
+      let meta: any = undefined;
+      try {
+        const res = await db.execute(sql`
+          SELECT current_database() AS db, current_user AS usr, current_schema() AS schema;
+        `);
+        meta = res.rows?.[0];
+      } catch {
+        // ignore
+      }
+
+      const suffix = meta ? ` (db=${meta.db}, schema=${meta.schema}, user=${meta.usr})` : '';
+      throw new Error(`Database schema is not ready (users table missing)${suffix}`);
     }
   }
 
