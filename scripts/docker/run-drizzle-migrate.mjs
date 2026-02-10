@@ -91,14 +91,47 @@ if (configured === undefined && env.NODE_ENV === 'production') {
   env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
+const verbose = env.DRIZZLE_MIGRATE_VERBOSE === 'true' || env.DRIZZLE_MIGRATE_VERBOSE === '1';
+
+console.log(`[drizzle-migrate] running db:migrate${verbose ? ' (verbose)' : ''}...`);
+
 const child = spawn('npm', ['run', 'db:migrate'], {
-  stdio: 'inherit',
+  stdio: verbose ? 'inherit' : ['ignore', 'pipe', 'pipe'],
   env,
 });
 
+let stdoutTail = '';
+let stderrTail = '';
+const MAX_TAIL_CHARS = 64 * 1024;
+
+function appendTail(current, chunk) {
+  const next = current + chunk;
+  return next.length > MAX_TAIL_CHARS ? next.slice(next.length - MAX_TAIL_CHARS) : next;
+}
+
+if (!verbose) {
+  child.stdout?.on('data', (d) => {
+    stdoutTail = appendTail(stdoutTail, d.toString('utf8'));
+  });
+  child.stderr?.on('data', (d) => {
+    stderrTail = appendTail(stderrTail, d.toString('utf8'));
+  });
+}
+
 child.on('exit', (code, signal) => {
   if (typeof code === 'number') {
-    if (code !== 0) process.exit(code);
+    if (code !== 0) {
+      if (!verbose) {
+        const combined = `${stdoutTail}\n${stderrTail}`.trim();
+        if (combined) {
+          console.error('[drizzle-migrate] db:migrate failed; last output chunk (truncated):');
+          console.error(combined);
+        }
+      }
+      process.exit(code);
+    }
+
+    console.log('[drizzle-migrate] db:migrate OK');
     verifyUsersTable().catch((error) => {
       console.error('[drizzle-migrate] verification error:', error);
       process.exit(1);

@@ -2,12 +2,38 @@ import { Client } from '@elastic/elasticsearch';
 import { logger } from '../config/logger.js';
 
 let elasticsearchClient: Client | null = null;
+let elasticsearchDisabledLogged = false;
 
 export class ElasticsearchService {
+  private static resolveNodeUrl(): string | null {
+    const configured = process.env.ELASTICSEARCH_URL;
+    if (configured && configured.trim().length > 0) return configured;
+
+    // In dev/test we keep the localhost default to preserve existing workflows.
+    if (process.env.NODE_ENV !== 'production') {
+      return 'http://localhost:9200';
+    }
+
+    return null;
+  }
+
+  static isEnabled(): boolean {
+    return ElasticsearchService.resolveNodeUrl() !== null;
+  }
+
   static getInstance(): Client {
+    const nodeUrl = ElasticsearchService.resolveNodeUrl();
+    if (!nodeUrl) {
+      if (!elasticsearchDisabledLogged) {
+        logger.info('Elasticsearch disabled (ELASTICSEARCH_URL not set)');
+        elasticsearchDisabledLogged = true;
+      }
+      throw new Error('Elasticsearch disabled');
+    }
+
     if (!elasticsearchClient) {
       elasticsearchClient = new Client({
-        node: process.env.ELASTICSEARCH_URL || 'http://localhost:9200',
+        node: nodeUrl,
         auth: process.env.ELASTICSEARCH_PASSWORD
           ? {
               username: process.env.ELASTICSEARCH_USERNAME || 'elastic',
@@ -24,6 +50,14 @@ export class ElasticsearchService {
 
   // Create indices
   static async initializeIndices(): Promise<void> {
+    if (!ElasticsearchService.isEnabled()) {
+      if (!elasticsearchDisabledLogged) {
+        logger.info('Elasticsearch disabled (ELASTICSEARCH_URL not set)');
+        elasticsearchDisabledLogged = true;
+      }
+      return;
+    }
+
     try {
       const client = this.getInstance();
 
@@ -108,6 +142,15 @@ export class ElasticsearchService {
 
   // Search
   static async search(indexName: string, query: any): Promise<any> {
+    if (!ElasticsearchService.isEnabled()) {
+      return {
+        hits: {
+          total: { value: 0, relation: 'eq' },
+          hits: [],
+        },
+      };
+    }
+
     try {
       const client = this.getInstance();
       const result = await client.search({
@@ -123,6 +166,8 @@ export class ElasticsearchService {
 
   // Index document
   static async index(indexName: string, id: string, body: any): Promise<void> {
+    if (!ElasticsearchService.isEnabled()) return;
+
     try {
       const client = this.getInstance();
       await client.index({
@@ -138,6 +183,8 @@ export class ElasticsearchService {
 
   // Bulk index
   static async bulk(operations: any[]): Promise<void> {
+    if (!ElasticsearchService.isEnabled()) return;
+
     try {
       const client = this.getInstance();
       if (operations.length === 0) return;
@@ -153,6 +200,8 @@ export class ElasticsearchService {
 
   // Delete document
   static async delete(indexName: string, id: string): Promise<void> {
+    if (!ElasticsearchService.isEnabled()) return;
+
     try {
       const client = this.getInstance();
       await client.delete({
@@ -167,6 +216,8 @@ export class ElasticsearchService {
 
   // Health check
   static async ping(): Promise<boolean> {
+    if (!ElasticsearchService.isEnabled()) return false;
+
     try {
       const client = this.getInstance();
       const health = await client.cluster.health();
