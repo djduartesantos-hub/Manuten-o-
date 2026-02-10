@@ -250,7 +250,7 @@ Axios 1.6            HTTP Client
 ```
 Git & GitHub         Versionamento
 npm                  Package Manager
-Render               Hosting (recomendado)
+Railway              Hosting (recomendado)
 Docker               Containerização (preparado)
 PostgreSQL Cloud     Base de dados
 ```
@@ -325,17 +325,19 @@ CORS_ORIGIN=http://localhost:5173
 LOG_LEVEL=debug
 ```
 
-### Render Environment
+### Railway (produção)
 
 ```env
 # Backend
 DATABASE_URL=postgresql://...
 JWT_SECRET=seu-secret-seguro-32-chars
-CORS_ORIGIN=https://seu-frontend.onrender.com
+CORS_ORIGIN=https://seu-app.up.railway.app
 NODE_ENV=production
 
-# Frontend
-VITE_API_URL=https://seu-backend.onrender.com/api/t
+# Opcional (credenciais iniciais no primeiro boot)
+ADMIN_EMAIL=admin@cmms.com
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=uma-password-forte
 ```
 
 ---
@@ -680,47 +682,35 @@ sla_rules            Regras de SLA
 
 ---
 
-## 🚀 Deployment em Render
+## 🚀 Deployment em Railway
 
-### ⚠️ Erro de Login no Render?
+Este projeto faz deploy no Railway via **Dockerfile** (na raiz) e sobe como **1 serviço** (backend + frontend). Em produção o backend serve o frontend em `NODE_ENV=production`.
 
-Se receber **"Invalid credentials"** após o deploy, execute:
+### ✅ Migrações automáticas
+
+No arranque do container:
+
+1. espera a BD (`DATABASE_URL`) ficar pronta
+2. aplica schema via Drizzle (`npm run db:migrate`)
+3. aplica migrações SQL em `scripts/database/migrations/*.sql`
+
+### Primeira inicialização (criar admin)
+
+Se a BD estiver vazia e receber erros de login, inicialize o admin uma vez:
 
 ```bash
-curl -X POST https://seu-app.onrender.com/api/setup/initialize
+curl -X POST https://seu-app.up.railway.app/api/setup/initialize
 ```
 
-Isso cria o usuário admin inicial. Ver: [Guia de Inicialização](./docs/DEPLOYMENT/RENDER_INITIALIZATION.md)
+### Passos (resumo)
 
-### Backend Service
+1. Railway → Deploy via GitHub (builder: Dockerfile)
+2. Adicionar PostgreSQL e garantir `DATABASE_URL`
+3. Definir variáveis: `JWT_SECRET`, `JWT_REFRESH_SECRET`, `CORS_ORIGIN`, `NODE_ENV=production`
+4. Healthcheck: `/health`
 
-```
-Root: backend/
-Build: npm install && npm run type-check && npm run build
-Start: npm start
-```
-
-### Frontend Service
-
-```
-Root: frontend/
-Build: npm install && npm run type-check && npm run build
-Start: npm preview
-```
-
-### Passos Completos
-
-1. Criar Backend Service em Render
-2. Configurar Environment Variables (DATABASE_URL, JWT_SECRET, etc)
-3. Criar Frontend Service
-4. Configurar VITE_API_URL apontando para Backend
-5. Conectar PostgreSQL (Render ou externo)
-6. Deploy!
-7. **⚠️ IMPORTANTE:** Executar endpoint de inicialização (ver acima)
-
-**Guias Detalhados:** 
-- [RENDER_GUIDE.md](./docs/DEPLOYMENT/RENDER_GUIDE.md) - Guia completo
-- [RENDER_INITIALIZATION.md](./docs/DEPLOYMENT/RENDER_INITIALIZATION.md) - Inicialização do BD
+**Guia detalhado:**
+- [docs/DEPLOYMENT/RAILWAY_DEPLOYMENT.md](docs/DEPLOYMENT/RAILWAY_DEPLOYMENT.md)
 
 ---
 

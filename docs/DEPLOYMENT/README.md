@@ -5,7 +5,8 @@ Documentação sobre deploy em produção e ambientes cloud.
 ## 📋 Índice
 
 ### Deployment
-- **[RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md)** - Deploy em Render.com (recomendado para MVP)
+- **[RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md)** - Deploy no Railway (recomendado)
+- **[RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md)** - Deploy em Render.com (legado/referência)
 
 ### Windows Automation (CI/CD)
 - **[WINDOWS_AUTOMATION_SUMMARY.md](./WINDOWS_AUTOMATION_SUMMARY.md)** - Resumo da automação Windows
@@ -20,7 +21,7 @@ Documentação sobre deploy em produção e ambientes cloud.
    - Vê [`/docs/GUIDES`](../GUIDES/)
 
 2. **Deploy Produção:**
-   - Segue [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md)
+   - Segue [RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md)
    - Ou adapt para teu provedor (AWS, Azure, DigitalOcean, etc)
 
 3. **CI/CD Automation:**
@@ -33,8 +34,8 @@ Documentação sobre deploy em produção e ambientes cloud.
 
 | Componente | Local | Produção (MVP) | Produção (Scale) |
 |------------|-------|----------------|------------------|
-| Backend | Node.js + Express | Render.com | AWS ECS / DigitalOcean App |
-| Frontend | Vite Dev | Render Static | CDN + S3 / Vercel |
+| Backend | Node.js + Express | Railway | AWS ECS / DigitalOcean App |
+| Frontend | Vite Dev | Railway (static via backend) | CDN + S3 / Vercel |
 | Database | PostgreSQL Local | PostgreSQL Cloud | RDS / Managed Services |
 | Cache | Redis (Local) | Redis Cloud | ElastiCache |
 
