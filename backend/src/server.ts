@@ -9,6 +9,7 @@ import { initJobProcessors } from './jobs/processors.js';
 import { ElasticsearchService } from './services/elasticsearch.service.js';
 import { NotificationService } from './services/notification.service.js';
 import { AlertService } from './services/alert.service.js';
+import { autoSeedDemoIfEmpty } from './db/auto-seed.js';
 
 const PORT = process.env.PORT || 3000;
 
@@ -16,6 +17,9 @@ async function startServer() {
   try {
     // Initialize database
     await initDatabase();
+
+    // Safe demo bootstrap (only when DB has 0 users)
+    await autoSeedDemoIfEmpty();
 
     // Create Express app
     const app = createApp();
