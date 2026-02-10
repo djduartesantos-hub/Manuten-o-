@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import fs from 'fs/promises';
 import path from 'path';
+import { spawn } from 'node:child_process';
 import { AuthenticatedRequest } from '../types/index.js';
 import { db } from '../config/database.js';
 import { sql } from 'drizzle-orm';
@@ -22,6 +23,44 @@ import { DEFAULT_TENANT_ID, DEFAULT_TENANT_SLUG } from '../config/constants.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export class SetupController {
+  private static async usersTableExists(): Promise<boolean> {
+    const res = await db.execute(sql`SELECT to_regclass('public.users') as regclass;`);
+    const value = (res.rows?.[0] as any)?.regclass;
+    return !!value;
+  }
+
+  private static async ensureSchemaReady(): Promise<void> {
+    if (await SetupController.usersTableExists()) {
+      return;
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      const env = { ...process.env };
+      const configured = env.PG_TLS_REJECT_UNAUTHORIZED ?? env.NODE_TLS_REJECT_UNAUTHORIZED;
+
+      // Railway managed Postgres may use a self-signed cert chain.
+      // Keep the TLS bypass limited to the migration subprocess.
+      if (configured === undefined && env.NODE_ENV === 'production') {
+        env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+      }
+
+      const child = spawn('npm', ['run', 'db:migrate'], {
+        stdio: 'inherit',
+        env,
+      });
+
+      child.on('error', reject);
+      child.on('exit', (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`db:migrate failed with exit code ${code}`));
+      });
+    });
+
+    if (!(await SetupController.usersTableExists())) {
+      throw new Error('Database schema is not ready (users table missing)');
+    }
+  }
+
   private static async resolveMigrationsDir(): Promise<string | null> {
     const candidates = [
       path.resolve(process.cwd(), 'scripts/database/migrations'),
@@ -429,6 +468,8 @@ export class SetupController {
    */
   static async initialize(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
+      await SetupController.ensureSchemaReady();
+
       // Check if there are any users in the database
       const userCount = await db.execute(sql`SELECT COUNT(*) FROM users;`);
       const count = Number(userCount.rows[0].count);
@@ -701,6 +742,8 @@ END $$;`
     try {
       const tenantSlug = DEFAULT_TENANT_SLUG;
       const tenantId = DEFAULT_TENANT_ID;
+
+      await SetupController.ensureSchemaReady();
 
       await SetupController.clearAllInternal(true);
 
