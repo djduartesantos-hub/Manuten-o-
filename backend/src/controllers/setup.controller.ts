@@ -512,6 +512,9 @@ export class SetupController {
       const adminUsername = process.env.ADMIN_USERNAME || 'admin';
       const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123456';
 
+      const normalizedAdminUsername = adminUsername.trim().toLowerCase();
+      const normalizedAdminEmail = adminEmail.trim().toLowerCase();
+
       if (!tenantId) {
         const tenantIdToUse = tenantSlug === DEFAULT_TENANT_SLUG ? DEFAULT_TENANT_ID : uuidv4();
         const [tenant] = await db
@@ -543,8 +546,8 @@ export class SetupController {
       await db.insert(users).values({
         id: adminId,
         tenant_id: tenantId,
-        username: adminUsername,
-        email: adminEmail,
+        username: normalizedAdminUsername,
+        email: normalizedAdminEmail,
         password_hash: passwordHash,
         first_name: 'Admin',
         last_name: 'CMMS',
@@ -563,8 +566,8 @@ export class SetupController {
         success: true,
         message: 'Database initialized successfully with admin user',
         data: {
-          adminEmail,
-          adminUsername,
+          adminEmail: normalizedAdminEmail,
+          adminUsername: normalizedAdminUsername,
           plantId,
           note: 'You can now login with the admin credentials',
         },

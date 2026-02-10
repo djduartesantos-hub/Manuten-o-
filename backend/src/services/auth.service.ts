@@ -23,6 +23,15 @@ export class AuthService {
     return user;
   }
 
+  static async findUserByEmail(tenantId: string, email: string) {
+    const normalized = email.trim().toLowerCase();
+    const user = await db.query.users.findFirst({
+      where: (fields: any, { eq, and }: any) =>
+        and(eq(fields.tenant_id, tenantId), eq(fields.email, normalized)),
+    });
+    return user;
+  }
+
   static async findUserById(userId: string) {
     const user = await db.query.users.findFirst({
       where: (fields: any) => eq(fields.id, userId),
@@ -63,7 +72,11 @@ export class AuthService {
     username: string,
     password: string,
   ) {
-    const user = await this.findUserByUsername(tenantId, username);
+    // Accept either username or email in the same field.
+    // Frontend labels it as username, but users often try their email.
+    const user =
+      (await this.findUserByUsername(tenantId, username)) ||
+      (await this.findUserByEmail(tenantId, username));
 
     if (!user || !user.is_active) {
       return null;
