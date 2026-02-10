@@ -445,7 +445,7 @@ export class WorkOrderController {
           if (existing.status !== 'concluida' && !isAdmin) {
             res.status(400).json({
               success: false,
-              error: 'A ordem precisa estar concluida antes de fechar',
+              error: 'A ordem precisa estar concluída antes de fechar',
             });
             return;
           }

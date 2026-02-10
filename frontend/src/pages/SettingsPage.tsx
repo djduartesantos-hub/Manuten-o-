@@ -1940,7 +1940,7 @@ function PreventiveMaintenanceSettings({
                   >
                     <option value="agendada">Agendada</option>
                     <option value="reagendada">Reagendada</option>
-                    <option value="em_execucao">Em execução</option>
+                    <option value="em_execucao">Em Execução</option>
                     <option value="concluida">Concluída</option>
                     <option value="fechada">Fechada</option>
                   </select>
@@ -1969,7 +1969,7 @@ function PreventiveMaintenanceSettings({
                     <option value="all">Todos</option>
                     <option value="agendada">Agendada</option>
                     <option value="reagendada">Reagendada</option>
-                    <option value="em_execucao">Em execução</option>
+                    <option value="em_execucao">Em Execução</option>
                     <option value="concluida">Concluída</option>
                     <option value="fechada">Fechada</option>
                   </select>
@@ -2048,7 +2048,7 @@ function PreventiveMaintenanceSettings({
                         >
                           <option value="agendada">Agendada</option>
                           <option value="reagendada">Reagendada</option>
-                          <option value="em_execucao">Em execução</option>
+                          <option value="em_execucao">Em Execução</option>
                           <option value="concluida">Concluída</option>
                           <option value="fechada">Fechada</option>
                         </select>

@@ -1263,7 +1263,7 @@ export function WorkOrdersPage() {
   const handleToggleTask = async (task: WorkOrderTask) => {
     if (!selectedPlant || !editingOrder) return;
     if (editingOrder.status !== 'em_execucao') {
-      setTasksError('Apenas ordens em execucao podem marcar tarefas como concluidas.');
+      setTasksError('Apenas ordens em execução podem marcar tarefas como concluídas.');
       return;
     }
     if (!editingPermissions?.canOperateOrder) {
@@ -1291,11 +1291,11 @@ export function WorkOrdersPage() {
   const handleAddUsedPart = async () => {
     if (!selectedPlant || !editingOrder) return;
     if (!['em_execucao', 'em_pausa'].includes(editingOrder.status)) {
-      setUsageMessage('Apenas ordens em execucao/pausa podem registar pecas usadas.');
+      setUsageMessage('Apenas ordens em execução/pausa podem registar peças usadas.');
       return;
     }
     if (!usageForm.spare_part_id) {
-      setUsageMessage('Selecione a peca utilizada.');
+      setUsageMessage('Selecione a peça utilizada.');
       return;
     }
     if (!usageForm.quantity || Number(usageForm.quantity) <= 0) {
@@ -1493,7 +1493,7 @@ export function WorkOrdersPage() {
     }
 
     if (editingOrder.status === 'concluida' && !canOperateOrder) {
-      setError('Apenas o responsavel ou admin pode alterar ordens concluidas');
+      setError('Apenas o responsável ou admin pode alterar ordens concluídas');
       return;
     }
 
@@ -2023,22 +2023,22 @@ export function WorkOrdersPage() {
                 <p className="mt-3 text-2xl font-semibold theme-text">
                   {statusSummary.aberta}
                 </p>
-                <p className="mt-1 text-xs theme-text-muted">Aguardando inicio</p>
+                <p className="mt-1 text-xs theme-text-muted">Aguardando início</p>
               </div>
               <div className="rounded-2xl border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
                 <div className="flex items-center gap-3 text-sm theme-text-muted">
                   <RefreshCcw className="h-4 w-4 text-cyan-600" />
-                  Em execução
+                  Em Execução
                 </div>
                 <p className="mt-3 text-2xl font-semibold theme-text">
                   {statusSummary.em_execucao}
                 </p>
-                <p className="mt-1 text-xs theme-text-muted">Execucao ativa</p>
+                <p className="mt-1 text-xs theme-text-muted">Execução ativa</p>
               </div>
               <div className="rounded-2xl border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
                 <div className="flex items-center gap-3 text-sm theme-text-muted">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                  Concluidas
+                  Concluídas
                 </div>
                 <p className="mt-3 text-2xl font-semibold theme-text">
                   {statusSummary.concluida}
@@ -3294,7 +3294,7 @@ export function WorkOrdersPage() {
                             className="btn-secondary"
                             disabled={updating}
                           >
-                            Em análise
+                            Em Análise
                           </button>
                         )}
                         <button
@@ -3526,7 +3526,7 @@ export function WorkOrdersPage() {
                           >
                             <option value="">Todos</option>
                             <option value="agendada">Agendada</option>
-                            <option value="em_execucao">Em execução</option>
+                            <option value="em_execucao">Em Execução</option>
                             <option value="concluida">Concluída</option>
                             <option value="fechada">Fechada</option>
                             <option value="reagendada">Reagendada</option>
@@ -3838,7 +3838,7 @@ export function WorkOrdersPage() {
                                     className="rounded-full border theme-border bg-[color:var(--dash-surface)] px-2 py-1 text-xs font-semibold theme-text"
                                   >
                                     {String(s.status)
-                                      .replace('em_execucao', 'Em execução')
+                                      .replace('em_execucao', 'Em Execução')
                                       .replace('concluida', 'Concluída')
                                       .replace('reagendada', 'Reagendada')
                                       .replace('agendada', 'Agendada')
@@ -3881,7 +3881,7 @@ export function WorkOrdersPage() {
                                 </div>
                                 <span className="rounded-full border theme-border bg-[color:var(--dash-surface)] px-3 py-1 text-xs font-semibold theme-text">
                                   {String(s.status)
-                                    .replace('em_execucao', 'Em execução')
+                                    .replace('em_execucao', 'Em Execução')
                                     .replace('concluida', 'Concluída')
                                     .replace('reagendada', 'Reagendada')
                                     .replace('agendada', 'Agendada')
@@ -3958,7 +3958,7 @@ export function WorkOrdersPage() {
                           >
                             <option value="agendada">Agendada</option>
                             <option value="reagendada">Reagendada</option>
-                            <option value="em_execucao">Em execução</option>
+                            <option value="em_execucao">Em Execução</option>
                             <option value="concluida">Concluída</option>
                             <option value="fechada">Fechada</option>
                           </select>

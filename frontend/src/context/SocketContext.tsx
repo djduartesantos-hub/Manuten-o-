@@ -115,7 +115,7 @@ function showPrettyToast(
 
 function labelPreventiveStatus(status?: string | null) {
   const value = status || '';
-  if (value === 'em_execucao') return 'Em execução';
+  if (value === 'em_execucao') return 'Em Execução';
   if (value === 'concluida') return 'Concluída';
   if (value === 'reagendada') return 'Reagendada';
   if (value === 'agendada') return 'Agendada';

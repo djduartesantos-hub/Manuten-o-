@@ -114,28 +114,28 @@ export function DashboardPage() {
       },
       {
         key: 'em_analise',
-        label: 'Em análise',
+        label: 'Em Análise',
         tone: 'theme-card theme-border theme-text',
         iconTone: 'text-sky-700',
         Icon: Search,
       },
       {
         key: 'em_execucao',
-        label: 'Em execução',
+        label: 'Em Execução',
         tone: 'theme-card theme-border theme-text',
         iconTone: 'text-emerald-700',
         Icon: Activity,
       },
       {
         key: 'em_pausa',
-        label: 'Em pausa',
+        label: 'Em Pausa',
         tone: 'theme-card theme-border theme-text',
         iconTone: 'text-amber-700',
         Icon: PauseCircle,
       },
       {
         key: 'concluida',
-        label: 'Concluidas',
+        label: 'Concluídas',
         tone: 'theme-card theme-border theme-text',
         iconTone: 'text-emerald-700',
         Icon: Check,
@@ -316,7 +316,7 @@ export function DashboardPage() {
       },
       {
         key: 'em_analise',
-        label: 'Em análise',
+        label: 'Em Análise',
         count: metrics?.analysis ?? metrics?.assigned_orders ?? 0,
         tone: 'border-sky-200/80 bg-sky-50/70 text-sky-800',
         bar: 'bg-sky-400/80',
@@ -326,7 +326,7 @@ export function DashboardPage() {
       },
       {
         key: 'em_execucao',
-        label: 'Em execução',
+        label: 'Em Execução',
         count: metrics?.execution ?? metrics?.in_progress ?? 0,
         tone: 'border-emerald-200/80 bg-emerald-50/70 text-emerald-800',
         bar: 'bg-emerald-400/80',
@@ -336,7 +336,7 @@ export function DashboardPage() {
       },
       {
         key: 'em_pausa',
-        label: 'Em pausa',
+        label: 'Em Pausa',
         count: metrics?.paused ?? 0,
         tone: 'border-amber-200/80 bg-amber-50/70 text-amber-800',
         bar: 'bg-amber-400/80',
@@ -346,7 +346,7 @@ export function DashboardPage() {
       },
       {
         key: 'concluida',
-        label: 'Concluidas',
+        label: 'Concluídas',
         count: metrics?.completed ?? 0,
         tone: 'border-emerald-200/80 bg-emerald-50/70 text-emerald-800',
         bar: 'bg-emerald-400/80',
@@ -477,7 +477,7 @@ export function DashboardPage() {
                 </span>
                 <span
                   className="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-amber-700 dark:text-amber-300"
-                  title="Backlog: ordens pendentes (em aberto e em execução/pause/análise conforme regras do KPI)."
+                  title="Backlog: ordens pendentes (em aberto e em execução/pausa/análise conforme regras do KPI)."
                 >
                   <AlertCircle className="h-3.5 w-3.5" />
                   Backlog {kpis?.backlog ?? 0}
@@ -571,18 +571,18 @@ export function DashboardPage() {
                   <p className="mt-4 text-2xl font-semibold text-[color:var(--dash-ink)]">
                     {metrics?.open_orders ?? 0}
                   </p>
-                  <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Aguardando inicio</p>
+                  <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Aguardando início</p>
                 </div>
                 <div
                   className="dash-reveal dash-reveal-delay-2 rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur"
-                  title="Em análise: ordens em triagem/validação (antigo 'atribuída')."
+                  title="Em Análise: ordens em triagem/validação (antigo 'atribuída')."
                 >
                   <div className="flex items-center justify-between">
                     <div className="rounded-2xl bg-sky-100 p-2 text-sky-700">
                       <Clock className="h-4 w-4" />
                     </div>
                     <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                      analise
+                      análise
                     </span>
                   </div>
                   <p className="mt-4 text-2xl font-semibold text-[color:var(--dash-ink)]">
@@ -592,14 +592,14 @@ export function DashboardPage() {
                 </div>
                 <div
                   className="dash-reveal dash-reveal-delay-3 rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur"
-                  title="Em execução: ordens com trabalho em curso no terreno."
+                  title="Em Execução: ordens com trabalho em curso no terreno."
                 >
                   <div className="flex items-center justify-between">
                     <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
                       <Activity className="h-4 w-4" />
                     </div>
                     <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                      execucao
+                      execução
                     </span>
                   </div>
                   <p className="mt-4 text-2xl font-semibold text-[color:var(--dash-ink)]">

@@ -160,7 +160,7 @@ export function SearchPage() {
               <option value="em_analise">Em Análise</option>
               <option value="em_execucao">Em Execução</option>
               <option value="em_pausa">Em Pausa</option>
-              <option value="concluida">Concluida</option>
+              <option value="concluida">Concluída</option>
               <option value="fechada">Fechada</option>
               <option value="cancelada">Cancelada</option>
             </select>
