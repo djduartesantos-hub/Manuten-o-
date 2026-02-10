@@ -10,6 +10,23 @@ if (!connectionString) {
   process.exit(1);
 }
 
+function shouldUseSsl() {
+  const explicit = process.env.PG_SSL ?? process.env.DATABASE_SSL;
+  if (explicit) return explicit === 'true' || explicit === '1';
+  try {
+    const url = new URL(connectionString);
+    const sslmode = url.searchParams.get('sslmode');
+    const ssl = url.searchParams.get('ssl');
+    if (ssl === 'true' || ssl === '1') return true;
+    if (sslmode && sslmode !== 'disable' && sslmode !== 'allow') return true;
+  } catch {
+    // ignore
+  }
+  return process.env.NODE_ENV === 'production';
+}
+
+const ssl = shouldUseSsl() ? { rejectUnauthorized: false } : undefined;
+
 const migrationsDir = path.resolve(process.cwd(), 'scripts/database/migrations');
 
 async function dirExists(dirPath) {
@@ -36,7 +53,7 @@ if (migrationFiles.length === 0) {
   process.exit(0);
 }
 
-const client = new Client({ connectionString });
+const client = new Client({ connectionString, ...(ssl ? { ssl } : {}) });
 
 try {
   await client.connect();
