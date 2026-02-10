@@ -44,6 +44,11 @@ export function createApp(): Express {
 
   // Routes
   app.use('/api/setup', setupPublicRoutes);
+
+  // Resolve tenant for all API routes, including auth.
+  // Without this, /api/auth/login falls back to DEFAULT_TENANT_ID which may not
+  // match the tenant id created by seeds/restores in production.
+  app.use('/api/auth', tenantSlugMiddleware);
   app.use('/api/auth', authRoutes);
 
   app.use('/api', tenantSlugMiddleware);
