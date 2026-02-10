@@ -223,7 +223,7 @@ export async function updateWorkOrderTask(
   workOrderId: string,
   taskId: string,
   is_completed: boolean,
-) {
+){
   return apiCall(`/${plantId}/work-orders/${workOrderId}/tasks/${taskId}`, {
     method: 'PATCH',
     body: JSON.stringify({ is_completed }),
@@ -578,6 +578,28 @@ export async function updateAdminUser(userId: string, data: any) {
 
 export async function getAdminRoles() {
   return apiCall('/admin/roles');
+}
+
+export async function getAdminPermissions() {
+  return apiCall('/admin/permissions');
+}
+
+export async function getAdminRolePermissions(roleKey: string) {
+  return apiCall(`/admin/roles/${roleKey}/permissions`);
+}
+
+export async function setAdminRolePermissions(roleKey: string, permissions: string[]) {
+  return apiCall(`/admin/roles/${roleKey}/permissions`, {
+    method: 'PUT',
+    body: JSON.stringify({ permissions }),
+  });
+}
+
+export async function resetAdminUserPassword(userId: string, password: string) {
+  return apiCall(`/admin/users/${userId}/reset-password`, {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  });
 }
 
 export async function enqueueJob(data: {

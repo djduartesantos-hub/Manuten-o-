@@ -1,24 +1,40 @@
 import { Router } from 'express';
-import { authMiddleware, requireRole } from '../middlewares/auth.js';
+import { authMiddleware } from '../middlewares/auth.js';
+import { requirePermission } from '../middlewares/permissions.js';
 import * as AdminController from '../controllers/admin.controller.js';
 
 const router = Router();
 
 router.use(authMiddleware);
-router.use(requireRole('admin_empresa', 'superadmin'));
 
 // Plants
-router.get('/plants', AdminController.listPlants);
-router.post('/plants', AdminController.createPlant);
-router.patch('/plants/:plantId', AdminController.updatePlant);
-router.delete('/plants/:plantId', AdminController.deactivatePlant);
+router.get('/plants', requirePermission('admin:plants', 'tenant'), AdminController.listPlants);
+router.post('/plants', requirePermission('admin:plants', 'tenant'), AdminController.createPlant);
+router.patch('/plants/:plantId', requirePermission('admin:plants', 'tenant'), AdminController.updatePlant);
+router.delete('/plants/:plantId', requirePermission('admin:plants', 'tenant'), AdminController.deactivatePlant);
 
 // Users
-router.get('/users', AdminController.listUsers);
-router.post('/users', AdminController.createUser);
-router.patch('/users/:userId', AdminController.updateUser);
+router.get('/users', requirePermission('admin:users', 'tenant'), AdminController.listUsers);
+router.post('/users', requirePermission('admin:users', 'tenant'), AdminController.createUser);
+router.patch('/users/:userId', requirePermission('admin:users', 'tenant'), AdminController.updateUser);
+router.post(
+	'/users/:userId/reset-password',
+	requirePermission('admin:users', 'tenant'),
+	AdminController.resetUserPassword,
+);
 
 // Roles
-router.get('/roles', AdminController.listRoles);
+router.get('/roles', requirePermission('admin:users', 'tenant'), AdminController.listRoles);
+router.get('/permissions', requirePermission('admin:rbac', 'tenant'), AdminController.listPermissions);
+router.get(
+	'/roles/:roleKey/permissions',
+	requirePermission('admin:rbac', 'tenant'),
+	AdminController.getRolePermissions,
+);
+router.put(
+	'/roles/:roleKey/permissions',
+	requirePermission('admin:rbac', 'tenant'),
+	AdminController.setRolePermissions,
+);
 
 export default router;

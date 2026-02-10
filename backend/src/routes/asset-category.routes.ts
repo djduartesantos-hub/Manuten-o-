@@ -4,24 +4,25 @@ import {
   listAssetCategories,
   updateAssetCategory,
 } from '../controllers/asset-category.controller.js';
-import { authMiddleware, requireRole, tenantMiddleware } from '../middlewares/auth.js';
+import { authMiddleware, tenantMiddleware } from '../middlewares/auth.js';
+import { requirePermission } from '../middlewares/permissions.js';
 
 const router = Router();
 
 router.use(authMiddleware);
 router.use(tenantMiddleware);
 
-router.get('/asset-categories', listAssetCategories);
+router.get('/asset-categories', requirePermission('categories:read', 'tenant'), listAssetCategories);
 
 router.post(
   '/asset-categories',
-  requireRole('tecnico', 'supervisor', 'gestor_manutencao', 'admin_empresa', 'superadmin'),
+  requirePermission('categories:write', 'tenant'),
   createAssetCategory,
 );
 
 router.patch(
   '/asset-categories/:categoryId',
-  requireRole('supervisor', 'gestor_manutencao', 'admin_empresa', 'superadmin'),
+  requirePermission('categories:write', 'tenant'),
   updateAssetCategory,
 );
 

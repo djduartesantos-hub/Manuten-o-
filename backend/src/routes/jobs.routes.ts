@@ -1,15 +1,14 @@
 import { Router, Response } from 'express';
-import { authMiddleware, requireRole } from '../middlewares/auth.js';
+import { authMiddleware } from '../middlewares/auth.js';
 import { AuthenticatedRequest } from '../types/index.js';
 import { JobQueueService, QUEUES } from '../services/job.service.js';
+import { requirePermission } from '../middlewares/permissions.js';
 
 const router = Router();
 
 router.use(authMiddleware);
-router.use(requireRole('admin_empresa', 'supervisor', 'gestor_manutencao', 'superadmin'));
 
-// GET /api/jobs/stats
-router.get('/stats', async (_req: AuthenticatedRequest, res: Response) => {
+router.get('/stats', requirePermission('jobs:read', 'tenant'), async (_req: AuthenticatedRequest, res: Response) => {
   try {
     const queueNames = Object.values(QUEUES);
     const stats = await Promise.all(
@@ -25,8 +24,11 @@ router.get('/stats', async (_req: AuthenticatedRequest, res: Response) => {
   }
 });
 
+// GET /api/jobs/stats
+
+
 // GET /api/jobs/:queue/recent
-router.get('/:queue/recent', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:queue/recent', requirePermission('jobs:read', 'tenant'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { queue } = req.params;
     const limit = req.query.limit ? Number(req.query.limit) : 20;
@@ -59,7 +61,7 @@ router.get('/:queue/recent', async (req: AuthenticatedRequest, res: Response) =>
 });
 
 // GET /api/jobs/:queue/:id
-router.get('/:queue/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:queue/:id', requirePermission('jobs:read', 'tenant'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { queue, id } = req.params;
     const job = await JobQueueService.getJob(queue, id);
@@ -91,7 +93,7 @@ router.get('/:queue/:id', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // POST /api/jobs/enqueue
-router.post('/enqueue', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/enqueue', requirePermission('jobs:write', 'tenant'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { queue, jobName, payload, delayMs } = req.body || {};
 

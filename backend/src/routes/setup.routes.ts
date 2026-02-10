@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { authMiddleware, requireRole } from '../middlewares/auth.js';
+import { authMiddleware } from '../middlewares/auth.js';
+import { requirePermission } from '../middlewares/permissions.js';
 import { SetupController } from '../controllers/setup.controller.js';
 
 const router = Router();
@@ -10,19 +11,34 @@ const router = Router();
 router.post('/initialize', SetupController.initialize);
 
 // GET /api/setup/status - Check database status (requires auth)
-router.get('/status', authMiddleware, requireRole('superadmin'), SetupController.checkStatus);
+router.get(
+  '/status',
+  authMiddleware,
+  requirePermission('setup:run', 'tenant'),
+  SetupController.checkStatus,
+);
 
 // POST /api/setup/seed - Seed demo data (requires auth)
-router.post('/seed', authMiddleware, requireRole('superadmin'), SetupController.seedDemoData);
+router.post(
+  '/seed',
+  authMiddleware,
+  requirePermission('setup:run', 'tenant'),
+  SetupController.seedDemoData,
+);
 
 // POST /api/setup/migrate - Run SQL migrations (requires auth)
-router.post('/migrate', authMiddleware, requireRole('superadmin'), SetupController.runMigrations);
+router.post(
+  '/migrate',
+  authMiddleware,
+  requirePermission('setup:run', 'tenant'),
+  SetupController.runMigrations,
+);
 
 // POST /api/setup/patch/work-orders - Add work_performed column if missing
 router.post(
 	'/patch/work-orders',
 	authMiddleware,
-	requireRole('superadmin'),
+  requirePermission('setup:run', 'tenant'),
 	SetupController.patchWorkOrders,
 );
 
@@ -30,7 +46,7 @@ router.post(
 router.post(
   '/patch/work-orders-downtime-rca',
   authMiddleware,
-  requireRole('superadmin'),
+  requirePermission('setup:run', 'tenant'),
   SetupController.patchWorkOrdersDowntimeRca,
 );
 
@@ -38,7 +54,7 @@ router.post(
 router.post(
   '/patch/work-orders-sla-pause',
   authMiddleware,
-  requireRole('superadmin'),
+  requirePermission('setup:run', 'tenant'),
   SetupController.patchWorkOrdersSlaPause,
 );
 
@@ -46,7 +62,7 @@ router.post(
 router.post(
   '/patch/all',
   authMiddleware,
-  requireRole('superadmin'),
+  requirePermission('setup:run', 'tenant'),
   SetupController.applyCorrections,
 );
 
@@ -54,7 +70,7 @@ router.post(
 router.post(
   '/patch/maintenance-plans-tolerance-mode',
   authMiddleware,
-  requireRole('superadmin'),
+  requirePermission('setup:run', 'tenant'),
   SetupController.patchMaintenancePlansToleranceMode,
 );
 
@@ -62,7 +78,7 @@ router.post(
 router.post(
   '/patch/maintenance-plans-schedule-anchor-mode',
   authMiddleware,
-  requireRole('superadmin'),
+  requirePermission('setup:run', 'tenant'),
   SetupController.patchMaintenancePlansScheduleAnchorMode,
 );
 
@@ -70,7 +86,7 @@ router.post(
 router.post(
   '/patch/stock-reservations',
   authMiddleware,
-  requireRole('superadmin'),
+  requirePermission('setup:run', 'tenant'),
   SetupController.patchStockReservations,
 );
 
@@ -78,11 +94,16 @@ router.post(
 router.post(
   '/patch/maintenance-kits',
   authMiddleware,
-  requireRole('superadmin'),
+  requirePermission('setup:run', 'tenant'),
   SetupController.patchMaintenanceKits,
 );
 
 // POST /api/setup/clear - Clear all data (dangerous!) (requires auth)
-router.post('/clear', authMiddleware, requireRole('superadmin'), SetupController.clearData);
+router.post(
+  '/clear',
+  authMiddleware,
+  requirePermission('setup:run', 'tenant'),
+  SetupController.clearData,
+);
 
 export default router;

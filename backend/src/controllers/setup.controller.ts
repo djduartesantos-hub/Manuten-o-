@@ -23,6 +23,256 @@ import { DEFAULT_TENANT_ID, DEFAULT_TENANT_SLUG } from '../config/constants.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export class SetupController {
+  private static rbacPermissionsSeed(): Array<{
+    key: string;
+    label: string;
+    group: string;
+    description?: string;
+  }> {
+    return [
+      { key: 'dashboard:read', label: 'Ver dashboard', group: 'dashboard' },
+      { key: 'jobs:read', label: 'Ver fila de jobs', group: 'jobs' },
+      { key: 'jobs:write', label: 'Gerir fila de jobs', group: 'jobs' },
+      { key: 'notifications:read', label: 'Ver notificações', group: 'notificacoes' },
+      { key: 'notifications:write', label: 'Gerir notificações', group: 'notificacoes' },
+      { key: 'assets:read', label: 'Ver equipamentos', group: 'ativos' },
+      { key: 'assets:write', label: 'Gerir equipamentos', group: 'ativos' },
+      { key: 'categories:read', label: 'Ver categorias', group: 'ativos' },
+      { key: 'categories:write', label: 'Gerir categorias', group: 'ativos' },
+      { key: 'workorders:read', label: 'Ver ordens', group: 'ordens' },
+      { key: 'workorders:write', label: 'Gerir ordens', group: 'ordens' },
+      { key: 'plans:read', label: 'Ver planos', group: 'preventiva' },
+      { key: 'plans:write', label: 'Gerir planos', group: 'preventiva' },
+      { key: 'schedules:read', label: 'Ver agendamentos', group: 'preventiva' },
+      { key: 'schedules:write', label: 'Gerir agendamentos', group: 'preventiva' },
+      { key: 'stock:read', label: 'Ver stock', group: 'stock' },
+      { key: 'stock:write', label: 'Gerir stock', group: 'stock' },
+      { key: 'suppliers:read', label: 'Ver fornecedores', group: 'stock' },
+      { key: 'suppliers:write', label: 'Gerir fornecedores', group: 'stock' },
+      { key: 'kits:read', label: 'Ver kits', group: 'kits' },
+      { key: 'kits:write', label: 'Gerir kits', group: 'kits' },
+      { key: 'admin:plants', label: 'Gerir fábricas', group: 'admin' },
+      { key: 'admin:users', label: 'Gerir utilizadores', group: 'admin' },
+      { key: 'admin:rbac', label: 'Gerir roles/permissões', group: 'admin' },
+      { key: 'setup:run', label: 'Executar setup/patches', group: 'admin' },
+    ];
+  }
+
+  private static async applyRbacPatchInternal(): Promise<void> {
+    // Estrutura
+    await db.execute(sql.raw(`
+      CREATE TABLE IF NOT EXISTS rbac_permissions (
+        key TEXT PRIMARY KEY,
+        label TEXT NOT NULL,
+        group_name TEXT NOT NULL DEFAULT 'geral',
+        description TEXT,
+        is_system BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS rbac_roles (
+        tenant_id UUID NOT NULL,
+        key TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        is_system BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (tenant_id, key)
+      );
+
+      CREATE TABLE IF NOT EXISTS rbac_role_permissions (
+        tenant_id UUID NOT NULL,
+        role_key TEXT NOT NULL,
+        permission_key TEXT NOT NULL REFERENCES rbac_permissions(key) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (tenant_id, role_key, permission_key)
+      );
+
+      ALTER TABLE user_plants
+        ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'tecnico';
+
+      CREATE INDEX IF NOT EXISTS rbac_roles_tenant_id_idx ON rbac_roles(tenant_id);
+      CREATE INDEX IF NOT EXISTS rbac_role_permissions_tenant_role_idx ON rbac_role_permissions(tenant_id, role_key);
+    `));
+
+    // Seed global permissions (idempotente)
+    const permissions = SetupController.rbacPermissionsSeed();
+    for (const p of permissions) {
+      await db.execute(sql`
+        INSERT INTO rbac_permissions (key, label, group_name, description, is_system)
+        VALUES (${p.key}, ${p.label}, ${p.group}, ${p.description ?? null}, TRUE)
+        ON CONFLICT (key) DO UPDATE
+        SET label = EXCLUDED.label,
+            group_name = EXCLUDED.group_name,
+            description = EXCLUDED.description,
+            updated_at = NOW();
+      `);
+    }
+  }
+
+  private static async ensureRbacSeedForTenant(tenantId: string): Promise<void> {
+    // Roles base (por tenant)
+    const roles: Array<{ key: string; name: string; description?: string }> = [
+      { key: 'admin_empresa', name: 'Admin Empresa' },
+      { key: 'gestor_manutencao', name: 'Gestor Manutenção' },
+      { key: 'supervisor', name: 'Supervisor' },
+      { key: 'tecnico', name: 'Técnico' },
+      { key: 'leitor', name: 'Leitor' },
+    ];
+
+    for (const r of roles) {
+      await db.execute(sql`
+        INSERT INTO rbac_roles (tenant_id, key, name, description, is_system)
+        VALUES (${tenantId}, ${r.key}, ${r.name}, ${r.description ?? null}, TRUE)
+        ON CONFLICT (tenant_id, key) DO UPDATE
+        SET name = EXCLUDED.name,
+            description = EXCLUDED.description,
+            updated_at = NOW();
+      `);
+    }
+
+    // Mapeamento default role -> permissões
+    const rolePerms: Record<string, string[]> = {
+      admin_empresa: [
+        'dashboard:read',
+        'jobs:read',
+        'jobs:write',
+        'notifications:read',
+        'notifications:write',
+        'assets:read',
+        'assets:write',
+        'categories:read',
+        'categories:write',
+        'workorders:read',
+        'workorders:write',
+        'plans:read',
+        'plans:write',
+        'schedules:read',
+        'schedules:write',
+        'stock:read',
+        'stock:write',
+        'suppliers:read',
+        'suppliers:write',
+        'kits:read',
+        'kits:write',
+        'admin:plants',
+        'admin:users',
+        'admin:rbac',
+        'setup:run',
+      ],
+      gestor_manutencao: [
+        'dashboard:read',
+        'jobs:read',
+        'jobs:write',
+        'notifications:read',
+        'notifications:write',
+        'assets:read',
+        'assets:write',
+        'categories:read',
+        'workorders:read',
+        'workorders:write',
+        'plans:read',
+        'plans:write',
+        'schedules:read',
+        'schedules:write',
+        'stock:read',
+        'suppliers:read',
+        'kits:read',
+        'kits:write',
+      ],
+      supervisor: [
+        'dashboard:read',
+        'jobs:read',
+        'jobs:write',
+        'notifications:read',
+        'assets:read',
+        'assets:write',
+        'categories:read',
+        'workorders:read',
+        'workorders:write',
+        'plans:read',
+        'schedules:read',
+        'stock:read',
+        'stock:write',
+        'suppliers:read',
+        'kits:read',
+      ],
+      tecnico: [
+        'dashboard:read',
+        'notifications:read',
+        'assets:read',
+        'assets:write',
+        'categories:read',
+        'workorders:read',
+        'workorders:write',
+        'plans:read',
+        'schedules:read',
+        'stock:read',
+        'stock:write',
+        'suppliers:read',
+        'kits:read',
+      ],
+      leitor: [
+        'dashboard:read',
+        'notifications:read',
+        'assets:read',
+        'categories:read',
+        'workorders:read',
+        'plans:read',
+        'schedules:read',
+        'stock:read',
+        'suppliers:read',
+        'kits:read',
+      ],
+    };
+
+    for (const [roleKey, perms] of Object.entries(rolePerms)) {
+      for (const perm of perms) {
+        await db.execute(sql`
+          INSERT INTO rbac_role_permissions (tenant_id, role_key, permission_key)
+          VALUES (${tenantId}, ${roleKey}, ${perm})
+          ON CONFLICT (tenant_id, role_key, permission_key) DO NOTHING;
+        `);
+      }
+    }
+  }
+  private static async applyCorrectionsInternal(): Promise<{
+    migrations: string[];
+    migrationsDir: string | null;
+    availableMigrationFiles: string[];
+    patches: string[];
+  }> {
+    await SetupController.applyRbacPatchInternal();
+
+    const available = await SetupController.listMigrationFiles();
+    const migrations = await SetupController.runMigrationsInternal();
+    await SetupController.applyWorkOrdersPatchInternal();
+    await SetupController.applyWorkOrdersDowntimeRcaPatchInternal();
+    await SetupController.applyWorkOrdersSlaPausePatchInternal();
+    await SetupController.applyMaintenancePlansToleranceModePatchInternal();
+    await SetupController.applyMaintenancePlansScheduleAnchorModePatchInternal();
+    await SetupController.applyStockReservationsPatchInternal();
+    await SetupController.applyMaintenanceKitsPatchInternal();
+
+    return {
+      migrations,
+      migrationsDir: available.dir,
+      availableMigrationFiles: available.files,
+      patches: [
+        'rbac',
+        'work_orders_work_performed',
+        'work_orders_downtime_rca_fields',
+        'work_orders_sla_pause',
+        'maintenance_plans_tolerance_mode',
+        'maintenance_plans_schedule_anchor_mode',
+        'stock_reservations',
+        'maintenance_kits',
+      ],
+    };
+  }
+
   private static async usersTableExists(): Promise<boolean> {
     const res = await db.execute(sql`
       SELECT EXISTS (
@@ -284,8 +534,8 @@ export class SetupController {
     await db
       .insert(userPlants)
       .values([
-        { id: uuidv4(), user_id: demoAdminId, plant_id: demoPlantId },
-        { id: uuidv4(), user_id: demoTechId, plant_id: demoPlantId },
+        { id: uuidv4(), user_id: demoAdminId, plant_id: demoPlantId, role: 'admin_empresa' },
+        { id: uuidv4(), user_id: demoTechId, plant_id: demoPlantId, role: 'tecnico' },
       ])
       .onConflictDoNothing();
 
@@ -501,6 +751,9 @@ export class SetupController {
         return;
       }
 
+      // Garante que a estrutura está atualizada logo no setup (inclui RBAC)
+      const corrections = await SetupController.applyCorrectionsInternal();
+
       // Database is empty, create initial admin user
       let tenantId = req.tenantId || '';
       const tenantSlug = req.tenantSlug || DEFAULT_TENANT_SLUG;
@@ -515,7 +768,15 @@ export class SetupController {
       const normalizedAdminUsername = adminUsername.trim().toLowerCase();
       const normalizedAdminEmail = adminEmail.trim().toLowerCase();
 
+      const techEmail = process.env.TECH_EMAIL || 'tech@cmms.com';
+      const techUsername = process.env.TECH_USERNAME || 'tech';
+      const techPassword = process.env.TECH_PASSWORD || 'Tech@123456';
+      const normalizedTechUsername = techUsername.trim().toLowerCase();
+      const normalizedTechEmail = techEmail.trim().toLowerCase();
+      const techId = uuidv4();
+
       if (!tenantId) {
+        await SetupController.ensureTenantsTable();
         const tenantIdToUse = tenantSlug === DEFAULT_TENANT_SLUG ? DEFAULT_TENANT_ID : uuidv4();
         const [tenant] = await db
           .insert(tenants)
@@ -528,6 +789,9 @@ export class SetupController {
           .returning();
         tenantId = tenant.id;
       }
+
+      // Seed RBAC do tenant (roles/permissões default)
+      await SetupController.ensureRbacSeedForTenant(tenantId);
 
       // Insert default plant
       await db.insert(plants).values({
@@ -555,12 +819,38 @@ export class SetupController {
         is_active: true,
       });
 
-      // Link admin to plant
-      await db.insert(userPlants).values({
-        id: uuidv4(),
-        user_id: adminId,
-        plant_id: plantId,
+      // Insert demo technician user
+      const techPasswordHash = await bcrypt.hash(techPassword, 10);
+      await db.insert(users).values({
+        id: techId,
+        tenant_id: tenantId,
+        username: normalizedTechUsername,
+        email: normalizedTechEmail,
+        password_hash: techPasswordHash,
+        first_name: 'Tecnico',
+        last_name: 'CMMS',
+        role: 'tecnico',
+        is_active: true,
       });
+
+      // Link admin to plant
+      await db
+        .insert(userPlants)
+        .values([
+          {
+            id: uuidv4(),
+            user_id: adminId,
+            plant_id: plantId,
+            role: 'admin_empresa',
+          },
+          {
+            id: uuidv4(),
+            user_id: techId,
+            plant_id: plantId,
+            role: 'tecnico',
+          },
+        ])
+        .onConflictDoNothing();
 
       res.json({
         success: true,
@@ -568,7 +858,10 @@ export class SetupController {
         data: {
           adminEmail: normalizedAdminEmail,
           adminUsername: normalizedAdminUsername,
+          techEmail: normalizedTechEmail,
+          techUsername: normalizedTechUsername,
           plantId,
+          corrections,
           note: 'You can now login with the admin credentials',
         },
       });
@@ -656,17 +949,24 @@ export class SetupController {
    */
   static async seedDemoData(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      // Check if user is admin
-      if (!req.user || req.user.role !== 'superadmin') {
+      // Check if user is allowed (security-in-depth; route já exige setup:run)
+      if (!req.user || !['superadmin', 'admin_empresa'].includes(String(req.user.role))) {
         res.status(403).json({
           success: false,
-          error: 'Only superadmin can seed demo data',
+          error: 'Only superadmin/admin_empresa can seed demo data',
         });
         return;
       }
 
       const tenantId = req.tenantId || DEFAULT_TENANT_ID;
       const tenantSlug = req.tenantSlug || DEFAULT_TENANT_SLUG;
+
+      // Mantém a BD atualizada antes de inserir demo
+      await SetupController.applyCorrectionsInternal();
+
+      // Garante RBAC base
+      await SetupController.ensureRbacSeedForTenant(tenantId);
+
       const result = await SetupController.seedDemoDataInternal(tenantId, tenantSlug);
       const { added, note } = result;
 
@@ -734,10 +1034,10 @@ END $$;`
   static async clearData(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       // Check if user is admin
-      if (!req.user || req.user.role !== 'superadmin') {
+      if (!req.user || !['superadmin', 'admin_empresa'].includes(String(req.user.role))) {
         res.status(403).json({
           success: false,
-          error: 'Only superadmin can clear data',
+          error: 'Only superadmin/admin_empresa can clear data',
         });
         return;
       }
@@ -799,10 +1099,10 @@ END $$;`
    */
   static async runMigrations(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      if (!req.user || req.user.role !== 'superadmin') {
+      if (!req.user || !['superadmin', 'admin_empresa'].includes(String(req.user.role))) {
         res.status(403).json({
           success: false,
-          error: 'Only superadmin can run migrations',
+          error: 'Only superadmin/admin_empresa can run migrations',
         });
         return;
       }
@@ -846,10 +1146,10 @@ END $$;`
    */
   static async patchWorkOrders(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      if (!req.user || req.user.role !== 'superadmin') {
+      if (!req.user || !['superadmin', 'admin_empresa'].includes(String(req.user.role))) {
         res.status(403).json({
           success: false,
-          error: 'Only superadmin can run patches',
+          error: 'Only superadmin/admin_empresa can run patches',
         });
         return;
       }
@@ -874,10 +1174,10 @@ END $$;`
    */
   static async patchWorkOrdersDowntimeRca(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      if (!req.user || req.user.role !== 'superadmin') {
+      if (!req.user || !['superadmin', 'admin_empresa'].includes(String(req.user.role))) {
         res.status(403).json({
           success: false,
-          error: 'Only superadmin can run patches',
+          error: 'Only superadmin/admin_empresa can run patches',
         });
         return;
       }
@@ -902,10 +1202,10 @@ END $$;`
    */
   static async patchStockReservations(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      if (!req.user || req.user.role !== 'superadmin') {
+      if (!req.user || !['superadmin', 'admin_empresa'].includes(String(req.user.role))) {
         res.status(403).json({
           success: false,
-          error: 'Only superadmin can run patches',
+          error: 'Only superadmin/admin_empresa can run patches',
         });
         return;
       }
@@ -930,10 +1230,10 @@ END $$;`
    */
   static async patchMaintenanceKits(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      if (!req.user || req.user.role !== 'superadmin') {
+      if (!req.user || !['superadmin', 'admin_empresa'].includes(String(req.user.role))) {
         res.status(403).json({
           success: false,
-          error: 'Only superadmin can run patches',
+          error: 'Only superadmin/admin_empresa can run patches',
         });
         return;
       }
@@ -958,41 +1258,24 @@ END $$;`
    */
   static async applyCorrections(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      if (!req.user || req.user.role !== 'superadmin') {
+      if (!req.user || !['superadmin', 'admin_empresa'].includes(String(req.user.role))) {
         res.status(403).json({
           success: false,
-          error: 'Only superadmin can run patches',
+          error: 'Only superadmin/admin_empresa can run patches',
         });
         return;
       }
 
-      const available = await SetupController.listMigrationFiles();
-      const migrations = await SetupController.runMigrationsInternal();
-      await SetupController.applyWorkOrdersPatchInternal();
-      await SetupController.applyWorkOrdersDowntimeRcaPatchInternal();
-      await SetupController.applyWorkOrdersSlaPausePatchInternal();
-      await SetupController.applyMaintenancePlansToleranceModePatchInternal();
-      await SetupController.applyMaintenancePlansScheduleAnchorModePatchInternal();
-      await SetupController.applyStockReservationsPatchInternal();
-      await SetupController.applyMaintenanceKitsPatchInternal();
+      const result = await SetupController.applyCorrectionsInternal();
+
+      // Garante RBAC base no tenant atual
+      const tenantId = req.tenantId || DEFAULT_TENANT_ID;
+      await SetupController.ensureRbacSeedForTenant(tenantId);
 
       res.json({
         success: true,
         message: 'Correcoes aplicadas com sucesso',
-        data: {
-          migrations,
-          migrationsDir: available.dir,
-          availableMigrationFiles: available.files,
-          patches: [
-            'work_orders_work_performed',
-            'work_orders_downtime_rca_fields',
-            'work_orders_sla_pause',
-            'maintenance_plans_tolerance_mode',
-            'maintenance_plans_schedule_anchor_mode',
-            'stock_reservations',
-            'maintenance_kits',
-          ],
-        },
+        data: result,
       });
     } catch (error) {
       res.status(500).json({
@@ -1075,10 +1358,10 @@ END $$;`
    */
   static async patchWorkOrdersSlaPause(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      if (!req.user || req.user.role !== 'superadmin') {
+      if (!req.user || !['superadmin', 'admin_empresa'].includes(String(req.user.role))) {
         res.status(403).json({
           success: false,
-          error: 'Only superadmin can run patches',
+          error: 'Only superadmin/admin_empresa can run patches',
         });
         return;
       }
@@ -1225,10 +1508,10 @@ END $$;`
    */
   static async patchMaintenancePlansToleranceMode(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      if (!req.user || req.user.role !== 'superadmin') {
+      if (!req.user || !['superadmin', 'admin_empresa'].includes(String(req.user.role))) {
         res.status(403).json({
           success: false,
-          error: 'Only superadmin can run patches',
+          error: 'Only superadmin/admin_empresa can run patches',
         });
         return;
       }
@@ -1272,10 +1555,10 @@ END $$;`
    */
   static async patchMaintenancePlansScheduleAnchorMode(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      if (!req.user || req.user.role !== 'superadmin') {
+      if (!req.user || !['superadmin', 'admin_empresa'].includes(String(req.user.role))) {
         res.status(403).json({
           success: false,
-          error: 'Only superadmin can run patches',
+          error: 'Only superadmin/admin_empresa can run patches',
         });
         return;
       }

@@ -38,6 +38,20 @@ const normalizePlantIds = (value: unknown) => {
 
 const validateRole = (role: string) => allowedRoles.includes(role);
 
+const normalizeRole = (role: unknown) => String(role || '').trim().toLowerCase();
+
+const normalizePlantRoles = (
+  value: unknown,
+): Array<{ plant_id: string; role: string }> => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((row) => ({
+      plant_id: String((row as any)?.plant_id || '').trim(),
+      role: normalizeRole((row as any)?.role),
+    }))
+    .filter((r) => r.plant_id.length > 0 && validateRole(r.role));
+};
+
 export async function listPlants(req: AuthenticatedRequest, res: Response) {
   try {
     const tenantId = req.tenantId;
@@ -215,7 +229,15 @@ export async function listUsers(req: AuthenticatedRequest, res: Response) {
         u.role,
         u.is_active,
         u.created_at,
-        COALESCE(array_remove(array_agg(up.plant_id), NULL), '{}') AS plant_ids
+        COALESCE(array_remove(array_agg(up.plant_id), NULL), '{}') AS plant_ids,
+        COALESCE(
+          jsonb_agg(
+            CASE WHEN up.plant_id IS NULL THEN NULL
+            ELSE jsonb_build_object('plant_id', up.plant_id, 'role', up.role)
+            END
+          ) FILTER (WHERE up.plant_id IS NOT NULL),
+          '[]'::jsonb
+        ) AS plant_roles
       FROM users u
       LEFT JOIN user_plants up ON u.id = up.user_id
       WHERE u.tenant_id = ${tenantId}
@@ -232,7 +254,7 @@ export async function listUsers(req: AuthenticatedRequest, res: Response) {
 export async function createUser(req: AuthenticatedRequest, res: Response) {
   try {
     const tenantId = req.tenantId;
-    const { username, email, password, first_name, last_name, role, plant_ids, is_active } = req.body || {};
+    const { username, email, password, first_name, last_name, role, plant_ids, plant_roles, is_active } = req.body || {};
 
     if (!tenantId) {
       return res.status(400).json({ success: false, error: 'Tenant ID is required' });
@@ -246,7 +268,8 @@ export async function createUser(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({ success: false, error: 'Invalid role' });
     }
 
-    const plantIds = normalizePlantIds(plant_ids);
+    const plantRoles = normalizePlantRoles(plant_roles);
+    const plantIds = plantRoles.length > 0 ? plantRoles.map((r) => r.plant_id) : normalizePlantIds(plant_ids);
     if (plantIds.length === 0) {
       return res.status(400).json({ success: false, error: 'At least one plant is required' });
     }
@@ -295,10 +318,16 @@ export async function createUser(req: AuthenticatedRequest, res: Response) {
       })
       .returning();
 
-    const userPlantRows = plantIds.map((plantId: string) => ({
+    const effectivePlantRoles =
+      plantRoles.length > 0
+        ? plantRoles
+        : plantIds.map((plantId: string) => ({ plant_id: plantId, role }));
+
+    const userPlantRows = effectivePlantRoles.map((row) => ({
       id: uuidv4(),
       user_id: user.id,
-      plant_id: plantId,
+      plant_id: row.plant_id,
+      role: row.role,
     }));
 
     await db.insert(userPlants).values(userPlantRows);
@@ -313,7 +342,7 @@ export async function updateUser(req: AuthenticatedRequest, res: Response) {
   try {
     const tenantId = req.tenantId;
     const { userId } = req.params;
-    const { username, first_name, last_name, role, password, plant_ids, is_active } = req.body || {};
+    const { username, first_name, last_name, role, password, plant_ids, plant_roles, is_active } = req.body || {};
 
     if (!tenantId || !userId) {
       return res.status(400).json({ success: false, error: 'User ID is required' });
@@ -370,8 +399,12 @@ export async function updateUser(req: AuthenticatedRequest, res: Response) {
       .where(and(eq(users.tenant_id, tenantId), eq(users.id, userId)))
       .returning();
 
-    if (plant_ids !== undefined) {
-      const plantIds = normalizePlantIds(plant_ids);
+    if (plant_roles !== undefined || plant_ids !== undefined) {
+      const incomingPlantRoles = normalizePlantRoles(plant_roles);
+      const plantIds =
+        incomingPlantRoles.length > 0
+          ? incomingPlantRoles.map((r) => r.plant_id)
+          : normalizePlantIds(plant_ids);
 
       if (plantIds.length === 0) {
         return res.status(400).json({ success: false, error: 'At least one plant is required' });
@@ -388,10 +421,19 @@ export async function updateUser(req: AuthenticatedRequest, res: Response) {
 
       await db.delete(userPlants).where(eq(userPlants.user_id, userId));
 
-      const userPlantRows = plantIds.map((plantId: string) => ({
+      const effectivePlantRoles =
+        incomingPlantRoles.length > 0
+          ? incomingPlantRoles
+          : plantIds.map((plantId: string) => ({
+              plant_id: plantId,
+              role: normalizeRole(role ?? updated.role) || 'tecnico',
+            }));
+
+      const userPlantRows = effectivePlantRoles.map((row) => ({
         id: uuidv4(),
         user_id: userId,
-        plant_id: plantId,
+        plant_id: row.plant_id,
+        role: row.role,
       }));
 
       await db.insert(userPlants).values(userPlantRows);
@@ -404,11 +446,158 @@ export async function updateUser(req: AuthenticatedRequest, res: Response) {
 }
 
 export async function listRoles(_req: AuthenticatedRequest, res: Response) {
-  return res.json({
-    success: true,
-    data: allowedRoles.map((role) => ({
-      value: role,
-      label: roleLabels[role] || role,
-    })),
-  });
+  try {
+    const tenantId = _req.tenantId;
+    if (!tenantId) {
+      return res.json({
+        success: true,
+        data: allowedRoles.map((role) => ({
+          value: role,
+          label: roleLabels[role] || role,
+        })),
+      });
+    }
+
+    const result = await db.execute(sql`
+      SELECT key, name
+      FROM rbac_roles
+      WHERE tenant_id = ${tenantId}
+      ORDER BY name ASC;
+    `);
+
+    if ((result.rows?.length || 0) === 0) {
+      return res.json({
+        success: true,
+        data: allowedRoles.map((role) => ({
+          value: role,
+          label: roleLabels[role] || role,
+        })),
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: (result.rows || []).map((r: any) => ({
+        value: String(r.key),
+        label: String(r.name),
+      })),
+    });
+  } catch {
+    return res.json({
+      success: true,
+      data: allowedRoles.map((role) => ({
+        value: role,
+        label: roleLabels[role] || role,
+      })),
+    });
+  }
+}
+
+export async function resetUserPassword(req: AuthenticatedRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId;
+    const { userId } = req.params;
+    const { password } = req.body || {};
+
+    if (!tenantId || !userId) {
+      return res.status(400).json({ success: false, error: 'User ID is required' });
+    }
+
+    if (!password || String(password).length < 6) {
+      return res.status(400).json({ success: false, error: 'Password inválida' });
+    }
+
+    const user = await db.query.users.findFirst({
+      where: (fields: any, { eq, and }: any) =>
+        and(eq(fields.tenant_id, tenantId), eq(fields.id, userId)),
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await db
+      .update(users)
+      .set({ password_hash: passwordHash, updated_at: new Date() })
+      .where(and(eq(users.tenant_id, tenantId), eq(users.id, userId)));
+
+    return res.json({ success: true, message: 'Password atualizada' });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to reset password' });
+  }
+}
+
+export async function listPermissions(req: AuthenticatedRequest, res: Response) {
+  try {
+    const result = await db.execute(sql`
+      SELECT key, label, group_name, description
+      FROM rbac_permissions
+      ORDER BY group_name ASC, label ASC;
+    `);
+    return res.json({ success: true, data: result.rows || [] });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to fetch permissions' });
+  }
+}
+
+export async function getRolePermissions(req: AuthenticatedRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId;
+    const { roleKey } = req.params;
+
+    if (!tenantId || !roleKey) {
+      return res.status(400).json({ success: false, error: 'Tenant/role are required' });
+    }
+
+    const result = await db.execute(sql`
+      SELECT permission_key
+      FROM rbac_role_permissions
+      WHERE tenant_id = ${tenantId} AND role_key = ${normalizeRole(roleKey)}
+      ORDER BY permission_key ASC;
+    `);
+
+    return res.json({
+      success: true,
+      data: (result.rows || []).map((r: any) => String(r.permission_key)),
+    });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to fetch role permissions' });
+  }
+}
+
+export async function setRolePermissions(req: AuthenticatedRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId;
+    const { roleKey } = req.params;
+    const { permissions } = req.body || {};
+
+    if (!tenantId || !roleKey) {
+      return res.status(400).json({ success: false, error: 'Tenant/role are required' });
+    }
+
+    const perms = Array.isArray(permissions)
+      ? permissions.map((p: any) => String(p).trim()).filter((p: string) => p.length > 0)
+      : [];
+
+    const normalizedRoleKey = normalizeRole(roleKey);
+
+    // Replace set
+    await db.execute(sql`
+      DELETE FROM rbac_role_permissions
+      WHERE tenant_id = ${tenantId} AND role_key = ${normalizedRoleKey};
+    `);
+
+    for (const perm of perms) {
+      await db.execute(sql`
+        INSERT INTO rbac_role_permissions (tenant_id, role_key, permission_key)
+        VALUES (${tenantId}, ${normalizedRoleKey}, ${perm})
+        ON CONFLICT (tenant_id, role_key, permission_key) DO NOTHING;
+      `);
+    }
+
+    return res.json({ success: true, message: 'Permissões atualizadas', data: perms });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to update role permissions' });
+  }
 }

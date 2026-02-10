@@ -134,10 +134,63 @@ export const userPlants = pgTable(
     plant_id: uuid('plant_id')
       .notNull()
       .references(() => plants.id, { onDelete: 'cascade' }),
+    // Role efetivo do utilizador nesta fábrica (pode diferir do role global em users.role)
+    role: text('role').notNull().default('tecnico'),
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
     userPlantIdx: uniqueIndex('user_plants_user_plant_idx').on(table.user_id, table.plant_id),
+  }),
+);
+
+// RBAC: Roles (por tenant) + Permissões (globais) + Role-Permissions (por tenant)
+export const rbacPermissions = pgTable(
+  'rbac_permissions',
+  {
+    key: text('key').primaryKey(),
+    label: text('label').notNull(),
+    group_name: text('group_name').notNull().default('geral'),
+    description: text('description'),
+    is_system: boolean('is_system').default(true),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+);
+
+export const rbacRoles = pgTable(
+  'rbac_roles',
+  {
+    tenant_id: uuid('tenant_id').notNull(),
+    key: text('key').notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+    is_system: boolean('is_system').default(true),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantRoleIdx: uniqueIndex('rbac_roles_tenant_key_idx').on(table.tenant_id, table.key),
+    tenantIdx: index('rbac_roles_tenant_id_idx').on(table.tenant_id),
+  }),
+);
+
+export const rbacRolePermissions = pgTable(
+  'rbac_role_permissions',
+  {
+    tenant_id: uuid('tenant_id').notNull(),
+    role_key: text('role_key').notNull(),
+    permission_key: text('permission_key')
+      .notNull()
+      .references(() => rbacPermissions.key, { onDelete: 'cascade' }),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    rolePermIdx: uniqueIndex('rbac_role_permissions_tenant_role_perm_idx').on(
+      table.tenant_id,
+      table.role_key,
+      table.permission_key,
+    ),
+    tenantRoleIdx: index('rbac_role_permissions_tenant_role_idx').on(table.tenant_id, table.role_key),
   }),
 );
 

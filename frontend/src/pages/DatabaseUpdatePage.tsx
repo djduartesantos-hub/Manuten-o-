@@ -6,13 +6,6 @@ import {
   getSetupStatus,
   initializeDatabase,
   applyDbCorrections,
-  patchWorkOrders,
-  patchWorkOrdersDowntimeRca,
-  patchWorkOrdersSlaPause,
-  patchMaintenancePlansToleranceMode,
-  patchMaintenancePlansScheduleAnchorMode,
-  patchStockReservations,
-  patchMaintenanceKits,
   runMigrations,
   seedDemoData,
 } from '../services/api';
@@ -128,148 +121,8 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
     }
   };
 
-  const handleWorkOrdersPatch = async () => {
-    if (!confirm('Aplicar patch para corrigir ordens de trabalho?')) {
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      await patchWorkOrders();
-      setSuccess('Patch aplicado. A coluna work_performed foi verificada/adicionada.');
-      await fetchStatus();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleWorkOrdersDowntimeRcaPatch = async () => {
-    if (!confirm('Aplicar patch para adicionar campos de paragem e causa raiz nas ordens?')) {
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      await patchWorkOrdersDowntimeRca();
-      setSuccess('Patch aplicado. Campos downtime_type/downtime_category/root_cause/corrective_action foram verificados/adicionados.');
-      await fetchStatus();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleWorkOrdersSlaPausePatch = async () => {
-    if (!confirm('Aplicar patch para SLA (tempo em pausa não conta) nas ordens?')) {
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      await patchWorkOrdersSlaPause();
-      setSuccess('Patch aplicado. Campos SLA (pausa não conta) foram verificados/adicionados em work_orders.');
-      await fetchStatus();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleMaintenancePlansToleranceModePatch = async () => {
-    if (!confirm('Aplicar patch para adicionar tolerance_mode nos planos de manutenção?')) {
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      await patchMaintenancePlansToleranceMode();
-      setSuccess('Patch aplicado. A coluna tolerance_mode foi verificada/adicionada em maintenance_plans.');
-      await fetchStatus();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleMaintenancePlansScheduleAnchorModePatch = async () => {
-    if (!confirm('Aplicar patch para adicionar schedule_anchor_mode nos planos de manutenção?')) {
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      await patchMaintenancePlansScheduleAnchorMode();
-      setSuccess('Patch aplicado. A coluna schedule_anchor_mode foi verificada/adicionada em maintenance_plans.');
-      await fetchStatus();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStockReservationsPatch = async () => {
-    if (!confirm('Aplicar patch para criar a tabela de reservas de stock (por ordem)?')) {
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      await patchStockReservations();
-      setSuccess('Patch aplicado. A tabela stock_reservations foi verificada/criada.');
-      await fetchStatus();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleMaintenanceKitsPatch = async () => {
-    if (!confirm('Aplicar patch para criar as tabelas de kits de manutenção?')) {
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      await patchMaintenanceKits();
-      setSuccess('Patch aplicado. As tabelas maintenance_kits e maintenance_kit_items foram verificadas/criadas.');
-      await fetchStatus();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao aplicar patch');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleApplyCorrections = async () => {
-    if (!confirm('Aplicar todas as correcoes estruturais na base de dados?')) {
+    if (!confirm('Aplicar todas as atualizacoes gerais na base de dados?')) {
       return;
     }
 
@@ -438,7 +291,7 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
         <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-4 mb-6 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-amber-900">Correcoes estruturais</p>
+              <p className="text-sm font-semibold text-amber-900">Atualizacoes gerais</p>
               <p className="text-xs text-amber-800 mt-1">
                 Executa migracoes e patches recomendados para manter a estrutura atualizada.
               </p>
@@ -449,118 +302,7 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
               className="flex items-center gap-2 px-4 py-2 bg-amber-700 text-white rounded-lg hover:bg-amber-800 disabled:bg-gray-400 transition"
             >
               <Wrench className="w-4 h-4" />
-              Aplicar correcoes gerais
-            </button>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs text-amber-800">
-                Use o patch abaixo apenas para corrigir falhas nas ordens de trabalho.
-              </p>
-            </div>
-            <button
-              onClick={handleWorkOrdersPatch}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition"
-            >
-              <Wrench className="w-4 h-4" />
-              Aplicar patch ordens
-            </button>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs text-amber-800">
-                Adiciona os novos campos de paragem e análise (causa raiz / ação corretiva) nas ordens.
-              </p>
-            </div>
-            <button
-              onClick={handleWorkOrdersDowntimeRcaPatch}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition"
-            >
-              <Wrench className="w-4 h-4" />
-              Patch paragem / causa raiz
-            </button>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs text-amber-800">
-                Adiciona os campos para SLA efetivo (tempo em pausa não conta) nas ordens.
-              </p>
-            </div>
-            <button
-              onClick={handleWorkOrdersSlaPausePatch}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition"
-            >
-              <Wrench className="w-4 h-4" />
-              Patch SLA (pausa)
-            </button>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs text-amber-800">
-                Adiciona o modo de tolerância (soft/hard) nos planos de manutenção.
-              </p>
-            </div>
-            <button
-              onClick={handleMaintenancePlansToleranceModePatch}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition"
-            >
-              <Wrench className="w-4 h-4" />
-              Patch tolerância (planos)
-            </button>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs text-amber-800">
-                Adiciona a âncora de cadência (fixo vs intervalo) nos planos de manutenção.
-              </p>
-            </div>
-            <button
-              onClick={handleMaintenancePlansScheduleAnchorModePatch}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition"
-            >
-              <Wrench className="w-4 h-4" />
-              Patch âncora (planos)
-            </button>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs text-amber-800">
-                Cria a tabela de reservas de stock (por ordem) para permitir reservar peças.
-              </p>
-            </div>
-            <button
-              onClick={handleStockReservationsPatch}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition"
-            >
-              <Wrench className="w-4 h-4" />
-              Patch reservas (stock)
-            </button>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs text-amber-800">
-                Cria as tabelas de kits de manutenção para associar listas de peças a planos/categorias.
-              </p>
-            </div>
-            <button
-              onClick={handleMaintenanceKitsPatch}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition"
-            >
-              <Wrench className="w-4 h-4" />
-              Patch kits (manutenção)
+              Atualizacoes Gerais
             </button>
           </div>
         </div>

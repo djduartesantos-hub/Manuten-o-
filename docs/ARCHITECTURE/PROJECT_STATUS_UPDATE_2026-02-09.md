@@ -437,3 +437,80 @@ Quando concordarmos com as fases acima, o plano é:
 1) Criar um “mapa” fase → secção do ROADMAP atual (Phase 3/4/5),
 2) Atualizar datas e percentagens no DEVELOPMENT_STATUS,
 3) Transformar cada fase em 5-10 issues/tarefas verificáveis.
+
+---
+
+## 11) Addendum — 2026-02-10 (RBAC por permissões + setup consolidado)
+
+Este addendum existe para capturar as alterações feitas **após 2026-02-09**, com foco em **RBAC** (permissões) e em garantir que **qualquer alteração de BD** está sempre coberta pelo endpoint consolidado de patches.
+
+### 11.1 TL;DR
+- As rotas principais do backend passaram a usar **permissões** (middleware `requirePermission`) em vez de gating direto por role.
+- O role efetivo do utilizador pode variar por fábrica via `user_plants.role`.
+- Foram adicionadas tabelas RBAC + seeds idempotentes (permissões globais, roles por tenant, role-permissions por tenant).
+- Setup/patch/all e auto-seed foram reforçados para garantir estrutura RBAC e demo users consistentes.
+- Frontend em Settings tem painel “Permissões & Roles” e gestão de utilizadores suporta **role por planta**.
+
+### 11.2 Modelo RBAC (BD)
+**Objetivo:** roles globais (por tenant), mas com role efetivo por fábrica, e permissões configuráveis por tenant.
+
+**Estruturas chave:**
+- `user_plants.role` — role efetivo do utilizador naquela fábrica.
+- `rbac_permissions` (global) — catálogo de permissões (ex.: `assets:read`).
+- `rbac_roles` (por tenant) — catálogo de roles disponíveis.
+- `rbac_role_permissions` (por tenant) — mapeamento role → permissões.
+
+### 11.3 Seeds e patches (idempotentes)
+**Princípio:** se mexe em BD, tem de ficar coberto por `POST /api/setup/patch/all`.
+
+O setup/patch agora garante:
+- Criação/atualização da estrutura RBAC.
+- Seed de permissões globais e roles base por tenant.
+- Seed de permissões default por role (mapeamentos role → permissões).
+- Criação de demo users quando a BD está vazia (auto-seed) e associação consistente a fábricas com role por planta.
+
+### 11.4 Middleware de permissões
+Foi introduzido `requirePermission(permissionKey, scope)`:
+- `scope = 'plant'` (default): resolve role via `user_plants` para o `plantId` da rota.
+- `scope = 'tenant'`: valida permissões a nível de tenant.
+- `superadmin` faz bypass.
+- Existe fallback conservador para ambientes sem RBAC aplicado (para evitar “quebra total” até o patch correr).
+
+### 11.5 Enforcements (rotas)
+As rotas foram migradas para permissões (exemplos de grupos):
+- Dashboard: `dashboard:read`
+- Ativos/Categorias: `assets:*`, `categories:*`
+- Ordens: `workorders:*`
+- Preventiva: `plans:*`, `schedules:*`
+- Stock/Peças/Fornecedores: `stock:*`, `suppliers:*`
+- Kits/Notificações: `kits:*`, `notifications:*` (tenant)
+- Setup: `setup:run` (tenant)
+- Jobs: `jobs:read`, `jobs:write` (tenant)
+
+### 11.6 Endpoints admin (RBAC + users)
+Foram adicionados/ajustados endpoints para administração de RBAC:
+- `GET /api/admin/permissions`
+- `GET /api/admin/roles/:roleKey/permissions`
+- `PUT /api/admin/roles/:roleKey/permissions`
+- `POST /api/admin/users/:userId/reset-password`
+
+E a gestão de utilizadores suporta atribuição de role por planta:
+- `plant_roles: [{ plant_id, role }]` (além de `plant_ids`).
+
+### 11.7 Frontend (Settings)
+- Painel “Permissões & Roles”: selecionar role, editar permissões (checkboxes por grupo) e gravar.
+- Gestão administrativa: criação/edição de utilizadores com **role por fábrica**.
+
+**Onde procurar no código (RBAC):**
+- Middleware: `backend/src/middlewares/permissions.ts`
+- Lógica RBAC (roles/perms): `backend/src/services/rbac.service.ts`
+- Seeds/patches/setup: `backend/src/controllers/setup.controller.ts` e `backend/src/db/auto-seed.ts`
+- Schema (tabelas/colunas): `backend/src/db/schema.ts`
+- UI Settings (permissões/roles): `frontend/src/pages/SettingsPage.tsx`
+- Botão “Atualizações Gerais”: `frontend/src/pages/DatabaseUpdatePage.tsx`
+
+### 11.8 Nota para atualizar docs “originais” depois
+Quando atualizarmos README/ROADMAP/DOCUMENTATION, os pontos que precisam entrar:
+- Conceito RBAC por permissões + `user_plants.role`.
+- “Atualizações Gerais” como mecanismo suportado para aplicar patches (setup/patch/all).
+- Localização da UI de permissões (Settings) e a lógica de roles por fábrica.

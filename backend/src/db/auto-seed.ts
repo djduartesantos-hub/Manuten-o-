@@ -9,6 +9,185 @@ function normalize(value: string) {
   return value.trim().toLowerCase();
 }
 
+async function ensureRbacStructureAndSeed(tenantId: string): Promise<void> {
+  // Estrutura base (idempotente)
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS rbac_permissions (
+      key TEXT PRIMARY KEY,
+      label TEXT NOT NULL,
+      group_name TEXT NOT NULL DEFAULT 'geral',
+      description TEXT,
+      is_system BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS rbac_roles (
+      tenant_id UUID NOT NULL,
+      key TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      is_system BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (tenant_id, key)
+    );
+
+    CREATE TABLE IF NOT EXISTS rbac_role_permissions (
+      tenant_id UUID NOT NULL,
+      role_key TEXT NOT NULL,
+      permission_key TEXT NOT NULL REFERENCES rbac_permissions(key) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (tenant_id, role_key, permission_key)
+    );
+
+    ALTER TABLE user_plants
+      ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'tecnico';
+
+    CREATE INDEX IF NOT EXISTS rbac_roles_tenant_id_idx ON rbac_roles(tenant_id);
+    CREATE INDEX IF NOT EXISTS rbac_role_permissions_tenant_role_idx ON rbac_role_permissions(tenant_id, role_key);
+  `));
+
+  // Permissões globais (idempotente)
+  const permissions: Array<{ key: string; label: string; group: string; description?: string }> = [
+    { key: 'dashboard:read', label: 'Ver dashboard', group: 'dashboard' },
+    { key: 'jobs:read', label: 'Ver fila de jobs', group: 'jobs' },
+    { key: 'jobs:write', label: 'Gerir fila de jobs', group: 'jobs' },
+    { key: 'notifications:read', label: 'Ver notificações', group: 'notificacoes' },
+    { key: 'notifications:write', label: 'Gerir notificações', group: 'notificacoes' },
+    { key: 'assets:read', label: 'Ver equipamentos', group: 'ativos' },
+    { key: 'assets:write', label: 'Gerir equipamentos', group: 'ativos' },
+    { key: 'categories:read', label: 'Ver categorias', group: 'ativos' },
+    { key: 'categories:write', label: 'Gerir categorias', group: 'ativos' },
+    { key: 'workorders:read', label: 'Ver ordens', group: 'ordens' },
+    { key: 'workorders:write', label: 'Gerir ordens', group: 'ordens' },
+    { key: 'plans:read', label: 'Ver planos', group: 'preventiva' },
+    { key: 'plans:write', label: 'Gerir planos', group: 'preventiva' },
+    { key: 'schedules:read', label: 'Ver agendamentos', group: 'preventiva' },
+    { key: 'schedules:write', label: 'Gerir agendamentos', group: 'preventiva' },
+    { key: 'stock:read', label: 'Ver stock', group: 'stock' },
+    { key: 'stock:write', label: 'Gerir stock', group: 'stock' },
+    { key: 'suppliers:read', label: 'Ver fornecedores', group: 'stock' },
+    { key: 'suppliers:write', label: 'Gerir fornecedores', group: 'stock' },
+    { key: 'kits:read', label: 'Ver kits', group: 'kits' },
+    { key: 'kits:write', label: 'Gerir kits', group: 'kits' },
+    { key: 'admin:plants', label: 'Gerir fábricas', group: 'admin' },
+    { key: 'admin:users', label: 'Gerir utilizadores', group: 'admin' },
+    { key: 'admin:rbac', label: 'Gerir roles/permissões', group: 'admin' },
+    { key: 'setup:run', label: 'Executar setup/patches', group: 'admin' },
+  ];
+
+  for (const p of permissions) {
+    await db.execute(sql`
+      INSERT INTO rbac_permissions (key, label, group_name, description, is_system)
+      VALUES (${p.key}, ${p.label}, ${p.group}, ${p.description ?? null}, TRUE)
+      ON CONFLICT (key) DO UPDATE
+      SET label = EXCLUDED.label,
+          group_name = EXCLUDED.group_name,
+          description = EXCLUDED.description,
+          updated_at = NOW();
+    `);
+  }
+
+  // Roles base por tenant
+  const roles: Array<{ key: string; name: string; description?: string }> = [
+    { key: 'admin_empresa', name: 'Admin Empresa' },
+    { key: 'gestor_manutencao', name: 'Gestor Manutenção' },
+    { key: 'supervisor', name: 'Supervisor' },
+    { key: 'tecnico', name: 'Técnico' },
+    { key: 'leitor', name: 'Leitor' },
+  ];
+
+  for (const r of roles) {
+    await db.execute(sql`
+      INSERT INTO rbac_roles (tenant_id, key, name, description, is_system)
+      VALUES (${tenantId}, ${r.key}, ${r.name}, ${r.description ?? null}, TRUE)
+      ON CONFLICT (tenant_id, key) DO UPDATE
+      SET name = EXCLUDED.name,
+          description = EXCLUDED.description,
+          updated_at = NOW();
+    `);
+  }
+
+  const rolePerms: Record<string, string[]> = {
+    admin_empresa: permissions.map((p) => p.key),
+    gestor_manutencao: [
+      'dashboard:read',
+      'jobs:read',
+      'jobs:write',
+      'notifications:read',
+      'notifications:write',
+      'assets:read',
+      'assets:write',
+      'categories:read',
+      'workorders:read',
+      'workorders:write',
+      'plans:read',
+      'plans:write',
+      'schedules:read',
+      'schedules:write',
+      'stock:read',
+      'suppliers:read',
+      'kits:read',
+      'kits:write',
+    ],
+    supervisor: [
+      'dashboard:read',
+      'jobs:read',
+      'jobs:write',
+      'notifications:read',
+      'assets:read',
+      'assets:write',
+      'categories:read',
+      'workorders:read',
+      'workorders:write',
+      'plans:read',
+      'schedules:read',
+      'stock:read',
+      'stock:write',
+      'suppliers:read',
+      'kits:read',
+    ],
+    tecnico: [
+      'dashboard:read',
+      'notifications:read',
+      'assets:read',
+      'assets:write',
+      'categories:read',
+      'workorders:read',
+      'workorders:write',
+      'plans:read',
+      'schedules:read',
+      'stock:read',
+      'stock:write',
+      'suppliers:read',
+      'kits:read',
+    ],
+    leitor: [
+      'dashboard:read',
+      'notifications:read',
+      'assets:read',
+      'categories:read',
+      'workorders:read',
+      'plans:read',
+      'schedules:read',
+      'stock:read',
+      'suppliers:read',
+      'kits:read',
+    ],
+  };
+
+  for (const [roleKey, perms] of Object.entries(rolePerms)) {
+    for (const perm of perms) {
+      await db.execute(sql`
+        INSERT INTO rbac_role_permissions (tenant_id, role_key, permission_key)
+        VALUES (${tenantId}, ${roleKey}, ${perm})
+        ON CONFLICT (tenant_id, role_key, permission_key) DO NOTHING;
+      `);
+    }
+  }
+}
+
 /**
  * Safely ensures demo credentials exist when the database is empty.
  * - Does NOT clear data.
@@ -98,11 +277,14 @@ export async function autoSeedDemoIfEmpty(): Promise<void> {
     })
     .onConflictDoNothing();
 
+  // Garante RBAC antes de criar links por fábrica com role
+  await ensureRbacStructureAndSeed(tenantId);
+
   await db
     .insert(userPlants)
     .values([
-      { id: uuidv4(), user_id: adminId, plant_id: plantId },
-      { id: uuidv4(), user_id: techId, plant_id: plantId },
+      { id: uuidv4(), user_id: adminId, plant_id: plantId, role: 'admin_empresa' },
+      { id: uuidv4(), user_id: techId, plant_id: plantId, role: 'tecnico' },
     ])
     .onConflictDoNothing();
 

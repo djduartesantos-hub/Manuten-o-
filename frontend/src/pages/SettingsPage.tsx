@@ -7,9 +7,12 @@ import {
   createAdminUser,
   deactivateAdminPlant,
   getAdminPlants,
+  getAdminPermissions,
+  getAdminRolePermissions,
   getAdminRoles,
   getAdminUsers,
   getAssets,
+  setAdminRolePermissions,
   createPreventiveSchedule,
   getPreventiveSchedules,
   updatePreventiveSchedule,
@@ -2640,6 +2643,84 @@ function DocumentsLibrarySettings() {
 }
 
 function PermissionsSettings() {
+  const [roles, setRoles] = React.useState<Array<{ value: string; label: string }>>([]);
+  const [permissions, setPermissions] = React.useState<any[]>([]);
+  const [activeRole, setActiveRole] = React.useState<string>('');
+  const [rolePerms, setRolePerms] = React.useState<Set<string>>(new Set());
+  const [loading, setLoading] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const loadBase = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [rolesData, permsData] = await Promise.all([getAdminRoles(), getAdminPermissions()]);
+      setRoles(rolesData || []);
+      setPermissions(permsData || []);
+      if (!activeRole && Array.isArray(rolesData) && rolesData.length > 0) {
+        setActiveRole(rolesData[0].value);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Falha ao carregar RBAC');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadRolePerms = async (roleKey: string) => {
+    if (!roleKey) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getAdminRolePermissions(roleKey);
+      setRolePerms(new Set((data || []).map((p: any) => String(p))));
+    } catch (err: any) {
+      setError(err.message || 'Falha ao carregar permissões do role');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    loadBase();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  React.useEffect(() => {
+    if (activeRole) loadRolePerms(activeRole);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRole]);
+
+  const togglePerm = (key: string) => {
+    setRolePerms((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    if (!activeRole) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await setAdminRolePermissions(activeRole, Array.from(rolePerms));
+    } catch (err: any) {
+      setError(err.message || 'Falha ao guardar permissões');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const grouped = permissions.reduce((acc: Record<string, any[]>, p: any) => {
+    const group = p.group_name || 'geral';
+    acc[group] = acc[group] || [];
+    acc[group].push(p);
+    return acc;
+  }, {});
+
   return (
     <div>
       <div className="mb-6">
@@ -2648,70 +2729,78 @@ function PermissionsSettings() {
         </p>
         <h2 className="mt-2 text-2xl font-semibold theme-text">Permissões & Roles</h2>
         <p className="mt-1 text-sm theme-text-muted">
-          Gira o acesso por função do utilizador.
+          Configure permissões por role (por tenant). Roles por fábrica são atribuídos em Gestão administrativa.
         </p>
       </div>
 
-      {/* Permissions Matrix */}
-      <div className="relative overflow-x-auto rounded-[24px] border theme-border theme-card shadow-sm">
-        <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
-        <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
-          <thead className="bg-[color:var(--dash-surface)]">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
-                Funcionalidade
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
-                Admin
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
-                Manager
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
-                Técnico
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
-                Visualizador
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
-            {[
-              { feature: 'Criar Equipamentos', permissions: [true, true, false, false] },
-              { feature: 'Editar Configurações', permissions: [true, true, false, false] },
-              { feature: 'Ver Relatórios', permissions: [true, true, true, true] },
-              { feature: 'Executar Ordens', permissions: [true, true, true, false] },
-              { feature: 'Eliminar Dados', permissions: [true, false, false, false] },
-              { feature: 'Exportar Dados', permissions: [true, true, false, false] },
-              { feature: 'Gerir Utilizadores', permissions: [true, false, false, false] },
-            ].map((row, idx) => (
-              <tr key={idx}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium theme-text">
-                  {row.feature}
-                </td>
-                {row.permissions.map((perm, i) => (
-                  <td key={i} className="px-6 py-4 text-center">
-                    {perm ? (
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border theme-border bg-[color:var(--dash-panel)]">
-                        <span className="text-[color:var(--dash-accent)] font-bold">✓</span>
-                      </span>
-                    ) : (
-                      <span className="theme-text-muted">—</span>
-                    )}
-                  </td>
-                ))}
-              </tr>
+      {error && (
+        <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-800">
+          {error}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border theme-border theme-card p-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold theme-text-muted uppercase tracking-wide">Role</span>
+          <select
+            className="input h-10"
+            value={activeRole}
+            onChange={(e) => setActiveRole(e.target.value)}
+            disabled={loading}
+          >
+            {roles.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
             ))}
-          </tbody>
-        </table>
+          </select>
+        </div>
+
+        <button
+          className="btn-primary"
+          onClick={handleSave}
+          disabled={saving || loading || !activeRole}
+        >
+          Guardar permissões
+        </button>
       </div>
 
-      <div className="mt-6 rounded-[20px] border theme-border theme-card p-4 shadow-sm">
-        <p className="text-sm theme-text">
-          <span className="badge-success mr-2 text-xs">Nota</span>
-          As permissões são pré-configuradas por role. A personalização de roles será
-          disponibilizada em futuras versões.
-        </p>
+      <div className="mt-6 space-y-4">
+        {loading && permissions.length === 0 ? (
+          <p className="text-sm theme-text-muted">A carregar permissões...</p>
+        ) : (
+          Object.keys(grouped)
+            .sort()
+            .map((group) => (
+              <div key={group} className="rounded-[24px] border theme-border theme-card p-4 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] theme-text-muted">
+                  {group}
+                </p>
+                <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+                  {grouped[group]
+                    .sort((a, b) => String(a.label).localeCompare(String(b.label)))
+                    .map((p: any) => (
+                      <label
+                        key={p.key}
+                        className="flex items-start gap-3 rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-3"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={rolePerms.has(String(p.key))}
+                          onChange={() => togglePerm(String(p.key))}
+                          className="mt-1 rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
+                          disabled={saving}
+                        />
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold theme-text truncate">{p.label}</div>
+                          <div className="text-xs theme-text-muted truncate">{p.key}</div>
+                        </div>
+                      </label>
+                    ))}
+                </div>
+              </div>
+            ))
+        )}
       </div>
     </div>
   );
@@ -2758,6 +2847,7 @@ function ManagementSettings() {
     role: 'tecnico',
     plant_ids: [] as string[],
   });
+  const [newUserPlantRoles, setNewUserPlantRoles] = React.useState<Record<string, string>>({});
   const [editingUserId, setEditingUserId] = React.useState<string | null>(null);
   const [userForm, setUserForm] = React.useState({
     first_name: '',
@@ -2766,6 +2856,13 @@ function ManagementSettings() {
     is_active: true,
     plant_ids: [] as string[],
   });
+  const [userFormPlantRoles, setUserFormPlantRoles] = React.useState<Record<string, string>>({});
+
+  const buildPlantRolesPayload = (plantIds: string[], defaultRole: string, roleMap: Record<string, string>) =>
+    plantIds.map((plantId) => ({
+      plant_id: plantId,
+      role: roleMap[plantId] || defaultRole,
+    }));
 
   const togglePlantSelection = (ids: string[], plantId: string) =>
     ids.includes(plantId) ? ids.filter((id) => id !== plantId) : [...ids, plantId];
@@ -2969,7 +3066,10 @@ function ManagementSettings() {
     setSaving(true);
     setError(null);
     try {
-      await createAdminUser(newUser);
+      await createAdminUser({
+        ...newUser,
+        plant_roles: buildPlantRolesPayload(newUser.plant_ids, newUser.role, newUserPlantRoles),
+      });
       setNewUser({
         username: '',
         email: '',
@@ -2979,6 +3079,7 @@ function ManagementSettings() {
         role: 'tecnico',
         plant_ids: [],
       });
+      setNewUserPlantRoles({});
       await loadAdminData();
       setUserModalOpen(false);
     } catch (err: any) {
@@ -2990,6 +3091,12 @@ function ManagementSettings() {
 
   const handleStartUserEdit = (user: any) => {
     setEditingUserId(user.id);
+    const incoming = Array.isArray(user.plant_roles) ? user.plant_roles : [];
+    const roleMap: Record<string, string> = {};
+    for (const row of incoming) {
+      if (row?.plant_id) roleMap[String(row.plant_id)] = String(row.role || user.role || 'tecnico');
+    }
+    setUserFormPlantRoles(roleMap);
     setUserForm({
       first_name: user.first_name || '',
       last_name: user.last_name || '',
@@ -3012,7 +3119,10 @@ function ManagementSettings() {
     setSaving(true);
     setError(null);
     try {
-      await updateAdminUser(editingUserId, userForm);
+      await updateAdminUser(editingUserId, {
+        ...userForm,
+        plant_roles: buildPlantRolesPayload(userForm.plant_ids, userForm.role, userFormPlantRoles),
+      });
       setEditingUserId(null);
       await loadAdminData();
       setUserModalOpen(false);
@@ -3577,19 +3687,77 @@ function ManagementSettings() {
                             : 'border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] theme-text-muted'
                         }`}
                         onClick={() =>
-                          userModalMode === 'create'
-                            ? setNewUser({
-                                ...newUser,
-                                plant_ids: togglePlantSelection(newUser.plant_ids, plant.id),
-                              })
-                            : setUserForm({
-                                ...userForm,
-                                plant_ids: togglePlantSelection(userForm.plant_ids, plant.id),
-                              })
+                          (() => {
+                            const nextIds = togglePlantSelection(selectedIds, plant.id);
+                            if (userModalMode === 'create') {
+                              setNewUser({ ...newUser, plant_ids: nextIds });
+                              setNewUserPlantRoles((current) => {
+                                const next = { ...current };
+                                if (nextIds.includes(plant.id)) {
+                                  next[plant.id] = next[plant.id] || newUser.role;
+                                } else {
+                                  delete next[plant.id];
+                                }
+                                return next;
+                              });
+                            } else {
+                              setUserForm({ ...userForm, plant_ids: nextIds });
+                              setUserFormPlantRoles((current) => {
+                                const next = { ...current };
+                                if (nextIds.includes(plant.id)) {
+                                  next[plant.id] = next[plant.id] || userForm.role;
+                                } else {
+                                  delete next[plant.id];
+                                }
+                                return next;
+                              });
+                            }
+                          })()
                         }
                       >
                         {plant.code}
                       </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+                  {(userModalMode === 'create' ? newUser.plant_ids : userForm.plant_ids).map((plantId) => {
+                    const plant = plants.find((p) => p.id === plantId);
+                    const roleMap = userModalMode === 'create' ? newUserPlantRoles : userFormPlantRoles;
+                    const defaultRole = userModalMode === 'create' ? newUser.role : userForm.role;
+                    return (
+                      <div
+                        key={plantId}
+                        className="flex items-center justify-between gap-3 rounded-2xl border theme-border bg-[color:var(--dash-panel)] px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-xs font-semibold theme-text truncate">
+                            {plant?.code || plantId}
+                          </div>
+                          <div className="text-[11px] theme-text-muted truncate">
+                            Role nesta planta
+                          </div>
+                        </div>
+                        <select
+                          className="input h-9"
+                          value={roleMap[plantId] || defaultRole}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (userModalMode === 'create') {
+                              setNewUserPlantRoles((current) => ({ ...current, [plantId]: value }));
+                            } else {
+                              setUserFormPlantRoles((current) => ({ ...current, [plantId]: value }));
+                            }
+                          }}
+                        >
+                          {roles.map((role) => (
+                            <option key={role.value} value={role.value}>
+                              {role.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     );
                   })}
                 </div>
