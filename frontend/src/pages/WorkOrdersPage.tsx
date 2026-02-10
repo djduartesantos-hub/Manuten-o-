@@ -41,6 +41,7 @@ import {
   updateWorkOrderTask,
   updateWorkOrder,
   updatePreventiveSchedule,
+  skipPreventiveSchedule,
 } from '../services/api';
 import { DiagnosticsPanel } from '../components/DiagnosticsPanel';
 
@@ -645,6 +646,32 @@ export function WorkOrdersPage() {
       setEditingPreventive(null);
     } catch (err: any) {
       setPreventiveError(err?.message || 'Erro ao atualizar preventiva');
+    } finally {
+      setPreventiveSaving(false);
+    }
+  };
+
+  const skipPreventiveCycle = async (schedule: PreventiveSchedule) => {
+    if (!selectedPlant) return;
+    if (!canManagePreventive) return;
+
+    const reasonRaw = typeof window !== 'undefined'
+      ? window.prompt('Motivo para skipar este ciclo?')
+      : null;
+    if (reasonRaw === null) return;
+    const reason = String(reasonRaw || '').trim();
+    if (reason.length < 3) {
+      setPreventiveError('Motivo é obrigatório para skipar o ciclo');
+      return;
+    }
+
+    setPreventiveSaving(true);
+    try {
+      await skipPreventiveSchedule(selectedPlant, schedule.id, reason);
+      await loadPreventiveSchedules();
+      setEditingPreventive(null);
+    } catch (err: any) {
+      setPreventiveError(err?.message || 'Erro ao skipar ciclo preventivo');
     } finally {
       setPreventiveSaving(false);
     }
@@ -3980,20 +4007,32 @@ export function WorkOrdersPage() {
                           <>
                             {editingPreventive.status !== 'concluida' &&
                               editingPreventive.status !== 'fechada' &&
-                              preventiveEditForm.status !== 'reagendada' && (
-                                <button
-                                  type="button"
-                                  className="btn-secondary"
-                                  onClick={() =>
-                                    setPreventiveEditForm((p) => ({
-                                      ...p,
-                                      status: 'reagendada',
-                                    }))
-                                  }
-                                  disabled={preventiveSaving}
-                                >
-                                  Adiar/Skip ciclo
-                                </button>
+                              (
+                                <>
+                                  {preventiveEditForm.status !== 'reagendada' && (
+                                    <button
+                                      type="button"
+                                      className="btn-secondary"
+                                      onClick={() =>
+                                        setPreventiveEditForm((p) => ({
+                                          ...p,
+                                          status: 'reagendada',
+                                        }))
+                                      }
+                                      disabled={preventiveSaving}
+                                    >
+                                      Adiar
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    className="btn-secondary"
+                                    onClick={() => skipPreventiveCycle(editingPreventive)}
+                                    disabled={preventiveSaving}
+                                  >
+                                    Skip ciclo
+                                  </button>
+                                </>
                               )}
                             <button
                               type="button"

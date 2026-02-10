@@ -37,6 +37,13 @@ router.patch(
   MaintenanceController.updatePreventiveSchedule,
 );
 
+// POST /api/tenants/:plantId/preventive-schedules/:schedule_id/skip - skipar ciclo (com motivo)
+router.post(
+  '/:plantId/preventive-schedules/:schedule_id/skip',
+  requireRole('gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'),
+  MaintenanceController.skipPreventiveSchedule,
+);
+
 // POST /api/tenants/:plantId/plans - criar plano
 router.post(
   '/:plantId/plans',

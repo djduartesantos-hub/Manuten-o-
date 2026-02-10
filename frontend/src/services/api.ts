@@ -368,6 +368,17 @@ export async function updatePreventiveSchedule(
   });
 }
 
+export async function skipPreventiveSchedule(
+  plantId: string,
+  scheduleId: string,
+  reason: string,
+) {
+  return apiCall(`/${plantId}/preventive-schedules/${scheduleId}/skip`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
 export async function createMaintenancePlan(plantId: string, data: any) {
   return apiCall(`/${plantId}/plans`, {
     method: 'POST',

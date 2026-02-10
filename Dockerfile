@@ -56,6 +56,9 @@ COPY --from=frontend-builder /app/frontend/dist ./public
 # Copy SQL migrations for public bootstrap
 COPY scripts/database/migrations ./scripts/database/migrations
 
+# Copy docker startup helpers (wait for DB, run SQL migrations)
+COPY scripts/docker ./scripts/docker
+
 # Create necessary directories
 RUN mkdir -p logs
 
@@ -70,4 +73,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Start the application (run migrations first)
-CMD ["sh", "-c", "npm run db:migrate && node dist/server.js"]
+CMD ["sh", "-c", "node scripts/docker/wait-for-db.mjs && npm run db:migrate && node scripts/docker/run-sql-migrations.mjs && node dist/server.js"]

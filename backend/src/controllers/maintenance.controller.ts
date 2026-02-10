@@ -8,6 +8,7 @@ import {
   createMaintenanceTaskSchema,
   createPreventiveScheduleSchema,
   updatePreventiveScheduleSchema,
+  skipPreventiveScheduleSchema,
 } from '../schemas/maintenance.validation.js';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 import { db } from '../config/database.js';
@@ -664,6 +665,98 @@ export async function updatePreventiveSchedule(req: AuthenticatedRequest, res: R
     res.status(error instanceof Error && error.message.includes('not found') ? 404 : 400).json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update preventive schedule',
+    });
+  }
+}
+
+/**
+ * Skip a preventive schedule cycle (marks schedule as completed and auto-schedules next cycle)
+ * POST /api/tenants/:plantId/preventive-schedules/:schedule_id/skip
+ */
+export async function skipPreventiveSchedule(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { schedule_id } = req.params;
+    const plantId = await resolvePlantId(req, req.tenantId as string);
+
+    if (!schedule_id) {
+      res.status(400).json({ success: false, error: 'Schedule ID is required' });
+      return;
+    }
+
+    const validation = skipPreventiveScheduleSchema.safeParse(req.body);
+    if (!validation.success) {
+      res.status(400).json({ success: false, error: 'Invalid input', details: validation.error.errors });
+      return;
+    }
+
+    if (!req.tenantId || !plantId) {
+      res.status(400).json({ success: false, error: 'Plant ID is required' });
+      return;
+    }
+
+    const existing = await db.query.preventiveMaintenanceSchedules.findFirst({
+      where: (fields: any, { and, eq }: any) =>
+        and(
+          eq(fields.id, schedule_id),
+          eq(fields.tenant_id, req.tenantId!),
+          eq(fields.plant_id, plantId),
+        ),
+      columns: {
+        id: true,
+        status: true,
+        notes: true,
+      },
+    });
+
+    if (!existing) {
+      res.status(404).json({ success: false, error: 'Preventive schedule not found' });
+      return;
+    }
+
+    const currentStatus = String(existing.status || '').trim();
+    if (currentStatus === 'concluida' || currentStatus === 'fechada') {
+      res.status(400).json({ success: false, error: 'Agendamento já está concluído/fechado' });
+      return;
+    }
+
+    const reason = String(validation.data.reason || '').trim();
+    const stamp = new Date().toISOString();
+    const entry = `[SKIP ${stamp}] ${reason}`;
+    const baseNotes = existing.notes ? String(existing.notes) : '';
+    const nextNotes = baseNotes.trim() ? `${baseNotes.trim()}\n${entry}` : entry;
+
+    const updated = await maintenanceService.updatePreventiveSchedule(
+      req.tenantId!,
+      plantId,
+      schedule_id,
+      {
+        status: 'concluida',
+        notes: nextNotes,
+      } as any,
+      req.user?.userId,
+    );
+
+    if (isSocketManagerReady()) {
+      const socketManager = getSocketManager();
+      socketManager.emitNotification(req.tenantId!, {
+        type: 'warning',
+        entity: 'preventive-schedule',
+        action: 'skipped',
+        message: 'Ciclo preventivo skipado',
+        scheduleId: schedule_id,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: (updated as any)?.schedule,
+      message: 'Preventive schedule skipped',
+    });
+  } catch (error) {
+    console.error('Error skipping preventive schedule:', error);
+    res.status(error instanceof Error && error.message.includes('not found') ? 404 : 400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to skip preventive schedule',
     });
   }
 }

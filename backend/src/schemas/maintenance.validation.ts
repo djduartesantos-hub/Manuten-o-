@@ -94,9 +94,15 @@ export const updatePreventiveScheduleSchema = z.object({
   }
 });
 
+export const skipPreventiveScheduleSchema = z.object({
+  reason: z.string().min(3, 'Motivo mínimo 3 caracteres').max(500),
+});
+
 export type CreateMaintenancePlanInput = z.infer<typeof createMaintenancePlanSchema>;
 export type UpdateMaintenancePlanInput = z.infer<typeof updateMaintenancePlanSchema>;
 export type CreateMaintenanceTaskInput = z.infer<typeof createMaintenanceTaskSchema>;
 
 export type CreatePreventiveScheduleInput = z.infer<typeof createPreventiveScheduleSchema>;
 export type UpdatePreventiveScheduleInput = z.infer<typeof updatePreventiveScheduleSchema>;
+
+export type SkipPreventiveScheduleInput = z.infer<typeof skipPreventiveScheduleSchema>;
