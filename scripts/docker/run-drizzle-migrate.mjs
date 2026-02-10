@@ -92,13 +92,30 @@ if (configured === undefined && env.NODE_ENV === 'production') {
 }
 
 const verbose = env.DRIZZLE_MIGRATE_VERBOSE === 'true' || env.DRIZZLE_MIGRATE_VERBOSE === '1';
+const autoApprove =
+  env.DRIZZLE_AUTO_APPROVE !== undefined
+    ? env.DRIZZLE_AUTO_APPROVE === 'true' || env.DRIZZLE_AUTO_APPROVE === '1'
+    : env.NODE_ENV === 'production';
 
 console.log(`[drizzle-migrate] running db:migrate${verbose ? ' (verbose)' : ''}...`);
 
 const child = spawn('npm', ['run', 'db:migrate'], {
-  stdio: verbose ? 'inherit' : ['ignore', 'pipe', 'pipe'],
+  // Keep stdin available so drizzle-kit can prompt if it needs to.
+  // We still capture stdout/stderr to avoid log-rate limits.
+  stdio: verbose ? 'inherit' : ['pipe', 'pipe', 'pipe'],
   env,
 });
+
+if (!verbose && autoApprove) {
+  // drizzle-kit may ask for confirmation before executing statements.
+  // Feeding a single "y" keeps production boots non-interactive.
+  try {
+    child.stdin?.write('y\n');
+    child.stdin?.end();
+  } catch {
+    // ignore
+  }
+}
 
 let stdoutTail = '';
 let stderrTail = '';
