@@ -75,4 +75,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # Start the application (run migrations first)
 # - Drizzle push creates the final schema on a fresh DB.
 # - Legacy SQL migrations are OPTIONAL (for older databases) and can be enabled via RUN_SQL_MIGRATIONS=true.
-CMD ["sh", "-c", "node scripts/docker/wait-for-db.mjs && node scripts/docker/run-drizzle-migrate.mjs && if [ \"${RUN_SQL_MIGRATIONS:-false}\" = \"true\" ]; then node scripts/docker/run-sql-migrations.mjs; fi && node dist/server.js"]
+CMD ["sh", "-c", "node scripts/docker/wait-for-db.mjs && node scripts/docker/preflight-db.mjs && node scripts/docker/run-drizzle-migrate.mjs && if [ \"${RUN_SQL_MIGRATIONS:-false}\" = \"true\" ]; then node scripts/docker/run-sql-migrations.mjs; fi && node dist/server.js"]
