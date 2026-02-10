@@ -11,7 +11,7 @@ import {
   index,
   pgEnum,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 
 // Enums
 export const orderStatusEnum = pgEnum('order_status', [
@@ -825,7 +825,9 @@ export const alertConfigurations = pgTable(
     threshold: integer('threshold').notNull(),
     time_unit: text('time_unit').notNull(), // 'hours', 'days'
     is_active: boolean('is_active').default(true),
-    notify_roles: text('notify_roles').array().default(['admin', 'manager']),
+    notify_roles: text('notify_roles')
+      .array()
+      .default(sql`ARRAY['admin','manager']::text[]`),
     notify_email: boolean('notify_email').default(true),
     notify_push: boolean('notify_push').default(false),
     escalate_after_hours: integer('escalate_after_hours'),
@@ -875,8 +877,10 @@ export const notificationRules = pgTable(
     tenant_id: uuid('tenant_id')
       .notNull(),
     event_type: text('event_type').notNull(),
-    channels: text('channels').array().default(['in_app']),
-    recipients: text('recipients').array().default(['assigned', 'creator', 'managers', 'plant_users']),
+    channels: text('channels').array().default(sql`ARRAY['in_app']::text[]`),
+    recipients: text('recipients')
+      .array()
+      .default(sql`ARRAY['assigned','creator','managers','plant_users']::text[]`),
     is_active: boolean('is_active').default(true),
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
