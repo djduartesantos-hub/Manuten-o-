@@ -28,10 +28,13 @@ import { ProfilePage } from './pages/ProfilePage';
 
 
 import { ThemeProvider } from './context/ThemeContext';
+import { getHomeRouteForRole } from './utils/homeRoute';
 
 function App() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { selectedPlant, setSelectedPlant, setPlants } = useAppStore();
+
+  const homeRoute = getHomeRouteForRole(user?.role);
 
   React.useEffect(() => {
     const loadPlants = async () => {
@@ -70,13 +73,13 @@ function App() {
             <Route
               path="/"
               element={
-                isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />
+                isAuthenticated ? <Navigate to={homeRoute} replace /> : <LoginPage />
               }
             />
             <Route
               path="/login"
               element={
-                isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />
+                isAuthenticated ? <Navigate to={homeRoute} replace /> : <LoginPage />
               }
             />
             <Route path="/setup" element={<SetupInitPage />} />
@@ -200,7 +203,10 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route
+              path="*"
+              element={<Navigate to={isAuthenticated ? homeRoute : '/login'} replace />}
+            />
             </Routes>
           </BrowserRouter>
           <Toaster

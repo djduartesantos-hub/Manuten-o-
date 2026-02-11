@@ -4,10 +4,11 @@ import { useAuth } from '../hooks/useAuth';
 import { login as apiLogin } from '../services/api';
 import { AlertCircle, Eye, EyeOff, Moon, Sparkles, Sun } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { getHomeRouteForRole } from '../utils/homeRoute';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { setAuth, isAuthenticated } = useAuth();
+  const { setAuth, isAuthenticated, user } = useAuth();
   const { theme, setTheme } = useTheme();
   const [username, setUsername] = React.useState('admin');
   const [password, setPassword] = React.useState('Admin@123456');
@@ -15,11 +16,13 @@ export function LoginPage() {
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const isDark = theme.name === 'dark';
+
+  const homeRoute = getHomeRouteForRole(user?.role);
   React.useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard', { replace: true });
+      navigate(homeRoute, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [homeRoute, isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +32,7 @@ export function LoginPage() {
     try {
       const result = await apiLogin(username.trim().toLowerCase(), password);
       setAuth(result.user, result.token, result.refreshToken);
-      navigate('/dashboard');
+      navigate(getHomeRouteForRole(result.user?.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
