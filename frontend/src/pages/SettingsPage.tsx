@@ -2159,7 +2159,7 @@ function PredictiveWarningsSettings() {
 
   React.useEffect(() => {
     fetchAssets();
-  }, []);
+  }, [selectedPlant]);
 
   React.useEffect(() => {
     if (selectedAsset) {
@@ -2171,12 +2171,23 @@ function PredictiveWarningsSettings() {
     try {
       if (!selectedPlant) {
         setAssets([]);
+        setSelectedAsset('');
+        setWarnings([]);
         return;
       }
       const data = await getAssets(selectedPlant);
-      setAssets(data || []);
-      if (data && data.length > 0) {
-        setSelectedAsset(data[0].id);
+      const nextAssets = data || [];
+      setAssets(nextAssets);
+
+      if (nextAssets.length === 0) {
+        setSelectedAsset('');
+        setWarnings([]);
+        return;
+      }
+
+      const stillExists = selectedAsset && nextAssets.some((a: any) => a.id === selectedAsset);
+      if (!stillExists) {
+        setSelectedAsset(nextAssets[0].id);
       }
     } catch (error) {
       console.error('Failed to fetch assets:', error);
@@ -2219,6 +2230,136 @@ function PredictiveWarningsSettings() {
       default:
         return { label: 'Baixo', className: 'badge-success' };
     }
+  };
+
+  const toPercent = (value: any): number | null => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    if (n <= 1 && n >= 0) return Math.round(n * 100);
+    return Math.round(n);
+  };
+
+  const toNumber = (value: any): number | null => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    return n;
+  };
+
+  const metrics = React.useMemo(() => {
+    const total = warnings.length;
+    const critical = warnings.filter((w) => w.severity === 'critical').length;
+    const high = warnings.filter((w) => w.severity === 'high').length;
+    const medium = warnings.filter((w) => w.severity === 'medium').length;
+    const low = Math.max(0, total - critical - high - medium);
+
+    const confidences = warnings
+      .map((w) => toPercent(w.confidence))
+      .filter((v): v is number => typeof v === 'number');
+    const failureRates = warnings
+      .map((w) => toPercent(w.failure_rate))
+      .filter((v): v is number => typeof v === 'number');
+    const mtbfHours = warnings
+      .map((w) => toNumber(w.mtbf))
+      .filter((v): v is number => typeof v === 'number');
+
+    const avg = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
+
+    return {
+      total,
+      critical,
+      high,
+      medium,
+      low,
+      avgConfidence: avg(confidences),
+      avgFailureRate: avg(failureRates),
+      avgMtbfHours: avg(mtbfHours),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [warnings]);
+
+  const MetricBar = ({
+    label,
+    value,
+    max,
+    suffix,
+  }: {
+    label: string;
+    value: number | null;
+    max: number;
+    suffix?: string;
+  }) => {
+    const safe = value == null ? null : Math.max(0, Math.min(max, value));
+    const pct = safe == null ? 0 : (safe / max) * 100;
+
+    return (
+      <div className="rounded-2xl border theme-border theme-card p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-xs font-semibold uppercase tracking-wide theme-text-muted">{label}</div>
+          <div className="text-sm font-semibold theme-text">
+            {value == null ? '—' : `${value % 1 === 0 ? value.toFixed(0) : value.toFixed(1)}${suffix || ''}`}
+          </div>
+        </div>
+        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[color:var(--dash-border)]">
+          <div
+            className="h-full rounded-full bg-[color:var(--settings-accent)]"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const SeverityStack = () => {
+    if (!metrics.total) return null;
+    const pct = (n: number) => (metrics.total ? (n / metrics.total) * 100 : 0);
+    return (
+      <div className="rounded-2xl border theme-border theme-card p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-xs font-semibold uppercase tracking-wide theme-text-muted">Distribuição</div>
+          <div className="text-sm font-semibold theme-text">{metrics.total} avisos</div>
+        </div>
+
+        <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-[color:var(--dash-border)]">
+          <div className="flex h-full w-full">
+            {metrics.critical > 0 && (
+              <div
+                className="h-full bg-[color:var(--settings-accent)]"
+                style={{ width: `${pct(metrics.critical)}%` }}
+                title={`Críticos: ${metrics.critical}`}
+              />
+            )}
+            {metrics.high > 0 && (
+              <div
+                className="h-full bg-[color:var(--settings-accent-2)]"
+                style={{ width: `${pct(metrics.high)}%` }}
+                title={`Altos: ${metrics.high}`}
+              />
+            )}
+            {metrics.medium > 0 && (
+              <div
+                className="h-full bg-[color:var(--dash-accent)]"
+                style={{ width: `${pct(metrics.medium)}%` }}
+                title={`Médios: ${metrics.medium}`}
+              />
+            )}
+            {metrics.low > 0 && (
+              <div
+                className="h-full bg-[color:var(--dash-muted)]"
+                style={{ width: `${pct(metrics.low)}%` }}
+                title={`Baixos: ${metrics.low}`}
+              />
+            )}
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {metrics.critical > 0 && <span className="badge-danger text-xs">Críticos: {metrics.critical}</span>}
+          {metrics.high > 0 && <span className="badge-warning text-xs">Altos: {metrics.high}</span>}
+          {metrics.medium > 0 && <span className="badge-warning text-xs">Médios: {metrics.medium}</span>}
+          {metrics.low > 0 && <span className="badge-success text-xs">Baixos: {metrics.low}</span>}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -2320,6 +2461,40 @@ function PredictiveWarningsSettings() {
                       </div>
                     )}
                   </div>
+
+                  {(toPercent(warning.confidence) != null || toPercent(warning.failure_rate) != null) && (
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      {toPercent(warning.confidence) != null && (
+                        <div>
+                          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide theme-text-muted">
+                            <span>Confiança</span>
+                            <span className="theme-text">{toPercent(warning.confidence)}%</span>
+                          </div>
+                          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[color:var(--dash-border)]">
+                            <div
+                              className="h-full rounded-full bg-[color:var(--settings-accent)]"
+                              style={{ width: `${Math.max(0, Math.min(100, toPercent(warning.confidence) || 0))}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {toPercent(warning.failure_rate) != null && (
+                        <div>
+                          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide theme-text-muted">
+                            <span>Taxa falha</span>
+                            <span className="theme-text">{toPercent(warning.failure_rate)}%</span>
+                          </div>
+                          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[color:var(--dash-border)]">
+                            <div
+                              className="h-full rounded-full bg-[color:var(--settings-accent-2)]"
+                              style={{ width: `${Math.max(0, Math.min(100, toPercent(warning.failure_rate) || 0))}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {warning.recommendation && (
                     <div className="mt-3 rounded-2xl border theme-border bg-[color:var(--dash-panel)] p-3 text-sm theme-text">
                       <span className="font-medium">Recomendacao:</span> {warning.recommendation}
@@ -2334,7 +2509,8 @@ function PredictiveWarningsSettings() {
 
       {/* Analysis Summary */}
       {selectedAsset && warnings.length > 0 && (
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="mt-8">
+          <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-[20px] border theme-border theme-card p-4 text-center shadow-sm">
             <div className="text-2xl font-semibold theme-text">
               {warnings.filter((w) => w.severity === 'critical').length}
@@ -2358,6 +2534,14 @@ function PredictiveWarningsSettings() {
             <div className="mt-2">
               <span className="badge-warning text-xs">Medios</span>
             </div>
+          </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-4">
+            <SeverityStack />
+            <MetricBar label="Confiança média" value={metrics.avgConfidence} max={100} suffix="%" />
+            <MetricBar label="Taxa falha média" value={metrics.avgFailureRate} max={100} suffix="%" />
+            <MetricBar label="MTBF médio" value={metrics.avgMtbfHours} max={Math.max(1, Math.ceil((metrics.avgMtbfHours || 0) * 1.5))} suffix="h" />
           </div>
         </div>
       )}
