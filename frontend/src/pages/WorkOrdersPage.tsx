@@ -2766,17 +2766,21 @@ export function WorkOrdersPage() {
                       <button
                         type="button"
                         onClick={handleUpdate}
-                        className="btn-primary inline-flex h-10 w-10 items-center justify-center"
+                        className="btn-primary inline-flex h-10 w-10 items-center justify-center !p-0 [--btn-icon:32px] md:[--btn-icon:22px]"
                         disabled={updating}
                         title="Guardar alterações"
                         aria-label="Guardar alterações"
                       >
                         {updating ? (
-                          <Loader2 className="h-9 w-9 animate-spin md:h-6 md:w-6" />
+                          <Loader2
+                            className="animate-spin"
+                            style={{ width: 'var(--btn-icon)', height: 'var(--btn-icon)' }}
+                          />
                         ) : (
                           <CheckCircle2
-                            className="h-9 w-9 text-white md:h-6 md:w-6"
+                            className="text-white"
                             strokeWidth={2.6}
+                            style={{ width: 'var(--btn-icon)', height: 'var(--btn-icon)' }}
                           />
                         )}
                       </button>
@@ -2785,28 +2789,30 @@ export function WorkOrdersPage() {
                       <button
                         type="button"
                         onClick={handleDeleteOrder}
-                        className="btn-secondary inline-flex h-10 w-10 items-center justify-center !border-rose-500/25 !bg-rose-500/10 hover:!bg-rose-500/15"
+                        className="btn-secondary inline-flex h-10 w-10 items-center justify-center !p-0 [--btn-icon:32px] md:[--btn-icon:22px] !border-rose-500/25 !bg-rose-500/10 hover:!bg-rose-500/15"
                         disabled={updating}
                         title="Eliminar"
                         aria-label="Eliminar"
                       >
                         <MinusCircle
-                          className="h-9 w-9 text-rose-600 md:h-6 md:w-6"
+                          className="text-rose-600"
                           strokeWidth={2.6}
+                          style={{ width: 'var(--btn-icon)', height: 'var(--btn-icon)' }}
                         />
                       </button>
                     )}
                     <button
                       type="button"
                       onClick={() => setEditingOrder(null)}
-                      className="btn-secondary inline-flex h-10 w-10 items-center justify-center"
+                      className="btn-secondary inline-flex h-10 w-10 items-center justify-center !p-0 [--btn-icon:32px] md:[--btn-icon:22px]"
                       disabled={updating}
                       title="Fechar"
                       aria-label="Fechar"
                     >
                       <XCircle
-                        className="h-9 w-9 theme-text-muted md:h-6 md:w-6"
+                        className="theme-text-muted"
                         strokeWidth={2.6}
+                        style={{ width: 'var(--btn-icon)', height: 'var(--btn-icon)' }}
                       />
                     </button>
                   </div>
@@ -2887,7 +2893,7 @@ export function WorkOrdersPage() {
                               !['concluida', 'fechada', 'cancelada'].includes(editingOrder.status) && (
                                 <button
                                   type="button"
-                                  className="btn-secondary inline-flex h-9 w-9 items-center justify-center !border-rose-500/25 !bg-rose-500/10 hover:!bg-rose-500/15"
+                                  className="btn-secondary inline-flex h-9 w-9 items-center justify-center !p-0 [--btn-icon:26px] md:[--btn-icon:18px] !border-rose-500/25 !bg-rose-500/10 hover:!bg-rose-500/15"
                                   disabled={tasksSaving}
                                   title="Remover tarefa"
                                   aria-label="Remover tarefa"
@@ -2898,8 +2904,9 @@ export function WorkOrdersPage() {
                                   }}
                                 >
                                   <MinusCircle
-                                    className="h-7 w-7 text-rose-600 md:h-5 md:w-5"
+                                    className="text-rose-600"
                                     strokeWidth={2.6}
+                                    style={{ width: 'var(--btn-icon)', height: 'var(--btn-icon)' }}
                                   />
                                 </button>
                               )}
@@ -2924,18 +2931,22 @@ export function WorkOrdersPage() {
                       />
                       <button
                         type="button"
-                        className="btn-secondary inline-flex h-10 w-10 items-center justify-center !border-emerald-500/25 !bg-emerald-500/10 hover:!bg-emerald-500/15"
+                        className="btn-secondary inline-flex h-10 w-10 items-center justify-center !p-0 [--btn-icon:32px] md:[--btn-icon:22px] !border-emerald-500/25 !bg-emerald-500/10 hover:!bg-emerald-500/15"
                         onClick={handleAddTask}
                         disabled={tasksSaving}
                         title="Adicionar tarefa"
                         aria-label="Adicionar tarefa"
                       >
                         {tasksSaving ? (
-                          <Loader2 className="h-9 w-9 animate-spin md:h-6 md:w-6" />
+                          <Loader2
+                            className="animate-spin"
+                            style={{ width: 'var(--btn-icon)', height: 'var(--btn-icon)' }}
+                          />
                         ) : (
                           <PlusCircle
-                            className="h-9 w-9 text-emerald-600 md:h-6 md:w-6"
+                            className="text-emerald-600"
                             strokeWidth={2.6}
+                            style={{ width: 'var(--btn-icon)', height: 'var(--btn-icon)' }}
                           />
                         )}
                       </button>
