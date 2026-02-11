@@ -961,12 +961,64 @@ export function WorkOrdersPage() {
   };
 
   const getPriorityMeta = (value: any) => {
-    const key = String(value || '').trim().toLowerCase();
-    if (key === 'critica') return { label: 'Crítica', Icon: AlertTriangle, className: 'text-rose-600' };
-    if (key === 'alta') return { label: 'Alta', Icon: AlertCircle, className: 'text-amber-600' };
-    if (key === 'baixa') return { label: 'Baixa', Icon: Clock, className: 'text-[color:var(--dash-muted)]' };
-    if (key === 'media') return { label: 'Média', Icon: Activity, className: 'text-emerald-600' };
-    return { label: formatPriorityLabelForAudit(value), Icon: AlertCircle, className: 'text-[color:var(--dash-muted)]' };
+    const key = String(value || '').trim().toLowerCase() || 'media';
+    if (key === 'critica') {
+      return {
+        key,
+        label: 'Crítica',
+        Icon: AlertTriangle,
+        iconClassName: 'text-rose-600',
+        badgeClassName: 'bg-rose-100 text-rose-700',
+      };
+    }
+    if (key === 'alta') {
+      return {
+        key,
+        label: 'Alta',
+        Icon: AlertCircle,
+        iconClassName: 'text-amber-600',
+        badgeClassName: 'bg-amber-100 text-amber-700',
+      };
+    }
+    if (key === 'baixa') {
+      return {
+        key,
+        label: 'Baixa',
+        Icon: Clock,
+        iconClassName: 'text-[color:var(--dash-muted)]',
+        badgeClassName:
+          'border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] text-[color:var(--dash-muted)]',
+      };
+    }
+    if (key === 'media') {
+      return {
+        key,
+        label: 'Média',
+        Icon: Activity,
+        iconClassName: 'text-emerald-600',
+        badgeClassName: 'bg-emerald-100 text-emerald-700',
+      };
+    }
+    return {
+      key,
+      label: formatPriorityLabelForAudit(value),
+      Icon: AlertCircle,
+      iconClassName: 'text-[color:var(--dash-muted)]',
+      badgeClassName:
+        'border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] text-[color:var(--dash-muted)]',
+    };
+  };
+
+  const getStatusMeta = (value: any) => {
+    const key = String(value || '').trim() || 'aberta';
+    if (key === 'aberta') return { key, label: 'Aberta', Icon: AlertTriangle, iconClassName: 'text-amber-600' };
+    if (key === 'em_analise') return { key, label: 'Em Análise', Icon: Search, iconClassName: 'text-sky-600' };
+    if (key === 'em_execucao') return { key, label: 'Em Execução', Icon: RefreshCcw, iconClassName: 'text-cyan-600' };
+    if (key === 'em_pausa') return { key, label: 'Em Pausa', Icon: Clock, iconClassName: 'text-[color:var(--dash-muted)]' };
+    if (key === 'concluida') return { key, label: 'Concluída', Icon: CheckCircle2, iconClassName: 'text-emerald-600' };
+    if (key === 'fechada') return { key, label: 'Fechada', Icon: CheckCircle2, iconClassName: 'text-emerald-600' };
+    if (key === 'cancelada') return { key, label: 'Cancelada', Icon: X, iconClassName: 'text-rose-600' };
+    return { key, label: statusLabels[key] || key, Icon: AlertCircle, iconClassName: 'text-[color:var(--dash-muted)]' };
   };
 
   const isSameAuditValue = (a: any, b: any) => {
@@ -2070,7 +2122,7 @@ export function WorkOrdersPage() {
 
   const prioritySummary = useMemo(() => {
     return workOrders.reduce<Record<string, number>>((acc, order) => {
-      const key = order.priority || 'n/a';
+      const key = order.priority || 'media';
       acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {});
@@ -2397,12 +2449,21 @@ export function WorkOrdersPage() {
                       </p>
                     </div>
                     <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
                         statusBadgeClass[editingOrder.status] ||
                         'border theme-border bg-[color:var(--dash-surface)] theme-text'
                       }`}
                     >
-                      {statusLabels[editingOrder.status] || editingOrder.status}
+                      {(() => {
+                        const meta = getStatusMeta(editingOrder.status);
+                        const Icon = meta.Icon;
+                        return (
+                          <>
+                            <Icon size={16} className={meta.iconClassName} />
+                            <span>{meta.label}</span>
+                          </>
+                        );
+                      })()}
                     </span>
                   </div>
                 </div>
@@ -2476,7 +2537,7 @@ export function WorkOrdersPage() {
                         const Icon = meta.Icon;
                         return (
                           <div className="mt-1 inline-flex items-center gap-2 theme-text">
-                            <Icon size={16} className={meta.className} />
+                            <Icon size={18} className={meta.iconClassName} />
                             <span>{meta.label}</span>
                           </div>
                         );
@@ -2708,9 +2769,9 @@ export function WorkOrdersPage() {
                         aria-label="Guardar alterações"
                       >
                         {updating ? (
-                          <Loader2 size={18} className="animate-spin" />
+                          <Loader2 size={22} className="animate-spin" />
                         ) : (
-                          <Save size={18} className="text-white" />
+                          <Save size={22} className="text-white" />
                         )}
                       </button>
                     )}
@@ -2723,7 +2784,7 @@ export function WorkOrdersPage() {
                         title="Eliminar"
                         aria-label="Eliminar"
                       >
-                        <Trash2 size={18} className="text-rose-600" />
+                        <Trash2 size={22} className="text-rose-600" />
                       </button>
                     )}
                     <button
@@ -2734,7 +2795,7 @@ export function WorkOrdersPage() {
                       title="Fechar"
                       aria-label="Fechar"
                     >
-                      <X size={18} className="theme-text-muted" />
+                      <X size={22} className="theme-text-muted" />
                     </button>
                   </div>
                       </>
@@ -2824,7 +2885,7 @@ export function WorkOrdersPage() {
                                     void handleRemoveTask(task);
                                   }}
                                 >
-                                  <Trash2 size={16} className="text-rose-600" />
+                                  <Trash2 size={20} className="text-rose-600" />
                                 </button>
                               )}
                           </span>
@@ -2855,9 +2916,9 @@ export function WorkOrdersPage() {
                         aria-label="Adicionar tarefa"
                       >
                         {tasksSaving ? (
-                          <Loader2 size={18} className="animate-spin" />
+                          <Loader2 size={22} className="animate-spin" />
                         ) : (
-                          <Plus size={18} className="text-emerald-600" />
+                          <Plus size={22} className="text-emerald-600" />
                         )}
                       </button>
                     </div>
@@ -3998,16 +4059,37 @@ export function WorkOrdersPage() {
                                 )}
                               </td>
                               <td className="px-6 py-4 text-sm theme-text">
-                                {order.priority || 'n/a'}
+                                {(() => {
+                                  const meta = getPriorityMeta(order.priority);
+                                  const Icon = meta.Icon;
+                                  return (
+                                    <span
+                                      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${meta.badgeClassName}`}
+                                      title={`Prioridade: ${meta.label}`}
+                                    >
+                                      <Icon size={16} className={meta.iconClassName} />
+                                      {meta.label}
+                                    </span>
+                                  );
+                                })()}
                               </td>
                               <td className="px-6 py-4">
                                 <span
-                                  className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                                  className={`inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs font-semibold ${
                                     statusBadgeClass[order.status] ||
                                     'border theme-border bg-[color:var(--dash-surface)] theme-text'
                                   }`}
                                 >
-                                  {statusLabels[order.status] || order.status}
+                                  {(() => {
+                                    const meta = getStatusMeta(order.status);
+                                    const Icon = meta.Icon;
+                                    return (
+                                      <>
+                                        <Icon size={14} className={meta.iconClassName} />
+                                        <span>{meta.label}</span>
+                                      </>
+                                    );
+                                  })()}
                                 </span>
                               </td>
                               <td className="px-6 py-4 text-xs font-semibold theme-text-muted">
@@ -4388,9 +4470,19 @@ export function WorkOrdersPage() {
                                   </span>
                                 </div>
                                 <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                                  <span className="rounded-full bg-[color:var(--dash-surface)] px-2 py-1 theme-text">
-                                    {order.priority || 'n/a'}
-                                  </span>
+                                  {(() => {
+                                    const meta = getPriorityMeta(order.priority);
+                                    const Icon = meta.Icon;
+                                    return (
+                                      <span
+                                        className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${meta.badgeClassName}`}
+                                        title={`Prioridade: ${meta.label}`}
+                                      >
+                                        <Icon size={14} className={meta.iconClassName} />
+                                        {meta.label}
+                                      </span>
+                                    );
+                                  })()}
                                   {slaDate && (
                                     <span
                                       className={`rounded-full px-2 py-1 ${
@@ -4429,7 +4521,14 @@ export function WorkOrdersPage() {
                   {Object.entries(prioritySummary).map(([priority, count]) => (
                     <div key={priority} className="space-y-2">
                       <div className="flex items-center justify-between text-xs font-semibold theme-text">
-                        <span>{priority}</span>
+                        <span className="inline-flex items-center gap-2">
+                          {(() => {
+                            const meta = getPriorityMeta(priority);
+                            const Icon = meta.Icon;
+                            return <Icon size={14} className={meta.iconClassName} />;
+                          })()}
+                          <span>{formatPriorityLabelForAudit(priority)}</span>
+                        </span>
                         <span>{count}</span>
                       </div>
                       <div className="h-2 rounded-full bg-[color:var(--dash-surface)]">
