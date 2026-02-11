@@ -32,6 +32,20 @@ const WORK_ORDER_STATUS_LABELS: Record<string, string> = {
 
 const workOrderStatusLabel = (value: string) => WORK_ORDER_STATUS_LABELS[value] || value;
 
+const WORK_ORDER_PRIORITY_LABELS: Record<string, string> = {
+  critica: 'Crítica',
+  alta: 'Alta',
+  media: 'Média',
+  baixa: 'Baixa',
+};
+
+const workOrderPriorityLabel = (value?: string | null) => {
+  const key = String(value || '').trim().toLowerCase();
+  return WORK_ORDER_PRIORITY_LABELS[key] || (key ? key.charAt(0).toUpperCase() + key.slice(1) : '—');
+};
+
+const REPORTS_STORAGE_KEY = 'reportsPreferences';
+
 interface WorkOrder {
   id: string;
   title: string;
@@ -72,6 +86,32 @@ export function ReportsPage() {
   const [dateTo, setDateTo] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [assetFilter, setAssetFilter] = useState('');
+
+  // Restore saved preferences (type + filters)
+  useEffect(() => {
+    const raw = localStorage.getItem(REPORTS_STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed?.reportType) setReportType(parsed.reportType);
+      setStatusFilter(parsed?.statusFilter || '');
+      setPriorityFilter(parsed?.priorityFilter || '');
+      setDateFrom(parsed?.dateFrom || '');
+      setDateTo(parsed?.dateTo || '');
+      setSearchTerm(parsed?.searchTerm || '');
+      setAssetFilter(parsed?.assetFilter || '');
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Persist preferences
+  useEffect(() => {
+    localStorage.setItem(
+      REPORTS_STORAGE_KEY,
+      JSON.stringify({ reportType, statusFilter, priorityFilter, dateFrom, dateTo, searchTerm, assetFilter }),
+    );
+  }, [reportType, statusFilter, priorityFilter, dateFrom, dateTo, searchTerm, assetFilter]);
 
   useEffect(() => {
     const load = async () => {
@@ -255,14 +295,24 @@ export function ReportsPage() {
   }, [summary]);
 
   const priorityChartData = useMemo(() => {
-    const labels = Object.keys(summary.byPriority);
+    const priorityOrder = ['critica', 'alta', 'media', 'baixa', 'n/a'];
+    const rawKeys = Object.keys(summary.byPriority);
+    const keys = priorityOrder.filter((k) => rawKeys.includes(k)).concat(rawKeys.filter((k) => !priorityOrder.includes(k)));
+
+    const colorByPriority: Record<string, string> = {
+      critica: '#ef4444',
+      alta: '#f59e0b',
+      media: '#22c55e',
+      baixa: '#0ea5e9',
+      'n/a': '#94a3b8',
+    };
     return {
-      labels,
+      labels: keys.map((k) => (k === 'n/a' ? '—' : workOrderPriorityLabel(k))),
       datasets: [
         {
           label: 'Ordens por prioridade',
-          data: labels.map((label) => summary.byPriority[label]),
-          backgroundColor: ['#22c55e', '#0ea5e9', '#f59e0b', '#ef4444'],
+          data: keys.map((key) => summary.byPriority[key]),
+          backgroundColor: keys.map((key) => colorByPriority[key] || '#94a3b8'),
         },
       ],
     };
@@ -328,6 +378,108 @@ export function ReportsPage() {
       ],
     };
   }, [filteredOrders]);
+
+  const downtimeSummary = useMemo(() => {
+    if (reportType !== 'downtime') return { totalMinutes: 0, totalHours: '0.0' };
+    const totalMinutes = downtimeOrders.reduce(
+      (acc, o) => acc + Number((o as any).__downtimeMinutes || 0),
+      0,
+    );
+    return { totalMinutes, totalHours: (totalMinutes / 60).toFixed(1) };
+  }, [downtimeOrders, reportType]);
+
+  const downtimeByTypeChartData = useMemo(() => {
+    if (reportType !== 'downtime') return null;
+    const totals: Record<string, number> = {};
+    downtimeOrders.forEach((o) => {
+      const key = String(o.downtime_type || 'Sem tipo');
+      totals[key] = (totals[key] || 0) + Number((o as any).__downtimeMinutes || 0);
+    });
+    const labels = Object.keys(totals);
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Downtime (min) por tipo',
+          data: labels.map((l) => totals[l]),
+          backgroundColor: ['#0ea5e9', '#6366f1', '#f59e0b', '#22c55e', '#ef4444', '#a855f7', '#14b8a6'],
+        },
+      ],
+    };
+  }, [downtimeOrders, reportType]);
+
+  const downtimeByCategoryChartData = useMemo(() => {
+    if (reportType !== 'downtime') return null;
+    const totals: Record<string, number> = {};
+    downtimeOrders.forEach((o) => {
+      const key = String(o.downtime_category || 'Sem categoria');
+      totals[key] = (totals[key] || 0) + Number((o as any).__downtimeMinutes || 0);
+    });
+    const labels = Object.keys(totals);
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Downtime (min) por categoria',
+          data: labels.map((l) => totals[l]),
+          backgroundColor: '#6366f1',
+          borderColor: '#4f46e5',
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [downtimeOrders, reportType]);
+
+  const downtimeTemporalChartData = useMemo(() => {
+    if (reportType !== 'downtime') return null;
+    const minutesByWeek: Record<string, number> = {};
+    downtimeOrders.forEach((order: any) => {
+      if (!order.downtime_started_at) return;
+      const date = new Date(order.downtime_started_at);
+      const weekStart = new Date(date);
+      weekStart.setDate(date.getDate() - date.getDay());
+      const weekKey = weekStart.toISOString().split('T')[0];
+      minutesByWeek[weekKey] = (minutesByWeek[weekKey] || 0) + Number(order.__downtimeMinutes || 0);
+    });
+    const sortedWeeks = Object.keys(minutesByWeek).sort();
+    return {
+      labels: sortedWeeks.map((w) =>
+        new Date(w).toLocaleDateString('pt-PT', { month: 'short', day: 'numeric' }),
+      ),
+      datasets: [
+        {
+          label: 'Downtime (min) por semana',
+          data: sortedWeeks.map((w) => minutesByWeek[w]),
+          borderColor: '#ef4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          tension: 0.4,
+          fill: true,
+        },
+      ],
+    };
+  }, [downtimeOrders, reportType]);
+
+  const chartOptions = useMemo(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' as const },
+      },
+    }),
+    [],
+  );
+
+  const reportTypeOptions = useMemo(
+    () => [
+      { key: 'general' as const, label: 'Geral', hint: 'Visão global por status e prioridade.' },
+      { key: 'asset' as const, label: 'Por Ativo', hint: 'Top ativos com mais ordens.' },
+      { key: 'technician' as const, label: 'Por Técnico', hint: 'Distribuição por responsável.' },
+      { key: 'temporal' as const, label: 'Temporal', hint: 'Tendência semanal.' },
+      { key: 'downtime' as const, label: 'Downtime', hint: 'Paragens e causas.' },
+    ],
+    [],
+  );
 
   const exportPdf = () => {
     const doc = new jsPDF();
@@ -458,9 +610,9 @@ export function ReportsPage() {
   return (
     <MainLayout>
       <div className="space-y-8 font-display">
-        <section className="relative overflow-hidden rounded-3xl border theme-border bg-[linear-gradient(135deg,var(--dash-panel),var(--dash-panel-2))] p-8 shadow-sm">
-          <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-[color:var(--reports-float-indigo)] blur-3xl" />
-          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-[color:var(--reports-float-emerald)] blur-3xl" />
+        <section className="relative overflow-hidden rounded-[32px] border theme-border bg-[linear-gradient(135deg,var(--dash-panel),var(--dash-panel-2))] p-8 shadow-sm">
+          <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-emerald-200/40 blur-3xl" />
+          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-sky-200/40 blur-3xl" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
@@ -496,117 +648,122 @@ export function ReportsPage() {
         </section>
 
         {error && (
-          <div className="rounded-2xl border border-[color:var(--reports-error-border)] bg-[color:var(--reports-error-bg)] p-4">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
             <div className="flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-[color:var(--reports-error-icon)]" />
-              <p className="text-sm text-[color:var(--reports-error-text)]">{error}</p>
+              <AlertCircle className="h-5 w-5 text-rose-600" />
+              <p className="text-sm text-rose-700">{error}</p>
             </div>
           </div>
         )}
 
         {loading && (
-          <div className="rounded-3xl border border-[color:var(--reports-loading-border)] bg-[color:var(--reports-loading-bg)] p-12 text-center">
-            <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-[color:var(--reports-loading-icon)]" />
-            <p className="text-sm text-[color:var(--reports-loading-text)]">Carregando relatórios...</p>
+          <div className="rounded-[32px] border theme-border theme-card p-12 text-center">
+            <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin theme-text-muted" />
+            <p className="text-sm theme-text-muted">Carregando relatórios...</p>
           </div>
         )}
 
         {!loading && (
           <>
-          {/* Report Type Selector */}
-          <div className="card mb-6 p-4">
-            <h2 className="text-sm font-semibold text-[color:var(--reports-type-title)] mb-3">Tipo de Relatório</h2>
-            <div className="flex flex-wrap gap-2">
-              {['general', 'asset', 'technician', 'temporal', 'downtime'].map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setReportType(type as any)}
-                  className={`px-3 py-2 rounded text-sm font-medium transition ${
-                    reportType === type
-                      ? 'bg-[color:var(--reports-type-active-bg)] text-[color:var(--reports-type-active-text)]'
-                      : 'bg-[color:var(--reports-type-bg)] text-[color:var(--reports-type-text)] hover:bg-[color:var(--reports-type-hover-bg)]'
-                  }`}
-                >
-                  {type === 'general' && 'Geral'}
-                  {type === 'asset' && 'Por Ativo'}
-                  {type === 'technician' && 'Por Técnico'}
-                  {type === 'temporal' && 'Temporal'}
-                  {type === 'downtime' && 'Downtime'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Filters */}
-          <div className="card mb-6 p-4">
-            <div className="flex items-center gap-3 mb-4">
-              <Filter className="w-4 h-4 text-primary-600" />
-              <h2 className="text-sm font-semibold theme-text">Filtros</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-              <input
-                className="input"
-                placeholder="Pesquisar"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
-              <select
-                className="input"
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
-              >
-                <option value="">Status (todos)</option>
-                <option value="aberta">Aberta</option>
-                <option value="em_analise">Em Análise</option>
-                <option value="em_execucao">Em Execução</option>
-                <option value="em_pausa">Em Pausa</option>
-                <option value="concluida">Concluída</option>
-                <option value="fechada">Fechada</option>
-                <option value="cancelada">Cancelada</option>
-              </select>
-              <select
-                className="input"
-                value={priorityFilter}
-                onChange={(event) => setPriorityFilter(event.target.value)}
-              >
-                <option value="">Prioridade (todas)</option>
-                <option value="baixa">Baixa</option>
-                <option value="media">Média</option>
-                <option value="alta">Alta</option>
-                <option value="critica">Crítica</option>
-              </select>
-              <select
-                className="input"
-                value={assetFilter}
-                onChange={(event) => setAssetFilter(event.target.value)}
-              >
-                <option value="">Ativo (todos)</option>
-                {uniqueAssets.map((asset) => (
-                  <option key={asset} value={asset}>
-                    {asset}
-                  </option>
+          <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] theme-text-muted">
+                  Tipo de relatório
+                </p>
+                <h2 className="text-lg font-semibold theme-text">Explorar e comparar</h2>
+                <p className="text-sm theme-text-muted">
+                  {reportTypeOptions.find((o) => o.key === reportType)?.hint}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {reportTypeOptions.map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setReportType(opt.key)}
+                    className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                      reportType === opt.key
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'border theme-border bg-[color:var(--dash-surface)] theme-text-muted hover:bg-[color:var(--dash-surface-2)]'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
                 ))}
-              </select>
-              <input
-                type="date"
-                className="input"
-                value={dateFrom}
-                onChange={(event) => setDateFrom(event.target.value)}
-              />
+              </div>
             </div>
-            <div className="mt-3">
-              <input
-                type="date"
-                className="input"
-                value={dateTo}
-                onChange={(event) => setDateTo(event.target.value)}
-              />
+
+            <div className="mt-5 rounded-[24px] border theme-border bg-[color:var(--dash-surface)] p-4">
+              <div className="flex items-center gap-3">
+                <Filter className="h-4 w-4 text-emerald-600" />
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+                  Filtros
+                </p>
+              </div>
+              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-6">
+                <input
+                  className="input md:col-span-2"
+                  placeholder="Pesquisar (título, descrição, ativo)"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                />
+                <select
+                  className="input"
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value)}
+                >
+                  <option value="">Status (todos)</option>
+                  <option value="aberta">Aberta</option>
+                  <option value="em_analise">Em Análise</option>
+                  <option value="em_execucao">Em Execução</option>
+                  <option value="em_pausa">Em Pausa</option>
+                  <option value="concluida">Concluída</option>
+                  <option value="fechada">Fechada</option>
+                  <option value="cancelada">Cancelada</option>
+                </select>
+                <select
+                  className="input"
+                  value={priorityFilter}
+                  onChange={(event) => setPriorityFilter(event.target.value)}
+                >
+                  <option value="">Prioridade (todas)</option>
+                  <option value="baixa">Baixa</option>
+                  <option value="media">Média</option>
+                  <option value="alta">Alta</option>
+                  <option value="critica">Crítica</option>
+                </select>
+                <select
+                  className="input"
+                  value={assetFilter}
+                  onChange={(event) => setAssetFilter(event.target.value)}
+                >
+                  <option value="">Ativo (todos)</option>
+                  {uniqueAssets.map((asset) => (
+                    <option key={asset} value={asset}>
+                      {asset}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="date"
+                  className="input"
+                  value={dateFrom}
+                  onChange={(event) => setDateFrom(event.target.value)}
+                />
+                <input
+                  type="date"
+                  className="input"
+                  value={dateTo}
+                  onChange={(event) => setDateTo(event.target.value)}
+                />
+              </div>
             </div>
           </div>
 
           {/* Key Metrics */}
           {reportType !== 'downtime' ? (
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-5">
               <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
                 <p className="text-xs theme-text-muted uppercase tracking-wider">Total Filtrado</p>
                 <p className="text-2xl font-bold theme-text mt-2">{summary.total}</p>
@@ -635,88 +792,133 @@ export function ReportsPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
                 <p className="text-xs theme-text-muted uppercase tracking-wider">Registos de downtime</p>
                 <p className="text-2xl font-bold theme-text mt-2">{downtimeOrders.length}</p>
               </div>
               <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
                 <p className="text-xs theme-text-muted uppercase tracking-wider">Total (min)</p>
-                <p className="text-2xl font-bold theme-text mt-2">
-                  {downtimeOrders.reduce((acc, o) => acc + Number((o as any).__downtimeMinutes || 0), 0)}
-                </p>
+                <p className="text-2xl font-bold theme-text mt-2">{downtimeSummary.totalMinutes}</p>
               </div>
               <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
                 <p className="text-xs theme-text-muted uppercase tracking-wider">Total (horas)</p>
-                <p className="text-2xl font-bold theme-text mt-2">
-                  {(downtimeOrders.reduce((acc, o) => acc + Number((o as any).__downtimeMinutes || 0), 0) / 60).toFixed(1)}
-                </p>
+                <p className="text-2xl font-bold theme-text mt-2">{downtimeSummary.totalHours}</p>
               </div>
             </div>
           )}
 
           {/* Charts based on report type */}
           {reportType === 'general' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div className="rounded-[28px] border theme-border theme-card p-6 shadow-sm">
                 <h3 className="text-lg font-semibold theme-text mb-4">Status</h3>
-                <Doughnut data={statusChartData} />
+                <div className="h-72">
+                  <Doughnut data={statusChartData} options={chartOptions} />
+                </div>
               </div>
               <div className="rounded-[28px] border theme-border theme-card p-6 shadow-sm">
                 <h3 className="text-lg font-semibold theme-text mb-4">Prioridades</h3>
-                <Bar data={priorityChartData} />
+                <div className="h-72">
+                  <Bar data={priorityChartData} options={chartOptions} />
+                </div>
               </div>
             </div>
           )}
 
           {reportType === 'asset' && (
-            <div className="rounded-[28px] border theme-border theme-card mb-6 p-6 shadow-sm">
+            <div className="mt-6 rounded-[28px] border theme-border theme-card p-6 shadow-sm">
               <h3 className="text-lg font-semibold theme-text mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5" />
                 Ordens por Ativo
               </h3>
-              <Bar data={assetChartData} />
+              <div className="h-80">
+                <Bar data={assetChartData} options={chartOptions} />
+              </div>
             </div>
           )}
 
           {reportType === 'technician' && (
-            <div className="rounded-[28px] border theme-border theme-card mb-6 p-6 shadow-sm">
+            <div className="mt-6 rounded-[28px] border theme-border theme-card p-6 shadow-sm">
               <h3 className="text-lg font-semibold theme-text mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5" />
                 Ordens por Técnico
               </h3>
-              <Bar data={technicianChartData} />
+              <div className="h-80">
+                <Bar data={technicianChartData} options={chartOptions} />
+              </div>
             </div>
           )}
 
           {reportType === 'temporal' && (
-            <div className="rounded-[28px] border theme-border theme-card mb-6 p-6 shadow-sm">
+            <div className="mt-6 rounded-[28px] border theme-border theme-card p-6 shadow-sm">
               <h3 className="text-lg font-semibold theme-text mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5" />
                 Tendência Temporal (Semanal)
               </h3>
-              <Line data={temporalChartData} />
+              <div className="h-80">
+                <Line data={temporalChartData} options={chartOptions} />
+              </div>
             </div>
           )}
 
           {reportType === 'downtime' && (
-            <div className="rounded-[28px] border theme-border theme-card mb-6 p-6 shadow-sm">
-              <h3 className="text-lg font-semibold theme-text mb-2">Export simples de downtime</h3>
-              <p className="text-sm theme-text-muted">
-                Use os filtros (ativo e período) e exporte em CSV/PDF.
-              </p>
+            <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div className="rounded-[28px] border theme-border theme-card p-6 shadow-sm">
+                <h3 className="text-lg font-semibold theme-text mb-4">Downtime por tipo</h3>
+                <div className="h-72">
+                  {downtimeByTypeChartData ? (
+                    <Doughnut data={downtimeByTypeChartData} options={chartOptions} />
+                  ) : (
+                    <div className="h-full rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-6 text-sm theme-text-muted">
+                      Sem dados para este período.
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="rounded-[28px] border theme-border theme-card p-6 shadow-sm">
+                <h3 className="text-lg font-semibold theme-text mb-4">Downtime por categoria</h3>
+                <div className="h-72">
+                  {downtimeByCategoryChartData ? (
+                    <Bar data={downtimeByCategoryChartData} options={chartOptions} />
+                  ) : (
+                    <div className="h-full rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-6 text-sm theme-text-muted">
+                      Sem dados para este período.
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="rounded-[28px] border theme-border theme-card p-6 shadow-sm lg:col-span-2">
+                <h3 className="text-lg font-semibold theme-text mb-4">Evolução do downtime (semanal)</h3>
+                <div className="h-80">
+                  {downtimeTemporalChartData ? (
+                    <Line data={downtimeTemporalChartData} options={chartOptions} />
+                  ) : (
+                    <div className="h-full rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-6 text-sm theme-text-muted">
+                      Sem dados para este período.
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
           {/* Data Table */}
-          <div className="overflow-hidden rounded-[28px] border theme-border theme-card shadow-sm">
-            <div className="p-4 border-b theme-border">
+          <div className="mt-6 overflow-hidden rounded-[28px] border theme-border theme-card shadow-sm">
+            <div className="flex flex-col gap-3 border-b theme-border p-5 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-lg font-semibold theme-text">
                 {reportType === 'downtime' ? 'Downtime filtrado' : 'Ordens Filtradas'}
               </h2>
-              <p className="text-sm theme-text-muted">
-                {reportType === 'downtime' ? downtimeOrders.length : filteredOrders.length} registros
-              </p>
+              <div className="flex items-center gap-3 text-sm theme-text-muted">
+                <span>
+                  {reportType === 'downtime' ? downtimeOrders.length : filteredOrders.length} registos
+                </span>
+                {reportType === 'downtime' && (
+                  <span className="rounded-full border theme-border bg-[color:var(--dash-surface)] px-3 py-1 text-xs font-semibold theme-text">
+                    {downtimeSummary.totalHours} h
+                  </span>
+                )}
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
@@ -794,7 +996,7 @@ export function ReportsPage() {
                                   : 'bg-[color:var(--dash-surface)] theme-text-muted'
                               }`}
                             >
-                              {order.priority || '-'}
+                              {workOrderPriorityLabel(order.priority)}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-sm theme-text">
