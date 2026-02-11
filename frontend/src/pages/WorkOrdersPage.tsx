@@ -11,7 +11,9 @@ import {
   LayoutGrid,
   List,
   Loader2,
+  MinusCircle,
   Plus,
+  PlusCircle,
   RefreshCcw,
   Search,
   Save,
@@ -20,6 +22,7 @@ import {
   User,
   UserCheck,
   X,
+  XCircle,
 } from 'lucide-react';
 import { useAppStore } from '../context/store';
 import { useAuth } from '../hooks/useAuth';
@@ -2771,7 +2774,10 @@ export function WorkOrdersPage() {
                         {updating ? (
                           <Loader2 className="h-9 w-9 animate-spin md:h-6 md:w-6" />
                         ) : (
-                          <Save className="h-9 w-9 text-white md:h-6 md:w-6" />
+                          <CheckCircle2
+                            className="h-9 w-9 text-white md:h-6 md:w-6"
+                            strokeWidth={2.6}
+                          />
                         )}
                       </button>
                     )}
@@ -2784,7 +2790,10 @@ export function WorkOrdersPage() {
                         title="Eliminar"
                         aria-label="Eliminar"
                       >
-                        <Trash2 className="h-9 w-9 text-rose-600 md:h-6 md:w-6" />
+                        <MinusCircle
+                          className="h-9 w-9 text-rose-600 md:h-6 md:w-6"
+                          strokeWidth={2.6}
+                        />
                       </button>
                     )}
                     <button
@@ -2795,7 +2804,10 @@ export function WorkOrdersPage() {
                       title="Fechar"
                       aria-label="Fechar"
                     >
-                      <X className="h-9 w-9 theme-text-muted md:h-6 md:w-6" />
+                      <XCircle
+                        className="h-9 w-9 theme-text-muted md:h-6 md:w-6"
+                        strokeWidth={2.6}
+                      />
                     </button>
                   </div>
                       </>
@@ -2885,7 +2897,10 @@ export function WorkOrdersPage() {
                                     void handleRemoveTask(task);
                                   }}
                                 >
-                                  <Trash2 className="h-7 w-7 text-rose-600 md:h-5 md:w-5" />
+                                  <MinusCircle
+                                    className="h-7 w-7 text-rose-600 md:h-5 md:w-5"
+                                    strokeWidth={2.6}
+                                  />
                                 </button>
                               )}
                           </span>
@@ -2918,7 +2933,10 @@ export function WorkOrdersPage() {
                         {tasksSaving ? (
                           <Loader2 className="h-9 w-9 animate-spin md:h-6 md:w-6" />
                         ) : (
-                          <Plus className="h-9 w-9 text-emerald-600 md:h-6 md:w-6" />
+                          <PlusCircle
+                            className="h-9 w-9 text-emerald-600 md:h-6 md:w-6"
+                            strokeWidth={2.6}
+                          />
                         )}
                       </button>
                     </div>
