@@ -33,6 +33,31 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 - Fix: badges de **status/prioridade** em “Ordens Filtradas” com cores corretas (evita conflitos com estilos globais).
 - Robustez: carregamento de datasets de ordens e preventivas **independente** (se um falhar, o outro continua a funcionar).
 
+### Atualização adicional — 2026-02-11 (Settings Hub + Hardening)
+
+#### Settings (fecho de MVP)
+- **Biblioteca de Documentos**
+  - Upload alinhado com backend: suporte **multipart** (`FormData`) no endpoint de documentos.
+  - **Pré-visualização** (PDF via `iframe` + imagens via `img`, com fallback para outros formatos).
+  - **Histórico de versões** (lista de versões + download por versão) e ação “carregar nova versão”.
+- **Alertas**
+  - Ação “**Testar**” por configuração (cria um alerta low de teste ligado ao config).
+- **Warnings / Alertas preditivos**
+  - Mini “charts” leves (sem novas dependências):
+    - distribuição por severidade (barra empilhada)
+    - barras de métricas (média de confiança, taxa de falha e MTBF)
+    - progress bars por warning quando há valores
+
+#### Backend (hardening inicial + docs)
+- Security headers com **Helmet** + `app.disable('x-powered-by')`.
+- **Rate limiting**:
+  - global em `/api`
+  - mais restritivo em `/api/auth`
+- **Swagger/OpenAPI**:
+  - UI em `/api/docs`
+  - spec em `/api/openapi.json`
+- Upload local de documentos servido em `/uploads/...` (fallback; storage externo fica para depois).
+
 ### Navegação / UX
 - O menu **Operações** ficou com **apenas “Ordens”**.
 - **Planos** e **Preventivas agendadas** passaram a viver no **hub de Configurações (Settings)**.
@@ -116,6 +141,10 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 - `763b477` — Reports: presets, compare, drill-down, export
 - `7dc24c3` — Reports: fix status/priority badge colors
 - `8fd2246` — reports: finish Preventivas mode + resilient loading
+
+#### Settings Hub + Hardening
+- `d3e4b6e` — Settings: Docs preview/versions + Alerts “Testar”; Backend: Helmet + rate limit + Swagger + upload multipart
+- `b15b1c2` — Settings: Warnings mini charts (distribuição + métricas + progress bars)
 
 ---
 
