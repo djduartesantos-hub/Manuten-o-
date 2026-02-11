@@ -357,6 +357,7 @@ export function WorkOrdersPage() {
   const [tasksError, setTasksError] = useState<string | null>(null);
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [tasksSaving, setTasksSaving] = useState(false);
+  const [timelineExpanded, setTimelineExpanded] = useState(false);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
@@ -403,6 +404,7 @@ export function WorkOrdersPage() {
   useEffect(() => {
     setShowPauseAction(false);
     setShowCancelAction(false);
+    setTimelineExpanded(false);
   }, [editingOrder?.id]);
 
   const statusOptions = useMemo(
@@ -1943,6 +1945,7 @@ export function WorkOrdersPage() {
 
   const canShowChecklist = Boolean(
     editingOrder &&
+      editingOrder.status !== 'aberta' &&
       (editingPermissions?.canOperateOrder ||
         editingPermissions?.canEditOrder ||
         ((editingOrder.status === 'aberta' || editingOrder.status === 'em_analise') &&
@@ -2801,51 +2804,6 @@ export function WorkOrdersPage() {
                 </div>
               )}
 
-              <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
-                  Timeline
-                </p>
-                {auditError && (
-                  <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                    {auditError}
-                  </div>
-                )}
-                {auditLoading && (
-                  <p className="mt-4 text-xs theme-text-muted">A carregar historico...</p>
-                )}
-                {!auditLoading && auditLogs.length === 0 && (
-                  <p className="mt-4 text-xs theme-text-muted">
-                    Sem alteracoes registadas ainda.
-                  </p>
-                )}
-                {auditTimeline.length > 0 && (
-                  <div className="mt-4 space-y-3">
-                    {auditTimeline.map((item, index) => (
-                      <div key={item.id} className="relative pl-6">
-                        <div className="absolute left-[9px] top-3 h-3 w-3 rounded-full border theme-border bg-[color:var(--dash-surface)]" />
-                        {index < auditTimeline.length - 1 && (
-                          <div className="absolute left-[14px] top-6 bottom-0 w-px bg-[color:var(--dash-border)]" />
-                        )}
-                        <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] px-3 py-2 text-xs theme-text-muted">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <span className="font-semibold theme-text">{item.title}</span>
-                            <span className="text-[11px] theme-text-muted">
-                              {formatShortDateTime(item.createdAt)}
-                            </span>
-                          </div>
-                          <p className="mt-1 text-[11px] theme-text-muted">{item.userLabel}</p>
-                          {item.details.map((line) => (
-                            <p key={line} className="mt-1 text-[11px] theme-text-muted">
-                              {line}
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
               {canShowPartsSection && (
                 <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
@@ -3423,6 +3381,64 @@ export function WorkOrdersPage() {
                     </span>
                   )}
                 </div>
+              </div>
+
+              <div className="rounded-[24px] border theme-border theme-card p-5 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+                    Timeline
+                  </p>
+                  {auditTimeline.length > 1 && (
+                    <button
+                      type="button"
+                      className="btn-secondary px-3 py-1 text-xs"
+                      onClick={() => setTimelineExpanded((value) => !value)}
+                    >
+                      {timelineExpanded ? 'Ocultar histórico' : 'Ver histórico'}
+                    </button>
+                  )}
+                </div>
+
+                {auditError && (
+                  <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm theme-text">
+                    {auditError}
+                  </div>
+                )}
+                {auditLoading && (
+                  <p className="mt-4 text-xs theme-text-muted">A carregar histórico...</p>
+                )}
+                {!auditLoading && auditLogs.length === 0 && (
+                  <p className="mt-4 text-xs theme-text-muted">Sem alterações registadas ainda.</p>
+                )}
+
+                {auditTimeline.length > 0 && (
+                  <div className="mt-4 space-y-3">
+                    {(timelineExpanded ? auditTimeline : auditTimeline.slice(0, 1)).map(
+                      (item, index, list) => (
+                        <div key={item.id} className="relative pl-6">
+                          <div className="absolute left-[9px] top-3 h-3 w-3 rounded-full border theme-border bg-[color:var(--dash-surface)]" />
+                          {index < list.length - 1 && (
+                            <div className="absolute bottom-0 left-[14px] top-6 w-px bg-[color:var(--dash-border)]" />
+                          )}
+                          <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] px-3 py-2 text-xs theme-text-muted">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="font-semibold theme-text">{item.title}</span>
+                              <span className="text-[11px] theme-text-muted">
+                                {formatShortDateTime(item.createdAt)}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-[11px] theme-text-muted">{item.userLabel}</p>
+                            {item.details.map((line) => (
+                              <p key={line} className="mt-1 text-[11px] theme-text-muted">
+                                {line}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
