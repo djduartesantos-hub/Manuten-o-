@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { MainLayout } from '../layouts/MainLayout';
 import { AlertCircle, Download, Filter, Loader2, TrendingUp } from 'lucide-react';
 import { useAppStore } from '../context/store';
-import { getWorkOrders } from '../services/api';
+import { getPreventiveSchedules, getWorkOrders } from '../services/api';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -46,7 +46,7 @@ const workOrderPriorityLabel = (value?: string | null) => {
 
 const REPORTS_STORAGE_KEY = 'reportsPreferences:v2';
 
-type ReportType = 'general' | 'asset' | 'technician' | 'temporal' | 'downtime';
+type ReportType = 'general' | 'asset' | 'technician' | 'temporal' | 'downtime' | 'preventive';
 type PeriodPreset = 'custom' | 'last7' | 'last30' | 'last90' | 'thisMonth';
 
 const toISODate = (d: Date) => {
@@ -133,11 +133,56 @@ interface WorkOrder {
   assigned_to_id?: string | null;
 }
 
+type PreventiveStatus = 'agendada' | 'reagendada' | 'em_execucao' | 'concluida' | 'fechada' | string;
+
+const PREVENTIVE_STATUS_LABELS: Record<string, string> = {
+  agendada: 'Agendada',
+  reagendada: 'Reagendada',
+  em_execucao: 'Em Execução',
+  concluida: 'Concluída',
+  fechada: 'Fechada',
+};
+
+const preventiveStatusLabel = (value?: string | null) => {
+  const key = String(value || '').trim().toLowerCase();
+  return PREVENTIVE_STATUS_LABELS[key] || (key ? key.charAt(0).toUpperCase() + key.slice(1) : '—');
+};
+
+const getPreventiveStatusBadgeClass = (value?: string | null) => {
+  const key = String(value || '').trim().toLowerCase();
+  if (key === 'agendada' || key === 'reagendada') return 'bg-amber-100 text-amber-700';
+  if (key === 'em_execucao') return 'bg-cyan-100 text-cyan-700';
+  if (key === 'concluida' || key === 'fechada') return 'bg-emerald-100 text-emerald-700';
+  return 'bg-slate-100 text-slate-700';
+};
+
+interface PreventiveSchedule {
+  id: string;
+  plan_id: string;
+  asset_id: string;
+  scheduled_for?: string | null;
+  status: PreventiveStatus;
+  notes?: string | null;
+  plan_name?: string | null;
+  asset_name?: string | null;
+  asset_code?: string | null;
+  confirmed_at?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  closed_at?: string | null;
+  rescheduled_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 export function ReportsPage() {
   const { selectedPlant } = useAppStore();
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [preventiveSchedules, setPreventiveSchedules] = useState<PreventiveSchedule[]>([]);
+  const [workOrdersLoading, setWorkOrdersLoading] = useState(false);
+  const [preventiveLoading, setPreventiveLoading] = useState(false);
+  const [workOrdersError, setWorkOrdersError] = useState<string | null>(null);
+  const [preventiveError, setPreventiveError] = useState<string | null>(null);
   const [reportType, setReportType] = useState<ReportType>('general');
 
   const [statusFilter, setStatusFilter] = useState('');
@@ -146,8 +191,13 @@ export function ReportsPage() {
   const [dateTo, setDateTo] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [assetFilter, setAssetFilter] = useState('');
+  const [preventiveStatusFilter, setPreventiveStatusFilter] = useState('');
+  const [planFilter, setPlanFilter] = useState('');
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>('custom');
   const [compareEnabled, setCompareEnabled] = useState(false);
+
+  const loading = reportType === 'preventive' ? preventiveLoading : workOrdersLoading;
+  const error = reportType === 'preventive' ? preventiveError : workOrdersError;
 
   // Restore saved preferences (type + filters)
   useEffect(() => {
@@ -166,6 +216,8 @@ export function ReportsPage() {
       setDateTo(parsed?.dateTo || '');
       setSearchTerm(parsed?.searchTerm || '');
       setAssetFilter(parsed?.assetFilter || '');
+      setPreventiveStatusFilter(parsed?.preventiveStatusFilter || '');
+      setPlanFilter(parsed?.planFilter || '');
       setPeriodPreset(parsed?.periodPreset || 'custom');
       setCompareEnabled(Boolean(parsed?.compareEnabled));
     } catch {
@@ -186,11 +238,26 @@ export function ReportsPage() {
         dateTo,
         searchTerm,
         assetFilter,
+        preventiveStatusFilter,
+        planFilter,
         periodPreset,
         compareEnabled,
       }),
     );
-  }, [selectedPlant, reportType, statusFilter, priorityFilter, dateFrom, dateTo, searchTerm, assetFilter, periodPreset, compareEnabled]);
+  }, [
+    selectedPlant,
+    reportType,
+    statusFilter,
+    priorityFilter,
+    dateFrom,
+    dateTo,
+    searchTerm,
+    assetFilter,
+    preventiveStatusFilter,
+    planFilter,
+    periodPreset,
+    compareEnabled,
+  ]);
 
   // Apply preset to dates
   useEffect(() => {
@@ -215,6 +282,8 @@ export function ReportsPage() {
     setPriorityFilter('');
     setAssetFilter('');
     setSearchTerm('');
+    setPreventiveStatusFilter('');
+    setPlanFilter('');
     setDateFrom('');
     setDateTo('');
     setPeriodPreset('custom');
@@ -224,23 +293,43 @@ export function ReportsPage() {
   useEffect(() => {
     const load = async () => {
       if (!selectedPlant) return;
-      setLoading(true);
-      setError(null);
       try {
-        const orders = await getWorkOrders(selectedPlant);
-        setWorkOrders(
-          (orders || []).map((order: WorkOrder) => ({
-            ...order,
-            status:
-              order.status === 'aprovada' || order.status === 'planeada'
-                ? 'em_analise'
-                : order.status,
-          })),
-        );
+        setWorkOrdersLoading(true);
+        setPreventiveLoading(true);
+        setWorkOrdersError(null);
+        setPreventiveError(null);
+
+        const [ordersResult, schedulesResult] = await Promise.allSettled([
+          getWorkOrders(selectedPlant),
+          getPreventiveSchedules(selectedPlant),
+        ]);
+
+        if (ordersResult.status === 'fulfilled') {
+          const orders = ordersResult.value;
+          setWorkOrders(
+            (orders || []).map((order: WorkOrder) => ({
+              ...order,
+              status: order.status === 'aprovada' || order.status === 'planeada' ? 'em_analise' : order.status,
+            })),
+          );
+        } else {
+          setWorkOrdersError(ordersResult.reason?.message || 'Erro ao carregar ordens');
+        }
+
+        if (schedulesResult.status === 'fulfilled') {
+          const schedules = schedulesResult.value;
+          setPreventiveSchedules(Array.isArray(schedules) ? schedules : []);
+        } else {
+          setPreventiveError(schedulesResult.reason?.message || 'Erro ao carregar preventivas');
+        }
       } catch (err: any) {
-        setError(err.message || 'Erro ao carregar relatórios');
+        // If one of the calls fails, keep the other dataset usable.
+        const message = err?.message || 'Erro ao carregar relatórios';
+        setWorkOrdersError(message);
+        setPreventiveError(message);
       } finally {
-        setLoading(false);
+        setWorkOrdersLoading(false);
+        setPreventiveLoading(false);
       }
     };
 
@@ -307,6 +396,54 @@ export function ReportsPage() {
     });
   }, [workOrders, statusFilter, priorityFilter, dateFrom, dateTo, searchTerm, assetFilter, reportType]);
 
+  const applyPreventiveFilters = (
+    schedules: PreventiveSchedule[],
+    opts: {
+      statusFilter: string;
+      planFilter: string;
+      assetCodeFilter: string;
+      searchTerm: string;
+      dateFrom: string;
+      dateTo: string;
+    },
+  ) => {
+    return schedules.filter((s) => {
+      if (opts.statusFilter && String(s.status || '') !== opts.statusFilter) return false;
+      if (opts.planFilter && String(s.plan_id || '') !== opts.planFilter) return false;
+      if (opts.assetCodeFilter && String(s.asset_code || '') !== opts.assetCodeFilter) return false;
+
+      if (opts.searchTerm) {
+        const haystack = `${s.plan_name || ''} ${s.asset_code || ''} ${s.asset_name || ''} ${s.notes || ''} ${
+          s.status || ''
+        }`.toLowerCase();
+        if (!haystack.includes(opts.searchTerm.toLowerCase())) return false;
+      }
+
+      if (opts.dateFrom) {
+        const ref = s.scheduled_for ? new Date(s.scheduled_for).getTime() : 0;
+        if (ref < new Date(opts.dateFrom).getTime()) return false;
+      }
+
+      if (opts.dateTo) {
+        const ref = s.scheduled_for ? new Date(s.scheduled_for).getTime() : 0;
+        if (ref > new Date(opts.dateTo).getTime() + 24 * 60 * 60 * 1000) return false;
+      }
+
+      return true;
+    });
+  };
+
+  const filteredPreventives = useMemo(() => {
+    return applyPreventiveFilters(preventiveSchedules, {
+      statusFilter: preventiveStatusFilter,
+      planFilter,
+      assetCodeFilter: assetFilter,
+      searchTerm,
+      dateFrom,
+      dateTo,
+    });
+  }, [preventiveSchedules, preventiveStatusFilter, planFilter, assetFilter, searchTerm, dateFrom, dateTo]);
+
   const comparisonDateRange = useMemo(() => {
     if (!compareEnabled) return null;
     if (!dateFrom || !dateTo) return null;
@@ -320,6 +457,28 @@ export function ReportsPage() {
     const prevFrom = new Date(prevTo.getTime() - ms);
     return { prevFrom: toISODate(prevFrom), prevTo: toISODate(prevTo) };
   }, [compareEnabled, dateFrom, dateTo]);
+
+  const comparisonPreventives = useMemo(() => {
+    if (!comparisonDateRange) return [];
+    return applyPreventiveFilters(preventiveSchedules, {
+      statusFilter: preventiveStatusFilter,
+      planFilter,
+      assetCodeFilter: assetFilter,
+      searchTerm,
+      dateFrom: comparisonDateRange.prevFrom,
+      dateTo: comparisonDateRange.prevTo,
+    });
+  }, [preventiveSchedules, preventiveStatusFilter, planFilter, assetFilter, searchTerm, comparisonDateRange]);
+
+  const sortedPreventives = useMemo(() => {
+    const copy = [...filteredPreventives];
+    copy.sort((a, b) => {
+      const aDate = a.scheduled_for ? new Date(a.scheduled_for).getTime() : 0;
+      const bDate = b.scheduled_for ? new Date(b.scheduled_for).getTime() : 0;
+      return bDate - aDate;
+    });
+    return copy;
+  }, [filteredPreventives]);
 
   const comparisonOrders = useMemo(() => {
     if (!comparisonDateRange) return [];
@@ -448,6 +607,122 @@ export function ReportsPage() {
   const summary = useMemo(() => computeSummary(filteredOrders), [filteredOrders]);
   const comparisonSummary = useMemo(() => computeSummary(comparisonOrders), [comparisonOrders]);
 
+  const preventiveSummary = useMemo(() => {
+    const total = filteredPreventives.length;
+    const byStatus: Record<string, number> = {};
+    const byPlanId: Record<string, number> = {};
+    const planNameById: Record<string, string> = {};
+    const byAsset: Record<string, number> = {};
+    let overdue = 0;
+
+    const now = Date.now();
+    filteredPreventives.forEach((s) => {
+      const statusKey = String(s.status || '').trim() || '—';
+      byStatus[statusKey] = (byStatus[statusKey] || 0) + 1;
+
+      const planId = String(s.plan_id || '').trim() || '—';
+      byPlanId[planId] = (byPlanId[planId] || 0) + 1;
+      planNameById[planId] = String(s.plan_name || 'Sem plano');
+
+      const assetCode = String(s.asset_code || '').trim() || 'Sem ativo';
+      byAsset[assetCode] = (byAsset[assetCode] || 0) + 1;
+
+      const scheduled = s.scheduled_for ? new Date(s.scheduled_for).getTime() : 0;
+      const status = String(s.status || '').toLowerCase();
+      const isOpen = ['agendada', 'reagendada', 'em_execucao'].includes(status);
+      if (scheduled && scheduled < now && isOpen) overdue += 1;
+    });
+
+    const completed = filteredPreventives.filter((s) => {
+      const status = String(s.status || '').toLowerCase();
+      return status === 'concluida' || status === 'fechada';
+    }).length;
+
+    const completionRate = total > 0 ? (completed / total) * 100 : 0;
+    const overdueRate = total > 0 ? (overdue / total) * 100 : 0;
+
+    return { total, byStatus, byPlanId, planNameById, byAsset, overdue, completionRate, overdueRate };
+  }, [filteredPreventives]);
+
+  const preventiveComparisonSummary = useMemo(() => {
+    const total = comparisonPreventives.length;
+    let overdue = 0;
+    const now = Date.now();
+    comparisonPreventives.forEach((s) => {
+      const scheduled = s.scheduled_for ? new Date(s.scheduled_for).getTime() : 0;
+      const status = String(s.status || '').toLowerCase();
+      const isOpen = ['agendada', 'reagendada', 'em_execucao'].includes(status);
+      if (scheduled && scheduled < now && isOpen) overdue += 1;
+    });
+    const completed = comparisonPreventives.filter((s) => {
+      const status = String(s.status || '').toLowerCase();
+      return status === 'concluida' || status === 'fechada';
+    }).length;
+    const completionRate = total > 0 ? (completed / total) * 100 : 0;
+    const overdueRate = total > 0 ? (overdue / total) * 100 : 0;
+    return { total, overdue, completionRate, overdueRate };
+  }, [comparisonPreventives]);
+
+  const preventiveStatusChartData = useMemo(() => {
+    const keys = Object.keys(preventiveSummary.byStatus);
+    const labels = keys.map((k) => preventiveStatusLabel(k));
+    const palette = ['#0ea5e9', '#f59e0b', '#22c55e', '#6366f1', '#ef4444', '#14b8a6', '#a855f7'];
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Preventivas por status',
+          data: keys.map((k) => preventiveSummary.byStatus[k]),
+          backgroundColor: keys.map((_, idx) => palette[idx % palette.length]),
+        },
+      ],
+    };
+  }, [preventiveSummary]);
+
+  const preventivePlanChartData = useMemo(() => {
+    const planIds = Object.keys(preventiveSummary.byPlanId)
+      .sort((a, b) => (preventiveSummary.byPlanId[b] || 0) - (preventiveSummary.byPlanId[a] || 0))
+      .slice(0, 10);
+    return {
+      labels: planIds.map((id) => preventiveSummary.planNameById[id] || 'Sem plano'),
+      datasets: [
+        {
+          label: 'Preventivas por plano (top 10)',
+          data: planIds.map((id) => preventiveSummary.byPlanId[id]),
+          backgroundColor: '#6366f1',
+          borderColor: '#4f46e5',
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [preventiveSummary]);
+
+  const preventiveTemporalChartData = useMemo(() => {
+    const byWeek: Record<string, number> = {};
+    filteredPreventives.forEach((s) => {
+      if (!s.scheduled_for) return;
+      const date = new Date(s.scheduled_for);
+      const weekStart = new Date(date);
+      weekStart.setDate(date.getDate() - date.getDay());
+      const key = weekStart.toISOString().split('T')[0];
+      byWeek[key] = (byWeek[key] || 0) + 1;
+    });
+    const sortedWeeks = Object.keys(byWeek).sort();
+    return {
+      labels: sortedWeeks.map((w) => new Date(w).toLocaleDateString('pt-PT', { month: 'short', day: 'numeric' })),
+      datasets: [
+        {
+          label: 'Preventivas por semana',
+          data: sortedWeeks.map((w) => byWeek[w]),
+          borderColor: '#22c55e',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)',
+          tension: 0.4,
+          fill: true,
+        },
+      ],
+    };
+  }, [filteredPreventives]);
+
   const uniqueAssets = useMemo(() => {
     const assets = new Set<string>();
     workOrders.forEach((order) => {
@@ -455,6 +730,24 @@ export function ReportsPage() {
     });
     return Array.from(assets);
   }, [workOrders]);
+
+  const uniquePreventiveAssets = useMemo(() => {
+    const assets = new Set<string>();
+    preventiveSchedules.forEach((s) => {
+      if (s.asset_code) assets.add(String(s.asset_code));
+    });
+    return Array.from(assets);
+  }, [preventiveSchedules]);
+
+  const uniquePreventivePlans = useMemo(() => {
+    const byId = new Map<string, string>();
+    preventiveSchedules.forEach((s) => {
+      const id = String(s.plan_id || '').trim();
+      if (!id) return;
+      byId.set(id, String(s.plan_name || `Plano ${id}`));
+    });
+    return Array.from(byId.entries()).map(([id, name]) => ({ id, name }));
+  }, [preventiveSchedules]);
 
   const overdueRate = useMemo(() => {
     if (summary.total === 0) return 0;
@@ -672,6 +965,24 @@ export function ReportsPage() {
 
         if (!label) return;
 
+        if (reportType === 'preventive') {
+          if (datasetLabel?.toLowerCase().includes('preventivas') && datasetLabel?.toLowerCase().includes('status')) {
+            const keys = Object.keys(preventiveSummary.byStatus);
+            const key = keys[index];
+            if (key) setPreventiveStatusFilter(key);
+            return;
+          }
+
+          if (datasetLabel?.toLowerCase().includes('preventivas') && datasetLabel?.toLowerCase().includes('plano')) {
+            const planIds = Object.keys(preventiveSummary.byPlanId)
+              .sort((a, b) => (preventiveSummary.byPlanId[b] || 0) - (preventiveSummary.byPlanId[a] || 0))
+              .slice(0, 10);
+            const planId = planIds[index];
+            if (planId) setPlanFilter(planId);
+            return;
+          }
+        }
+
         // General status chart
         if (datasetLabel?.toLowerCase().includes('status')) {
           const keys = Object.keys(summary.byStatus);
@@ -714,7 +1025,7 @@ export function ReportsPage() {
         }
       },
     };
-  }, [chartOptions, summary.byStatus]);
+  }, [chartOptions, summary.byStatus, reportType, preventiveSummary.byStatus, preventiveSummary.byPlanId]);
 
   const reportTypeOptions = useMemo(
     () => [
@@ -723,6 +1034,7 @@ export function ReportsPage() {
       { key: 'technician' as const, label: 'Por Técnico', hint: 'Distribuição por responsável.' },
       { key: 'temporal' as const, label: 'Temporal', hint: 'Tendência semanal.' },
       { key: 'downtime' as const, label: 'Downtime', hint: 'Paragens e causas.' },
+      { key: 'preventive' as const, label: 'Preventivas', hint: 'Agenda e execução das preventivas.' },
     ],
     [],
   );
@@ -748,27 +1060,89 @@ export function ReportsPage() {
     };
   }, [compareEnabled, comparisonDateRange, summary, comparisonSummary, overdueRate, comparisonOverdueRate, calculateMetrics, comparisonMetrics]);
 
+  const preventiveKpiDeltas = useMemo(() => {
+    if (!compareEnabled || !comparisonDateRange) {
+      return {
+        total: null,
+        overdue: null,
+        overdueRate: null,
+        completionRate: null,
+      };
+    }
+    return {
+      total: pctDelta(preventiveSummary.total, preventiveComparisonSummary.total),
+      overdue: pctDelta(preventiveSummary.overdue, preventiveComparisonSummary.overdue),
+      overdueRate: pctDelta(preventiveSummary.overdueRate, preventiveComparisonSummary.overdueRate),
+      completionRate: pctDelta(preventiveSummary.completionRate, preventiveComparisonSummary.completionRate),
+    };
+  }, [compareEnabled, comparisonDateRange, preventiveSummary, preventiveComparisonSummary]);
+
   const exportPdf = () => {
     const doc = new jsPDF();
     doc.setFontSize(16);
     doc.text(
-      reportType === 'downtime' ? 'Relatório de Downtime' : 'Relatório de Ordens de Serviço',
+      reportType === 'downtime'
+        ? 'Relatório de Downtime'
+        : reportType === 'preventive'
+        ? 'Relatório de Preventivas'
+        : 'Relatório de Ordens de Serviço',
       14,
       20,
     );
 
     doc.setFontSize(10);
-    const filtersLabel = [
-      statusFilter ? `Status: ${workOrderStatusLabel(statusFilter)}` : null,
-      priorityFilter ? `Prioridade: ${workOrderPriorityLabel(priorityFilter)}` : null,
-      assetFilter ? `Ativo: ${assetFilter}` : null,
-      searchTerm ? `Pesquisa: ${searchTerm}` : null,
-      dateFrom ? `De: ${dateFrom}` : null,
-      dateTo ? `Até: ${dateTo}` : null,
-    ]
-      .filter(Boolean)
-      .join(' | ');
+    const planLabel = planFilter ? uniquePreventivePlans.find((p) => p.id === planFilter)?.name : null;
+
+    const filtersLabel =
+      reportType === 'preventive'
+        ? [
+            preventiveStatusFilter ? `Status: ${preventiveStatusLabel(preventiveStatusFilter)}` : null,
+            planLabel ? `Plano: ${planLabel}` : null,
+            assetFilter ? `Ativo: ${assetFilter}` : null,
+            searchTerm ? `Pesquisa: ${searchTerm}` : null,
+            dateFrom ? `De: ${dateFrom}` : null,
+            dateTo ? `Até: ${dateTo}` : null,
+          ]
+            .filter(Boolean)
+            .join(' | ')
+        : [
+            statusFilter ? `Status: ${workOrderStatusLabel(statusFilter)}` : null,
+            priorityFilter ? `Prioridade: ${workOrderPriorityLabel(priorityFilter)}` : null,
+            assetFilter ? `Ativo: ${assetFilter}` : null,
+            searchTerm ? `Pesquisa: ${searchTerm}` : null,
+            dateFrom ? `De: ${dateFrom}` : null,
+            dateTo ? `Até: ${dateTo}` : null,
+          ]
+            .filter(Boolean)
+            .join(' | ');
     if (filtersLabel) doc.text(`Filtros: ${filtersLabel}`, 14, 28);
+
+    if (reportType === 'preventive') {
+      const baseY = filtersLabel ? 35 : 28;
+      doc.text(
+        `Total: ${preventiveSummary.total} | Em atraso: ${preventiveSummary.overdue} | Conclusão: ${preventiveSummary.completionRate.toFixed(
+          1,
+        )}%`,
+        14,
+        baseY,
+      );
+      doc.text(`Taxa atraso: ${preventiveSummary.overdueRate.toFixed(1)}%`, 14, baseY + 7);
+
+      autoTable(doc, {
+        startY: baseY + 14,
+        head: [['Plano', 'Ativo', 'Agendada', 'Status', 'Concluída']],
+        body: sortedPreventives.slice(0, 60).map((s) => [
+          (s.plan_name || 'Sem plano').substring(0, 24),
+          s.asset_code ? `${s.asset_code}${s.asset_name ? ` - ${s.asset_name}` : ''}`.substring(0, 24) : '-',
+          s.scheduled_for ? new Date(s.scheduled_for).toLocaleDateString('pt-PT') : '-',
+          preventiveStatusLabel(s.status),
+          s.completed_at ? new Date(s.completed_at).toLocaleDateString('pt-PT') : '-',
+        ]),
+      });
+
+      doc.save('relatorio-preventivas.pdf');
+      return;
+    }
 
     if (reportType === 'downtime') {
       const totalMinutes = downtimeOrders.reduce((acc, order) => acc + Number((order as any).__downtimeMinutes || 0), 0);
@@ -836,6 +1210,33 @@ export function ReportsPage() {
   };
 
   const exportCsv = () => {
+    if (reportType === 'preventive') {
+      const headers = ['Schedule ID', 'Plano ID', 'Plano', 'Ativo', 'Agendada para', 'Status', 'Concluída em', 'Notas'];
+      const rows = sortedPreventives.map((s) => [
+        s.id,
+        s.plan_id,
+        s.plan_name || '',
+        s.asset_code ? `${s.asset_code}${s.asset_name ? ` - ${s.asset_name}` : ''}` : '',
+        s.scheduled_for ? new Date(s.scheduled_for).toLocaleString('pt-PT') : '',
+        s.status || '',
+        s.completed_at ? new Date(s.completed_at).toLocaleString('pt-PT') : '',
+        s.notes || '',
+      ]);
+
+      const csvContent = [
+        headers,
+        ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `preventivas-${new Date().toISOString().split('T')[0]}.csv`);
+      link.click();
+      return;
+    }
+
     if (reportType === 'downtime') {
       const headers = [
         'Ordem ID',
@@ -1043,47 +1444,94 @@ export function ReportsPage() {
               <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-6">
                 <input
                   className="input md:col-span-2"
-                  placeholder="Pesquisar (título, descrição, ativo)"
+                  placeholder={reportType === 'preventive' ? 'Pesquisar (plano, ativo, notas)' : 'Pesquisar (título, descrição, ativo)'}
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                 />
-                <select
-                  className="input"
-                  value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value)}
-                >
-                  <option value="">Status (todos)</option>
-                  <option value="aberta">Aberta</option>
-                  <option value="em_analise">Em Análise</option>
-                  <option value="em_execucao">Em Execução</option>
-                  <option value="em_pausa">Em Pausa</option>
-                  <option value="concluida">Concluída</option>
-                  <option value="fechada">Fechada</option>
-                  <option value="cancelada">Cancelada</option>
-                </select>
-                <select
-                  className="input"
-                  value={priorityFilter}
-                  onChange={(event) => setPriorityFilter(event.target.value)}
-                >
-                  <option value="">Prioridade (todas)</option>
-                  <option value="baixa">Baixa</option>
-                  <option value="media">Média</option>
-                  <option value="alta">Alta</option>
-                  <option value="critica">Crítica</option>
-                </select>
-                <select
-                  className="input"
-                  value={assetFilter}
-                  onChange={(event) => setAssetFilter(event.target.value)}
-                >
-                  <option value="">Ativo (todos)</option>
-                  {uniqueAssets.map((asset) => (
-                    <option key={asset} value={asset}>
-                      {asset}
-                    </option>
-                  ))}
-                </select>
+
+                {reportType === 'preventive' ? (
+                  <>
+                    <select
+                      className="input"
+                      value={preventiveStatusFilter}
+                      onChange={(event) => setPreventiveStatusFilter(event.target.value)}
+                    >
+                      <option value="">Status (todos)</option>
+                      {Object.entries(PREVENTIVE_STATUS_LABELS).map(([key, label]) => (
+                        <option key={key} value={key}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      className="input"
+                      value={planFilter}
+                      onChange={(event) => setPlanFilter(event.target.value)}
+                    >
+                      <option value="">Plano (todos)</option>
+                      {uniquePreventivePlans.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      className="input"
+                      value={assetFilter}
+                      onChange={(event) => setAssetFilter(event.target.value)}
+                    >
+                      <option value="">Ativo (todos)</option>
+                      {uniquePreventiveAssets.map((asset) => (
+                        <option key={asset} value={asset}>
+                          {asset}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                ) : (
+                  <>
+                    <select
+                      className="input"
+                      value={statusFilter}
+                      onChange={(event) => setStatusFilter(event.target.value)}
+                    >
+                      <option value="">Status (todos)</option>
+                      <option value="aberta">Aberta</option>
+                      <option value="em_analise">Em Análise</option>
+                      <option value="em_execucao">Em Execução</option>
+                      <option value="em_pausa">Em Pausa</option>
+                      <option value="concluida">Concluída</option>
+                      <option value="fechada">Fechada</option>
+                      <option value="cancelada">Cancelada</option>
+                    </select>
+                    <select
+                      className="input"
+                      value={priorityFilter}
+                      onChange={(event) => setPriorityFilter(event.target.value)}
+                    >
+                      <option value="">Prioridade (todas)</option>
+                      <option value="baixa">Baixa</option>
+                      <option value="media">Média</option>
+                      <option value="alta">Alta</option>
+                      <option value="critica">Crítica</option>
+                    </select>
+                    <select
+                      className="input"
+                      value={assetFilter}
+                      onChange={(event) => setAssetFilter(event.target.value)}
+                    >
+                      <option value="">Ativo (todos)</option>
+                      {uniqueAssets.map((asset) => (
+                        <option key={asset} value={asset}>
+                          {asset}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                )}
+
                 <input
                   type="date"
                   className="input"
@@ -1107,7 +1555,51 @@ export function ReportsPage() {
           </div>
 
           {/* Key Metrics */}
-          {reportType !== 'downtime' ? (
+          {reportType === 'downtime' ? (
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+                <p className="text-xs theme-text-muted uppercase tracking-wider">Registos de downtime</p>
+                <p className="text-2xl font-bold theme-text mt-2">{downtimeOrders.length}</p>
+              </div>
+              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+                <p className="text-xs theme-text-muted uppercase tracking-wider">Total (min)</p>
+                <p className="text-2xl font-bold theme-text mt-2">{downtimeSummary.totalMinutes}</p>
+              </div>
+              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+                <p className="text-xs theme-text-muted uppercase tracking-wider">Total (horas)</p>
+                <p className="text-2xl font-bold theme-text mt-2">{downtimeSummary.totalHours}</p>
+              </div>
+            </div>
+          ) : reportType === 'preventive' ? (
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+                <p className="text-xs theme-text-muted uppercase tracking-wider">Total Filtrado</p>
+                <p className="text-2xl font-bold theme-text mt-2">{preventiveSummary.total}</p>
+                {compareEnabled && (
+                  <p className="mt-2 text-xs theme-text-muted">{formatDelta(preventiveKpiDeltas.total)}</p>
+                )}
+              </div>
+              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+                <p className="text-xs theme-text-muted uppercase tracking-wider">Em Atraso</p>
+                <p className="text-2xl font-bold text-rose-600 mt-2">{preventiveSummary.overdue}</p>
+                <p className="mt-1 text-xs theme-text-muted">{preventiveSummary.overdueRate.toFixed(1)}%</p>
+                {compareEnabled && (
+                  <p className="mt-1 text-xs theme-text-muted">{formatDelta(preventiveKpiDeltas.overdueRate)}</p>
+                )}
+              </div>
+              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+                <p className="text-xs theme-text-muted uppercase tracking-wider">Taxa Conclusão</p>
+                <p className="text-2xl font-bold text-emerald-600 mt-2">{preventiveSummary.completionRate.toFixed(1)}%</p>
+                {compareEnabled && (
+                  <p className="mt-2 text-xs theme-text-muted">{formatDelta(preventiveKpiDeltas.completionRate)}</p>
+                )}
+              </div>
+              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+                <p className="text-xs theme-text-muted uppercase tracking-wider">Planos distintos</p>
+                <p className="text-2xl font-bold theme-text mt-2">{Object.keys(preventiveSummary.byPlanId).length}</p>
+              </div>
+            </div>
+          ) : (
             <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-5">
               <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
                 <p className="text-xs theme-text-muted uppercase tracking-wider">Total Filtrado</p>
@@ -1152,24 +1644,9 @@ export function ReportsPage() {
                 )}
               </div>
             </div>
-          ) : (
-            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
-                <p className="text-xs theme-text-muted uppercase tracking-wider">Registos de downtime</p>
-                <p className="text-2xl font-bold theme-text mt-2">{downtimeOrders.length}</p>
-              </div>
-              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
-                <p className="text-xs theme-text-muted uppercase tracking-wider">Total (min)</p>
-                <p className="text-2xl font-bold theme-text mt-2">{downtimeSummary.totalMinutes}</p>
-              </div>
-              <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
-                <p className="text-xs theme-text-muted uppercase tracking-wider">Total (horas)</p>
-                <p className="text-2xl font-bold theme-text mt-2">{downtimeSummary.totalHours}</p>
-              </div>
-            </div>
           )}
 
-          {reportType !== 'downtime' && topOverdueAssets.length > 0 && (
+          {reportType !== 'downtime' && reportType !== 'preventive' && topOverdueAssets.length > 0 && (
             <div className="mt-4 rounded-[24px] border theme-border bg-[color:var(--dash-surface)] p-4 text-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">Insights</p>
               <p className="mt-2 theme-text">
@@ -1273,15 +1750,47 @@ export function ReportsPage() {
             </div>
           )}
 
+          {reportType === 'preventive' && (
+            <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div className="rounded-[28px] border theme-border theme-card p-6 shadow-sm">
+                <h3 className="text-lg font-semibold theme-text mb-4">Status (Preventivas)</h3>
+                <div className="h-72">
+                  <Doughnut data={preventiveStatusChartData} options={chartOptionsWithClick} />
+                </div>
+              </div>
+              <div className="rounded-[28px] border theme-border theme-card p-6 shadow-sm">
+                <h3 className="text-lg font-semibold theme-text mb-4">Planos (top 10)</h3>
+                <div className="h-72">
+                  <Bar data={preventivePlanChartData} options={chartOptionsWithClick} />
+                </div>
+              </div>
+              <div className="rounded-[28px] border theme-border theme-card p-6 shadow-sm lg:col-span-2">
+                <h3 className="text-lg font-semibold theme-text mb-4">Tendência (semanal)</h3>
+                <div className="h-80">
+                  <Line data={preventiveTemporalChartData} options={chartOptions} />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Data Table */}
           <div className="mt-6 overflow-hidden rounded-[28px] border theme-border theme-card shadow-sm">
             <div className="flex flex-col gap-3 border-b theme-border p-5 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-lg font-semibold theme-text">
-                {reportType === 'downtime' ? 'Downtime filtrado' : 'Ordens Filtradas'}
+                {reportType === 'downtime'
+                  ? 'Downtime filtrado'
+                  : reportType === 'preventive'
+                  ? 'Preventivas filtradas'
+                  : 'Ordens Filtradas'}
               </h2>
               <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <span>
-                  {reportType === 'downtime' ? downtimeOrders.length : filteredOrders.length} registos
+                  {reportType === 'downtime'
+                    ? downtimeOrders.length
+                    : reportType === 'preventive'
+                    ? sortedPreventives.length
+                    : filteredOrders.length}{' '}
+                  registos
                 </span>
                 {reportType === 'downtime' && (
                   <span className="rounded-full border theme-border bg-[color:var(--dash-surface)] px-3 py-1 text-xs font-semibold theme-text">
@@ -1291,117 +1800,156 @@ export function ReportsPage() {
               </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
-                <thead className="bg-[color:var(--dash-surface)]">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Ordem</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Ativo</th>
-                    {reportType !== 'downtime' ? (
-                      <>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Prioridade</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Horas</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Criada em</th>
-                      </>
-                    ) : (
-                      <>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Início</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Fim</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Min</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Tipo</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Categoria</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Motivo</th>
-                      </>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="bg-[color:var(--dash-panel)] divide-y divide-[color:var(--dash-border)]">
-                  {(reportType === 'downtime' ? downtimeOrders.length === 0 : sortedFilteredOrders.length === 0) && (
+              {reportType === 'preventive' ? (
+                <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
+                  <thead className="bg-[color:var(--dash-surface)]">
                     <tr>
-                      <td colSpan={reportType === 'downtime' ? 8 : 6} className="px-6 py-6 text-center theme-text-muted">
-                        {reportType === 'downtime'
-                          ? 'Nenhum downtime encontrado'
-                          : 'Nenhuma ordem encontrada'}
-                      </td>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Plano</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Ativo</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Agendada</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Concluída</th>
                     </tr>
-                  )}
-                  {(reportType === 'downtime' ? downtimeOrders : sortedFilteredOrders).map((order: any) => (
-                    <tr key={order.id} className="hover:bg-[color:var(--dash-surface)]">
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium theme-text">{order.title}</div>
-                        <div className="text-xs theme-text-muted">{order.description || 'Sem descrição'}</div>
-                      </td>
-                      <td className="px-6 py-4 text-sm theme-text">
-                        {order.asset ? `${order.asset.code}` : '-'}
-                      </td>
-
+                  </thead>
+                  <tbody className="bg-[color:var(--dash-panel)] divide-y divide-[color:var(--dash-border)]">
+                    {sortedPreventives.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-6 text-center theme-text-muted">
+                          Nenhuma preventiva encontrada
+                        </td>
+                      </tr>
+                    )}
+                    {sortedPreventives.map((s) => (
+                      <tr key={s.id} className="hover:bg-[color:var(--dash-surface)]">
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium theme-text">{s.plan_name || 'Sem plano'}</div>
+                          <div className="text-xs theme-text-muted">{s.notes || '—'}</div>
+                        </td>
+                        <td className="px-6 py-4 text-sm theme-text">
+                          {s.asset_code ? `${s.asset_code}${s.asset_name ? ` - ${s.asset_name}` : ''}` : '-'}
+                        </td>
+                        <td className="px-6 py-4 text-sm theme-text">
+                          {s.scheduled_for ? new Date(s.scheduled_for).toLocaleDateString('pt-PT') : '-'}
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          <span
+                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getPreventiveStatusBadgeClass(
+                              s.status,
+                            )}`}
+                          >
+                            {preventiveStatusLabel(s.status)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm theme-text">
+                          {s.completed_at ? new Date(s.completed_at).toLocaleDateString('pt-PT') : '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <table className="min-w-full divide-y divide-[color:var(--dash-border)]">
+                  <thead className="bg-[color:var(--dash-surface)]">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Ordem</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Ativo</th>
                       {reportType !== 'downtime' ? (
                         <>
-                          <td className="px-6 py-4 text-sm">
-                            <span
-                              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(
-                                order.status,
-                              )}`}
-                            >
-                              {workOrderStatusLabel(order.status)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm">
-                            <span
-                              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getPriorityBadgeClass(
-                                order.priority,
-                              )}`}
-                            >
-                              {workOrderPriorityLabel(order.priority)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm theme-text">
-                            {order.actual_hours
-                              ? `${order.actual_hours}h`
-                              : order.estimated_hours
-                              ? `${order.estimated_hours}h (est.)`
-                              : '-'}
-                          </td>
-                          <td className="px-6 py-4 text-sm theme-text">
-                            {order.created_at
-                              ? new Date(order.created_at).toLocaleDateString('pt-PT')
-                              : '-'}
-                          </td>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Prioridade</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Horas</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Criada em</th>
                         </>
                       ) : (
                         <>
-                          <td className="px-6 py-4 text-sm theme-text">
-                            {order.downtime_started_at
-                              ? new Date(order.downtime_started_at).toLocaleString('pt-PT')
-                              : '-'}
-                          </td>
-                          <td className="px-6 py-4 text-sm theme-text">
-                            {order.downtime_ended_at
-                              ? new Date(order.downtime_ended_at).toLocaleString('pt-PT')
-                              : '-'}
-                          </td>
-                          <td className="px-6 py-4 text-sm theme-text">
-                            {String(order.__downtimeMinutes ?? '')}
-                          </td>
-                          <td className="px-6 py-4 text-sm">
-                            <span className="chip text-xs font-medium px-2 py-1 rounded-full bg-[color:var(--dash-surface)] theme-text">
-                              {order.downtime_type || '—'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm">
-                            <span className="chip text-xs font-medium px-2 py-1 rounded-full bg-[color:var(--dash-surface)] theme-text">
-                              {order.downtime_category || '—'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm theme-text-muted">
-                            {order.downtime_reason || '-'}
-                          </td>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Início</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Fim</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Min</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Tipo</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Categoria</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Motivo</th>
                         </>
                       )}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-[color:var(--dash-panel)] divide-y divide-[color:var(--dash-border)]">
+                    {(reportType === 'downtime' ? downtimeOrders.length === 0 : sortedFilteredOrders.length === 0) && (
+                      <tr>
+                        <td colSpan={reportType === 'downtime' ? 8 : 6} className="px-6 py-6 text-center theme-text-muted">
+                          {reportType === 'downtime' ? 'Nenhum downtime encontrado' : 'Nenhuma ordem encontrada'}
+                        </td>
+                      </tr>
+                    )}
+                    {(reportType === 'downtime' ? downtimeOrders : sortedFilteredOrders).map((order: any) => (
+                      <tr key={order.id} className="hover:bg-[color:var(--dash-surface)]">
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium theme-text">{order.title}</div>
+                          <div className="text-xs theme-text-muted">{order.description || 'Sem descrição'}</div>
+                        </td>
+                        <td className="px-6 py-4 text-sm theme-text">{order.asset ? `${order.asset.code}` : '-'}</td>
+
+                        {reportType !== 'downtime' ? (
+                          <>
+                            <td className="px-6 py-4 text-sm">
+                              <span
+                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(
+                                  order.status,
+                                )}`}
+                              >
+                                {workOrderStatusLabel(order.status)}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm">
+                              <span
+                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getPriorityBadgeClass(
+                                  order.priority,
+                                )}`}
+                              >
+                                {workOrderPriorityLabel(order.priority)}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm theme-text">
+                              {order.actual_hours
+                                ? `${order.actual_hours}h`
+                                : order.estimated_hours
+                                ? `${order.estimated_hours}h (est.)`
+                                : '-'}
+                            </td>
+                            <td className="px-6 py-4 text-sm theme-text">
+                              {order.created_at ? new Date(order.created_at).toLocaleDateString('pt-PT') : '-'}
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-6 py-4 text-sm theme-text">
+                              {order.downtime_started_at
+                                ? new Date(order.downtime_started_at).toLocaleString('pt-PT')
+                                : '-'}
+                            </td>
+                            <td className="px-6 py-4 text-sm theme-text">
+                              {order.downtime_ended_at
+                                ? new Date(order.downtime_ended_at).toLocaleString('pt-PT')
+                                : '-'}
+                            </td>
+                            <td className="px-6 py-4 text-sm theme-text">{String(order.__downtimeMinutes ?? '')}</td>
+                            <td className="px-6 py-4 text-sm">
+                              <span className="chip text-xs font-medium px-2 py-1 rounded-full bg-[color:var(--dash-surface)] theme-text">
+                                {order.downtime_type || '—'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm">
+                              <span className="chip text-xs font-medium px-2 py-1 rounded-full bg-[color:var(--dash-surface)] theme-text">
+                                {order.downtime_category || '—'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm theme-text-muted">{order.downtime_reason || '-'}</td>
+                          </>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </>
