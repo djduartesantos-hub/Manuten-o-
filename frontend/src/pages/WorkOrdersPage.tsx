@@ -2769,9 +2769,9 @@ export function WorkOrdersPage() {
                         aria-label="Guardar alterações"
                       >
                         {updating ? (
-                          <Loader2 size={22} className="animate-spin" />
+                          <Loader2 className="h-7 w-7 animate-spin md:h-6 md:w-6" />
                         ) : (
-                          <Save size={22} className="text-white" />
+                          <Save className="h-7 w-7 text-white md:h-6 md:w-6" />
                         )}
                       </button>
                     )}
@@ -2779,12 +2779,12 @@ export function WorkOrdersPage() {
                       <button
                         type="button"
                         onClick={handleDeleteOrder}
-                        className="btn-secondary inline-flex h-10 w-10 items-center justify-center"
+                        className="btn-secondary inline-flex h-10 w-10 items-center justify-center border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/15"
                         disabled={updating}
                         title="Eliminar"
                         aria-label="Eliminar"
                       >
-                        <Trash2 size={22} className="text-rose-600" />
+                        <Trash2 className="h-7 w-7 text-rose-600 md:h-6 md:w-6" />
                       </button>
                     )}
                     <button
@@ -2795,7 +2795,7 @@ export function WorkOrdersPage() {
                       title="Fechar"
                       aria-label="Fechar"
                     >
-                      <X size={22} className="theme-text-muted" />
+                      <X className="h-7 w-7 theme-text-muted md:h-6 md:w-6" />
                     </button>
                   </div>
                       </>
@@ -2875,7 +2875,7 @@ export function WorkOrdersPage() {
                               !['concluida', 'fechada', 'cancelada'].includes(editingOrder.status) && (
                                 <button
                                   type="button"
-                                  className="btn-secondary inline-flex h-9 w-9 items-center justify-center"
+                                  className="btn-secondary inline-flex h-9 w-9 items-center justify-center border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/15"
                                   disabled={tasksSaving}
                                   title="Remover tarefa"
                                   aria-label="Remover tarefa"
@@ -2885,7 +2885,7 @@ export function WorkOrdersPage() {
                                     void handleRemoveTask(task);
                                   }}
                                 >
-                                  <Trash2 size={20} className="text-rose-600" />
+                                  <Trash2 className="h-6 w-6 text-rose-600 md:h-5 md:w-5" />
                                 </button>
                               )}
                           </span>
@@ -2909,16 +2909,16 @@ export function WorkOrdersPage() {
                       />
                       <button
                         type="button"
-                        className="btn-secondary inline-flex h-10 w-10 items-center justify-center"
+                        className="btn-secondary inline-flex h-10 w-10 items-center justify-center border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/15"
                         onClick={handleAddTask}
                         disabled={tasksSaving}
                         title="Adicionar tarefa"
                         aria-label="Adicionar tarefa"
                       >
                         {tasksSaving ? (
-                          <Loader2 size={22} className="animate-spin" />
+                          <Loader2 className="h-7 w-7 animate-spin md:h-6 md:w-6" />
                         ) : (
-                          <Plus size={22} className="text-emerald-600" />
+                          <Plus className="h-7 w-7 text-emerald-600 md:h-6 md:w-6" />
                         )}
                       </button>
                     </div>
