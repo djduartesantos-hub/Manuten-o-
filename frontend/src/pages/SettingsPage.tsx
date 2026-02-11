@@ -15,6 +15,7 @@ import {
   setAdminRolePermissions,
   createPreventiveSchedule,
   getPreventiveSchedules,
+  skipPreventiveSchedule,
   updatePreventiveSchedule,
   getNotificationRules,
   updateAdminPlant,
@@ -1058,6 +1059,7 @@ function PreventiveMaintenanceSettings({
     | null
     | {
         scheduleId: string;
+        mode: 'delay' | 'skip';
         scheduled_for_local: string;
         reason: string;
       }
@@ -1341,6 +1343,7 @@ function PreventiveMaintenanceSettings({
       if (status === 'reagendada') {
         setPendingReschedule({
           scheduleId: schedule.id,
+          mode: 'delay',
           scheduled_for_local: toDatetimeLocalFromIso(schedule.scheduled_for),
           reason: '',
         });
@@ -1366,27 +1369,36 @@ function PreventiveMaintenanceSettings({
 
   const confirmReschedule = async () => {
     if (!selectedPlant || !pendingReschedule) return;
-    const scheduledIso = toIsoFromDatetimeLocal(pendingReschedule.scheduled_for_local);
-    if (!scheduledIso) {
-      setScheduleError('Data inválida para reagendar');
-      return;
-    }
     const reason = pendingReschedule.reason.trim();
-    if (!reason) {
-      setScheduleError('Motivo é obrigatório ao reagendar');
-      return;
-    }
     setScheduleError(null);
     try {
-      await updatePreventiveSchedule(selectedPlant, pendingReschedule.scheduleId, {
-        status: 'reagendada',
-        scheduled_for: scheduledIso,
-        reschedule_reason: reason,
-      });
+      if (!reason) {
+        setScheduleError(
+          pendingReschedule.mode === 'skip'
+            ? 'Motivo é obrigatório ao fazer skip'
+            : 'Motivo é obrigatório ao reagendar',
+        );
+        return;
+      }
+
+      if (pendingReschedule.mode === 'skip') {
+        await skipPreventiveSchedule(selectedPlant, pendingReschedule.scheduleId, reason);
+      } else {
+        const scheduledIso = toIsoFromDatetimeLocal(pendingReschedule.scheduled_for_local);
+        if (!scheduledIso) {
+          setScheduleError('Data inválida para reagendar');
+          return;
+        }
+        await updatePreventiveSchedule(selectedPlant, pendingReschedule.scheduleId, {
+          status: 'reagendada',
+          scheduled_for: scheduledIso,
+          reschedule_reason: reason,
+        });
+      }
       setPendingReschedule(null);
       await fetchSchedules();
     } catch (err: any) {
-      setScheduleError(err?.message || 'Erro ao reagendar');
+      setScheduleError(err?.message || (pendingReschedule.mode === 'skip' ? 'Erro ao fazer skip' : 'Erro ao reagendar'));
     }
   };
 
@@ -1436,6 +1448,7 @@ function PreventiveMaintenanceSettings({
     const suggestedLocal = mode === 'skip' ? suggestSkipToNextCycleLocal(schedule) : fallbackLocal;
     setPendingReschedule({
       scheduleId: schedule.id,
+      mode,
       scheduled_for_local: suggestedLocal,
       reason: '',
     });
@@ -2135,26 +2148,28 @@ function PreventiveMaintenanceSettings({
                         {pendingReschedule && pendingReschedule.scheduleId === schedule.id && (
                           <div className="flex flex-col gap-2 rounded-[16px] border theme-border bg-[color:var(--dash-panel)] p-3">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                              <div>
-                                <label className="block text-xs font-semibold theme-text-muted mb-1">
-                                  Nova data
-                                </label>
-                                <input
-                                  type="datetime-local"
-                                  value={pendingReschedule.scheduled_for_local}
-                                  onChange={(e) =>
-                                    setPendingReschedule((prev) =>
-                                      prev
-                                        ? {
-                                            ...prev,
-                                            scheduled_for_local: e.target.value,
-                                          }
-                                        : prev,
-                                    )
-                                  }
-                                  className="input h-9 py-1"
-                                />
-                              </div>
+                              {pendingReschedule.mode !== 'skip' && (
+                                <div>
+                                  <label className="block text-xs font-semibold theme-text-muted mb-1">
+                                    Nova data
+                                  </label>
+                                  <input
+                                    type="datetime-local"
+                                    value={pendingReschedule.scheduled_for_local}
+                                    onChange={(e) =>
+                                      setPendingReschedule((prev) =>
+                                        prev
+                                          ? {
+                                              ...prev,
+                                              scheduled_for_local: e.target.value,
+                                            }
+                                          : prev,
+                                      )
+                                    }
+                                    className="input h-9 py-1"
+                                  />
+                                </div>
+                              )}
                               <div>
                                 <label className="block text-xs font-semibold theme-text-muted mb-1">
                                   Motivo
