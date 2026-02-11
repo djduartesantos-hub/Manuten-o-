@@ -44,7 +44,48 @@ const workOrderPriorityLabel = (value?: string | null) => {
   return WORK_ORDER_PRIORITY_LABELS[key] || (key ? key.charAt(0).toUpperCase() + key.slice(1) : '—');
 };
 
-const REPORTS_STORAGE_KEY = 'reportsPreferences';
+const REPORTS_STORAGE_KEY = 'reportsPreferences:v2';
+
+type ReportType = 'general' | 'asset' | 'technician' | 'temporal' | 'downtime';
+type PeriodPreset = 'custom' | 'last7' | 'last30' | 'last90' | 'thisMonth';
+
+const toISODate = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const startOfThisMonth = () => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1);
+};
+
+const addDays = (date: Date, days: number) => {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+};
+
+const pctDelta = (current: number, previous: number) => {
+  if (!Number.isFinite(current) || !Number.isFinite(previous)) return null;
+  if (previous === 0) {
+    if (current === 0) return 0;
+    return null;
+  }
+  return ((current - previous) / previous) * 100;
+};
+
+const formatDelta = (delta: number | null) => {
+  if (delta === null) return '—';
+  const sign = delta > 0 ? '+' : '';
+  return `${sign}${delta.toFixed(1)}%`;
+};
+
+const topEntries = (totals: Record<string, number>, take: number) =>
+  Object.entries(totals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, take);
 
 interface WorkOrder {
   id: string;
@@ -76,9 +117,7 @@ export function ReportsPage() {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [reportType, setReportType] = useState<
-    'general' | 'asset' | 'technician' | 'temporal' | 'downtime'
-  >('general');
+  const [reportType, setReportType] = useState<ReportType>('general');
 
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
@@ -86,6 +125,8 @@ export function ReportsPage() {
   const [dateTo, setDateTo] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [assetFilter, setAssetFilter] = useState('');
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>('custom');
+  const [compareEnabled, setCompareEnabled] = useState(false);
 
   // Restore saved preferences (type + filters)
   useEffect(() => {
@@ -94,24 +135,70 @@ export function ReportsPage() {
     try {
       const parsed = JSON.parse(raw);
       if (parsed?.reportType) setReportType(parsed.reportType);
+
+      // If stored preferences belong to a different plant, keep only reportType.
+      if (parsed?.plantId && selectedPlant && parsed.plantId !== selectedPlant) return;
+
       setStatusFilter(parsed?.statusFilter || '');
       setPriorityFilter(parsed?.priorityFilter || '');
       setDateFrom(parsed?.dateFrom || '');
       setDateTo(parsed?.dateTo || '');
       setSearchTerm(parsed?.searchTerm || '');
       setAssetFilter(parsed?.assetFilter || '');
+      setPeriodPreset(parsed?.periodPreset || 'custom');
+      setCompareEnabled(Boolean(parsed?.compareEnabled));
     } catch {
       // ignore
     }
-  }, []);
+  }, [selectedPlant]);
 
   // Persist preferences
   useEffect(() => {
     localStorage.setItem(
       REPORTS_STORAGE_KEY,
-      JSON.stringify({ reportType, statusFilter, priorityFilter, dateFrom, dateTo, searchTerm, assetFilter }),
+      JSON.stringify({
+        plantId: selectedPlant || null,
+        reportType,
+        statusFilter,
+        priorityFilter,
+        dateFrom,
+        dateTo,
+        searchTerm,
+        assetFilter,
+        periodPreset,
+        compareEnabled,
+      }),
     );
-  }, [reportType, statusFilter, priorityFilter, dateFrom, dateTo, searchTerm, assetFilter]);
+  }, [selectedPlant, reportType, statusFilter, priorityFilter, dateFrom, dateTo, searchTerm, assetFilter, periodPreset, compareEnabled]);
+
+  // Apply preset to dates
+  useEffect(() => {
+    if (periodPreset === 'custom') return;
+
+    const today = new Date();
+    const end = toISODate(today);
+
+    if (periodPreset === 'thisMonth') {
+      setDateFrom(toISODate(startOfThisMonth()));
+      setDateTo(end);
+      return;
+    }
+
+    const days = periodPreset === 'last7' ? 7 : periodPreset === 'last30' ? 30 : 90;
+    setDateFrom(toISODate(addDays(today, -days)));
+    setDateTo(end);
+  }, [periodPreset]);
+
+  const clearFilters = () => {
+    setStatusFilter('');
+    setPriorityFilter('');
+    setAssetFilter('');
+    setSearchTerm('');
+    setDateFrom('');
+    setDateTo('');
+    setPeriodPreset('custom');
+    setCompareEnabled(false);
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -139,42 +226,92 @@ export function ReportsPage() {
     load();
   }, [selectedPlant]);
 
-  const filteredOrders = useMemo(() => {
-    return workOrders.filter((order) => {
-      if (statusFilter && order.status !== statusFilter) return false;
-      if (priorityFilter && order.priority !== priorityFilter) return false;
-      if (assetFilter && order.asset?.code !== assetFilter) return false;
+  const applyFilters = (
+    orders: WorkOrder[],
+    opts: {
+      statusFilter: string;
+      priorityFilter: string;
+      assetFilter: string;
+      searchTerm: string;
+      dateFrom: string;
+      dateTo: string;
+      reportType: ReportType;
+    },
+  ) => {
+    return orders.filter((order) => {
+      if (opts.statusFilter && order.status !== opts.statusFilter) return false;
+      if (opts.priorityFilter && order.priority !== opts.priorityFilter) return false;
+      if (opts.assetFilter && order.asset?.code !== opts.assetFilter) return false;
 
-      if (reportType === 'downtime') {
+      if (opts.reportType === 'downtime') {
         const minutes = Number(order.downtime_minutes ?? 0);
         const hasInterval = Boolean(order.downtime_started_at && order.downtime_ended_at);
         if (!hasInterval && minutes <= 0) return false;
       }
 
-      if (searchTerm) {
+      if (opts.searchTerm) {
         const haystack = `${order.title} ${order.description || ''} ${order.asset?.code || ''} ${
           order.asset?.name || ''
-        }`.toLowerCase();
-        if (!haystack.includes(searchTerm.toLowerCase())) return false;
+        } ${order.assigned_to_id || ''}`.toLowerCase();
+        if (!haystack.includes(opts.searchTerm.toLowerCase())) return false;
       }
 
-      if (dateFrom) {
+      if (opts.dateFrom) {
         const referenceIso =
-          reportType === 'downtime' ? order.downtime_started_at || '' : order.created_at || '';
+          opts.reportType === 'downtime' ? order.downtime_started_at || '' : order.created_at || '';
         const reference = referenceIso ? new Date(referenceIso).getTime() : 0;
-        if (reference < new Date(dateFrom).getTime()) return false;
+        if (reference < new Date(opts.dateFrom).getTime()) return false;
       }
 
-      if (dateTo) {
+      if (opts.dateTo) {
         const referenceIso =
-          reportType === 'downtime' ? order.downtime_started_at || '' : order.created_at || '';
+          opts.reportType === 'downtime' ? order.downtime_started_at || '' : order.created_at || '';
         const reference = referenceIso ? new Date(referenceIso).getTime() : 0;
-        if (reference > new Date(dateTo).getTime() + 24 * 60 * 60 * 1000) return false;
+        if (reference > new Date(opts.dateTo).getTime() + 24 * 60 * 60 * 1000) return false;
       }
 
       return true;
     });
+  };
+
+  const filteredOrders = useMemo(() => {
+    return applyFilters(workOrders, {
+      statusFilter,
+      priorityFilter,
+      assetFilter,
+      searchTerm,
+      dateFrom,
+      dateTo,
+      reportType,
+    });
   }, [workOrders, statusFilter, priorityFilter, dateFrom, dateTo, searchTerm, assetFilter, reportType]);
+
+  const comparisonDateRange = useMemo(() => {
+    if (!compareEnabled) return null;
+    if (!dateFrom || !dateTo) return null;
+    const from = new Date(dateFrom);
+    const to = new Date(dateTo);
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return null;
+    const ms = to.getTime() - from.getTime();
+    if (ms < 0) return null;
+
+    const prevTo = addDays(from, -1);
+    const prevFrom = new Date(prevTo.getTime() - ms);
+    return { prevFrom: toISODate(prevFrom), prevTo: toISODate(prevTo) };
+  }, [compareEnabled, dateFrom, dateTo]);
+
+  const comparisonOrders = useMemo(() => {
+    if (!comparisonDateRange) return [];
+    return applyFilters(workOrders, {
+      statusFilter,
+      priorityFilter,
+      assetFilter,
+      searchTerm,
+      dateFrom: comparisonDateRange.prevFrom,
+      dateTo: comparisonDateRange.prevTo,
+      reportType,
+    });
+  }, [workOrders, statusFilter, priorityFilter, assetFilter, searchTerm, reportType, comparisonDateRange]);
 
   const downtimeOrders = useMemo(() => {
     if (reportType !== 'downtime') return [];
@@ -191,10 +328,25 @@ export function ReportsPage() {
       .sort((a, b) => b.__downtimeStartedAt - a.__downtimeStartedAt);
   }, [filteredOrders, reportType]);
 
+  const sortedFilteredOrders = useMemo(() => {
+    if (reportType === 'downtime') return filteredOrders;
+    const copy = [...filteredOrders];
+    copy.sort((a, b) => {
+      const aSla = a.sla_deadline ? new Date(a.sla_deadline).getTime() : Number.POSITIVE_INFINITY;
+      const bSla = b.sla_deadline ? new Date(b.sla_deadline).getTime() : Number.POSITIVE_INFINITY;
+      if (aSla !== bSla) return aSla - bSla;
+
+      const aCreated = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const bCreated = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return bCreated - aCreated;
+    });
+    return copy;
+  }, [filteredOrders, reportType]);
+
   // Calculate MTTR (Mean Time To Repair) and MTBF (Mean Time Between Failures)
-  const calculateMetrics = useMemo(() => {
-    const completed = filteredOrders.filter((o) => ['concluida', 'fechada'].includes(o.status));
-    
+  const computeMetrics = (orders: WorkOrder[], totalUniverse: WorkOrder[]) => {
+    const completed = orders.filter((o) => ['concluida', 'fechada'].includes(o.status));
+
     let totalRepairTime = 0;
     let repairCount = 0;
 
@@ -205,13 +357,12 @@ export function ReportsPage() {
       }
     });
 
-    const mttr = repairCount > 0 ? (totalRepairTime / repairCount).toFixed(2) : '0';
-    
-    // MTBF: Average time between failures (days between completed orders)
-    let mtbf: string | number = 0;
+    const mttr = repairCount > 0 ? totalRepairTime / repairCount : 0;
+
+    let mtbf = 0;
     if (completed.length > 1) {
       const sortedByDate = [...completed].sort(
-        (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+        (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime(),
       );
       let totalDaysBetween = 0;
       for (let i = 1; i < sortedByDate.length; i++) {
@@ -219,37 +370,36 @@ export function ReportsPage() {
         const curr = new Date(sortedByDate[i].created_at || 0).getTime();
         totalDaysBetween += (curr - prev) / (1000 * 60 * 60 * 24);
       }
-      mtbf = (totalDaysBetween / (sortedByDate.length - 1)).toFixed(2);
-    } else {
-      mtbf = '0';
+      mtbf = totalDaysBetween / (sortedByDate.length - 1);
     }
 
-    const completionRate =
-      workOrders.length > 0 ? ((completed.length / workOrders.length) * 100).toFixed(1) : '0';
+    const completionRate = totalUniverse.length > 0 ? (completed.length / totalUniverse.length) * 100 : 0;
     const slaCompliance =
       completed.length > 0
-        ? (
-            ((completed.filter((o) => {
-              if (!o.sla_deadline) return true;
-              return new Date(o.completed_at || 0).getTime() <= new Date(o.sla_deadline).getTime();
-            }).length /
-              completed.length) *
-              100).toFixed(1)
-          )
-        : '0';
+        ? (completed.filter((o) => {
+            if (!o.sla_deadline) return true;
+            return new Date(o.completed_at || 0).getTime() <= new Date(o.sla_deadline).getTime();
+          }).length /
+            completed.length) *
+          100
+        : 0;
 
     return { mttr, mtbf, completionRate, slaCompliance };
-  }, [filteredOrders, workOrders]);
+  };
 
-  const summary = useMemo(() => {
-    const total = filteredOrders.length;
+  const calculateMetrics = useMemo(() => computeMetrics(filteredOrders, workOrders), [filteredOrders, workOrders]);
+  const comparisonMetrics = useMemo(() => computeMetrics(comparisonOrders, workOrders), [comparisonOrders, workOrders]);
+
+  const computeSummary = (orders: WorkOrder[]) => {
+    const total = orders.length;
     const byStatus: Record<string, number> = {};
     const byPriority: Record<string, number> = {};
     const byAsset: Record<string, number> = {};
     const byTechnician: Record<string, number> = {};
     let overdue = 0;
+    const overdueByAsset: Record<string, number> = {};
 
-    filteredOrders.forEach((order) => {
+    orders.forEach((order) => {
       byStatus[order.status] = (byStatus[order.status] || 0) + 1;
       const priority = order.priority || 'n/a';
       byPriority[priority] = (byPriority[priority] || 0) + 1;
@@ -263,12 +413,19 @@ export function ReportsPage() {
 
       if (order.sla_deadline) {
         const sla = new Date(order.sla_deadline).getTime();
-        if (sla < Date.now() && !['concluida', 'fechada', 'cancelada'].includes(order.status)) overdue += 1;
+        if (sla < Date.now() && !['concluida', 'fechada', 'cancelada'].includes(order.status)) {
+          overdue += 1;
+          const assetKey = order.asset?.code || 'Sem ativo';
+          overdueByAsset[assetKey] = (overdueByAsset[assetKey] || 0) + 1;
+        }
       }
     });
 
-    return { total, byStatus, byPriority, byAsset, byTechnician, overdue };
-  }, [filteredOrders]);
+    return { total, byStatus, byPriority, byAsset, byTechnician, overdue, overdueByAsset };
+  };
+
+  const summary = useMemo(() => computeSummary(filteredOrders), [filteredOrders]);
+  const comparisonSummary = useMemo(() => computeSummary(comparisonOrders), [comparisonOrders]);
 
   const uniqueAssets = useMemo(() => {
     const assets = new Set<string>();
@@ -277,6 +434,18 @@ export function ReportsPage() {
     });
     return Array.from(assets);
   }, [workOrders]);
+
+  const overdueRate = useMemo(() => {
+    if (summary.total === 0) return 0;
+    return (summary.overdue / summary.total) * 100;
+  }, [summary]);
+
+  const comparisonOverdueRate = useMemo(() => {
+    if (comparisonSummary.total === 0) return 0;
+    return (comparisonSummary.overdue / comparisonSummary.total) * 100;
+  }, [comparisonSummary]);
+
+  const topOverdueAssets = useMemo(() => topEntries(summary.overdueByAsset, 3), [summary]);
 
   const statusChartData = useMemo(() => {
     const keys = Object.keys(summary.byStatus);
@@ -470,6 +639,62 @@ export function ReportsPage() {
     [],
   );
 
+  const chartOptionsWithClick = useMemo(() => {
+    return {
+      ...chartOptions,
+      onClick: (_evt: any, elements: any[], chart: any) => {
+        const el = elements?.[0];
+        if (!el) return;
+        const index = el.index;
+        const label = chart?.data?.labels?.[index];
+        const datasetLabel = chart?.data?.datasets?.[el.datasetIndex]?.label;
+
+        if (!label) return;
+
+        // General status chart
+        if (datasetLabel?.toLowerCase().includes('status')) {
+          const keys = Object.keys(summary.byStatus);
+          const key = keys[index];
+          if (key) setStatusFilter(key);
+          return;
+        }
+
+        // General priority chart
+        if (datasetLabel?.toLowerCase().includes('prioridade')) {
+          const priorityKey = String(label) === '—' ? 'n/a' : String(label).toLowerCase();
+          const map: Record<string, string> = {
+            'crítica': 'critica',
+            critica: 'critica',
+            alta: 'alta',
+            'média': 'media',
+            media: 'media',
+            baixa: 'baixa',
+          };
+          const key = map[priorityKey];
+          if (key) setPriorityFilter(key);
+          return;
+        }
+
+        // Asset chart
+        if (datasetLabel?.toLowerCase().includes('ativo')) {
+          setAssetFilter(String(label));
+          return;
+        }
+
+        // Technician chart (assigned_to_id)
+        if (datasetLabel?.toLowerCase().includes('técnico') || datasetLabel?.toLowerCase().includes('tecnico')) {
+          setSearchTerm(String(label));
+          return;
+        }
+
+        // Downtime charts
+        if (datasetLabel?.toLowerCase().includes('downtime')) {
+          setSearchTerm(String(label));
+        }
+      },
+    };
+  }, [chartOptions, summary.byStatus]);
+
   const reportTypeOptions = useMemo(
     () => [
       { key: 'general' as const, label: 'Geral', hint: 'Visão global por status e prioridade.' },
@@ -481,6 +706,27 @@ export function ReportsPage() {
     [],
   );
 
+  const kpiDeltas = useMemo(() => {
+    if (!compareEnabled || !comparisonDateRange) {
+      return {
+        total: null,
+        overdue: null,
+        overdueRate: null,
+        mttr: null,
+        slaCompliance: null,
+        completionRate: null,
+      };
+    }
+    return {
+      total: pctDelta(summary.total, comparisonSummary.total),
+      overdue: pctDelta(summary.overdue, comparisonSummary.overdue),
+      overdueRate: pctDelta(overdueRate, comparisonOverdueRate),
+      mttr: pctDelta(calculateMetrics.mttr, comparisonMetrics.mttr),
+      slaCompliance: pctDelta(calculateMetrics.slaCompliance, comparisonMetrics.slaCompliance),
+      completionRate: pctDelta(calculateMetrics.completionRate, comparisonMetrics.completionRate),
+    };
+  }, [compareEnabled, comparisonDateRange, summary, comparisonSummary, overdueRate, comparisonOverdueRate, calculateMetrics, comparisonMetrics]);
+
   const exportPdf = () => {
     const doc = new jsPDF();
     doc.setFontSize(16);
@@ -491,20 +737,50 @@ export function ReportsPage() {
     );
 
     doc.setFontSize(10);
+    const filtersLabel = [
+      statusFilter ? `Status: ${workOrderStatusLabel(statusFilter)}` : null,
+      priorityFilter ? `Prioridade: ${workOrderPriorityLabel(priorityFilter)}` : null,
+      assetFilter ? `Ativo: ${assetFilter}` : null,
+      searchTerm ? `Pesquisa: ${searchTerm}` : null,
+      dateFrom ? `De: ${dateFrom}` : null,
+      dateTo ? `Até: ${dateTo}` : null,
+    ]
+      .filter(Boolean)
+      .join(' | ');
+    if (filtersLabel) doc.text(`Filtros: ${filtersLabel}`, 14, 28);
+
     if (reportType === 'downtime') {
       const totalMinutes = downtimeOrders.reduce((acc, order) => acc + Number((order as any).__downtimeMinutes || 0), 0);
-      doc.text(`Tipo: downtime | Registos: ${downtimeOrders.length} | Total: ${totalMinutes} min`, 14, 28);
+      doc.text(`Tipo: downtime | Registos: ${downtimeOrders.length} | Total: ${totalMinutes} min`, 14, filtersLabel ? 35 : 28);
+
+      const byType: Record<string, number> = {};
+      const byCategory: Record<string, number> = {};
+      downtimeOrders.forEach((o) => {
+        const t = String(o.downtime_type || 'Sem tipo');
+        const c = String(o.downtime_category || 'Sem categoria');
+        byType[t] = (byType[t] || 0) + Number((o as any).__downtimeMinutes || 0);
+        byCategory[c] = (byCategory[c] || 0) + Number((o as any).__downtimeMinutes || 0);
+      });
+      const topType = topEntries(byType, 3)
+        .map(([k, v]) => `${k} (${v}m)`)
+        .join(' | ');
+      const topCat = topEntries(byCategory, 3)
+        .map(([k, v]) => `${k} (${v}m)`)
+        .join(' | ');
+      if (topType) doc.text(`Top tipos: ${topType}`, 14, filtersLabel ? 42 : 35);
+      if (topCat) doc.text(`Top categorias: ${topCat}`, 14, filtersLabel ? 49 : 42);
 
       autoTable(doc, {
-        startY: 36,
-        head: [['Ordem', 'Ativo', 'Início', 'Fim', 'Min', 'Motivo']],
+        startY: filtersLabel ? 56 : 36,
+        head: [['Ordem', 'Ativo', 'Início', 'Fim', 'Min', 'Tipo', 'Categoria']],
         body: downtimeOrders.slice(0, 60).map((order) => [
           order.title.substring(0, 22),
           order.asset ? order.asset.code : '-',
           order.downtime_started_at ? new Date(order.downtime_started_at).toLocaleString('pt-PT') : '-',
           order.downtime_ended_at ? new Date(order.downtime_ended_at).toLocaleString('pt-PT') : '-',
           String((order as any).__downtimeMinutes ?? ''),
-          (order.downtime_reason || '').substring(0, 26),
+          (order.downtime_type || '—').substring(0, 18),
+          (order.downtime_category || '—').substring(0, 18),
         ]),
       });
 
@@ -512,15 +788,18 @@ export function ReportsPage() {
       return;
     }
 
-    doc.text(`Tipo: ${reportType} | Total: ${summary.total} | Em atraso: ${summary.overdue}`, 14, 28);
+    const baseY = filtersLabel ? 35 : 28;
+    doc.text(`Tipo: ${reportType} | Total: ${summary.total} | Em atraso: ${summary.overdue}`, 14, baseY);
     doc.text(
-      `MTTR: ${calculateMetrics.mttr}h | MTBF: ${calculateMetrics.mtbf}d | Conformidade SLA: ${calculateMetrics.slaCompliance}%`,
+      `MTTR: ${calculateMetrics.mttr.toFixed(2)}h | MTBF: ${calculateMetrics.mtbf.toFixed(2)}d | SLA: ${calculateMetrics.slaCompliance.toFixed(1)}% | Conclusão: ${calculateMetrics.completionRate.toFixed(1)}%`,
       14,
-      35,
+      baseY + 7,
     );
+    const topOverdue = topOverdueAssets.map(([k, v]) => `${k} (${v})`).join(' | ');
+    if (topOverdue) doc.text(`Top ativos em atraso: ${topOverdue}`, 14, baseY + 14);
 
     autoTable(doc, {
-      startY: 42,
+      startY: baseY + 21,
       head: [['Ordem', 'Status', 'Prioridade', 'Ativo', 'Horas', 'Criada em']],
       body: filteredOrders.slice(0, 50).map((order) => [
         order.title.substring(0, 20),
@@ -695,12 +974,51 @@ export function ReportsPage() {
             </div>
 
             <div className="mt-5 rounded-[24px] border theme-border bg-[color:var(--dash-surface)] p-4">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-3">
                 <Filter className="h-4 w-4 text-emerald-600" />
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                   Filtros
                 </p>
               </div>
+                <div className="flex flex-wrap gap-2">
+                  <select
+                    className="input"
+                    value={periodPreset}
+                    onChange={(event) => setPeriodPreset(event.target.value as PeriodPreset)}
+                  >
+                    <option value="custom">Período: Personalizado</option>
+                    <option value="last7">Últimos 7 dias</option>
+                    <option value="last30">Últimos 30 dias</option>
+                    <option value="last90">Últimos 90 dias</option>
+                    <option value="thisMonth">Este mês</option>
+                  </select>
+                  <label className="inline-flex items-center gap-2 rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-xs font-semibold theme-text">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={compareEnabled}
+                      onChange={(e) => setCompareEnabled(e.target.checked)}
+                      disabled={!dateFrom || !dateTo}
+                    />
+                    Comparar
+                  </label>
+                  <button
+                    type="button"
+                    className="rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-xs font-semibold theme-text-muted hover:bg-[color:var(--dash-surface-2)]"
+                    onClick={clearFilters}
+                  >
+                    Limpar
+                  </button>
+                </div>
+              </div>
+
+              {compareEnabled && comparisonDateRange && (
+                <p className="mt-3 text-xs theme-text-muted">
+                  Comparação: {comparisonDateRange.prevFrom} → {comparisonDateRange.prevTo}
+                </p>
+              )}
+
               <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-6">
                 <input
                   className="input md:col-span-2"
@@ -749,13 +1067,19 @@ export function ReportsPage() {
                   type="date"
                   className="input"
                   value={dateFrom}
-                  onChange={(event) => setDateFrom(event.target.value)}
+                  onChange={(event) => {
+                    setPeriodPreset('custom');
+                    setDateFrom(event.target.value);
+                  }}
                 />
                 <input
                   type="date"
                   className="input"
                   value={dateTo}
-                  onChange={(event) => setDateTo(event.target.value)}
+                  onChange={(event) => {
+                    setPeriodPreset('custom');
+                    setDateTo(event.target.value);
+                  }}
                 />
               </div>
             </div>
@@ -767,28 +1091,44 @@ export function ReportsPage() {
               <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
                 <p className="text-xs theme-text-muted uppercase tracking-wider">Total Filtrado</p>
                 <p className="text-2xl font-bold theme-text mt-2">{summary.total}</p>
+                {compareEnabled && (
+                  <p className="mt-2 text-xs theme-text-muted">{formatDelta(kpiDeltas.total)}</p>
+                )}
               </div>
               <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
                 <p className="text-xs theme-text-muted uppercase tracking-wider">Em Atraso (SLA)</p>
                 <p className="text-2xl font-bold text-rose-600 mt-2">{summary.overdue}</p>
+                <p className="mt-1 text-xs theme-text-muted">{overdueRate.toFixed(1)}%</p>
+                {compareEnabled && (
+                  <p className="mt-1 text-xs theme-text-muted">{formatDelta(kpiDeltas.overdueRate)}</p>
+                )}
               </div>
               <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
                 <p className="text-xs theme-text-muted uppercase tracking-wider">MTTR (horas)</p>
                 <p className="text-2xl font-bold text-[color:var(--dash-accent)] mt-2">
-                  {calculateMetrics.mttr}
+                  {calculateMetrics.mttr.toFixed(2)}
                 </p>
+                {compareEnabled && (
+                  <p className="mt-2 text-xs theme-text-muted">{formatDelta(kpiDeltas.mttr)}</p>
+                )}
               </div>
               <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
                 <p className="text-xs theme-text-muted uppercase tracking-wider">Conformidade SLA</p>
                 <p className="text-2xl font-bold text-emerald-600 mt-2">
-                  {calculateMetrics.slaCompliance}%
+                  {calculateMetrics.slaCompliance.toFixed(1)}%
                 </p>
+                {compareEnabled && (
+                  <p className="mt-2 text-xs theme-text-muted">{formatDelta(kpiDeltas.slaCompliance)}</p>
+                )}
               </div>
               <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
                 <p className="text-xs theme-text-muted uppercase tracking-wider">Taxa Conclusão</p>
                 <p className="text-2xl font-bold theme-text mt-2">
-                  {calculateMetrics.completionRate}%
+                  {calculateMetrics.completionRate.toFixed(1)}%
                 </p>
+                {compareEnabled && (
+                  <p className="mt-2 text-xs theme-text-muted">{formatDelta(kpiDeltas.completionRate)}</p>
+                )}
               </div>
             </div>
           ) : (
@@ -808,19 +1148,28 @@ export function ReportsPage() {
             </div>
           )}
 
+          {reportType !== 'downtime' && topOverdueAssets.length > 0 && (
+            <div className="mt-4 rounded-[24px] border theme-border bg-[color:var(--dash-surface)] p-4 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">Insights</p>
+              <p className="mt-2 theme-text">
+                Top ativos em atraso: {topOverdueAssets.map(([k, v]) => `${k} (${v})`).join(' • ')}
+              </p>
+            </div>
+          )}
+
           {/* Charts based on report type */}
           {reportType === 'general' && (
             <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div className="rounded-[28px] border theme-border theme-card p-6 shadow-sm">
                 <h3 className="text-lg font-semibold theme-text mb-4">Status</h3>
                 <div className="h-72">
-                  <Doughnut data={statusChartData} options={chartOptions} />
+                  <Doughnut data={statusChartData} options={chartOptionsWithClick} />
                 </div>
               </div>
               <div className="rounded-[28px] border theme-border theme-card p-6 shadow-sm">
                 <h3 className="text-lg font-semibold theme-text mb-4">Prioridades</h3>
                 <div className="h-72">
-                  <Bar data={priorityChartData} options={chartOptions} />
+                  <Bar data={priorityChartData} options={chartOptionsWithClick} />
                 </div>
               </div>
             </div>
@@ -833,7 +1182,7 @@ export function ReportsPage() {
                 Ordens por Ativo
               </h3>
               <div className="h-80">
-                <Bar data={assetChartData} options={chartOptions} />
+                <Bar data={assetChartData} options={chartOptionsWithClick} />
               </div>
             </div>
           )}
@@ -845,7 +1194,7 @@ export function ReportsPage() {
                 Ordens por Técnico
               </h3>
               <div className="h-80">
-                <Bar data={technicianChartData} options={chartOptions} />
+                <Bar data={technicianChartData} options={chartOptionsWithClick} />
               </div>
             </div>
           )}
@@ -868,7 +1217,7 @@ export function ReportsPage() {
                 <h3 className="text-lg font-semibold theme-text mb-4">Downtime por tipo</h3>
                 <div className="h-72">
                   {downtimeByTypeChartData ? (
-                    <Doughnut data={downtimeByTypeChartData} options={chartOptions} />
+                    <Doughnut data={downtimeByTypeChartData} options={chartOptionsWithClick} />
                   ) : (
                     <div className="h-full rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-6 text-sm theme-text-muted">
                       Sem dados para este período.
@@ -880,7 +1229,7 @@ export function ReportsPage() {
                 <h3 className="text-lg font-semibold theme-text mb-4">Downtime por categoria</h3>
                 <div className="h-72">
                   {downtimeByCategoryChartData ? (
-                    <Bar data={downtimeByCategoryChartData} options={chartOptions} />
+                    <Bar data={downtimeByCategoryChartData} options={chartOptionsWithClick} />
                   ) : (
                     <div className="h-full rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-6 text-sm theme-text-muted">
                       Sem dados para este período.
@@ -938,22 +1287,24 @@ export function ReportsPage() {
                         <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Início</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Fim</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Min</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Tipo</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Categoria</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Motivo</th>
                       </>
                     )}
                   </tr>
                 </thead>
                 <tbody className="bg-[color:var(--dash-panel)] divide-y divide-[color:var(--dash-border)]">
-                  {(reportType === 'downtime' ? downtimeOrders.length === 0 : filteredOrders.length === 0) && (
+                  {(reportType === 'downtime' ? downtimeOrders.length === 0 : sortedFilteredOrders.length === 0) && (
                     <tr>
-                      <td colSpan={6} className="px-6 py-6 text-center theme-text-muted">
+                      <td colSpan={reportType === 'downtime' ? 8 : 6} className="px-6 py-6 text-center theme-text-muted">
                         {reportType === 'downtime'
                           ? 'Nenhum downtime encontrado'
                           : 'Nenhuma ordem encontrada'}
                       </td>
                     </tr>
                   )}
-                  {(reportType === 'downtime' ? downtimeOrders : filteredOrders).map((order: any) => (
+                  {(reportType === 'downtime' ? downtimeOrders : sortedFilteredOrders).map((order: any) => (
                     <tr key={order.id} className="hover:bg-[color:var(--dash-surface)]">
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium theme-text">{order.title}</div>
@@ -1026,6 +1377,16 @@ export function ReportsPage() {
                           </td>
                           <td className="px-6 py-4 text-sm theme-text">
                             {String(order.__downtimeMinutes ?? '')}
+                          </td>
+                          <td className="px-6 py-4 text-sm">
+                            <span className="chip text-xs font-medium px-2 py-1 rounded-full bg-[color:var(--dash-surface)] theme-text">
+                              {order.downtime_type || '—'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm">
+                            <span className="chip text-xs font-medium px-2 py-1 rounded-full bg-[color:var(--dash-surface)] theme-text">
+                              {order.downtime_category || '—'}
+                            </span>
                           </td>
                           <td className="px-6 py-4 text-sm theme-text-muted">
                             {order.downtime_reason || '-'}
