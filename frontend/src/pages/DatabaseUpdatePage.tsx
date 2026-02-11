@@ -203,26 +203,26 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
   const content = (
     <div className={embedded ? 'space-y-6 font-display' : 'p-6 max-w-5xl mx-auto'}>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <Wrench className="w-8 h-8 text-primary-600" />
+        <h1 className="text-3xl font-bold theme-text flex items-center gap-3">
+          <Wrench className="w-8 h-8 text-[color:var(--dash-accent)]" />
           Atualizar Base de Dados
         </h1>
-        <p className="text-gray-600 mt-2">
+        <p className="theme-text-muted mt-2">
           Aplicar migracoes e gerir o estado da base de dados
         </p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <div className="rounded-3xl border theme-border theme-card p-6 shadow-sm mb-6">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-            <Database className="w-6 h-6 text-blue-600" />
+          <h2 className="text-xl font-semibold theme-text flex items-center gap-2">
+            <Database className="w-6 h-6 text-[color:var(--dash-accent)]" />
             Estado e Acoes
           </h2>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={handleMigrate}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 transition"
+              className="btn-primary inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Wrench className="w-4 h-4" />
               Executar Migracoes
@@ -230,7 +230,7 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
             <button
               onClick={fetchStatus}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition"
+              className="btn-secondary inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               Atualizar Estado
@@ -239,67 +239,67 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
         </div>
 
         {error && (
-          <div className="mb-4 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-red-800">{error}</div>
+          <div className="mb-4 flex items-start gap-3 p-4 rounded-2xl border border-rose-500/20 bg-rose-500/10">
+            <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
+            <div className="text-sm theme-text">{error}</div>
           </div>
         )}
 
         {success && (
-          <div className="mb-4 flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-green-800 whitespace-pre-line">{success}</div>
+          <div className="mb-4 flex items-start gap-3 p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/10">
+            <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+            <div className="text-sm theme-text whitespace-pre-line">{success}</div>
           </div>
         )}
 
         {status && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="text-sm text-gray-600 mb-1">Ligacao</div>
+            <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+              <div className="text-sm theme-text-muted mb-1">Ligacao</div>
               <div className="flex items-center gap-2">
                 {status.connected ? (
                   <>
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span className="font-semibold text-green-600">Conectado</span>
+                    <CheckCircle className="w-5 h-5 text-emerald-500" />
+                    <span className="font-semibold text-emerald-500">Conectado</span>
                   </>
                 ) : (
                   <>
-                    <AlertCircle className="w-5 h-5 text-red-600" />
-                    <span className="font-semibold text-red-600">Desconectado</span>
+                    <AlertCircle className="w-5 h-5 text-rose-500" />
+                    <span className="font-semibold text-rose-500">Desconectado</span>
                   </>
                 )}
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="text-sm text-gray-600 mb-1">Tabelas</div>
-              <div className="text-2xl font-bold text-gray-900">{status.tablesCount}</div>
+            <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+              <div className="text-sm theme-text-muted mb-1">Tabelas</div>
+              <div className="text-2xl font-bold theme-text">{status.tablesCount}</div>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="text-sm text-gray-600 mb-1">Utilizadores</div>
-              <div className="text-2xl font-bold text-gray-900">{status.counts.users}</div>
+            <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+              <div className="text-sm theme-text-muted mb-1">Utilizadores</div>
+              <div className="text-2xl font-bold theme-text">{status.counts.users}</div>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="text-sm text-gray-600 mb-1">Equipamentos</div>
-              <div className="text-2xl font-bold text-gray-900">{status.counts.assets}</div>
+            <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+              <div className="text-sm theme-text-muted mb-1">Equipamentos</div>
+              <div className="text-2xl font-bold theme-text">{status.counts.assets}</div>
             </div>
           </div>
         )}
 
-        <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-4 mb-6 space-y-3">
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 mb-6 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-amber-900">Atualizacoes gerais</p>
-              <p className="text-xs text-amber-800 mt-1">
+              <p className="text-sm font-semibold theme-text">Atualizacoes gerais</p>
+              <p className="text-xs theme-text-muted mt-1">
                 Executa migracoes e patches recomendados para manter a estrutura atualizada.
               </p>
             </div>
             <button
               onClick={handleApplyCorrections}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-700 text-white rounded-lg hover:bg-amber-800 disabled:bg-gray-400 transition"
+              className="btn-secondary inline-flex items-center gap-2 border-amber-500/30 bg-amber-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Wrench className="w-4 h-4" />
               Atualizacoes Gerais
@@ -311,7 +311,7 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
           <button
             onClick={handleInitialize}
             disabled={loading}
-            className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-400 transition"
+            className="btn-primary inline-flex w-full items-center justify-center gap-2 py-3 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Server className="w-4 h-4" />
             Inicializar Tenant
@@ -320,7 +320,7 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
           <button
             onClick={handleSeedData}
             disabled={loading}
-            className="flex items-center justify-center gap-2 px-4 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:bg-gray-400 transition"
+            className="btn-secondary inline-flex w-full items-center justify-center gap-2 py-3 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Database className="w-4 h-4" />
             Carregar Dados Demo
@@ -329,15 +329,15 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
           <button
             onClick={handleClearData}
             disabled={loading}
-            className="flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 transition"
+            className="btn-secondary inline-flex w-full items-center justify-center gap-2 py-3 border-rose-500/30 bg-rose-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <AlertCircle className="w-4 h-4" />
             Apagar Todos os Dados
           </button>
 
           {migrations.length > 0 && (
-            <div className="rounded-lg border border-gray-200 p-4 text-sm text-gray-700">
-              <div className="font-semibold text-gray-900 mb-2">Migracoes executadas</div>
+            <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text">
+              <div className="font-semibold theme-text mb-2">Migracoes executadas</div>
               <ul className="space-y-1">
                 {migrations.map((file) => (
                   <li key={file}>{file}</li>

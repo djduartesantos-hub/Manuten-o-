@@ -283,7 +283,7 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
 
   const content = (
     <div className="space-y-8 font-display">
-        <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-emerald-50 p-8 shadow-sm">
+        <section className="relative overflow-hidden rounded-3xl border theme-border bg-[radial-gradient(circle_at_top,var(--dash-panel)_0%,var(--dash-bg)_70%)] p-8 shadow-sm">
           <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-emerald-200/40 blur-3xl" />
           <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-lime-200/40 blur-3xl" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -291,15 +291,15 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
                 Gestao de plantas
               </p>
-              <h1 className="mt-3 text-3xl font-semibold text-slate-900 sm:text-4xl">
+              <h1 className="mt-3 text-3xl font-semibold theme-text sm:text-4xl">
                 Instalações, locais e equipas
               </h1>
-              <p className="mt-2 max-w-2xl text-sm text-slate-600">
+              <p className="mt-2 max-w-2xl text-sm theme-text-muted">
                 Crie plantas, ajuste definicoes e atribua utilizadores por instalacao.
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <div className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
+              <div className="rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-xs font-semibold theme-text">
                 {plants.length} plantas
               </div>
             </div>
@@ -307,30 +307,30 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
         </section>
 
         {!canEdit && (
-          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
+          <div className="rounded-3xl border border-amber-500/20 bg-amber-500/10 p-6 text-sm theme-text">
             Esta pagina esta disponivel apenas para super admin e admin empresa.
           </div>
         )}
 
         {error && (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm theme-text">
             {error}
           </div>
         )}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_0.9fr]">
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+          <section className="rounded-3xl border theme-border theme-card p-6 shadow-sm space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Criar nova planta</h2>
-                <p className="text-sm text-slate-600">Defina codigo, local e status.</p>
+                <h2 className="text-lg font-semibold theme-text">Criar nova planta</h2>
+                <p className="text-sm theme-text-muted">Defina codigo, local e status.</p>
               </div>
-              <Building2 className="h-5 w-5 text-slate-400" />
+              <Building2 className="h-5 w-5 text-[color:var(--dash-muted)]" />
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
+                <label className="block text-sm font-medium theme-text mb-1">Nome</label>
                 <input
                   className="input"
                   value={newPlant.name}
@@ -338,7 +338,7 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Codigo</label>
+                <label className="block text-sm font-medium theme-text mb-1">Codigo</label>
                 <input
                   className="input"
                   value={newPlant.code}
@@ -346,7 +346,7 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Endereco</label>
+                <label className="block text-sm font-medium theme-text mb-1">Endereco</label>
                 <input
                   className="input"
                   value={newPlant.address}
@@ -356,7 +356,7 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Cidade</label>
+                <label className="block text-sm font-medium theme-text mb-1">Cidade</label>
                 <input
                   className="input"
                   value={newPlant.city}
@@ -364,7 +364,7 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Pais</label>
+                <label className="block text-sm font-medium theme-text mb-1">Pais</label>
                 <input
                   className="input"
                   value={newPlant.country}
@@ -372,7 +372,7 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Latitude</label>
+                <label className="block text-sm font-medium theme-text mb-1">Latitude</label>
                 <input
                   className="input"
                   value={newPlant.latitude}
@@ -380,14 +380,14 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Longitude</label>
+                <label className="block text-sm font-medium theme-text mb-1">Longitude</label>
                 <input
                   className="input"
                   value={newPlant.longitude}
                   onChange={(event) => setNewPlant({ ...newPlant, longitude: event.target.value })}
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm text-slate-600 md:col-span-2">
+              <label className="flex items-center gap-2 text-sm theme-text-muted md:col-span-2">
                 <input
                   type="checkbox"
                   checked={newPlant.is_active}
@@ -408,23 +408,23 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
               Criar planta
             </button>
             {plants.length > 0 && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs theme-text-muted">
                 Modo de fabrica unica ativo. A criacao de novas plantas esta bloqueada.
               </p>
             )}
           </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <section className="rounded-3xl border theme-border theme-card p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Atribuir utilizadores</h2>
-                <p className="text-sm text-slate-600">Defina quem tem acesso a cada planta.</p>
+                <h2 className="text-lg font-semibold theme-text">Atribuir utilizadores</h2>
+                <p className="text-sm theme-text-muted">Defina quem tem acesso a cada planta.</p>
               </div>
-              <Users className="h-5 w-5 text-slate-400" />
+              <Users className="h-5 w-5 text-[color:var(--dash-muted)]" />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Planta</label>
+              <label className="block text-sm font-medium theme-text mb-1">Planta</label>
               <select
                 className="input"
                 value={selectedPlantId}
@@ -438,7 +438,7 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
               </select>
             </div>
 
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 space-y-2">
+            <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-3 space-y-2">
               {users.map((userItem) => {
                 const isAssigned = assignedUserIds.has(userItem.id);
                 const onlyThisPlant =
@@ -448,11 +448,11 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
                 return (
                   <label
                     key={userItem.id}
-                    className="flex items-center justify-between gap-3 text-sm text-slate-700"
+                    className="flex items-center justify-between gap-3 text-sm theme-text"
                   >
                     <span>
                       {userItem.first_name} {userItem.last_name}
-                      <span className="ml-2 text-xs text-slate-400">{userItem.role}</span>
+                      <span className="ml-2 text-xs theme-text-muted">{userItem.role}</span>
                     </span>
                     <input
                       type="checkbox"
@@ -464,11 +464,11 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
                 );
               })}
               {users.length === 0 && (
-                <p className="text-sm text-slate-500">Nenhum utilizador encontrado.</p>
+                <p className="text-sm theme-text-muted">Nenhum utilizador encontrado.</p>
               )}
             </div>
 
-            <div className="text-xs text-slate-500">
+            <div className="text-xs theme-text-muted">
               Cada utilizador precisa de pelo menos uma planta associada.
             </div>
 
@@ -483,37 +483,40 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
           </section>
         </div>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+        <section className="rounded-3xl border theme-border theme-card p-6 shadow-sm space-y-5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Plantas existentes</h2>
-              <p className="text-sm text-slate-600">Edite definicoes e status.</p>
+              <h2 className="text-lg font-semibold theme-text">Plantas existentes</h2>
+              <p className="text-sm theme-text-muted">Edite definicoes e status.</p>
             </div>
-            <MapPin className="h-5 w-5 text-slate-400" />
+            <MapPin className="h-5 w-5 text-[color:var(--dash-muted)]" />
           </div>
 
           {loading && (
-            <div className="flex items-center gap-2 text-sm text-slate-500">
+            <div className="flex items-center gap-2 text-sm theme-text-muted">
               <Loader2 className="h-4 w-4 animate-spin" />
               Carregando plantas...
             </div>
           )}
 
           {!loading && plants.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-sm text-slate-500">
+            <div className="rounded-2xl border border-dashed theme-border p-6 text-sm theme-text-muted">
               Nenhuma planta cadastrada.
             </div>
           )}
 
           <div className="grid gap-4 lg:grid-cols-2">
             {plants.map((plant) => (
-              <div key={plant.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <div
+                key={plant.id}
+                className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4"
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="text-sm font-semibold theme-text">
                       {plant.code} - {plant.name}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs theme-text-muted">
                       {plant.city || 'Cidade'} · {plant.country || 'Pais'}
                     </p>
                   </div>
@@ -521,21 +524,21 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-semibold ${
                         plant.is_active
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-slate-200 text-slate-600'
+                          ? 'bg-emerald-500/10 text-emerald-600'
+                          : 'border theme-border bg-[color:var(--dash-panel)] theme-text-muted'
                       }`}
                     >
                       {plant.is_active ? 'Ativa' : 'Inativa'}
                     </span>
                     <button
-                      className="text-xs text-slate-500 hover:text-slate-700"
+                      className="text-xs theme-text-muted hover:text-[color:var(--dash-text)] disabled:opacity-60"
                       onClick={() => handleStartEdit(plant)}
                       disabled={!canEdit}
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
                     <button
-                      className="text-xs text-rose-500 hover:text-rose-600"
+                      className="text-xs text-rose-500 hover:text-rose-400 disabled:opacity-60"
                       onClick={() => handleDeactivate(plant.id)}
                       disabled={!canEdit}
                     >
@@ -544,7 +547,7 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
                   </div>
                 </div>
 
-                <div className="mt-3 text-xs text-slate-500">
+                <div className="mt-3 text-xs theme-text-muted">
                   {plant.address || 'Endereco nao informado'}
                 </div>
 
@@ -606,7 +609,7 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
                       }
                       placeholder="Longitude"
                     />
-                    <label className="flex items-center gap-2 text-xs text-slate-600 md:col-span-2">
+                    <label className="flex items-center gap-2 text-xs theme-text-muted md:col-span-2">
                       <input
                         type="checkbox"
                         checked={plantForm.is_active}
@@ -635,7 +638,7 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
                 )}
 
                 {(plant.latitude || plant.longitude) && (
-                  <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+                  <div className="mt-3 flex items-center gap-2 text-xs theme-text-muted">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                     Coordenadas: {plant.latitude || '-'} , {plant.longitude || '-'}
                   </div>
@@ -646,26 +649,26 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
         </section>
 
         {selectedPlant && (
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="rounded-3xl border theme-border theme-card p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Resumo da planta</h2>
-                <p className="text-sm text-slate-600">
+                <h2 className="text-lg font-semibold theme-text">Resumo da planta</h2>
+                <p className="text-sm theme-text-muted">
                   {selectedPlant.code} - {selectedPlant.name}
                 </p>
               </div>
-              <AlertCircle className="h-5 w-5 text-slate-400" />
+              <AlertCircle className="h-5 w-5 text-[color:var(--dash-muted)]" />
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                <p className="text-xs text-slate-500">Endereco</p>
-                <p className="text-sm text-slate-900">
+              <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+                <p className="text-xs theme-text-muted">Endereco</p>
+                <p className="text-sm theme-text">
                   {selectedPlant.address || 'Nao informado'}
                 </p>
               </div>
-              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                <p className="text-xs text-slate-500">Local</p>
-                <p className="text-sm text-slate-900">
+              <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+                <p className="text-xs theme-text-muted">Local</p>
+                <p className="text-sm theme-text">
                   {[selectedPlant.city, selectedPlant.country].filter(Boolean).join(' · ') ||
                     'Nao informado'}
                 </p>

@@ -20,6 +20,23 @@ Enterprise Computerized Maintenance Management System (CMMS) - Frontend Applicat
 - Zustand (State Management)
 - React Router
 
+## Theming conventions (Dark/Light)
+
+This project uses theme tokens (CSS variables) + utility classes to ensure every page works in both light and dark mode.
+
+- Prefer these primitives for layout:
+   - `theme-bg` (page background)
+   - `theme-card` + `theme-border` (cards/sections)
+   - `theme-text` + `theme-text-muted` (typography)
+   - `btn-primary` / `btn-secondary` (buttons)
+   - `input` (inputs/selects/textareas)
+- For neutral surfaces/lines, prefer CSS variables:
+   - `bg-[color:var(--dash-panel)]`, `bg-[color:var(--dash-surface)]`
+   - `border-[color:var(--dash-border)]`
+   - `text-[color:var(--dash-text)]`, `text-[color:var(--dash-muted)]`
+- Avoid hardcoded neutrals like `bg-white`, `text-gray-*`, `text-slate-*`, `border-slate-*` (these break dark mode).
+- Semantic colors (emerald/amber/rose) are OK for status/alerts, but neutral UI should use the theme tokens above.
+
 ## Setup
 
 1. Install dependencies:

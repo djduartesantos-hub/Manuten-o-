@@ -144,7 +144,7 @@ export function DashboardPage() {
         key: 'fechada',
         label: 'Fechadas',
         tone: 'theme-card theme-border theme-text',
-        iconTone: 'text-slate-600',
+        iconTone: 'text-[color:var(--dash-muted)]',
         Icon: Lock,
       },
       {
@@ -260,7 +260,7 @@ export function DashboardPage() {
     critica: 'bg-rose-100 text-rose-700',
     alta: 'bg-amber-100 text-amber-700',
     media: 'bg-emerald-100 text-emerald-700',
-    baixa: 'bg-slate-100 text-slate-600',
+    baixa: 'border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] text-[color:var(--dash-muted)]',
   };
   const priorityIcon = (priority?: string | null) => {
     const value = priority || 'media';
@@ -281,7 +281,7 @@ export function DashboardPage() {
     if (value === 'baixa') {
       return {
         Icon: Clock,
-        className: 'text-slate-500',
+        className: 'text-[color:var(--dash-muted)]',
         label: 'Baixa',
       };
     }
@@ -358,10 +358,10 @@ export function DashboardPage() {
         key: 'fechada',
         label: 'Fechadas',
         count: metrics?.closed ?? 0,
-        tone: 'border-slate-200/80 bg-slate-50/70 text-slate-700',
-        bar: 'bg-slate-400/80',
+        tone: 'border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] text-[color:var(--dash-ink)]',
+        bar: 'bg-[color:var(--dash-border)]',
         Icon: Lock,
-        iconTone: 'bg-slate-100 text-slate-600',
+        iconTone: 'border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] text-[color:var(--dash-muted)]',
         description: 'Ordens encerradas com dados finais registados.',
       },
       {
@@ -437,9 +437,9 @@ export function DashboardPage() {
     return (
       <MainLayout>
         <div className="text-center py-12">
-          <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Não Autenticado</h2>
-          <p className="text-gray-600">Por favor, faça login para acessar o dashboard</p>
+          <AlertCircle className="w-12 h-12 text-rose-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold theme-text mb-2">Não Autenticado</h2>
+          <p className="theme-text-muted">Por favor, faça login para acessar o dashboard</p>
         </div>
       </MainLayout>
     );
@@ -522,7 +522,8 @@ export function DashboardPage() {
                     >
                       <div className="flex items-center justify-between">
                         <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
-                          severityBadge[alert.severity] || 'bg-slate-100 text-slate-600'
+                          severityBadge[alert.severity] ||
+                          'border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] text-[color:var(--dash-muted)]'
                         }`}>
                           {alert.severity}
                         </span>

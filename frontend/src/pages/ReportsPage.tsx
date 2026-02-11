@@ -20,6 +20,18 @@ import autoTable from 'jspdf-autotable';
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend, PointElement, LineElement);
 
+const WORK_ORDER_STATUS_LABELS: Record<string, string> = {
+  aberta: 'Aberta',
+  em_analise: 'Em Análise',
+  em_execucao: 'Em Execução',
+  em_pausa: 'Em Pausa',
+  concluida: 'Concluída',
+  fechada: 'Fechada',
+  cancelada: 'Cancelada',
+};
+
+const workOrderStatusLabel = (value: string) => WORK_ORDER_STATUS_LABELS[value] || value;
+
 interface WorkOrder {
   id: string;
   title: string;
@@ -227,14 +239,16 @@ export function ReportsPage() {
   }, [workOrders]);
 
   const statusChartData = useMemo(() => {
-    const labels = Object.keys(summary.byStatus);
+    const keys = Object.keys(summary.byStatus);
+    const labels = keys.map((key) => workOrderStatusLabel(key));
+    const palette = ['#0ea5e9', '#6366f1', '#f59e0b', '#22c55e', '#ef4444', '#a855f7', '#14b8a6'];
     return {
       labels,
       datasets: [
         {
           label: 'Ordens por status',
-          data: labels.map((label) => summary.byStatus[label]),
-          backgroundColor: ['#0ea5e9', '#6366f1', '#f59e0b', '#22c55e', '#ef4444'],
+          data: keys.map((key) => summary.byStatus[key]),
+          backgroundColor: keys.map((_, idx) => palette[idx % palette.length]),
         },
       ],
     };
@@ -764,17 +778,7 @@ export function ReportsPage() {
                               }`}
                             >
                               {
-                                (
-                                  {
-                                    aberta: 'Aberta',
-                                    em_analise: 'Em Análise',
-                                    em_execucao: 'Em Execução',
-                                    em_pausa: 'Em Pausa',
-                                    concluida: 'Concluída',
-                                    fechada: 'Fechada',
-                                    cancelada: 'Cancelada',
-                                  } as Record<string, string>
-                                )[order.status] || order.status
+                                workOrderStatusLabel(order.status)
                               }
                             </span>
                           </td>

@@ -214,7 +214,7 @@ export function SearchPage() {
                     filter.onRemove();
                     applyFilters();
                   }}
-                  className="rounded-full border border-slate-200 bg-[color:var(--search-surface)] px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-white"
+                  className="rounded-full border theme-border bg-[color:var(--search-surface)] px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-panel)]"
                 >
                   {filter.label} ×
                 </button>
@@ -251,7 +251,7 @@ export function SearchPage() {
         )}
 
         {loading && (
-          <div className="rounded-[28px] border border-slate-200 bg-white/90 p-8 text-center text-slate-600 shadow-sm">
+          <div className="rounded-[28px] border theme-border theme-card p-8 text-center theme-text-muted shadow-sm">
             A pesquisar...
           </div>
         )}
@@ -259,10 +259,10 @@ export function SearchPage() {
         {!loading && (results.orders.items.length > 0 || results.assets.items.length > 0) && (
           <div className="space-y-6">
             {(type === 'all' || type === 'orders') && (
-              <div className="rounded-[28px] border border-slate-200 bg-white/95 shadow-sm">
-                <div className="border-b border-slate-100 px-6 py-4">
+              <div className="rounded-[28px] border theme-border theme-card shadow-sm">
+                <div className="border-b theme-border px-6 py-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-slate-900">Ordens</h2>
+                    <h2 className="text-lg font-semibold theme-text">Ordens</h2>
                     <a
                       className="inline-flex items-center gap-1 text-sm text-[color:var(--search-accent)]"
                       href={`${basePath}/work-orders`}
@@ -271,19 +271,19 @@ export function SearchPage() {
                     </a>
                   </div>
                 </div>
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-[color:var(--dash-border)]">
                   {results.orders.items.length === 0 && (
-                    <div className="px-6 py-4 text-sm text-slate-500">Sem resultados</div>
+                    <div className="px-6 py-4 text-sm theme-text-muted">Sem resultados</div>
                   )}
                   {results.orders.items.map((order) => (
                     <div key={order.id} className="px-6 py-4">
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
-                          <p className="font-medium text-slate-900">{highlight(order.title)}</p>
-                          <p className="text-sm text-slate-600">
+                          <p className="font-medium theme-text">{highlight(order.title)}</p>
+                          <p className="text-sm theme-text-muted">
                             {order.description ? highlight(order.description) : '-'}
                           </p>
-                          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs theme-text-muted">
                             <span>ID: {order.id}</span>
                             {order.priority && (
                               <span className="rounded-full bg-violet-50 px-2 py-0.5 text-violet-700">
@@ -293,10 +293,10 @@ export function SearchPage() {
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-2">
-                          <span className="text-xs text-slate-500">
+                          <span className="text-xs theme-text-muted">
                             Score {order.score?.toFixed(2) || '-'}
                           </span>
-                          <span className="text-xs text-slate-700">{order.status}</span>
+                          <span className="text-xs theme-text">{order.status}</span>
                         </div>
                       </div>
                     </div>
@@ -306,10 +306,10 @@ export function SearchPage() {
             )}
 
             {(type === 'all' || type === 'assets') && (
-              <div className="rounded-[28px] border border-slate-200 bg-white/95 shadow-sm">
-                <div className="border-b border-slate-100 px-6 py-4">
+              <div className="rounded-[28px] border theme-border theme-card shadow-sm">
+                <div className="border-b theme-border px-6 py-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-slate-900">Equipamentos</h2>
+                    <h2 className="text-lg font-semibold theme-text">Equipamentos</h2>
                     <a
                       className="inline-flex items-center gap-1 text-sm text-[color:var(--search-accent)]"
                       href={`${basePath}/assets`}
@@ -318,17 +318,17 @@ export function SearchPage() {
                     </a>
                   </div>
                 </div>
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-[color:var(--dash-border)]">
                   {results.assets.items.length === 0 && (
-                    <div className="px-6 py-4 text-sm text-slate-500">Sem resultados</div>
+                    <div className="px-6 py-4 text-sm theme-text-muted">Sem resultados</div>
                   )}
                   {results.assets.items.map((asset) => (
                     <div key={asset.id} className="px-6 py-4">
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
-                          <p className="font-medium text-slate-900">{highlight(asset.name)}</p>
-                          <p className="text-sm text-slate-600">{highlight(asset.code)}</p>
-                          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                          <p className="font-medium theme-text">{highlight(asset.name)}</p>
+                          <p className="text-sm theme-text-muted">{highlight(asset.code)}</p>
+                          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs theme-text-muted">
                             <span>ID: {asset.id}</span>
                             {asset.category && (
                               <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700">
@@ -338,7 +338,7 @@ export function SearchPage() {
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-2">
-                          <span className="text-xs text-slate-500">
+                          <span className="text-xs theme-text-muted">
                             Score {asset.score?.toFixed(2) || '-'}
                           </span>
                           {asset.is_critical ? (
@@ -361,13 +361,13 @@ export function SearchPage() {
           results.assets.items.length === 0 &&
           query &&
           !error && (
-            <div className="rounded-[28px] border border-slate-200 bg-white/95 p-8 text-center text-slate-500 shadow-sm">
+            <div className="rounded-[28px] border theme-border theme-card p-8 text-center theme-text-muted shadow-sm">
               Sem resultados.
             </div>
           )}
 
         {(results.orders.total > 0 || results.assets.total > 0) && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[28px] border border-slate-200 bg-white/95 p-4 text-sm text-slate-600 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[28px] border theme-border theme-card p-4 text-sm theme-text-muted shadow-sm">
             <button
               className="btn-secondary"
               disabled={page <= 1 || loading}

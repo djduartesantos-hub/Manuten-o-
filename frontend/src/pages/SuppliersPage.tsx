@@ -367,13 +367,13 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
         </section>
 
         {showForm && (
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="rounded-3xl border theme-border theme-card p-6 shadow-sm">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">
+                <h2 className="text-lg font-semibold theme-text">
                   {editingSupplier ? 'Editar fornecedor' : 'Novo fornecedor'}
                 </h2>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm theme-text-muted">
                   Preencha os dados principais para contato rapido.
                 </p>
               </div>
@@ -390,7 +390,7 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
 
             <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
+                <label className="block text-sm font-medium theme-text mb-1">Nome</label>
                 <input
                   className="input"
                   value={form.name}
@@ -398,7 +398,7 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium theme-text mb-1">
                   Email
                 </label>
                 <input
@@ -408,7 +408,7 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium theme-text mb-1">
                   Telefone
                 </label>
                 <input
@@ -418,7 +418,7 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium theme-text mb-1">
                   Endereco
                 </label>
                 <input
@@ -428,7 +428,7 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium theme-text mb-1">
                   Cidade
                 </label>
                 <input
@@ -438,7 +438,7 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium theme-text mb-1">
                   Pais
                 </label>
                 <input
@@ -471,32 +471,32 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
           </section>
         )}
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-3xl border theme-border theme-card p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Lista de fornecedores</h2>
-              <p className="text-sm text-slate-600">
+              <h2 className="text-lg font-semibold theme-text">Lista de fornecedores</h2>
+              <p className="text-sm theme-text-muted">
                 {suppliers.length} fornecedores cadastrados.
               </p>
             </div>
           </div>
 
           {error && (
-            <div className="mt-4 flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <div className="mt-4 flex items-center gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm theme-text">
               <AlertCircle className="h-4 w-4" />
               {error}
             </div>
           )}
 
           {loading && (
-            <div className="mt-6 flex items-center gap-2 text-sm text-slate-500">
+            <div className="mt-6 flex items-center gap-2 text-sm theme-text-muted">
               <Loader2 className="h-4 w-4 animate-spin" />
               Carregando fornecedores...
             </div>
           )}
 
           {!loading && suppliers.length === 0 && (
-            <div className="mt-6 rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">
+            <div className="mt-6 rounded-2xl border border-dashed theme-border p-6 text-center text-sm theme-text-muted">
               Nenhum fornecedor encontrado.
             </div>
           )}
@@ -505,22 +505,22 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
             {suppliers.map((supplier) => (
               <div
                 key={supplier.id}
-                className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4"
+                className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <Building2 className="h-4 w-4 text-slate-500" />
+                    <div className="flex items-center gap-2 text-sm theme-text-muted">
+                      <Building2 className="h-4 w-4 text-[color:var(--dash-muted)]" />
                       Fornecedor
                     </div>
-                    <h3 className="mt-1 text-lg font-semibold text-slate-900">
+                    <h3 className="mt-1 text-lg font-semibold theme-text">
                       {supplier.name}
                     </h3>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleEdit(supplier)}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                      className="btn-secondary px-3 py-2 text-xs"
                     >
                       <span className="inline-flex items-center gap-1">
                         <Pencil className="h-3 w-3" />
@@ -529,7 +529,7 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
                     </button>
                     <button
                       onClick={() => handleDelete(supplier.id)}
-                      className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                      className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-500 hover:bg-rose-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
                       disabled={saving}
                     >
                       <span className="inline-flex items-center gap-1">
@@ -540,17 +540,17 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-2 text-sm text-slate-600">
+                <div className="mt-4 grid gap-2 text-sm theme-text-muted">
                   <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-slate-400" />
+                    <Mail className="h-4 w-4 text-[color:var(--dash-muted)]" />
                     <span>{supplier.email || 'Sem email'}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-slate-400" />
+                    <Phone className="h-4 w-4 text-[color:var(--dash-muted)]" />
                     <span>{supplier.phone || 'Sem telefone'}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-slate-400" />
+                    <MapPin className="h-4 w-4 text-[color:var(--dash-muted)]" />
                     <span>
                       {[supplier.city, supplier.country].filter(Boolean).join(' · ') ||
                         'Localizacao nao informada'}
@@ -559,7 +559,7 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
                 </div>
 
                 {supplier.address && (
-                  <div className="mt-3 text-xs text-slate-500">{supplier.address}</div>
+                  <div className="mt-3 text-xs theme-text-muted">{supplier.address}</div>
                 )}
               </div>
             ))}
