@@ -328,14 +328,6 @@ export function Header() {
                     >
                       <span>Perfil</span>
                     </Link>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="w-full text-left flex items-center justify-between px-4 py-2.5 text-sm font-semibold text-[color:var(--dash-muted)] transition-colors hover:bg-[color:var(--dash-surface)] hover:text-rose-600"
-                      role="menuitem"
-                    >
-                      <span>Terminar sessão</span>
-                    </button>
                   </div>
                 )}
               </div>
@@ -457,13 +449,6 @@ export function Header() {
                 >
                   Perfil
                 </Link>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="rounded-2xl border theme-border theme-card px-4 py-3 text-sm font-semibold text-rose-600 transition hover:bg-[color:var(--dash-surface)]"
-                >
-                  Terminar sessão
-                </button>
               </div>
             </div>
 
