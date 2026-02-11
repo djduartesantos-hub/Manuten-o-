@@ -1287,6 +1287,7 @@ export function WorkOrdersPage() {
         const tasks = await getWorkOrderTasks(selectedPlant, workOrderId);
         setOrderTasks(Array.isArray(tasks) ? (tasks as WorkOrderTask[]) : []);
       } catch {
+        setTasksError('Erro ao carregar tarefas.');
         setOrderTasks([]);
       }
       setUpdateForm({
@@ -1357,13 +1358,18 @@ export function WorkOrdersPage() {
     setTasksSaving(true);
     setTasksError(null);
     try {
-      await addWorkOrderTask(
+      const task = await addWorkOrderTask(
         selectedPlant,
         editingOrder.id,
         newTaskDescription.trim(),
       );
-      const tasks = await getWorkOrderTasks(selectedPlant, editingOrder.id);
-      setOrderTasks(Array.isArray(tasks) ? (tasks as WorkOrderTask[]) : []);
+
+      try {
+        const tasks = await getWorkOrderTasks(selectedPlant, editingOrder.id);
+        setOrderTasks(Array.isArray(tasks) ? (tasks as WorkOrderTask[]) : []);
+      } catch {
+        setOrderTasks((prev) => [...prev, task]);
+      }
       setNewTaskDescription('');
     } catch (err: any) {
       setTasksError(err.message || 'Erro ao adicionar tarefa.');
