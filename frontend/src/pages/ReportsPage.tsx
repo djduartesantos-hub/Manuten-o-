@@ -87,6 +87,27 @@ const topEntries = (totals: Record<string, number>, take: number) =>
     .sort((a, b) => b[1] - a[1])
     .slice(0, take);
 
+const getPriorityBadgeClass = (value?: string | null) => {
+  const key = String(value || '').trim().toLowerCase();
+  if (key === 'critica') return 'bg-rose-100 text-rose-700';
+  if (key === 'alta') return 'bg-amber-100 text-amber-700';
+  if (key === 'media') return 'bg-emerald-100 text-emerald-700';
+  if (key === 'baixa')
+    return 'border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] text-[color:var(--dash-muted)]';
+  return 'border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] text-[color:var(--dash-muted)]';
+};
+
+const getStatusBadgeClass = (value?: string | null) => {
+  const key = String(value || '').trim().toLowerCase();
+  if (key === 'aberta') return 'bg-amber-100 text-amber-700';
+  if (key === 'em_analise') return 'bg-sky-100 text-sky-700';
+  if (key === 'em_execucao') return 'bg-cyan-100 text-cyan-700';
+  if (key === 'em_pausa') return 'bg-slate-100 text-slate-700';
+  if (key === 'concluida' || key === 'fechada') return 'bg-emerald-100 text-emerald-700';
+  if (key === 'cancelada') return 'bg-rose-100 text-rose-700';
+  return 'border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] text-[color:var(--dash-muted)]';
+};
+
 interface WorkOrder {
   id: string;
   title: string;
@@ -1318,34 +1339,18 @@ export function ReportsPage() {
                         <>
                           <td className="px-6 py-4 text-sm">
                             <span
-                              className={`chip text-xs font-medium px-2 py-1 rounded-full ${
-                                order.status === 'concluida' || order.status === 'fechada'
-                                  ? 'bg-emerald-500/10 theme-text'
-                                  : order.status === 'cancelada'
-                                  ? 'bg-rose-500/10 theme-text'
-                                  : order.status === 'em_execucao'
-                                  ? 'bg-sky-500/10 theme-text'
-                                  : order.status === 'em_pausa'
-                                  ? 'bg-amber-500/10 theme-text'
-                                  : 'bg-[color:var(--dash-surface)] theme-text-muted'
-                              }`}
+                              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(
+                                order.status,
+                              )}`}
                             >
-                              {
-                                workOrderStatusLabel(order.status)
-                              }
+                              {workOrderStatusLabel(order.status)}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-sm">
                             <span
-                              className={`chip text-xs font-medium px-2 py-1 rounded-full ${
-                                order.priority === 'critica'
-                                  ? 'bg-rose-500/10 theme-text'
-                                  : order.priority === 'alta'
-                                  ? 'bg-amber-500/10 theme-text'
-                                  : order.priority === 'media'
-                                  ? 'bg-emerald-500/10 theme-text'
-                                  : 'bg-[color:var(--dash-surface)] theme-text-muted'
-                              }`}
+                              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getPriorityBadgeClass(
+                                order.priority,
+                              )}`}
                             >
                               {workOrderPriorityLabel(order.priority)}
                             </span>
