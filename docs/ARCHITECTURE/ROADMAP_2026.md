@@ -32,6 +32,24 @@
 
 ---
 
+## 🧾 Backlog (registado para realizar mais tarde)
+
+> Itens identificados após o fecho de CI/CD (Render) + baseline de OpenAPI.
+
+### OpenAPI / Swagger (expansão)
+- [ ] Cobertura completa de rotas (Assets, Stock/Movimentos, Spare Parts, Kits, Work Orders, Preventivas/Schedules, Reports, Admin/Setup, Documents/Uploads).
+- [ ] Esquemas de erro consistentes (`ErrorResponse`), paginação (`page`, `pageSize`, `total`), sorting/filter (query params) e exemplos por endpoint.
+- [ ] `securitySchemes` (JWT/Bearer) + requisitos por rota (auth vs admin), e `tags` normalizadas.
+- [ ] Alinhar nomes/IDs (`schedule_id` vs `scheduleId`, etc.) e respostas (status codes, payloads) com a implementação.
+
+### CD (Render) — “polish”
+- [ ] Melhorar observabilidade do deploy: logs mais claros no workflow + link direto para o deploy/serviço (quando aplicável).
+- [ ] Gating/segurança do workflow: impedir deploy em PRs/forks; reforçar branch protections e required checks.
+- [ ] Healthcheck pós-deploy (ex.: chamar endpoint `/api/health` e falhar workflow se não responder).
+- [ ] Rever estratégia de migrations no arranque (alternativa a instalar dev deps no runtime: mover tooling necessário para deps, ou correr migrations noutro passo controlado).
+
+---
+
 ## 🏭 Track “Fábrica + Gestão” (2026-02-09)
 
 Este track é o plano **prático** para as próximas iterações, com foco em operação e governança. O detalhe vive no draft; aqui fica o resumo acionável.
