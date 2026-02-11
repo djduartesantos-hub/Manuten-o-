@@ -71,6 +71,24 @@ async function startServer() {
       });
     }, 10 * 60 * 1000);
 
+    setInterval(() => {
+      NotificationService.checkPreventiveOverdue().catch((error) => {
+        logger.warn(
+          'Preventive overdue check failed:',
+          error instanceof Error ? error.message : error,
+        );
+      });
+    }, 10 * 60 * 1000);
+
+    setInterval(() => {
+      NotificationService.checkCriticalAssetsAll().catch((error) => {
+        logger.warn(
+          'Critical assets check failed:',
+          error instanceof Error ? error.message : error,
+        );
+      });
+    }, 10 * 60 * 1000);
+
     // SLA-critical alerts (history + dashboard card) based on configured alert rules
     setInterval(() => {
       AlertService.checkSlaCriticalAll().catch((error) => {

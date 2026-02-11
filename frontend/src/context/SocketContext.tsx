@@ -8,9 +8,25 @@ interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
   connectedUsers: number;
+  notifications: AppNotification[];
+  unreadCount: number;
+  markAllRead: () => void;
+  clearNotifications: () => void;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
+
+export type AppNotification = {
+  id: string;
+  createdAt: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  meta?: string;
+  entity?: string;
+  entityId?: string;
+  read: boolean;
+};
 
 type ToastKind = 'success' | 'error' | 'warning' | 'info';
 
@@ -129,6 +145,43 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [connectedUsers, setConnectedUsers] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
   const { token, user } = useAuthStore();
+
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+
+  const unreadCount = React.useMemo(
+    () => notifications.reduce((acc, n) => acc + (n.read ? 0 : 1), 0),
+    [notifications],
+  );
+
+  const markAllRead = React.useCallback(() => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  }, []);
+
+  const clearNotifications = React.useCallback(() => {
+    setNotifications([]);
+  }, []);
+
+  const pushNotification = React.useCallback(
+    (n: Omit<AppNotification, 'id' | 'createdAt' | 'read'>) => {
+      const id =
+        typeof crypto !== 'undefined' && (crypto as any).randomUUID
+          ? (crypto as any).randomUUID()
+          : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+      setNotifications((prev) =>
+        [
+          {
+            id,
+            createdAt: new Date().toISOString(),
+            read: false,
+            ...n,
+          },
+          ...prev,
+        ].slice(0, 200),
+      );
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!token || !user) {
@@ -258,6 +311,15 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         meta: metaParts.length ? metaParts.join(' • ') : undefined,
         duration: data?.severity === 'critical' ? 14000 : 11000,
       });
+
+      pushNotification({
+        title: 'Alerta',
+        message: String(data?.message || 'Alerta recebido'),
+        type: data?.severity === 'critical' ? 'error' : 'warning',
+        meta: metaParts.length ? metaParts.join(' • ') : undefined,
+        entity: data?.entity,
+        entityId: data?.entityId,
+      });
     });
 
     // Document events
@@ -272,7 +334,13 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     // Generic notifications
     newSocket.on('notification', (data) => {
       const kind: ToastKind =
-        data?.type === 'error' ? 'error' : data?.type === 'success' ? 'success' : 'info';
+        data?.type === 'error'
+          ? 'error'
+          : data?.type === 'success'
+            ? 'success'
+            : data?.type === 'warning'
+              ? 'warning'
+              : 'info';
 
       const actorName = data?.actor?.username ? String(data.actor.username) : '';
 
@@ -291,6 +359,15 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
           meta: actorName ? `Atualizado por ${actorName}` : undefined,
           duration: 14000,
         });
+
+        pushNotification({
+          title: 'Agendamento preventivo atualizado',
+          message,
+          type: 'info',
+          meta: actorName ? `Atualizado por ${actorName}` : undefined,
+          entity: data?.entity,
+          entityId: data?.entityId,
+        });
       } else {
         const metaParts: string[] = [];
         if (data?.entity) metaParts.push(String(data.entity));
@@ -300,6 +377,30 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
           title: kind === 'success' ? 'Notificação' : kind === 'error' ? 'Erro' : 'Informação',
           meta: actorName ? `Por ${actorName}` : metaParts.length ? metaParts.join(' • ') : undefined,
           duration: kind === 'error' ? 18000 : 13000,
+        });
+
+        pushNotification({
+          title: String(
+            data?.title ||
+              (kind === 'success'
+                ? 'Notificação'
+                : kind === 'error'
+                  ? 'Erro'
+                  : 'Informação'),
+          ),
+          message: String(data?.message || ''),
+          type:
+            kind === 'success'
+              ? 'success'
+              : kind === 'error'
+                ? 'error'
+                : kind === 'warning'
+                  ? 'warning'
+                  : 'info',
+          meta:
+            actorName ? `Por ${actorName}` : metaParts.length ? metaParts.join(' • ') : undefined,
+          entity: data?.entity,
+          entityId: data?.entityId,
         });
       }
 
@@ -330,7 +431,17 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, [token, user]);
 
   return (
-    <SocketContext.Provider value={{ socket, isConnected, connectedUsers }}>
+    <SocketContext.Provider
+      value={{
+        socket,
+        isConnected,
+        connectedUsers,
+        notifications,
+        unreadCount,
+        markAllRead,
+        clearNotifications,
+      }}
+    >
       {children}
     </SocketContext.Provider>
   );
@@ -341,7 +452,15 @@ export function useSocket() {
   // Socket is optional - return a safe default if not available
   if (context === undefined) {
     console.warn('SocketContext not available - using fallback');
-    return { socket: null, isConnected: false, connectedUsers: 0 };
+    return {
+      socket: null,
+      isConnected: false,
+      connectedUsers: 0,
+      notifications: [],
+      unreadCount: 0,
+      markAllRead: () => {},
+      clearNotifications: () => {},
+    };
   }
   return context;
 }

@@ -25,6 +25,7 @@ import { DatabaseUpdatePage } from './pages/DatabaseUpdatePage';
 import { SetupInitPage } from './pages/SetupInitPage';
 import { MaintenanceKitsListPage } from './pages/MaintenanceKitsListPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { NotificationsPage } from './pages/NotificationsPage';
 
 
 import { ThemeProvider } from './context/ThemeContext';
@@ -200,6 +201,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <NotificationsPage />
                 </ProtectedRoute>
               }
             />

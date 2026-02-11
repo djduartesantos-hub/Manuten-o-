@@ -19,6 +19,7 @@ import {
   ChevronDown,
   Sun,
   Moon,
+  Bell,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../context/store';
@@ -41,7 +42,7 @@ interface NavSection {
 export function Header() {
   const { user, logout } = useAuth();
   const { selectedPlant, plants, setSelectedPlant } = useAppStore();
-  const { isConnected } = useSocket();
+  const { isConnected, unreadCount } = useSocket();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [openDropdown, setOpenDropdown] = React.useState<string | null>(null);
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
@@ -284,6 +285,21 @@ export function Header() {
                 </div>
               )}
             </div>
+
+            {/* Notifications */}
+            <Link
+              to="/notifications"
+              className="relative inline-flex items-center justify-center rounded-full border theme-border theme-card p-2 theme-text-muted shadow-sm transition hover:bg-[color:var(--dash-surface)] hover:theme-text"
+              title="Notificações"
+              aria-label="Notificações"
+            >
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 ? (
+                <span className="absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-[color:var(--dash-accent)] px-1.5 py-0.5 text-[11px] font-bold text-white">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              ) : null}
+            </Link>
 
             {/* User Menu */}
             <div className="flex items-center gap-3 border-l theme-border pl-3">

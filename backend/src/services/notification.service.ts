@@ -1,6 +1,14 @@
 import { and, eq, inArray, lt, sql } from 'drizzle-orm';
 import { db } from '../config/database.js';
-import { notificationRules, spareParts, stockMovements, userPlants, workOrders } from '../db/schema.js';
+import {
+  assets,
+  notificationRules,
+  preventiveMaintenanceSchedules,
+  spareParts,
+  stockMovements,
+  userPlants,
+  workOrders,
+} from '../db/schema.js';
 import { CacheKeys, CacheTTL, RedisService } from './redis.service.js';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 import { isSlaOverdue } from '../utils/workorder-sla.js';
@@ -27,6 +35,18 @@ const DEFAULT_RULES = [
   },
   {
     event_type: 'stock_low',
+    channels: ['in_app', 'socket'],
+    recipients: ['managers', 'plant_users'],
+    is_active: true,
+  },
+  {
+    event_type: 'preventive_overdue',
+    channels: ['in_app', 'socket'],
+    recipients: ['creator', 'managers', 'plant_users'],
+    is_active: true,
+  },
+  {
+    event_type: 'asset_critical',
     channels: ['in_app', 'socket'],
     recipients: ['managers', 'plant_users'],
     is_active: true,
@@ -77,6 +97,41 @@ export class NotificationService {
         // ignore cache errors
       }
       return inserted as NotificationRule[];
+    }
+
+    // Backfill any newly-added default rules for tenants that already have rules.
+    const missing = DEFAULT_RULES.filter(
+      (rule) => !existing.some((row: any) => row.event_type === rule.event_type),
+    );
+
+    if (missing.length > 0) {
+      const now = new Date();
+      try {
+        const insertedMissing = await db
+          .insert(notificationRules)
+          .values(
+            missing.map((rule) => ({
+              tenant_id: tenantId,
+              event_type: rule.event_type,
+              channels: rule.channels,
+              recipients: rule.recipients,
+              is_active: rule.is_active,
+              created_at: now,
+              updated_at: now,
+            })),
+          )
+          .returning();
+
+        const merged = existing.concat(insertedMissing as any);
+        try {
+          await RedisService.setJSON(CacheKeys.notificationRules(tenantId), merged, CacheTTL.NOTIFICATIONS);
+        } catch {
+          // ignore cache errors
+        }
+        return merged as NotificationRule[];
+      } catch {
+        // If insert fails (e.g., transient DB issue), return existing.
+      }
     }
 
     try {
@@ -232,6 +287,119 @@ export class NotificationService {
       },
       recipients.includeManagers,
     );
+  }
+
+  static async notifyPreventiveOverdue(schedule: {
+    id: string;
+    tenant_id: string;
+    plant_id: string;
+    created_by: string;
+    scheduled_for: Date;
+  }) {
+    const rule = await NotificationService.getRule(schedule.tenant_id, 'preventive_overdue');
+    if (!NotificationService.shouldSend(rule)) return;
+
+    const cacheKey = `pms-overdue:${schedule.id}`;
+    try {
+      const alreadyNotified = await RedisService.exists(cacheKey);
+      if (alreadyNotified) return;
+      await RedisService.set(cacheKey, '1', 6 * 60 * 60);
+    } catch {
+      // best-effort: continue without dedupe
+    }
+
+    const recipients = NotificationService.getRecipients(rule, {
+      plantId: schedule.plant_id,
+      createdBy: schedule.created_by,
+    });
+
+    const plantUserIds = recipients.userIds.includes('__plant_users__')
+      ? await NotificationService.getPlantUserIds(schedule.plant_id)
+      : [];
+
+    const userIds = recipients.userIds
+      .filter((value) => value !== '__plant_users__')
+      .concat(plantUserIds);
+
+    NotificationService.emitNotification(
+      schedule.tenant_id,
+      userIds,
+      {
+        title: 'Preventiva em atraso',
+        message: `Agendamento preventivo passou a data prevista (${new Date(schedule.scheduled_for).toLocaleString()}).`,
+        type: 'warning',
+        entity: 'preventive-schedule',
+        entityId: schedule.id,
+      },
+      recipients.includeManagers,
+    );
+  }
+
+  static async notifyCriticalAsset(assetRow: {
+    id: string;
+    tenant_id: string;
+    plant_id: string;
+    name: string;
+    status: string | null;
+  }) {
+    const rule = await NotificationService.getRule(assetRow.tenant_id, 'asset_critical');
+    if (!NotificationService.shouldSend(rule)) return;
+
+    const status = (assetRow.status || '').toLowerCase() || 'desconhecido';
+    const cacheKey = `asset-critical:${assetRow.id}:${status}`;
+    try {
+      const alreadyNotified = await RedisService.exists(cacheKey);
+      if (alreadyNotified) return;
+      await RedisService.set(cacheKey, '1', 6 * 60 * 60);
+    } catch {
+      // best-effort: continue without dedupe
+    }
+
+    const recipients = NotificationService.getRecipients(rule, {
+      plantId: assetRow.plant_id,
+    });
+    const plantUserIds = recipients.userIds.includes('__plant_users__')
+      ? await NotificationService.getPlantUserIds(assetRow.plant_id)
+      : [];
+    const userIds = recipients.userIds
+      .filter((value) => value !== '__plant_users__')
+      .concat(plantUserIds);
+
+    NotificationService.emitNotification(
+      assetRow.tenant_id,
+      userIds,
+      {
+        title: 'Falha crítica',
+        message: `Equipamento crítico “${assetRow.name}” está em estado: ${status}.`,
+        type: 'error',
+        entity: 'asset',
+        entityId: assetRow.id,
+      },
+      recipients.includeManagers,
+    );
+  }
+
+  static async checkPreventiveOverdue(): Promise<void> {
+    const now = new Date();
+    const rows = await db.query.preventiveMaintenanceSchedules.findMany({
+      where: (fields: any, { and, lt, eq }: any) =>
+        and(lt(fields.scheduled_for, now), eq(fields.status, 'agendada')),
+    });
+
+    for (const schedule of rows) {
+      await NotificationService.notifyPreventiveOverdue(schedule as any);
+    }
+  }
+
+  static async checkCriticalAssetsAll(): Promise<void> {
+    const rows = await db.query.assets.findMany({
+      where: (fields: any, { and, eq, inArray }: any) =>
+        and(eq(fields.is_critical, true), inArray(fields.status, ['parado', 'manutencao'])),
+    });
+
+    for (const assetRow of rows) {
+      await NotificationService.notifyCriticalAsset(assetRow as any);
+    }
   }
 
   static async checkSlaOverdue(): Promise<void> {

@@ -792,6 +792,16 @@ function NotificationSettings() {
       label: 'Stock minimo',
       description: 'Quando o stock fica abaixo do minimo',
     },
+    {
+      value: 'preventive_overdue',
+      label: 'Preventiva em atraso',
+      description: 'Quando um agendamento preventivo passa a data prevista',
+    },
+    {
+      value: 'asset_critical',
+      label: 'Falha crítica',
+      description: 'Quando um equipamento crítico entra em estado parado/manutencao',
+    },
   ];
 
   const channelOptions = [
