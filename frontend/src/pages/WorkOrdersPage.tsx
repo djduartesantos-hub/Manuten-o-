@@ -261,11 +261,11 @@ export function WorkOrdersPage() {
   const [partsError, setPartsError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('kanban');
   const [activeSection, setActiveSection] = useState<'orders' | 'preventive'>('orders');
   const [preventiveSchedules, setPreventiveSchedules] = useState<PreventiveSchedule[]>([]);
   const [preventiveStatusFilter, setPreventiveStatusFilter] = useState('');
-  const [preventiveViewMode, setPreventiveViewMode] = useState<'table' | 'cards'>('table');
+  const [preventiveViewMode, setPreventiveViewMode] = useState<'table' | 'cards'>('cards');
   const [preventiveLoading, setPreventiveLoading] = useState(false);
   const [preventiveError, setPreventiveError] = useState<string | null>(null);
   const [editingPreventive, setEditingPreventive] = useState<PreventiveSchedule | null>(null);
@@ -388,11 +388,15 @@ export function WorkOrdersPage() {
         const parsed = JSON.parse(saved);
         setStatusFilter(parsed.statusFilter || '');
         setSearchTerm(parsed.searchTerm || '');
-        setViewMode(parsed.viewMode || 'table');
+        // Default is always columns (kanban).
+        setViewMode('kanban');
       } catch {
         // ignore
       }
     }
+
+    // Default preventive list is always columns (cards).
+    setPreventiveViewMode('cards');
 
     if (savedTemplates) {
       try {
@@ -3806,7 +3810,10 @@ export function WorkOrdersPage() {
                             ? 'bg-emerald-100 text-emerald-700'
                             : 'text-[color:var(--dash-muted)] hover:text-[color:var(--dash-text)]'
                         }`}
-                        onClick={() => setActiveSection('orders')}
+                        onClick={() => {
+                          setActiveSection('orders');
+                          setViewMode('kanban');
+                        }}
                       >
                         Ordens
                       </button>
@@ -3818,8 +3825,8 @@ export function WorkOrdersPage() {
                         }`}
                         onClick={() => {
                           setActiveSection('preventive');
-                          setViewMode('table');
-                          setPreventiveViewMode('table');
+                          setViewMode('kanban');
+                          setPreventiveViewMode('cards');
                         }}
                       >
                         Preventiva
@@ -4295,11 +4302,17 @@ export function WorkOrdersPage() {
                         </div>
                         <button
                           type="button"
-                          className="btn-secondary h-9 px-3"
+                          className="btn-secondary inline-flex h-10 w-10 items-center justify-center !p-0 [--btn-icon:32px] md:[--btn-icon:22px]"
                           onClick={closePreventiveEditor}
                           disabled={preventiveSaving}
+                          title="Fechar"
+                          aria-label="Fechar"
                         >
-                          Fechar
+                          <XCircle
+                            className="theme-text-muted"
+                            strokeWidth={2.6}
+                            style={{ width: 'var(--btn-icon)', height: 'var(--btn-icon)' }}
+                          />
                         </button>
                       </div>
 
