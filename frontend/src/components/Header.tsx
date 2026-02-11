@@ -131,6 +131,13 @@ export function Header() {
     window.location.href = '/login';
   };
 
+  React.useEffect(() => {
+    if (mobileMenuOpen) {
+      setUserMenuOpen(false);
+      setOpenDropdown(null);
+    }
+  }, [mobileMenuOpen]);
+
   return (
     <header className="sticky top-0 z-50 border-b theme-border theme-card shadow-[0_10px_40px_-30px_rgba(15,23,42,0.4)] backdrop-blur">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -280,7 +287,7 @@ export function Header() {
 
             {/* User Menu */}
             <div className="flex items-center gap-3 border-l theme-border pl-3">
-              <div className="relative hidden sm:block">
+              <div className="relative hidden md:block">
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen((v) => !v)}
@@ -358,7 +365,7 @@ export function Header() {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <nav className="md:hidden border-t theme-border theme-card py-4">
+          <nav className="md:hidden border-t theme-border theme-card py-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
             {/* Mobile Theme Selector */}
             <div className="mb-4 px-4 flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider theme-text-muted">
