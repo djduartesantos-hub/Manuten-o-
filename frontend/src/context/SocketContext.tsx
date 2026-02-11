@@ -3,6 +3,11 @@ import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from './store';
 import toast from 'react-hot-toast';
 import { AlertTriangle, CheckCircle2, Info, X, XCircle } from 'lucide-react';
+import {
+  clearNotificationsInbox,
+  getNotificationsInbox,
+  markNotificationsReadAll,
+} from '../services/api';
 
 interface SocketContextType {
   socket: Socket | null;
@@ -10,8 +15,8 @@ interface SocketContextType {
   connectedUsers: number;
   notifications: AppNotification[];
   unreadCount: number;
-  markAllRead: () => void;
-  clearNotifications: () => void;
+  markAllRead: () => Promise<void>;
+  clearNotifications: () => Promise<void>;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -19,6 +24,7 @@ const SocketContext = createContext<SocketContextType | undefined>(undefined);
 export type AppNotification = {
   id: string;
   createdAt: string;
+  eventType?: string;
   title: string;
   message: string;
   type: 'info' | 'success' | 'warning' | 'error';
@@ -148,40 +154,110 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
-  const unreadCount = React.useMemo(
-    () => notifications.reduce((acc, n) => acc + (n.read ? 0 : 1), 0),
-    [notifications],
-  );
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  const markAllRead = React.useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const hydrateInbox = React.useCallback(async () => {
+    try {
+      const inbox = await getNotificationsInbox({ limit: 200, offset: 0 });
+      setNotifications(
+        (inbox.items || []).map((row) => ({
+          id: row.id,
+          createdAt: row.createdAt,
+          eventType: row.eventType,
+          title: row.title,
+          message: row.message,
+          type:
+            row.level === 'success'
+              ? 'success'
+              : row.level === 'warning'
+                ? 'warning'
+                : row.level === 'error'
+                  ? 'error'
+                  : 'info',
+          entity: row.entity ?? undefined,
+          entityId: row.entityId ?? undefined,
+          read: Boolean(row.read),
+        })),
+      );
+      setUnreadCount(Number(inbox.unreadCount ?? 0));
+    } catch {
+      // best-effort: inbox is optional
+    }
   }, []);
 
-  const clearNotifications = React.useCallback(() => {
+  const markAllRead = React.useCallback(async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setUnreadCount(0);
+    try {
+      await markNotificationsReadAll();
+    } catch {
+      // best-effort
+    }
+  }, []);
+
+  const clearNotifications = React.useCallback(async () => {
     setNotifications([]);
+    setUnreadCount(0);
+    try {
+      await clearNotificationsInbox();
+    } catch {
+      // best-effort
+    }
   }, []);
 
   const pushNotification = React.useCallback(
-    (n: Omit<AppNotification, 'id' | 'createdAt' | 'read'>) => {
+    (
+      n: Omit<AppNotification, 'id' | 'createdAt' | 'read'> & {
+        notificationId?: string;
+        id?: string;
+        createdAt?: string;
+        read?: boolean;
+      },
+    ) => {
       const id =
-        typeof crypto !== 'undefined' && (crypto as any).randomUUID
+        n.notificationId ||
+        n.id ||
+        (typeof crypto !== 'undefined' && (crypto as any).randomUUID
           ? (crypto as any).randomUUID()
-          : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+          : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
 
-      setNotifications((prev) =>
-        [
+      const createdAt = n.createdAt || new Date().toISOString();
+      const read = Boolean(n.read);
+
+      setNotifications((prev) => {
+        if (prev.some((row) => row.id === id)) return prev;
+        return [
           {
             id,
-            createdAt: new Date().toISOString(),
-            read: false,
-            ...n,
+            createdAt,
+            read,
+            eventType: n.eventType,
+            title: n.title,
+            message: n.message,
+            type: n.type,
+            meta: n.meta,
+            entity: n.entity,
+            entityId: n.entityId,
           },
           ...prev,
-        ].slice(0, 200),
-      );
+        ].slice(0, 200);
+      });
+
+      if (!read) {
+        setUnreadCount((prev) => prev + 1);
+      }
     },
     [],
   );
+
+  useEffect(() => {
+    if (!token || !user) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
+    void hydrateInbox();
+  }, [token, user, hydrateInbox]);
 
   useEffect(() => {
     if (!token || !user) {
@@ -361,6 +437,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         });
 
         pushNotification({
+          notificationId: data?.notificationId,
+          createdAt: data?.createdAt,
+          eventType: data?.eventType,
           title: 'Agendamento preventivo atualizado',
           message,
           type: 'info',
@@ -380,6 +459,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         });
 
         pushNotification({
+          notificationId: data?.notificationId,
+          createdAt: data?.createdAt,
+          eventType: data?.eventType,
           title: String(
             data?.title ||
               (kind === 'success'
@@ -458,8 +540,8 @@ export function useSocket() {
       connectedUsers: 0,
       notifications: [],
       unreadCount: 0,
-      markAllRead: () => {},
-      clearNotifications: () => {},
+      markAllRead: async () => {},
+      clearNotifications: async () => {},
     };
   }
   return context;

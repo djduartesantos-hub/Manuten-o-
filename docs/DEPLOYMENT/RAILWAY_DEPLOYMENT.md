@@ -9,7 +9,7 @@ Este projeto está preparado para **deploy no Railway** usando o **Dockerfile na
 - **Healthcheck**: `GET /health`
 - **DB migrations automáticas no arranque**:
   - espera o Postgres estar pronto
-  - aplica Drizzle (`npm run db:migrate`)
+  - aplica Drizzle (`npm run db:push`)
   - (opcional) migrações SQL legadas em `scripts/database/migrations/*.sql` só se `RUN_SQL_MIGRATIONS=true`
 
 ## 1) Criar o projeto

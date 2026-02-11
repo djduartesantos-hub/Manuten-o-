@@ -186,7 +186,7 @@ After first deployment, update the `CORS_ORIGIN` environment variable:
 Migrations run automatically on each deployment because the Docker image starts with:
 
 ```sh
-npm run db:migrate && node dist/server.js
+npm run db:push && node dist/server.js
 ```
 
 (See `Dockerfile`.)
@@ -194,7 +194,7 @@ npm run db:migrate && node dist/server.js
 To run migrations manually:
 1. Go to Render Dashboard → Web Service
 2. Click **"Shell"** tab
-3. Run: `npm run db:migrate`
+3. Run: `npm run db:push`
 
 ### Enable Auto-Deploy
 
@@ -327,7 +327,7 @@ cd backend && npm run build
 ```bash
 # Check deployment logs for migration output
 # Or run manually in Shell tab
-npm run db:migrate
+npm run db:push
 ```
 
 ### CORS Errors

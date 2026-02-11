@@ -946,6 +946,41 @@ export const notificationRules = pgTable(
   }),
 );
 
+// Notifications (in-app inbox)
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    user_id: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    plant_id: uuid('plant_id').references(() => plants.id, { onDelete: 'set null' }),
+    event_type: text('event_type').notNull(),
+    title: text('title').notNull(),
+    message: text('message').notNull(),
+    level: text('level').notNull().default('info'),
+    entity: text('entity'),
+    entity_id: text('entity_id'),
+    meta: jsonb('meta'),
+    is_read: boolean('is_read').default(false),
+    read_at: timestamp('read_at', { withTimezone: true }),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantUserCreatedIdx: index('notifications_tenant_user_created_idx').on(
+      table.tenant_id,
+      table.user_id,
+      table.created_at,
+    ),
+    tenantUserUnreadIdx: index('notifications_tenant_user_unread_idx').on(
+      table.tenant_id,
+      table.user_id,
+      table.is_read,
+    ),
+  }),
+);
+
 // Asset Documents (Manuais, esquemas, certificados)
 export const assetDocuments = pgTable(
   'asset_documents',

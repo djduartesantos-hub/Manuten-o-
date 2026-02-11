@@ -43,7 +43,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Install backend dependencies.
-# NOTE: we run Drizzle migrations on container start (see scripts/docker/run-drizzle-migrate.mjs),
+# NOTE: we run Drizzle schema push on container start (see scripts/docker/run-drizzle-migrate.mjs),
 # which requires `drizzle-kit` to be present. Since `drizzle-kit` is a devDependency,
 # we must include devDependencies in the runtime image.
 COPY backend/package*.json ./

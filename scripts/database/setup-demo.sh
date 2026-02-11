@@ -57,6 +57,28 @@ else
     exit 1
 fi
 
+    # ============================================================================
+    # STEP 1.5: Garantir schema atualizado (Drizzle)
+    # ============================================================================
+    BACKEND_DIR="$(cd "$SCRIPTS_DIR/../../backend" 2>/dev/null && pwd || true)"
+
+    if [ -n "$BACKEND_DIR" ] && [ -f "$BACKEND_DIR/package.json" ] && command -v npm &> /dev/null; then
+        if [ -d "$BACKEND_DIR/node_modules" ]; then
+            echo -e "${YELLOW}[1.5/3] A aplicar schema via Drizzle (npm run db:push)...${NC}"
+            if (cd "$BACKEND_DIR" && npm run db:push > /dev/null 2>&1); then
+                echo -e "${GREEN}✓ Schema aplicado via Drizzle${NC}"
+            else
+                echo -e "${YELLOW}⚠️  Aviso: falha ao aplicar schema via Drizzle. Pode executar manualmente:${NC}"
+                echo -e "  ${GREEN}cd backend && npm run db:push${NC}"
+            fi
+            echo ""
+        else
+            echo -e "${YELLOW}ℹ️  Nota: backend/node_modules não encontrado; a saltar Drizzle push.${NC}"
+            echo -e "  Para garantir as tabelas mais recentes (ex: notifications): ${GREEN}cd backend && npm install && npm run db:push${NC}"
+            echo ""
+        fi
+    fi
+
 echo ""
 
 # ============================================================================

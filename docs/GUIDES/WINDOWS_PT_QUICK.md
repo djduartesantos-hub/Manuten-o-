@@ -96,7 +96,7 @@ net start PostgreSQL
 psql -U postgres -h localhost -c "CREATE DATABASE cmms_enterprise;"
 
 # 3. Tentar novamente
-npm run db:migrate
+npm run db:push
 npm run db:seed
 
 # 4. Se ainda falhar:
@@ -166,7 +166,7 @@ REM 4. Garantir PostgreSQL
 net start PostgreSQL
 
 REM 5. Migrations
-npm run db:migrate
+npm run db:push
 npm run db:seed
 
 REM 6. Frontend

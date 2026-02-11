@@ -23,6 +23,12 @@ CREATE DATABASE cmms_enterprise;
 
 # 4. Aplicar schema
 psql -d cmms_enterprise -f scripts/database/setup-database.sql
+
+# 5. (Recomendado) Garantir schema mais recente via Drizzle
+cd backend
+npm install
+npm run db:push
+cd ..
 ```
 
 ### Opção B: linha de comando direta
@@ -30,6 +36,12 @@ psql -d cmms_enterprise -f scripts/database/setup-database.sql
 ```bash
 sudo -u postgres psql -d postgres -c "CREATE DATABASE cmms_enterprise;"
 sudo -u postgres psql -d cmms_enterprise -f scripts/database/setup-database.sql
+
+# (Recomendado) Garantir schema mais recente via Drizzle
+cd backend
+npm install
+npm run db:push
+cd ..
 ```
 
 ## ✅ Passo 2: Verificar Setup
@@ -44,6 +56,9 @@ Após executar o script SQL, você deve ver:
 ```
 
 ✅ **Superadmin criado automaticamente!**
+
+> Nota: o passo `npm run db:push` garante que tens as tabelas mais recentes do projeto
+> (por exemplo, `notifications` para a caixa de entrada persistente).
 
 ## 🔐 Credenciais de Acesso
 

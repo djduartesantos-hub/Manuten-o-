@@ -225,7 +225,7 @@ REM ============================================
 echo 7^) Running database migrations...
 
 cd backend
-call npm run db:migrate
+call npm run db:push
 if %ERRORLEVEL% NEQ 0 (
     color 0C
     echo [ERROR] Failed to run migrations
@@ -305,4 +305,4 @@ echo.
 echo Troubleshooting:
 echo   - If migrations fail: Check DATABASE_URL in backend/.env
 echo   - If seed fails: Database is OK, seed data is optional
-echo   - For manual migration: cd backend ^&^& npm run db:migrate
+echo   - For manual migration: cd backend ^&^& npm run db:push

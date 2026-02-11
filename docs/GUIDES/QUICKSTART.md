@@ -110,7 +110,7 @@ Significa que as migrações não foram executadas. **Solução:**
 
 ```bash
 cd backend
-npm run db:migrate
+npm run db:push
 npm run db:seed
 ```
 
@@ -146,7 +146,7 @@ Se preferir fazer manualmente:
 ### **Opção 2: Só executar migrações (BD já existe)**
 ```bash
 cd backend
-npm run db:migrate
+npm run db:push
 npm run db:seed
 npm run dev
 ```
@@ -163,7 +163,7 @@ psql -U postgres -f setup-database.sql
 | Erro | Solução |
 |------|---------|
 | "PostgreSQL not found" | Instalar PostgreSQL e reiniciar |
-| "relation 'tenants' does not exist" | Executar `npm run db:migrate` |
+| "relation 'tenants' does not exist" | Executar `npm run db:push` |
 | "Connection refused" | Verificar se PostgreSQL está a correr |
 | "User already exists" | Usar credenciais diferentes ou `DROP USER` |
 

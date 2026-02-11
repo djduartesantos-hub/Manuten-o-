@@ -78,7 +78,7 @@
 1. Criar **PostgreSQL** no Render
 2. Copiar a string de conexão para DATABASE_URL
 3. Após deploy do backend, executar migrations:
-   - npm run db:migrate
+  - npm run db:push
 4. Opcional (demo data):
    - npm run db:seed
 
@@ -122,7 +122,7 @@ O Render não oferece Elasticsearch managed nativo. Recomendado:
 6. Criar Frontend Static Site
 7. Configurar variáveis de ambiente
 8. Fazer deploy backend
-9. Rodar migrations (db:migrate)
+9. Rodar schema Drizzle (db:push)
 10. Fazer deploy frontend
 11. Validar /health e UI
 

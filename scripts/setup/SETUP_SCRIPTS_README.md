@@ -155,7 +155,7 @@ O script executa estes passos automaticamente:
    ↓
 [STEP 5/6] Setting up database
    - Verifica PostgreSQL
-   - npm run db:migrate
+   - npm run db:push
    - npm run db:seed
    ↓
 [STEP 6/6] Starting services

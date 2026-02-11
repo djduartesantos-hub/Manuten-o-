@@ -62,7 +62,7 @@ echo ✅ Backend dependencies installed
 echo.
 
 echo 6️⃣  Running database migrations...
-call npm run db:migrate
+call npm run db:push
 echo ✅ Migrations completed
 echo.
 

@@ -283,8 +283,8 @@ Write-Info "8️⃣ Running Database Migrations..."
 
 Push-Location backend
 
-Write-Host "Running: npm run db:migrate"
-& npm run db:migrate
+Write-Host "Running: npm run db:push"
+& npm run db:push
 
 if ($LASTEXITCODE -eq 0) {
     Write-Success "✅ Database schema created"
@@ -361,7 +361,7 @@ Write-Host ""
 Write-Warn "❓ Troubleshooting:"
 Write-Host "  - If migrations fail: Check DATABASE_URL in backend/.env"
 Write-Host "  - If seed fails: Database is OK, seeds are optional"
-Write-Host "  - To manually run migrations: cd backend && npm run db:migrate"
+Write-Host "  - To manually run migrations: cd backend && npm run db:push"
 Write-Host "  - For database issues: Check PostgreSQL logs"
 Write-Host ""
 

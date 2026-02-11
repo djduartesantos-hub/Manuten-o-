@@ -81,6 +81,32 @@ echo %GREEN%OK - Database e schema criados%NORMAL%
 echo.
 
 REM ============================================================================
+REM STEP 1.5: Garantir schema atualizado (Drizzle)
+REM ============================================================================
+if exist "..\..\backend\package.json" (
+    where npm >nul 2>&1
+    if not errorlevel 1 (
+        if exist "..\..\backend\node_modules" (
+            echo %YELLOW%[1.5/3] A aplicar schema via Drizzle (npm run db:push)...%NORMAL%
+            pushd "..\..\backend" >nul 2>&1
+            call npm run db:push >nul 2>&1
+            if errorlevel 1 (
+                echo %YELLOW%Aviso: falha ao aplicar schema via Drizzle. Pode executar manualmente:%NORMAL%
+                echo   cd backend ^&^& npm run db:push
+            ) else (
+                echo %GREEN%OK - Schema aplicado via Drizzle%NORMAL%
+            )
+            popd >nul 2>&1
+            echo.
+        ) else (
+            echo %YELLOW%Nota: backend\node_modules nao encontrado; a saltar Drizzle push.%NORMAL%
+            echo   Para garantir as tabelas mais recentes (ex: notifications): cd backend ^&^& npm install ^&^& npm run db:push
+            echo.
+        )
+    )
+)
+
+REM ============================================================================
 REM STEP 2: Carregar dados de demonstração
 REM ============================================================================
 echo %YELLOW%[2/3] A carregar dados de demonstração...%NORMAL%

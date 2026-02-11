@@ -68,7 +68,7 @@ async function verifyUsersTable() {
     if (!exists) {
       const combined = `${stdoutTail}\n${stderrTail}`.trim();
       if (combined) {
-        console.error('[drizzle-migrate] db:migrate output tail (truncated):');
+        console.error('[drizzle-migrate] db:push output tail (truncated):');
         console.error(combined);
       }
 
@@ -112,9 +112,9 @@ const autoApprove =
     ? env.DRIZZLE_AUTO_APPROVE === 'true' || env.DRIZZLE_AUTO_APPROVE === '1'
     : env.NODE_ENV === 'production';
 
-console.log(`[drizzle-migrate] running db:migrate${verbose ? ' (verbose)' : ''}...`);
+console.log(`[drizzle-migrate] running db:push${verbose ? ' (verbose)' : ''}...`);
 
-const child = spawn('npm', ['run', 'db:migrate'], {
+const child = spawn('npm', ['run', 'db:push'], {
   // Keep stdin available so drizzle-kit can prompt if it needs to.
   // We still capture stdout/stderr to avoid log-rate limits.
   stdio: verbose ? 'inherit' : ['pipe', 'pipe', 'pipe'],
@@ -147,14 +147,14 @@ child.on('exit', (code, signal) => {
       if (!verbose) {
         const combined = `${stdoutTail}\n${stderrTail}`.trim();
         if (combined) {
-          console.error('[drizzle-migrate] db:migrate failed; last output chunk (truncated):');
+          console.error('[drizzle-migrate] db:push failed; last output chunk (truncated):');
           console.error(combined);
         }
       }
       process.exit(code);
     }
 
-    console.log('[drizzle-migrate] db:migrate OK');
+    console.log('[drizzle-migrate] db:push OK');
     verifyUsersTable().catch((error) => {
       console.error('[drizzle-migrate] verification error:', error);
       process.exit(1);

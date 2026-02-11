@@ -2,6 +2,7 @@ import { and, eq, inArray, lt, sql } from 'drizzle-orm';
 import { db } from '../config/database.js';
 import {
   assets,
+  notifications,
   notificationRules,
   preventiveMaintenanceSchedules,
   spareParts,
@@ -62,6 +63,33 @@ type NotificationRule = {
 };
 
 export class NotificationService {
+  static async getManagerUserIds(tenantId: string): Promise<string[]> {
+    const cacheKey = `notif:manager-users:${tenantId}`;
+    try {
+      const cached = await RedisService.getJSON<string[]>(cacheKey);
+      if (cached && Array.isArray(cached)) {
+        return cached;
+      }
+    } catch {
+      // ignore cache errors
+    }
+
+    const rows = await db.query.users.findMany({
+      columns: { id: true },
+      where: (fields: any, { and, eq, inArray }: any) =>
+        and(eq(fields.tenant_id, tenantId), inArray(fields.role, MANAGER_ROLES)),
+    });
+
+    const ids = rows.map((row: any) => row.id).filter(Boolean);
+    const unique = Array.from(new Set(ids));
+    try {
+      await RedisService.setJSON(cacheKey, unique, 60);
+    } catch {
+      // ignore cache errors
+    }
+    return unique;
+  }
+
   static async getRules(tenantId: string): Promise<NotificationRule[]> {
     try {
       const cacheKey = CacheKeys.notificationRules(tenantId);
@@ -189,31 +217,80 @@ export class NotificationService {
     return Array.from(new Set(ids));
   }
 
-  static emitNotification(
+  static async emitNotification(
     tenantId: string,
     userIds: string[],
     payload: {
+      eventType: string;
       title: string;
       message: string;
       type?: 'info' | 'success' | 'warning' | 'error';
       entity?: string;
       entityId?: string;
+      plantId?: string;
+      meta?: any;
     },
     includeManagers = true,
-  ) {
-    if (!isSocketManagerReady()) return;
-    const socketManager = getSocketManager();
-    const uniqueUsers = Array.from(new Set(userIds));
-
-    uniqueUsers.forEach((userId) => {
-      socketManager.broadcastToUser(tenantId, userId, 'notification', payload);
-    });
+  ): Promise<void> {
+    const uniqueUsers = new Set(userIds.filter(Boolean));
 
     if (includeManagers) {
-      MANAGER_ROLES.forEach((role) => {
-        socketManager.broadcastToRole(tenantId, role, 'notification', payload);
-      });
+      try {
+        const managerIds = await NotificationService.getManagerUserIds(tenantId);
+        managerIds.forEach((id) => uniqueUsers.add(id));
+      } catch {
+        // best-effort: continue without managers
+      }
     }
+
+    const targetUserIds = Array.from(uniqueUsers).filter((id) => id !== '__plant_users__');
+    const createdAt = new Date();
+
+    let persisted: Array<{ id: string; user_id: string; created_at: Date }> = [];
+    try {
+      if (targetUserIds.length > 0) {
+        persisted = await db
+          .insert(notifications)
+          .values(
+            targetUserIds.map((userId) => ({
+              tenant_id: tenantId,
+              user_id: userId,
+              plant_id: payload.plantId,
+              event_type: payload.eventType,
+              title: payload.title,
+              message: payload.message,
+              level: payload.type || 'info',
+              entity: payload.entity,
+              entity_id: payload.entityId,
+              meta: payload.meta,
+              created_at: createdAt,
+            })),
+          )
+          .returning({
+            id: notifications.id,
+            user_id: notifications.user_id,
+            created_at: notifications.created_at,
+          });
+      }
+    } catch {
+      // best-effort: still try to emit via socket
+    }
+
+    if (!isSocketManagerReady()) return;
+    const socketManager = getSocketManager();
+
+    const persistedByUser = new Map(
+      persisted.map((row) => [row.user_id, { id: row.id, createdAt: row.created_at }]),
+    );
+
+    targetUserIds.forEach((userId) => {
+      const row = persistedByUser.get(userId);
+      socketManager.broadcastToUser(tenantId, userId, 'notification', {
+        ...payload,
+        notificationId: row?.id,
+        createdAt: (row?.createdAt || createdAt).toISOString(),
+      });
+    });
   }
 
   static async notifyWorkOrderEvent(data: {
@@ -239,15 +316,17 @@ export class NotificationService {
       .filter((value) => value !== '__plant_users__')
       .concat(plantUserIds);
 
-    NotificationService.emitNotification(
+    await NotificationService.emitNotification(
       data.tenantId,
       userIds,
       {
+        eventType: data.eventType,
         title: data.title,
         message: data.message,
         type: data.type || 'info',
         entity: 'work-order',
         entityId: data.workOrderId,
+        plantId: data.plantId,
       },
       recipients.includeManagers,
     );
@@ -275,15 +354,17 @@ export class NotificationService {
       .filter((value) => value !== '__plant_users__')
       .concat(plantUserIds);
 
-    NotificationService.emitNotification(
+    await NotificationService.emitNotification(
       data.tenantId,
       userIds,
       {
+        eventType: 'stock_low',
         title: 'Stock minimo',
         message: `Peca ${data.code} - ${data.name} abaixo do minimo (${data.quantity}/${data.minStock}).`,
         type: 'warning',
         entity: 'spare-part',
         entityId: data.sparePartId,
+        plantId: data.plantId,
       },
       recipients.includeManagers,
     );
@@ -321,15 +402,17 @@ export class NotificationService {
       .filter((value) => value !== '__plant_users__')
       .concat(plantUserIds);
 
-    NotificationService.emitNotification(
+    await NotificationService.emitNotification(
       schedule.tenant_id,
       userIds,
       {
+        eventType: 'preventive_overdue',
         title: 'Preventiva em atraso',
         message: `Agendamento preventivo passou a data prevista (${new Date(schedule.scheduled_for).toLocaleString()}).`,
         type: 'warning',
         entity: 'preventive-schedule',
         entityId: schedule.id,
+        plantId: schedule.plant_id,
       },
       recipients.includeManagers,
     );
@@ -365,15 +448,17 @@ export class NotificationService {
       .filter((value) => value !== '__plant_users__')
       .concat(plantUserIds);
 
-    NotificationService.emitNotification(
+    await NotificationService.emitNotification(
       assetRow.tenant_id,
       userIds,
       {
+        eventType: 'asset_critical',
         title: 'Falha crítica',
         message: `Equipamento crítico “${assetRow.name}” está em estado: ${status}.`,
         type: 'error',
         entity: 'asset',
         entityId: assetRow.id,
+        plantId: assetRow.plant_id,
       },
       recipients.includeManagers,
     );

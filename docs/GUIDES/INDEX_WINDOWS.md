@@ -190,7 +190,7 @@ REM Frontend apenas
 cd frontend && npm run dev
 
 REM Migrations
-cd backend && npm run db:migrate && npm run db:seed
+cd backend && npm run db:push && npm run db:seed
 
 REM PostgreSQL iniciar (Windows)
 net start PostgreSQL

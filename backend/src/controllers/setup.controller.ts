@@ -10,6 +10,7 @@ import {
   plants,
   tenants,
   users,
+  notifications,
   assetCategories,
   assets,
   userPlants,
@@ -290,10 +291,24 @@ export class SetupController {
     return value === true || value === 't' || value === 1 || value === 'true';
   }
 
+  private static async notificationsTableExists(): Promise<boolean> {
+    const res = await db.execute(sql`
+      SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_name = 'notifications'
+          AND table_schema NOT IN ('pg_catalog', 'information_schema')
+      ) AS exists;
+    `);
+    const value = (res.rows?.[0] as any)?.exists;
+    return value === true || value === 't' || value === 1 || value === 'true';
+  }
+
   private static async ensureSchemaReady(): Promise<void> {
-    if (await SetupController.usersTableExists()) {
-      return;
-    }
+    const usersReady = await SetupController.usersTableExists();
+    const notificationsReady = usersReady ? await SetupController.notificationsTableExists() : false;
+
+    if (usersReady && notificationsReady) return;
 
     await new Promise<void>((resolve, reject) => {
       const env = { ...process.env };
@@ -305,19 +320,27 @@ export class SetupController {
         env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
       }
 
-      const child = spawn('npm', ['run', 'db:migrate'], {
-        stdio: 'inherit',
-        env,
-      });
+      const run = (script: string) =>
+        new Promise<void>((resolveRun, rejectRun) => {
+          const child = spawn('npm', ['run', script], {
+            stdio: 'inherit',
+            env,
+          });
 
-      child.on('error', reject);
-      child.on('exit', (code) => {
-        if (code === 0) resolve();
-        else reject(new Error(`db:migrate failed with exit code ${code}`));
-      });
+          child.on('error', rejectRun);
+          child.on('exit', (code) => {
+            if (code === 0) resolveRun();
+            else rejectRun(new Error(`${script} failed with exit code ${code}`));
+          });
+        });
+
+      run('db:push').then(resolve).catch(reject);
     });
 
-    if (!(await SetupController.usersTableExists())) {
+    const usersOk = await SetupController.usersTableExists();
+    const notificationsOk = usersOk ? await SetupController.notificationsTableExists() : false;
+
+    if (!usersOk || !notificationsOk) {
       let meta: any = undefined;
       try {
         const res = await db.execute(sql`
@@ -329,7 +352,10 @@ export class SetupController {
       }
 
       const suffix = meta ? ` (db=${meta.db}, schema=${meta.schema}, user=${meta.usr})` : '';
-      throw new Error(`Database schema is not ready (users table missing)${suffix}`);
+      const missing = [!usersOk ? 'users' : null, !notificationsOk ? 'notifications' : null]
+        .filter(Boolean)
+        .join(', ');
+      throw new Error(`Database schema is not ready (missing: ${missing})${suffix}`);
     }
   }
 
@@ -822,6 +848,47 @@ export class SetupController {
         ? 'All demo data already exists. Use "Clear All Data" to reset before seeding again.'
         : 'New demo data added successfully!';
 
+    // Seed a few demo notifications (best-effort)
+    try {
+      const existingNotif = await db.execute(
+        sql`SELECT id FROM notifications WHERE tenant_id = ${tenantId} AND (user_id = ${demoAdminId} OR user_id = ${demoTechId}) LIMIT 1;`,
+      );
+
+      if (existingNotif.rows.length === 0) {
+        await db
+          .insert(notifications)
+          .values([
+            {
+              tenant_id: tenantId,
+              user_id: demoAdminId,
+              plant_id: demoPlantId,
+              event_type: 'stock_low',
+              title: 'Stock minimo',
+              message: 'Parafuso demo abaixo do minimo (2/5).',
+              level: 'warning',
+              entity: 'spare-part',
+              entity_id: '50000000-0000-0000-0000-000000000001',
+              is_read: false,
+            },
+            {
+              tenant_id: tenantId,
+              user_id: demoTechId,
+              plant_id: demoPlantId,
+              event_type: 'work_order_assigned',
+              title: 'Ordem atribuída',
+              message: 'Foi atribuída uma nova ordem de trabalho demo.',
+              level: 'info',
+              entity: 'work-order',
+              entity_id: '40000000-0000-0000-0000-000000000001',
+              is_read: false,
+            },
+          ])
+          .onConflictDoNothing();
+      }
+    } catch {
+      // ignore demo notification seeding failures
+    }
+
     return {
       added: {
         users: usersAdded,
@@ -1064,6 +1131,9 @@ export class SetupController {
 
       const tenantId = req.tenantId || DEFAULT_TENANT_ID;
       const tenantSlug = req.tenantSlug || DEFAULT_TENANT_SLUG;
+
+      // Ensure schema is up-to-date before seeding (Drizzle push)
+      await SetupController.ensureSchemaReady();
 
       // Mantém a BD atualizada antes de inserir demo
       await SetupController.applyCorrectionsInternal();

@@ -788,3 +788,43 @@ export async function updateNotificationRules(rules: any[]) {
     body: JSON.stringify({ rules }),
   });
 }
+
+export type InboxNotification = {
+  id: string;
+  eventType: string;
+  title: string;
+  message: string;
+  level: 'info' | 'success' | 'warning' | 'error' | string;
+  entity?: string | null;
+  entityId?: string | null;
+  meta?: any;
+  read: boolean;
+  readAt?: string | null;
+  createdAt: string;
+};
+
+export async function getNotificationsInbox(params?: {
+  limit?: number;
+  offset?: number;
+  unreadOnly?: boolean;
+}): Promise<{ items: InboxNotification[]; unreadCount: number }> {
+  const qs = new URLSearchParams();
+  if (typeof params?.limit === 'number') qs.set('limit', String(params.limit));
+  if (typeof params?.offset === 'number') qs.set('offset', String(params.offset));
+  if (typeof params?.unreadOnly === 'boolean') qs.set('unreadOnly', String(params.unreadOnly));
+
+  const suffix = qs.toString();
+  return apiCall(`/notifications/inbox${suffix ? `?${suffix}` : ''}`);
+}
+
+export async function markNotificationsReadAll(): Promise<{ updated: number }> {
+  return apiCall('/notifications/inbox/read-all', {
+    method: 'PATCH',
+  });
+}
+
+export async function clearNotificationsInbox(): Promise<{ deleted: number }> {
+  return apiCall('/notifications/inbox', {
+    method: 'DELETE',
+  });
+}

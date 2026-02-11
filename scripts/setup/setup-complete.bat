@@ -153,7 +153,7 @@ REM STEP 5: Run Migrations
 REM ============================================
 echo 5^) Running database migrations...
 
-call npm run db:migrate
+call npm run db:push
 if %ERRORLEVEL% EQU 0 (
     color 0A
     echo [OK] Migrations completed

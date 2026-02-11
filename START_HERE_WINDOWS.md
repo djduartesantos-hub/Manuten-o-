@@ -123,7 +123,7 @@ REM 3. Start PostgreSQL
 net start PostgreSQL
 
 REM 4. Run migrations
-npm run db:migrate
+npm run db:push
 npm run db:seed
 
 REM 5. Start backend

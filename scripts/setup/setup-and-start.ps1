@@ -145,7 +145,7 @@ Write-Host ""
 
 Write-Host "[INFO] Running database migrations..." -ForegroundColor Yellow
 Push-Location backend
-npm run db:migrate
+npm run db:push
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[WARNING] Migration failed - database may need manual setup" -ForegroundColor Yellow
     Write-Host "[INFO]   Trying to continue with seed..." -ForegroundColor Cyan

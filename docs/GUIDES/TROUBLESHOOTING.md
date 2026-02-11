@@ -10,7 +10,7 @@ Soluções para os problemas mais comuns ao configurar a base de dados.
 
 ```bash
 cd backend
-npm run db:migrate
+npm run db:push
 npm run db:seed
 npm run dev
 ```
@@ -106,7 +106,7 @@ Use a database existente, continue com migrações:
 
 ```bash
 cd backend
-npm run db:migrate
+npm run db:push
 npm run db:seed
 ```
 
@@ -146,7 +146,7 @@ psql -U postgres -c "DROP USER cmms_user;"
 
 ---
 
-## ❌ "npm run db:migrate: command not found"
+## ❌ "npm run db:push: command not found"
 
 **Causa:** Dependências npm não instaladas.
 
@@ -155,7 +155,7 @@ psql -U postgres -c "DROP USER cmms_user;"
 ```bash
 cd backend
 npm install
-npm run db:migrate
+npm run db:push
 ```
 
 ---
@@ -169,7 +169,7 @@ npm run db:migrate
 ```bash
 cd backend
 npm install --save-dev drizzle-kit
-npm run db:migrate
+npm run db:push
 ```
 
 ---
@@ -195,7 +195,7 @@ npm run db:migrate
 
 3. **Se as tabelas não existem, rodar migrações:**
    ```bash
-   npm run db:migrate
+      npm run db:push
    npm run db:seed
    ```
 

@@ -280,7 +280,7 @@ npm install
 
 ### **2. Executar migrações (se usar Drizzle)**
 ```bash
-npm run db:migrate
+npm run db:push
 ```
 
 ### **3. Popular dados de demo**

@@ -692,7 +692,7 @@ Este projeto faz deploy no Railway via **Dockerfile** (na raiz) e sobe como **1 
 No arranque do container:
 
 1. espera a BD (`DATABASE_URL`) ficar pronta
-2. aplica schema via Drizzle (`npm run db:migrate`)
+2. aplica schema via Drizzle (`npm run db:push`)
 3. aplica migrações SQL em `scripts/database/migrations/*.sql`
 
 ### Primeira inicialização (criar admin)

@@ -98,14 +98,14 @@ psql -U cmms_user -d cmms_enterprise -h localhost -f reset-demo-data.sql
 Com Drizzle ORM (no backend):
 ```bash
 cd backend
-npm run db:migrate
+npm run db:push
 npm run db:seed
 ```
 
 ### Atualizações recentes (schema)
 
 - 2026-02-09: `maintenance_plans.auto_schedule` (default `true`)
-  - Automático via `npm run db:migrate`
+  - Automático via `npm run db:push`
   - Manual SQL: `scripts/database/migrations/013_add_auto_schedule_to_maintenance_plans.sql`
 
 ---

@@ -122,7 +122,7 @@ npm install
 ### **2. Executar Migrações**
 
 ```cmd
-npm run db:migrate
+npm run db:push
 ```
 
 ### **3. Popular com Dados de Demo**

@@ -104,7 +104,7 @@ echo ""
 # ============================================
 echo -e "${BLUE}4️⃣ Running database migrations...${NC}"
 
-if npm run db:migrate; then
+if npm run db:push; then
     echo -e "${GREEN}✅ Migrations completed${NC}"
 else
     echo -e "${RED}❌ Migration failed${NC}"

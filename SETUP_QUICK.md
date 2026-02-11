@@ -23,6 +23,15 @@ scripts\database\setup-demo.bat
 2. **Carrega dados realistas** (demo-data.sql)
 3. **Verifica dados** e mostra quantidade
 
+> Importante: para garantir que a BD fica com o **schema mais recente do código** (ex: tabela `notifications` para a caixa de entrada),
+> execute também (uma vez) no backend:
+
+```bash
+cd backend
+npm install
+npm run db:push
+```
+
 **Resultado esperado:**
 ```
 Categorias: 8

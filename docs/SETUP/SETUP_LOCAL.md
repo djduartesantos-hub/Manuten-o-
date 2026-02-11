@@ -22,7 +22,7 @@ setup-local.bat
 3. ✅ Cria base de dados e utilizador
 4. ✅ Configura `backend/.env` com credenciais
 5. ✅ Instala dependências do backend
-6. ✅ Executa migrations (`npm run db:migrate`)
+6. ✅ Aplica schema (Drizzle) (`npm run db:push`)
 7. ✅ Popula dados demo (`npm run db:seed`)
 8. ✅ Instala dependências do frontend
 
@@ -99,7 +99,7 @@ Certifique-se de que o `DATABASE_URL` está correto.
 Altere a porta em `backend/.env` e execute novamente as migrations:
 ```bash
 DATABASE_URL=postgresql://cmms_user:cmms_password@localhost:5433/cmms_enterprise
-npm run db:migrate
+npm run db:push
 ```
 
 ### Permissões negadas (Linux)

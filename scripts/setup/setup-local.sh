@@ -91,7 +91,7 @@ echo -e "${GREEN}✅ Backend dependencies installed${NC}"
 
 # Run migrations
 echo -e "${BLUE}6️⃣ Running database migrations...${NC}"
-npm run db:migrate
+npm run db:push
 echo -e "${GREEN}✅ Migrations completed${NC}"
 
 # Seed database

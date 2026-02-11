@@ -169,7 +169,7 @@ Abra o navegador e acesse:
 npm run dev           # Desenvolviment com hot-reload
 npm run build         # Compilar TypeScript
 npm start             # Iniciar em produção
-npm run db:migrate    # Rodar migrações
+npm run db:push       # Aplicar schema (Drizzle)
 npm run db:seed       # Popular com dados demo
 npm run lint          # Verificar código
 ```

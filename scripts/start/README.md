@@ -106,7 +106,7 @@ Para usar Redis:
 ```cmd
 cd backend
 npm install
-npm run db:migrate
+npm run db:push
 npm run dev
 ```
 

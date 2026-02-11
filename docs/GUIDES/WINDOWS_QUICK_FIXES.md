@@ -109,7 +109,7 @@ type .env | findstr DATABASE_URL
 psql -U postgres -h localhost -c "CREATE DATABASE cmms_enterprise;"
 
 # 3. Rodar migrações novamente
-npm run db:migrate
+npm run db:push
 
 # 4. Se ainda falhar, verificar permissões
 # ou usar pgAdmin para criar manualmente
@@ -188,7 +188,7 @@ REM 8. Garantir que PostgreSQL está rodando
 net start PostgreSQL
 
 REM 9. Rodar migrações
-npm run db:migrate
+npm run db:push
 npm run db:seed
 
 REM 10. Iniciar backend
@@ -242,7 +242,7 @@ REM Deve aparecer LISTENING
 | 3 | Criar .env | `copy .env.example .env` |
 | 4 | Editar .env | `notepad .env` |
 | 5 | Garantir PostgreSQL | `net start PostgreSQL` |
-| 6 | Rodar migrations | `npm run db:migrate` |
+| 6 | Rodar migrations | `npm run db:push` |
 | 7 | Seed dados | `npm run db:seed` |
 | 8 | Instalar deps frontend | `cd ../frontend && npm install` |
 | 9 | Iniciar tudo | `start-smart.bat` (no root) |

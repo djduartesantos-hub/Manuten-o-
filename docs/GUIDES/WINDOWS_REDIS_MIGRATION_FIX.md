@@ -42,7 +42,7 @@ REDIS_DB=0
 
 ```cmd
 cd backend
-npm run db:migrate
+npm run db:push
 npm run db:seed
 ```
 
@@ -168,11 +168,11 @@ net start PostgreSQL
 # 3. Nome: cmms_enterprise
 # 4. Rodar novamente:
 cd backend
-npm run db:migrate
+npm run db:push
 npm run db:seed
 ```
 
-### Erro: "npm run db:migrate: command not found"
+### Erro: "npm run db:push: command not found"
 
 **Causa:** Dependências não instaladas
 
@@ -180,7 +180,7 @@ npm run db:seed
 ```cmd
 cd backend
 npm install
-npm run db:migrate
+npm run db:push
 ```
 
 ---
@@ -309,7 +309,7 @@ net start PostgreSQL
 REM 4. Rodar migrações
 cd backend
 npm install
-npm run db:migrate
+npm run db:push
 npm run db:seed
 
 REM 5. Iniciar backend
