@@ -230,6 +230,12 @@ export async function updateWorkOrderTask(
   });
 }
 
+export async function deleteWorkOrderTask(plantId: string, workOrderId: string, taskId: string) {
+  return apiCall(`/${plantId}/work-orders/${workOrderId}/tasks/${taskId}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function deleteWorkOrder(plantId: string, workOrderId: string) {
   return apiCall(`/${plantId}/work-orders/${workOrderId}`, {
     method: 'DELETE',

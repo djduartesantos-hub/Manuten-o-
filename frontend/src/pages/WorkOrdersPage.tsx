@@ -39,6 +39,7 @@ import {
   getWorkOrders,
   releaseWorkOrderReservation,
   addWorkOrderTask,
+  deleteWorkOrderTask,
   updateWorkOrderTask,
   updateWorkOrder,
   updatePreventiveSchedule,
@@ -1406,6 +1407,42 @@ export function WorkOrdersPage() {
     }
   };
 
+  const handleRemoveTask = async (task: WorkOrderTask) => {
+    if (!selectedPlant || !editingOrder) return;
+    if (['concluida', 'fechada', 'cancelada'].includes(editingOrder.status)) {
+      setTasksError('Esta ordem nao pode remover tarefas.');
+      return;
+    }
+    if (
+      !editingPermissions?.canOperateOrder &&
+      !editingPermissions?.canEditOrder &&
+      !(
+        (editingOrder.status === 'aberta' || editingOrder.status === 'em_analise') &&
+        editingPermissions?.canAssumeOrder
+      )
+    ) {
+      setTasksError('Sem permissao para atualizar tarefas.');
+      return;
+    }
+
+    setTasksSaving(true);
+    setTasksError(null);
+    try {
+      await deleteWorkOrderTask(selectedPlant, editingOrder.id, task.id);
+
+      try {
+        const tasks = await getWorkOrderTasks(selectedPlant, editingOrder.id);
+        setOrderTasks(Array.isArray(tasks) ? (tasks as WorkOrderTask[]) : []);
+      } catch {
+        setOrderTasks((prev) => prev.filter((item) => item.id !== task.id));
+      }
+    } catch (err: any) {
+      setTasksError(err.message || 'Erro ao remover tarefa.');
+    } finally {
+      setTasksSaving(false);
+    }
+  };
+
   const handleAddUsedPart = async () => {
     if (!selectedPlant || !editingOrder) return;
     if (!['em_execucao', 'em_pausa'].includes(editingOrder.status)) {
@@ -2702,11 +2739,32 @@ export function WorkOrdersPage() {
                           >
                             {task.description}
                           </span>
-                          {task.completed_at && (
-                            <span className="ml-auto text-[11px] theme-text-muted">
-                              {formatShortDateTime(task.completed_at)}
-                            </span>
-                          )}
+
+                          <span className="ml-auto flex items-center gap-2">
+                            {task.completed_at && (
+                              <span className="text-[11px] theme-text-muted">
+                                {formatShortDateTime(task.completed_at)}
+                              </span>
+                            )}
+                            {(editingPermissions?.canOperateOrder ||
+                              editingPermissions?.canEditOrder ||
+                              ((editingOrder.status === 'aberta' || editingOrder.status === 'em_analise') &&
+                                editingPermissions?.canAssumeOrder)) &&
+                              !['concluida', 'fechada', 'cancelada'].includes(editingOrder.status) && (
+                                <button
+                                  type="button"
+                                  className="btn-secondary text-rose-600"
+                                  disabled={tasksSaving}
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    void handleRemoveTask(task);
+                                  }}
+                                >
+                                  Remover
+                                </button>
+                              )}
+                          </span>
                         </label>
                       ))}
                     </div>

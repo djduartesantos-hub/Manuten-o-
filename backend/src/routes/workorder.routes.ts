@@ -19,6 +19,7 @@ router.delete('/:plantId/work-orders/:workOrderId', requirePermission('workorder
 router.get('/:plantId/work-orders/:workOrderId/tasks', requirePermission('workorders:read'), WorkOrderController.listTasks);
 router.post('/:plantId/work-orders/:workOrderId/tasks', requirePermission('workorders:write'), WorkOrderController.addTask);
 router.patch('/:plantId/work-orders/:workOrderId/tasks/:taskId', requirePermission('workorders:write'), WorkOrderController.updateTask);
+router.delete('/:plantId/work-orders/:workOrderId/tasks/:taskId', requirePermission('workorders:write'), WorkOrderController.removeTask);
 router.get('/:plantId/work-orders/:workOrderId/audit', requirePermission('workorders:read'), WorkOrderController.listAuditLogs);
 
 // Stock Reservations (Phase 3)

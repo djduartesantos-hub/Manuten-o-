@@ -895,6 +895,53 @@ export class WorkOrderController {
     }
   }
 
+  static async removeTask(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { workOrderId, plantId, taskId } = req.params;
+      const tenantId = req.tenantId;
+
+      if (!tenantId || !workOrderId || !plantId || !taskId) {
+        res.status(400).json({
+          success: false,
+          error: 'Task ID is required',
+        });
+        return;
+      }
+
+      const workOrder = await WorkOrderService.getWorkOrderById(tenantId, workOrderId, plantId);
+      if (!workOrder) {
+        res.status(404).json({
+          success: false,
+          error: 'Work order not found',
+        });
+        return;
+      }
+
+      const tasks = await WorkOrderService.getTasks(workOrderId);
+      const taskExists = tasks.some((task: any) => task.id === taskId);
+      if (!taskExists) {
+        res.status(404).json({
+          success: false,
+          error: 'Task not found',
+        });
+        return;
+      }
+
+      await WorkOrderService.deleteTask(taskId);
+
+      res.json({
+        success: true,
+        data: { id: taskId },
+      });
+    } catch (error) {
+      logger.error('Delete work order task error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to delete task',
+      });
+    }
+  }
+
   static async listAuditLogs(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { workOrderId, plantId } = req.params;

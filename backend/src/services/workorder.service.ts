@@ -578,6 +578,28 @@ export class WorkOrderService {
     return task;
   }
 
+  static async deleteTask(taskId: string) {
+    const [task] = await db
+      .delete(workOrderTasks)
+      .where(eq(workOrderTasks.id, taskId))
+      .returning();
+
+    if (!task) return null;
+
+    try {
+      const workOrder = await db.query.workOrders.findFirst({
+        where: (fields: any, { eq }: any) => eq(fields.id, task.work_order_id),
+      });
+      if (workOrder) {
+        await RedisService.del(CacheKeys.workOrder(workOrder.tenant_id, task.work_order_id));
+      }
+    } catch (cacheError) {
+      logger.warn('Work order cache invalidation error:', cacheError);
+    }
+
+    return task;
+  }
+
   static async hasIncompleteTasks(workOrderId: string): Promise<boolean> {
     const result = await db.execute(sql`
       SELECT COUNT(*)::int AS count
