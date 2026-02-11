@@ -42,9 +42,12 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install production dependencies only
+# Install backend dependencies.
+# NOTE: we run Drizzle migrations on container start (see scripts/docker/run-drizzle-migrate.mjs),
+# which requires `drizzle-kit` to be present. Since `drizzle-kit` is a devDependency,
+# we must include devDependencies in the runtime image.
 COPY backend/package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy built backend from builder
 COPY --from=backend-builder /app/backend/dist ./dist
