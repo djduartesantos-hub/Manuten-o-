@@ -251,24 +251,24 @@ The Dockerfile uses a **3-stage build** for optimization:
 
 ```dockerfile
 # Stage 1: Frontend Builder
-FROM node:18-alpine AS frontend-builder
+FROM node:20-alpine AS frontend-builder
 # Builds React app with Vite → /app/frontend/dist
 
 # Stage 2: Backend Builder  
-FROM node:18-alpine AS backend-builder
+FROM node:20-alpine AS backend-builder
 # Compiles TypeScript → /app/backend/dist
 
 # Stage 3: Production Runtime
-FROM node:18-alpine
+FROM node:20-alpine
 # Copies frontend dist → /app/frontend
 # Copies backend dist → /app/backend/dist
-# Production-only dependencies
+# Installs dependencies required at runtime (includes Drizzle migration tooling)
 ```
 
 **Benefits**:
 - Smaller final image (~200MB vs ~1GB)
 - Faster deployments
-- No dev dependencies in production
+- Runs DB migrations on boot (Drizzle) without missing tooling
 - Single container serves both frontend and backend
 
 ### Static File Serving
