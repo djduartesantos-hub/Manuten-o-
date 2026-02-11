@@ -14,10 +14,14 @@ import {
   assets,
   userPlants,
   maintenancePlans,
+  maintenanceKits,
+  maintenanceKitItems,
   maintenanceTasks,
   workOrders,
   spareParts,
   stockMovements,
+  stockReservations,
+  suppliers,
 } from '../db/schema.js';
 import { DEFAULT_TENANT_ID, DEFAULT_TENANT_SLUG } from '../config/constants.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -443,6 +447,8 @@ export class SetupController {
     const demoAdminId = '00000001-0000-0000-0000-000000000001';
     const demoTechId = '00000000-0000-0000-0000-000000000002';
     const demoCategoryId = '10000000-0000-0000-0000-000000000001';
+    const demoSupplierId = '60000000-0000-0000-0000-000000000001';
+    const demoKitId = '70000000-0000-0000-0000-000000000001';
 
     let usersAdded = 0;
     let plantsAdded = 0;
@@ -457,6 +463,9 @@ export class SetupController {
     const existingTech = await db.execute(sql`SELECT id FROM users WHERE username = 'tech'`);
     const existingCategory = await db.execute(
       sql`SELECT id FROM asset_categories WHERE id = ${demoCategoryId}`,
+    );
+    const existingSupplier = await db.execute(
+      sql`SELECT id FROM suppliers WHERE id = ${demoSupplierId}`,
     );
 
     // Insert plant (only if doesn't exist)
@@ -486,6 +495,23 @@ export class SetupController {
           tenant_id: tenantId,
           name: 'Equipamento Pesado',
           description: 'Equipamentos de grande porte',
+        })
+        .onConflictDoNothing();
+    }
+
+    // Insert supplier (used by Spare Parts page)
+    if (existingSupplier.rows.length === 0) {
+      await db
+        .insert(suppliers)
+        .values({
+          id: demoSupplierId,
+          tenant_id: tenantId,
+          name: 'Fornecedor Demo',
+          email: 'fornecedor@demo.pt',
+          phone: '+351 210 000 000',
+          address: 'Av. Industrial, 10',
+          city: 'Lisboa',
+          country: 'Portugal',
         })
         .onConflictDoNothing();
     }
@@ -690,6 +716,7 @@ export class SetupController {
             name: `Peça Sobressalente Demo ${i + 1}`,
             description: 'Item para manutenção',
             unit_cost: (25 * (i + 1)).toFixed(2),
+            supplier_id: i < 3 ? demoSupplierId : null,
           })
           .onConflictDoNothing();
         partsAdded++;
@@ -711,6 +738,83 @@ export class SetupController {
           })
           .onConflictDoNothing();
       }
+    }
+
+    // Ensure supplier link exists for demo spare parts created before supplier_id was added
+    await db.execute(sql`
+      UPDATE spare_parts
+      SET supplier_id = ${demoSupplierId}, updated_at = NOW()
+      WHERE tenant_id = ${tenantId}
+        AND code LIKE 'SP-DEMO-%'
+        AND supplier_id IS NULL;
+    `);
+
+    // Maintenance kit + items (used by Kits pages)
+    const existingKit = await db.execute(
+      sql`SELECT id FROM maintenance_kits WHERE id = ${demoKitId}`,
+    );
+
+    if (existingKit.rows.length === 0) {
+      await db
+        .insert(maintenanceKits)
+        .values({
+          id: demoKitId,
+          tenant_id: tenantId,
+          name: 'Kit Demo - Preventiva Mensal',
+          notes: 'Kit de exemplo gerado automaticamente',
+          plan_id: planBaseIds[0],
+          category_id: demoCategoryId,
+          is_active: true,
+          created_by: demoAdminId,
+          updated_by: demoAdminId,
+        })
+        .onConflictDoNothing();
+    }
+
+    const demoKitItemIds = [
+      '70000000-0000-0000-0000-000000000011',
+      '70000000-0000-0000-0000-000000000012',
+    ];
+
+    for (let i = 0; i < demoKitItemIds.length; i++) {
+      const existingItem = await db.execute(
+        sql`SELECT id FROM maintenance_kit_items WHERE id = ${demoKitItemIds[i]}`,
+      );
+      if (existingItem.rows.length === 0) {
+        await db
+          .insert(maintenanceKitItems)
+          .values({
+            id: demoKitItemIds[i],
+            tenant_id: tenantId,
+            kit_id: demoKitId,
+            spare_part_id: sparePartBaseIds[i],
+            quantity: 2 + i,
+            created_by: demoAdminId,
+          })
+          .onConflictDoNothing();
+      }
+    }
+
+    // Stock reservation (used by reservations flow)
+    const demoReservationId = '80000000-0000-0000-0000-000000000001';
+    const existingReservation = await db.execute(
+      sql`SELECT id FROM stock_reservations WHERE id = ${demoReservationId}`,
+    );
+    if (existingReservation.rows.length === 0) {
+      await db
+        .insert(stockReservations)
+        .values({
+          id: demoReservationId,
+          tenant_id: tenantId,
+          plant_id: demoPlantId,
+          work_order_id: workOrderBaseIds[0],
+          spare_part_id: sparePartBaseIds[0],
+          quantity: 1,
+          status: 'ativa',
+          notes: 'Reserva demo gerada automaticamente',
+          created_by: demoAdminId,
+        })
+        .onConflictDoNothing();
     }
 
     const note =
@@ -991,6 +1095,7 @@ export class SetupController {
 
   private static async clearAllInternal(includeTenants: boolean): Promise<void> {
     const tables = [
+      'stock_reservations',
       'stock_movements',
       'meter_readings',
       'attachments',
