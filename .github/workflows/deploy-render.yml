@@ -1,0 +1,40 @@
+name: Deploy (Render)
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-render-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+
+    # Only deploy when CI succeeded on main.
+    if: >-
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+      ||
+      (github.event_name == 'workflow_dispatch')
+
+    steps:
+      - name: Trigger Render deploy hook
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "Missing secret: RENDER_DEPLOY_HOOK_URL"
+            echo "Create a Deploy Hook in Render for the service and add it as a GitHub Actions secret."
+            exit 1
+          fi
+
+          echo "Triggering Render deploy..."
+          curl -fsSL -X POST "$RENDER_DEPLOY_HOOK_URL"
+          echo "Deploy hook triggered."

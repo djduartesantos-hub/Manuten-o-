@@ -198,11 +198,42 @@ To run migrations manually:
 
 ### Enable Auto-Deploy
 
-Auto-deploy is enabled by default in `render.yaml`:
+Auto-deploy pode ser controlado no `render.yaml`:
 
 ```yaml
-autoDeploy: true
+autoDeploy: false
 ```
+
+**Nota:** neste repositório, está **desativado** por defeito para permitir CD gated pelo CI (ver secção CI/CD abaixo). Se preferires deploy automático direto em cada push para `main`, podes ligar `autoDeploy: true`.
+
+---
+
+## CI/CD (GitHub Actions) — Deploy após CI passar
+
+Se quiseres garantir que **só há deploy quando o CI passa**, usa o workflow de CD do repositório e desativa o auto-deploy do Render.
+
+### 1) Desativar auto-deploy do Render
+
+- No `render.yaml`, o projeto define `autoDeploy: false` para o serviço.
+- Se o serviço já existir no Render, confirma no Dashboard do serviço que **Auto-Deploy** está desligado.
+
+### 2) Criar Deploy Hook no Render
+
+1. Render Dashboard → abre o serviço (ex.: `cmms-enterprise`)
+2. Settings → **Deploy Hook** → Create
+3. Copia o URL do hook
+
+### 3) Guardar secret no GitHub
+
+No GitHub: Repo → Settings → Secrets and variables → Actions → New repository secret
+
+- `RENDER_DEPLOY_HOOK_URL` = (URL do deploy hook)
+
+### 4) Como o deploy funciona
+
+- Workflow: [.github/workflows/deploy-render.yml](../../.github/workflows/deploy-render.yml)
+- Dispara automaticamente quando o workflow **CI** termina com sucesso no branch `main`
+- Também pode ser executado manualmente via **Run workflow**
 
 **What this means**:
 - Every push to `main` branch triggers automatic deployment

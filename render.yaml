@@ -11,8 +11,10 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
     
-    # Auto-deploy on push to main
-    autoDeploy: true
+    # NOTE:
+    # We disable Render auto-deploy so deployments can be gated by GitHub Actions CI.
+    # Use the Render Deploy Hook URL + GitHub Actions workflow to deploy after CI passes.
+    autoDeploy: false
     
     envVars:
       # Node Environment

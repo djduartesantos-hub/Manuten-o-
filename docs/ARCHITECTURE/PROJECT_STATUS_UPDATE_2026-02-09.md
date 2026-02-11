@@ -58,6 +58,11 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
   - spec em `/api/openapi.json`
 - Upload local de documentos servido em `/uploads/...` (fallback; storage externo fica para depois).
 
+### Atualização adicional — 2026-02-11 (CI/CD)
+
+- CI: GitHub Actions para `backend` + `frontend` (type-check + build).
+- CD: workflow para Render via Deploy Hook, gated por sucesso do CI (deploy só após CI passar no `main`).
+
 ### Navegação / UX
 - O menu **Operações** ficou com **apenas “Ordens”**.
 - **Planos** e **Preventivas agendadas** passaram a viver no **hub de Configurações (Settings)**.
@@ -145,6 +150,12 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 #### Settings Hub + Hardening
 - `d3e4b6e` — Settings: Docs preview/versions + Alerts “Testar”; Backend: Helmet + rate limit + Swagger + upload multipart
 - `b15b1c2` — Settings: Warnings mini charts (distribuição + métricas + progress bars)
+
+#### Draft (itens pequenos)
+- `a50a31a` — roadmap + CTAs Pausar/Cancelar (WO) + Adiar/Skip ciclo (PM) + CI
+
+#### CI/CD
+- `b42a98c` — CI: ajustar para type-check + build
 
 ---
 
