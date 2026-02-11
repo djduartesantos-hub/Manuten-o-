@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 import { AuthenticatedRequest } from '../types/index.js';
 import { db } from '../config/database.js';
 import { sql } from 'drizzle-orm';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import {
   plants,
   tenants,

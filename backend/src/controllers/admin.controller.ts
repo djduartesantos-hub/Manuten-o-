@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { AuthenticatedRequest } from '../types/index.js';
