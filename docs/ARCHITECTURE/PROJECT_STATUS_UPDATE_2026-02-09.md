@@ -63,6 +63,11 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 - CI: GitHub Actions para `backend` + `frontend` (type-check + build).
 - CD: workflow para Render via Deploy Hook, gated por sucesso do CI (deploy só após CI passar no `main`).
 
+### Atualização adicional — 2026-02-11 (Security / Dependências)
+
+- `npm audit --omit=dev` passou a ficar limpo (0 vulnerabilidades) em backend + frontend.
+- Backend: remoção de dependência não usada (`bull-board`) e troca de `bcrypt` (native) por `bcryptjs` para eliminar advisories transitive.
+
 ### Navegação / UX
 - O menu **Operações** ficou com **apenas “Ordens”**.
 - **Planos** e **Preventivas agendadas** passaram a viver no **hub de Configurações (Settings)**.
