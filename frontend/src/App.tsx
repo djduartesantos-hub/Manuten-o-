@@ -24,6 +24,7 @@ import { PlantsPage } from './pages/PlantsPage';
 import { DatabaseUpdatePage } from './pages/DatabaseUpdatePage';
 import { SetupInitPage } from './pages/SetupInitPage';
 import { MaintenanceKitsListPage } from './pages/MaintenanceKitsListPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 
 import { ThemeProvider } from './context/ThemeContext';
@@ -188,6 +189,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRoles={['admin_empresa', 'superadmin']}>
                   <PlantsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
                 </ProtectedRoute>
               }
             />

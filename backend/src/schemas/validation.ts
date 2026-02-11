@@ -10,6 +10,19 @@ export const RefreshTokenSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token obrigatório'),
 });
 
+// Profile Schemas
+export const UpdateProfileSchema = z.object({
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().min(1).max(100).optional(),
+  email: z.string().email('Email inválido').optional(),
+  phone: z.string().max(40).optional(),
+});
+
+export const ChangePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Password atual obrigatória'),
+  newPassword: z.string().min(6, 'Password nova mínimo 6 caracteres'),
+});
+
 // Work Order Schemas
 export const CreateWorkOrderSchema = z.object({
   asset_id: z.string().uuid('Asset ID deve ser UUID'),

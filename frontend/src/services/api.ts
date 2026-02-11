@@ -151,6 +151,43 @@ export async function login(
   );
 }
 
+export type UserProfile = {
+  id: string;
+  username: string;
+  email?: string;
+  firstName: string;
+  lastName: string;
+  phone?: string | null;
+  role: string;
+  tenantId: string;
+};
+
+export async function getProfile(): Promise<UserProfile> {
+  return apiCall('/profile');
+}
+
+export async function updateProfile(data: {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+}): Promise<UserProfile> {
+  return apiCall('/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function changePassword(data: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<{ message?: string } | void> {
+  return apiCall('/profile/password', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function getWorkOrders(plantId: string, status?: string) {
   const params = new URLSearchParams();
   if (status) params.append('status', status);

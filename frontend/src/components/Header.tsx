@@ -44,6 +44,7 @@ export function Header() {
   const { isConnected } = useSocket();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [openDropdown, setOpenDropdown] = React.useState<string | null>(null);
+  const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const location = useLocation();
   const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.trim() || 'U';
   const { theme, setTheme } = useTheme();
@@ -279,18 +280,57 @@ export function Header() {
 
             {/* User Menu */}
             <div className="flex items-center gap-3 border-l theme-border pl-3">
-              <div className="hidden sm:flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full theme-surface text-sm font-semibold theme-text">
-                  {initials}
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold theme-text">
-                  {user?.firstName} {user?.lastName}
-                  </p>
-                  <p className="text-xs capitalize theme-text-muted">
-                    {user?.role?.replace(/_/g, ' ')}
-                  </p>
-                </div>
+              <div className="relative hidden sm:block">
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen((v) => !v)}
+                  className="flex items-center gap-2 rounded-2xl px-2 py-1 transition hover:bg-[color:var(--dash-surface)]"
+                  aria-haspopup="menu"
+                  aria-expanded={userMenuOpen}
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full theme-surface text-sm font-semibold theme-text">
+                    {initials}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold theme-text">
+                      {user?.firstName} {user?.lastName}
+                    </p>
+                    <p className="text-xs capitalize theme-text-muted">
+                      {user?.role?.replace(/_/g, ' ')}
+                    </p>
+                  </div>
+                  <ChevronDown
+                    className={
+                      'w-4 h-4 theme-text-muted transition-transform ' +
+                      (userMenuOpen ? 'rotate-180' : '')
+                    }
+                  />
+                </button>
+
+                {userMenuOpen && (
+                  <div
+                    className="absolute right-0 top-full mt-2 w-52 rounded-2xl border theme-border theme-card py-2 shadow-xl backdrop-blur"
+                    onMouseLeave={() => setUserMenuOpen(false)}
+                    role="menu"
+                  >
+                    <Link
+                      to="/profile"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center justify-between px-4 py-2.5 text-sm font-semibold text-[color:var(--dash-muted)] transition-colors hover:bg-[color:var(--dash-surface)] hover:text-[color:var(--dash-ink)]"
+                      role="menuitem"
+                    >
+                      <span>Perfil</span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="w-full text-left flex items-center justify-between px-4 py-2.5 text-sm font-semibold text-[color:var(--dash-muted)] transition-colors hover:bg-[color:var(--dash-surface)] hover:text-rose-600"
+                      role="menuitem"
+                    >
+                      <span>Terminar sessão</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               <button
@@ -384,6 +424,40 @@ export function Header() {
                   <span className="text-xs font-semibold text-rose-700">Desconectado</span>
                 </div>
               )}
+            </div>
+
+            {/* Mobile User Actions */}
+            <div className="px-4 mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full theme-surface text-sm font-semibold theme-text">
+                  {initials}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold theme-text">
+                    {user?.firstName} {user?.lastName}
+                  </p>
+                  <p className="text-xs capitalize theme-text-muted">
+                    {user?.role?.replace(/_/g, ' ')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2">
+                <Link
+                  to="/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-2xl border theme-border theme-card px-4 py-3 text-sm font-semibold theme-text transition hover:bg-[color:var(--dash-surface)]"
+                >
+                  Perfil
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="rounded-2xl border theme-border theme-card px-4 py-3 text-sm font-semibold text-rose-600 transition hover:bg-[color:var(--dash-surface)]"
+                >
+                  Terminar sessão
+                </button>
+              </div>
             </div>
 
             {/* Mobile Menu Sections */}

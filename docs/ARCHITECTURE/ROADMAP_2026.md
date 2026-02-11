@@ -214,6 +214,8 @@ Este track é o plano **prático** para as próximas iterações, com foco em op
 #### Phase 3D: Multi-fábrica + Perfil + Home por Role (3-5 semanas) 🔜
 **Objetivo:** desbloquear operação multi-fábrica e melhorar a experiência pós-login
 
+**Nota de âmbito (2026):** a curto prazo existe **apenas 1 empresa/tenant**. O foco é **multi-fábrica (plants) dentro do mesmo tenant**. O suporte a **multi-empresa (multi-tenant real)** fica planeado para uma fase futura.
+
 1. **Multi-fábrica (ativação completa)**
    - Permitir **criar novas fábricas/plantas** (admin) e gerir dados base por fábrica.
    - Seleção de **fábrica ativa** no frontend (selector persistido) e scoping consistente em toda a app.
