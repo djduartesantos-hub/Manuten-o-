@@ -69,9 +69,9 @@ export async function tenantSlugMiddleware(
   } catch (error) {
     req.tenantId = DEFAULT_TENANT_ID;
     req.tenantSlug = DEFAULT_TENANT_SLUG;
-    res.status(500).json({
-      success: false,
-      error: 'Failed to resolve tenant',
-    });
+    // In single-tenant deployments we prefer a safe fallback over blocking the request.
+    // Downstream handlers can still fail if the DB is unreachable, but the error
+    // should come from the actual operation (auth/query) rather than tenant resolution.
+    next();
   }
 }
