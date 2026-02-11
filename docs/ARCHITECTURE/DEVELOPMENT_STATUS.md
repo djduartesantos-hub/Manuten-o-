@@ -1,6 +1,6 @@
 # 📊 Development Status Dashboard
 
-**Last Updated:** 9 February 2026  
+**Last Updated:** 11 February 2026  
 **Project:** Manuten-o CMMS v1.3.0-beta.2  
 **Status:** Dashboard (parcial) + track “fábrica + gestão” em curso
 
@@ -51,6 +51,13 @@ Overall Project:          ██████████████████
 - [x] Metrics: MTTR, MTBF, SLA Compliance, Completion Rate
 - [x] CSV + PDF export with charts
 - [x] Advanced filtering
+
+**Atualizações recentes (2026-02-11)**
+- [x] Relatórios redesenhados em dashboard + persistência de preferências/filtros (`fded497`)
+- [x] Presets de período + comparação + drill-down + export melhorado (`763b477`)
+- [x] Downtime e Preventivas como modos completos (KPIs + gráficos + tabela + export)
+- [x] Fix cores de badges (status/prioridade) em “Ordens Filtradas” (`7dc24c3`)
+- [x] Robustez no load (ordens/preventivas independentes) (`8fd2246`)
 
 ### Phase 3B: Real-time Infrastructure (COMPLETE ✅)
 - [x] WebSocket/Socket.io with tenant rooms & JWT auth

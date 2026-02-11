@@ -93,6 +93,11 @@ Manuten-o/
 - [Backend - Arquitetura](./backend/README.md#arquitetura)
 - [PHASE_1_COMPLETION.md - Arquitetura Phase 1](./PHASE_1_COMPLETION.md#validação-results)
 
+### Arquitetura (estado + roadmap)
+- [DEVELOPMENT_STATUS.md](./DEVELOPMENT_STATUS.md) — dashboard de estado e progresso
+- [ROADMAP_2026.md](./ROADMAP_2026.md) — roadmap 2026 (em revisão)
+- [PROJECT_STATUS_UPDATE_2026-02-09.md](./PROJECT_STATUS_UPDATE_2026-02-09.md) — registo detalhado de mudanças (inclui addendum 2026-02-11)
+
 ### APIs e Endpoints
 - [README.md - APIs Disponíveis](./README.md#-apis-disponíveis)
 - [PHASE_1_COMPLETION.md - Asset Endpoints](./PHASE_1_COMPLETION.md#api-documentation)

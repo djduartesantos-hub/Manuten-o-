@@ -1,12 +1,26 @@
 # 💡 Roadmap de Desenvolvimento - Manuten-o CMMS v1.3.0-beta.2
 
 **Status Atual:** Roadmap 2026 (em revisão)  
-**Última Atualização:** 9 Fevereiro 2026  
-**Versão:** 2.1 (alinhado com melhorias “fábrica + gestão”)
+**Última Atualização:** 11 Fevereiro 2026  
+**Versão:** 2.2 (inclui atualização de Relatórios + UX)
 
 > Nota: este ficheiro estava desatualizado. Para o detalhe das mudanças recentes (BD/API/UX) ver:
 > - [PROJECT_STATUS_UPDATE_2026-02-09.md](./PROJECT_STATUS_UPDATE_2026-02-09.md)
 > - [ROADMAP_DRAFT_2026-02-09_FACTORY+MGMT.md](./ROADMAP_DRAFT_2026-02-09_FACTORY+MGMT.md)
+
+---
+
+## 🔎 Nota rápida (Atualização 2026-02-11)
+
+- Relatórios evoluíram para um **dashboard avançado** com:
+   - persistência de preferências/filtros
+   - presets de período + comparação
+   - drill-down por clique nos gráficos
+   - export CSV/PDF melhorado
+   - modos completos de **Downtime** e **Preventivas** (KPIs + gráficos + tabela)
+- UX de Ordens/Preventivas: ícones mais responsivos no mobile e consistência com o Dashboard.
+
+**Referências (commits):** `fded497`, `763b477`, `7dc24c3`, `8fd2246`, `49af06d`, `6476ef8`.
 
 ---
 

@@ -10,6 +10,29 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 
 ## 1) TL;DR (o que mudou na prática)
 
+### Atualização adicional — 2026-02-11 (UX + Relatórios)
+
+#### UX (Ordens / Preventivas)
+- Botões com **ícones responsivos no mobile** e melhor consistência visual (cores e tamanhos).
+- Prioridade/status alinhados com o estilo do Dashboard.
+- Vistas predefinidas:
+  - **Ordens**: por defeito em **colunas (kanban)**.
+  - **Preventivas**: por defeito em **cards**.
+
+#### Relatórios (Dashboard avançado)
+- Página de Relatórios redesenhada em formato **dashboard** (mais organizada e “data-first”).
+- Preferências persistidas em `localStorage` (tipo de relatório + filtros), com scoping por fábrica.
+- Novos modos/expansões:
+  - **Downtime** (gráficos + tabela + export)
+  - **Preventivas** (KPIs + gráficos + tabela + export)
+- Funcionalidades extra:
+  - Presets de período (últimos 7/30/90 dias, este mês)
+  - Comparação com período anterior (deltas nos KPIs)
+  - Drill-down por clique nos gráficos para preencher filtros
+  - Export **CSV/PDF** melhorado
+- Fix: badges de **status/prioridade** em “Ordens Filtradas” com cores corretas (evita conflitos com estilos globais).
+- Robustez: carregamento de datasets de ordens e preventivas **independente** (se um falhar, o outro continua a funcionar).
+
 ### Navegação / UX
 - O menu **Operações** ficou com **apenas “Ordens”**.
 - **Planos** e **Preventivas agendadas** passaram a viver no **hub de Configurações (Settings)**.
@@ -81,6 +104,18 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 - `0dabf98` — 19 - work-orders: apply maintenance kit to stock reservations
 - `09881e3` — 21 - stock: spare parts forecast (preventives + kits)
 - `cb62550` — 25 - reports: downtime export (por ativo + período)
+
+### 2.1 Commits adicionais (2026-02-11)
+
+#### UX (Ordens / Preventivas)
+- `49af06d` — ui: ícones responsivos via css var
+- `6476ef8` — ui: preventivas com ícones responsivos e vista colunas
+
+#### Relatórios (Dashboard + Preventivas)
+- `fded497` — Redesign reports dashboard + persist filters
+- `763b477` — Reports: presets, compare, drill-down, export
+- `7dc24c3` — Reports: fix status/priority badge colors
+- `8fd2246` — reports: finish Preventivas mode + resilient loading
 
 ---
 
