@@ -13,6 +13,11 @@ Este ficheiro é um **ROADMAP novo (draft)** para consolidar as próximas melhor
 - **Dados reutilizáveis:** downtime, motivos e SLAs devem alimentar KPIs e alertas.
 - **Compatibilidade:** alterações de validação devem vir acompanhadas de UI.
 
+> Nota (2026-02-11): há um track paralelo de **Multi-fábrica + Perfil + Home por Role + Login** que vive no roadmap geral:
+> - ver [ROADMAP_2026.md](./ROADMAP_2026.md) (Phase 3D)
+>
+> Este draft mantém foco em **operação de fábrica** (ordens, preventivas, stock, SLA), mas algumas entregas assumem que o scoping por fábrica está bem definido.
+
 ---
 
 ## Fase 0 — Quick Wins (1-2 semanas)
@@ -35,6 +40,9 @@ Este ficheiro é um **ROADMAP novo (draft)** para consolidar as próximas melhor
 
 **DB/API**
 - Preferência por **sem migrações**; se necessário, introduzir apenas campos opcionais.
+
+**Dependência (quando multi-fábrica estiver ativa)**
+- Garantir que toda a leitura/escrita aqui está corretamente scoped por `plant_id`/`factory_id`.
 
 **Aceitação (Fase 0)**
 - Operador consegue pausar/cancelar sem depender do dropdown de estado.
@@ -120,6 +128,9 @@ Este ficheiro é um **ROADMAP novo (draft)** para consolidar as próximas melhor
 **DB/API (provável)**
 - Config SLA: `exclude_paused_time`.
 - (Opcional) job de agregação para métricas por fase.
+
+**Multi-fábrica (nota)**
+- Thresholds e notificações devem ser configuráveis **por fábrica** (evita ruído e configurações globais inadequadas).
 
 ---
 

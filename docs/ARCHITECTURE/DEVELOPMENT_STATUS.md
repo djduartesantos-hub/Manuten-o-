@@ -140,6 +140,13 @@ Overall Project:          ██████████████████
 - [ ] Multi-channel delivery
 - **Impact:** Operators always informed
 
+### Phase 3D: Multi-factory + Profile + Role-based Home (3-5 weeks)
+- [ ] Enable multi-factory creation & memberships (scoping end-to-end)
+- [ ] User profile (header click → profile/preferences)
+- [ ] Post-login landing per role (admin/manager/technician/viewer)
+- [ ] Login page refresh (UX + accessibility + security baseline)
+- **Impact:** Unblocks growth to multi-sites, better daily UX
+
 ### Quick Wins (1-2 weeks parallel)
 - [ ] Dark mode (3-4 days)
 - [ ] Multi-language i18n (2-3 days)

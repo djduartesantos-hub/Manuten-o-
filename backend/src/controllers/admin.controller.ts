@@ -84,14 +84,6 @@ export async function createPlant(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({ success: false, error: 'Name and code are required' });
     }
 
-    const existingCount = await db.execute(
-      sql`SELECT COUNT(*) AS total FROM plants WHERE tenant_id = ${tenantId}`,
-    );
-
-    if (Number(existingCount.rows[0]?.total || 0) > 0) {
-      return res.status(400).json({ success: false, error: 'Single plant mode: creation disabled' });
-    }
-
     const existing = await db.query.plants.findFirst({
       where: (fields: any, { eq, and }: any) =>
         and(eq(fields.tenant_id, tenantId), eq(fields.code, code)),

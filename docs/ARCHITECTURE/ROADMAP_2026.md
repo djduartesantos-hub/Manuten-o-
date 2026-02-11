@@ -211,6 +211,42 @@ Este track é o plano **prático** para as próximas iterações, com foco em op
 
 ---
 
+#### Phase 3D: Multi-fábrica + Perfil + Home por Role (3-5 semanas) 🔜
+**Objetivo:** desbloquear operação multi-fábrica e melhorar a experiência pós-login
+
+1. **Multi-fábrica (ativação completa)**
+   - Permitir **criar novas fábricas/plantas** (admin) e gerir dados base por fábrica.
+   - Seleção de **fábrica ativa** no frontend (selector persistido) e scoping consistente em toda a app.
+   - Regras de acesso: memberships por fábrica (role por fábrica quando necessário).
+   - Auditoria: registar mudança de fábrica ativa e ações administrativas.
+
+   **DB/API (provável)**
+   - `plants/factories` (entidade de fábrica) + `user_plant_memberships`.
+   - Normalizar `plant_id`/`factory_id` e garantir **isolamento** (middleware + queries).
+
+   **Aceitação**
+   - Admin cria fábrica nova; utilizadores só veem dados da(s) fábrica(s) onde têm acesso.
+   - Nenhuma rota “vaza” dados entre fábricas (inclui relatórios, uploads, sockets e cache).
+
+2. **Sistema de Perfil de Utilizador (clicar no nome)**
+   - Ao clicar no nome (header): menu com **Perfil**, **Preferências** (ex.: idioma/tema), **Sair**.
+   - Página “Perfil”: dados do utilizador + ações (ex.: alterar palavra-passe).
+   - (Opcional) “Atividade recente” derivada de audit logs.
+
+3. **Página inicial pós-login por Role**
+   - Landing diferente por role (e/ou por permissão):
+     - `admin`: visão de saúde do sistema + gestão (utilizadores, fábricas, configs)
+     - `manager`: KPIs + backlog + SLA/aging
+     - `technician`: ordens atribuídas + hoje/atrasadas + ações rápidas
+     - `viewer`: visão read-only (resumo + relatórios)
+   - Layout e widgets mínimos (sem inventar novas páginas além do necessário).
+
+4. **Modificar a página de Login (UX + segurança)**
+   - Melhorias de UX (validações, mensagens de erro, loading states, acessibilidade).
+   - Preparar base para: “Esqueci-me da password”, e/ou MFA/SSO (se entrar no plano).
+
+---
+
 #### Quick Wins Paralelos (1-2 semanas)
 - **Dark Mode** (3-4 dias) - Toggle + localStorage + CSS variables
 - **Multi-idioma** (2-3 dias) - i18next para PT, EN, ES
@@ -219,6 +255,30 @@ Este track é o plano **prático** para as próximas iterações, com foco em op
 **Total Phase 3:** 8-10 semanas completo
 
 ---
+
+## 🧩 Ideias & Sugestões (Backlog priorizado)
+
+### Segurança (P1/P2)
+- Refresh tokens (curta duração no access token) + revogação por sessão.
+- Política de passwords + lockout progressivo + auditoria de tentativas.
+- Permissões por ação (RBAC fino) nas rotas mais sensíveis (admin/setup, documentos, stock).
+- Logs de segurança: export e retenção (quem fez o quê, quando, em que fábrica).
+
+### Performance / Escalabilidade (P1/P2)
+- Índices DB para queries mais frequentes (ordens por fábrica/estado/prioridade; relatórios por período).
+- Cache por fábrica com keys explícitas + invalidation por eventos.
+- Paginação consistente (backend + frontend) em listas grandes.
+- Bundle splitting no frontend (routes lazy) para reduzir TTI.
+
+### Alarmes / Observabilidade (P2)
+- “Centro de alarmes” (vista) com severidade, ack/resolve e histórico.
+- Job de verificação periódico (SLA/aging/stock/doc expiring) com envio multi-canal.
+- Integração com email (já existe via jobs) + preparar webhook/Teams/Slack.
+
+### Qualidade (P2/P3)
+- Melhorar cobertura de testes em serviços críticos (auth, multi-fábrica isolation, stock).
+- E2E smoke (login + criar ordem + concluir) para evitar regressões.
+
 
 ### **MÉDIO PRAZO (Abril - Maio)**
 

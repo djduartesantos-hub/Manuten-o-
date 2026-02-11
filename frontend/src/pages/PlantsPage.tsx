@@ -13,6 +13,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useAppStore } from '../context/store';
 import {
   createAdminPlant,
   deactivateAdminPlant,
@@ -54,6 +55,7 @@ const normalizeCoord = (value: string) => {
 
 export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { user } = useAuth();
+  const { setPlants: setAppPlants } = useAppStore();
   const [plants, setPlants] = useState<Plant[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
@@ -97,7 +99,9 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
         getAdminPlants(),
         getAdminUsers(),
       ]);
-      setPlants(plantsData || []);
+      const safePlants = plantsData || [];
+      setPlants(safePlants);
+      setAppPlants(safePlants);
       setUsers(usersData || []);
     } catch (err: any) {
       setError(err.message || 'Falha ao carregar plantas');
@@ -132,11 +136,6 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
   );
 
   const handleCreatePlant = async () => {
-    if (plants.length > 0) {
-      setError('Modo de fabrica unica ativo. Nao e possivel criar novas plantas.');
-      return;
-    }
-
     if (!newPlant.name.trim() || !newPlant.code.trim()) {
       setError('Nome e codigo da planta sao obrigatorios');
       return;
@@ -402,16 +401,11 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
             <button
               className="btn-primary inline-flex items-center gap-2"
               onClick={handleCreatePlant}
-              disabled={saving || !canEdit || plants.length > 0}
+              disabled={saving || !canEdit}
             >
               <Plus className="h-4 w-4" />
               Criar planta
             </button>
-            {plants.length > 0 && (
-              <p className="text-xs theme-text-muted">
-                Modo de fabrica unica ativo. A criacao de novas plantas esta bloqueada.
-              </p>
-            )}
           </section>
 
           <section className="rounded-3xl border theme-border theme-card p-6 shadow-sm space-y-4">
