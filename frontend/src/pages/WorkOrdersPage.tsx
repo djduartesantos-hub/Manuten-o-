@@ -15,8 +15,10 @@ import {
   Search,
   Save,
   SlidersHorizontal,
+  Trash2,
   User,
   UserCheck,
+  X,
 } from 'lucide-react';
 import { useAppStore } from '../context/store';
 import { useAuth } from '../hooks/useAuth';
@@ -313,6 +315,7 @@ export function WorkOrdersPage() {
     pause_reason: '',
     cancel_reason: '',
   });
+  const [notesAppend, setNotesAppend] = useState('');
   const [finishForm, setFinishForm] = useState<WorkOrderFinishState>({
     actual_hours: '',
     work_performed: '',
@@ -956,6 +959,15 @@ export function WorkOrdersPage() {
     return map[key] || (key ? key.charAt(0).toUpperCase() + key.slice(1) : '—');
   };
 
+  const getPriorityMeta = (value: any) => {
+    const key = String(value || '').trim().toLowerCase();
+    if (key === 'critica') return { label: 'Crítica', Icon: AlertTriangle };
+    if (key === 'alta') return { label: 'Alta', Icon: AlertCircle };
+    if (key === 'media') return { label: 'Média', Icon: Clock };
+    if (key === 'baixa') return { label: 'Baixa', Icon: Clock };
+    return { label: formatPriorityLabelForAudit(value), Icon: AlertCircle };
+  };
+
   const isSameAuditValue = (a: any, b: any) => {
     const normalize = (value: any) => {
       if (value === null || value === undefined) return '';
@@ -1242,6 +1254,7 @@ export function WorkOrdersPage() {
     setOrderTasks([]);
     setTasksError(null);
     setNewTaskDescription('');
+    setNotesAppend('');
     setAuditLogs([]);
     setAuditError(null);
     setUpdateForm({
@@ -1284,6 +1297,7 @@ export function WorkOrdersPage() {
     try {
       const workOrder = await getWorkOrder(selectedPlant, workOrderId);
       setEditingOrder(workOrder);
+      setNotesAppend('');
       try {
         const tasks = await getWorkOrderTasks(selectedPlant, workOrderId);
         setOrderTasks(Array.isArray(tasks) ? (tasks as WorkOrderTask[]) : []);
@@ -1663,7 +1677,13 @@ export function WorkOrdersPage() {
         payload.estimated_hours = updateForm.estimated_hours || undefined;
       }
       if (canOperateOrder) {
-        payload.notes = updateForm.notes || undefined;
+        if (notesAppend.trim()) {
+          const userLabel = `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || userId || 'Utilizador';
+          const nowLabel = new Date().toLocaleString();
+          const entry = `[${nowLabel} - ${userLabel}] ${notesAppend.trim()}`;
+          const base = (updateForm.notes || '').trimEnd();
+          payload.notes = base ? `${base}\n\n${entry}` : entry;
+        }
         if (updateForm.status && updateForm.status !== editingOrder.status) {
           if (updateForm.status === 'em_pausa') {
             const reason = updateForm.pause_reason.trim();
@@ -2450,7 +2470,16 @@ export function WorkOrdersPage() {
                     </div>
                     <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-3 text-xs theme-text-muted">
                       <p className="font-semibold theme-text">Prioridade</p>
-                      <p className="mt-1">{updateForm.priority}</p>
+                      {(() => {
+                        const meta = getPriorityMeta(updateForm.priority);
+                        const Icon = meta.Icon;
+                        return (
+                          <div className="mt-1 inline-flex items-center gap-2 theme-text">
+                            <Icon size={14} className="opacity-80" />
+                            <span>{meta.label}</span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -2494,51 +2523,65 @@ export function WorkOrdersPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                     Atualizacao da ordem
                   </p>
+                  {(() => {
+                    const canUpdatePriority = Boolean(editingPermissions?.canEditOrder);
+                    const canUpdateStatus = Boolean(editingPermissions?.canOperateOrder);
+                    const canUpdatePlanning = Boolean(
+                      editingPermissions?.canEditOrder ||
+                        ((editingOrder.status === 'aberta' || editingOrder.status === 'em_analise') &&
+                          editingPermissions?.canAssumeOrder),
+                    );
+                    const canUpdateNotes = Boolean(editingPermissions?.canOperateOrder);
+
+                    return (
+                      <>
                   <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
-                      <label className="mb-1 block text-sm font-medium theme-text">Prioridade</label>
-                      <select
-                        className="input"
-                        value={updateForm.priority}
-                        onChange={(event) =>
-                          setUpdateForm({ ...updateForm, priority: event.target.value })
-                        }
-                        disabled={!editingPermissions?.canEditOrder}
-                      >
-                        <option value="baixa">Baixa</option>
-                        <option value="media">Media</option>
-                        <option value="alta">Alta</option>
-                        <option value="critica">Critica</option>
-                      </select>
-                    </div>
+                    {canUpdatePriority && (
+                      <div>
+                        <label className="mb-1 block text-sm font-medium theme-text">Prioridade</label>
+                        <select
+                          className="input"
+                          value={updateForm.priority}
+                          onChange={(event) =>
+                            setUpdateForm({ ...updateForm, priority: event.target.value })
+                          }
+                        >
+                          <option value="baixa">Baixa</option>
+                          <option value="media">Media</option>
+                          <option value="alta">Alta</option>
+                          <option value="critica">Critica</option>
+                        </select>
+                      </div>
+                    )}
 
-                    <div>
-                      <label className="mb-1 block text-sm font-medium theme-text">Estado</label>
-                      <select
-                        className="input"
-                        value={updateForm.status}
-                        onChange={(event) =>
-                          setUpdateForm({ ...updateForm, status: event.target.value })
-                        }
-                        disabled={!editingPermissions?.canOperateOrder}
-                      >
-                        {(allowedStatusOptionsForEdit || [
-                          { value: 'aberta', label: 'Aberta' },
-                          { value: 'em_analise', label: 'Em Análise' },
-                          { value: 'em_execucao', label: 'Em Execução' },
-                          { value: 'em_pausa', label: 'Em Pausa' },
-                          { value: 'concluida', label: 'Concluída' },
-                          { value: 'fechada', label: 'Fechada' },
-                          { value: 'cancelada', label: 'Cancelada' },
-                        ]).map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    {canUpdateStatus && (
+                      <div>
+                        <label className="mb-1 block text-sm font-medium theme-text">Estado</label>
+                        <select
+                          className="input"
+                          value={updateForm.status}
+                          onChange={(event) =>
+                            setUpdateForm({ ...updateForm, status: event.target.value })
+                          }
+                        >
+                          {(allowedStatusOptionsForEdit || [
+                            { value: 'aberta', label: 'Aberta' },
+                            { value: 'em_analise', label: 'Em Análise' },
+                            { value: 'em_execucao', label: 'Em Execução' },
+                            { value: 'em_pausa', label: 'Em Pausa' },
+                            { value: 'concluida', label: 'Concluída' },
+                            { value: 'fechada', label: 'Fechada' },
+                            { value: 'cancelada', label: 'Cancelada' },
+                          ]).map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
 
-                      {updateForm.status === 'em_pausa' && (
+                      {canUpdateStatus && updateForm.status === 'em_pausa' && (
                         <>
                           <div className="md:col-span-2">
                             <label className="mb-1 block text-sm font-medium theme-text">
@@ -2550,7 +2593,6 @@ export function WorkOrdersPage() {
                               onChange={(event) =>
                                 setUpdateForm({ ...updateForm, pause_reason: event.target.value })
                               }
-                              disabled={!editingPermissions?.canOperateOrder}
                               placeholder="Ex: aguardando peças, aguardando produção, falta de acesso"
                             />
                           </div>
@@ -2565,7 +2607,6 @@ export function WorkOrdersPage() {
                               onChange={(event) =>
                                 setUpdateForm({ ...updateForm, sub_status: event.target.value })
                               }
-                              disabled={!editingPermissions?.canOperateOrder}
                               placeholder="Ex: aguardando_pecas"
                             />
                             <datalist id="workorder-substatus-options">
@@ -2580,7 +2621,7 @@ export function WorkOrdersPage() {
                         </>
                       )}
 
-                      {updateForm.status === 'cancelada' && (
+                      {canUpdateStatus && updateForm.status === 'cancelada' && (
                         <div className="md:col-span-2">
                           <label className="mb-1 block text-sm font-medium theme-text">
                             Motivo do cancelamento
@@ -2591,13 +2632,12 @@ export function WorkOrdersPage() {
                             onChange={(event) =>
                               setUpdateForm({ ...updateForm, cancel_reason: event.target.value })
                             }
-                            disabled={!editingPermissions?.canOperateOrder}
                             placeholder="Ex: duplicada, pedido anulado, ativo indisponível"
                           />
                         </div>
                       )}
 
-                    {isPlanningStage && (
+                    {isPlanningStage && canUpdatePlanning && (
                       <>
                         <div>
                           <label className="mb-1 block text-sm font-medium theme-text">
@@ -2608,14 +2648,6 @@ export function WorkOrdersPage() {
                             value={updateForm.estimated_hours}
                             onChange={(event) =>
                               setUpdateForm({ ...updateForm, estimated_hours: event.target.value })
-                            }
-                            disabled={
-                              !(
-                                editingPermissions?.canEditOrder ||
-                                ((editingOrder.status === 'aberta' ||
-                                  editingOrder.status === 'em_analise') &&
-                                  editingPermissions?.canAssumeOrder)
-                              )
                             }
                           />
                         </div>
@@ -2631,54 +2663,78 @@ export function WorkOrdersPage() {
                             onChange={(event) =>
                               setUpdateForm({ ...updateForm, scheduled_date: event.target.value })
                             }
-                            disabled={
-                              !(
-                                editingPermissions?.canEditOrder ||
-                                ((editingOrder.status === 'aberta' ||
-                                  editingOrder.status === 'em_analise') &&
-                                  editingPermissions?.canAssumeOrder)
-                              )
-                            }
                           />
                         </div>
                       </>
                     )}
+
                     <div className="md:col-span-2">
-                      <label className="mb-1 block text-sm font-medium theme-text">Notas</label>
-                      <textarea
-                        className="input min-h-[96px]"
-                        value={updateForm.notes}
-                        onChange={(event) =>
-                          setUpdateForm({ ...updateForm, notes: event.target.value })
-                        }
-                        disabled={!editingPermissions?.canOperateOrder}
-                      />
+                      <label className="mb-1 block text-sm font-medium theme-text">
+                        Notas (histórico)
+                      </label>
+                      <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-3 text-xs theme-text">
+                        {updateForm.notes && updateForm.notes.trim() ? (
+                          <div className="whitespace-pre-wrap">{updateForm.notes}</div>
+                        ) : (
+                          <div className="theme-text-muted">Sem notas.</div>
+                        )}
+                      </div>
                     </div>
+
+                    {canUpdateNotes && (
+                      <div className="md:col-span-2">
+                        <label className="mb-1 block text-sm font-medium theme-text">
+                          Adicionar nota
+                        </label>
+                        <textarea
+                          className="input min-h-[96px]"
+                          value={notesAppend}
+                          onChange={(event) => setNotesAppend(event.target.value)}
+                          placeholder="Escreva a nova informação a acrescentar (não altera o histórico)."
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-6 flex flex-wrap items-center gap-3">
                     {(editingPermissions?.canEditOrder || editingPermissions?.canOperateOrder) && (
-                      <button onClick={handleUpdate} className="btn-primary" disabled={updating}>
-                        {updating ? 'A atualizar...' : 'Guardar alteracoes'}
+                      <button
+                        type="button"
+                        onClick={handleUpdate}
+                        className="btn-primary inline-flex h-9 w-9 items-center justify-center"
+                        disabled={updating}
+                        title="Guardar alterações"
+                        aria-label="Guardar alterações"
+                      >
+                        {updating ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                       </button>
                     )}
                     {editingPermissions?.canDeleteOrder && (
                       <button
+                        type="button"
                         onClick={handleDeleteOrder}
-                        className="btn-secondary text-rose-600"
+                        className="btn-secondary inline-flex h-9 w-9 items-center justify-center text-rose-600"
                         disabled={updating}
+                        title="Eliminar"
+                        aria-label="Eliminar"
                       >
-                        Eliminar
+                        <Trash2 size={16} />
                       </button>
                     )}
                     <button
+                      type="button"
                       onClick={() => setEditingOrder(null)}
-                      className="btn-secondary"
+                      className="btn-secondary inline-flex h-9 w-9 items-center justify-center"
                       disabled={updating}
+                      title="Fechar"
+                      aria-label="Fechar"
                     >
-                      Fechar
+                      <X size={16} />
                     </button>
                   </div>
+                      </>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -2753,15 +2809,17 @@ export function WorkOrdersPage() {
                               !['concluida', 'fechada', 'cancelada'].includes(editingOrder.status) && (
                                 <button
                                   type="button"
-                                  className="btn-secondary text-rose-600"
+                                  className="btn-secondary inline-flex h-8 w-8 items-center justify-center text-rose-600"
                                   disabled={tasksSaving}
+                                  title="Remover tarefa"
+                                  aria-label="Remover tarefa"
                                   onClick={(event) => {
                                     event.preventDefault();
                                     event.stopPropagation();
                                     void handleRemoveTask(task);
                                   }}
                                 >
-                                  Remover
+                                  <Trash2 size={14} />
                                 </button>
                               )}
                           </span>
@@ -2784,11 +2842,14 @@ export function WorkOrdersPage() {
                         disabled={tasksSaving}
                       />
                       <button
-                        className="btn-secondary"
+                        type="button"
+                        className="btn-secondary inline-flex h-9 w-9 items-center justify-center"
                         onClick={handleAddTask}
                         disabled={tasksSaving}
+                        title="Adicionar tarefa"
+                        aria-label="Adicionar tarefa"
                       >
-                        Adicionar
+                        {tasksSaving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                       </button>
                     </div>
                   )}
