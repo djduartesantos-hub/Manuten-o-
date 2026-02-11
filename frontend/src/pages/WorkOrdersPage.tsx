@@ -33,6 +33,7 @@ import {
   getWorkOrder,
   getWorkOrderAuditLogs,
   getWorkOrderReservations,
+  getWorkOrderTasks,
   getSpareParts,
   getStockMovementsByPlant,
   getWorkOrders,
@@ -934,29 +935,125 @@ export function WorkOrdersPage() {
     return map[key] || key || '—';
   };
 
+  const formatAuditActionTitle = (action?: string | null) => {
+    const key = String(action || '').trim().toLowerCase();
+    if (!key) return 'Atualizado';
+    if (['update', 'updated', 'patch'].includes(key)) return 'Atualizado';
+    if (['create', 'created', 'insert', 'new'].includes(key)) return 'Criado';
+    if (['delete', 'deleted', 'remove', 'removed'].includes(key)) return 'Eliminado';
+    return 'Atualizado';
+  };
+
+  const formatPriorityLabelForAudit = (value: any) => {
+    const key = String(value || '').trim().toLowerCase();
+    const map: Record<string, string> = {
+      critica: 'Crítica',
+      alta: 'Alta',
+      media: 'Média',
+      baixa: 'Baixa',
+    };
+    return map[key] || (key ? key.charAt(0).toUpperCase() + key.slice(1) : '—');
+  };
+
+  const isSameAuditValue = (a: any, b: any) => {
+    const normalize = (value: any) => {
+      if (value === null || value === undefined) return '';
+      if (typeof value === 'string') return value.trim();
+      if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+      return JSON.stringify(value);
+    };
+    return normalize(a) === normalize(b);
+  };
+
+  const formatAuditDateValue = (value: any) => {
+    if (!value) return '—';
+    const raw = typeof value === 'string' ? value : String(value);
+    return formatShortDateTime(raw);
+  };
+
+  const auditFieldChangeLines = (log: AuditLog) => {
+    const next = (log.new_values || {}) as Record<string, any>;
+    const prev = (log.old_values || {}) as Record<string, any>;
+
+    const lines: string[] = [];
+    const others: string[] = [];
+
+    const pushIfChanged = (key: string, label: string, formatValue?: (value: any) => string) => {
+      if (!(key in next)) return;
+      if (isSameAuditValue(next[key], prev[key])) return;
+      const fromRaw = prev[key];
+      const toRaw = next[key];
+      const fmt =
+        formatValue ||
+        ((v: any) => {
+          if (v === null || v === undefined) return '—';
+          const s = typeof v === 'string' ? v.trim() : String(v);
+          return s || '—';
+        });
+      const from = fmt(fromRaw);
+      const to = fmt(toRaw);
+      lines.push(`${label}: ${from} → ${to}`);
+    };
+
+    pushIfChanged('priority', 'Prioridade', formatPriorityLabelForAudit);
+    pushIfChanged('scheduled_date', 'Data planeada', formatAuditDateValue);
+    pushIfChanged('estimated_hours', 'Horas estimadas');
+    pushIfChanged('notes', 'Notas');
+
+    for (const key of Object.keys(next || {})) {
+      if (
+        [
+          'status',
+          'pause_reason',
+          'cancel_reason',
+          'downtime_started_at',
+          'downtime_ended_at',
+          'downtime_reason',
+          'downtime_minutes',
+          'downtime_type',
+          'downtime_category',
+          'root_cause',
+          'corrective_action',
+          'work_performed',
+        ].includes(key)
+      ) {
+        continue;
+      }
+      if (['priority', 'scheduled_date', 'estimated_hours', 'notes'].includes(key)) continue;
+      if (isSameAuditValue(next[key], prev[key])) continue;
+      others.push(key);
+    }
+
+    if (others.length > 0) {
+      lines.push(`Outros campos: ${others.join(', ')}`);
+    }
+
+    return lines;
+  };
+
   const formatAuditFields = (log: AuditLog) => {
     const next = (log.new_values || {}) as Record<string, any>;
     const prev = (log.old_values || {}) as Record<string, any>;
     if (next.status) {
       const from = prev.status ? formatStatusLabelForAudit(prev.status) : '—';
       const to = formatStatusLabelForAudit(next.status);
-      return `Estado: ${from} → ${to}`;
+      return [`Estado: ${from} → ${to}`];
     }
-    const fields = Object.keys(next || {});
-    if (fields.length === 0) return 'Sem detalhes';
-    return `Campos: ${fields.join(', ')}`;
+
+    return auditFieldChangeLines(log);
   };
 
   type AuditTimelineItem = {
     id: string;
     title: string;
-    createdAt?: string | null;
+    createdAt: string | null | undefined;
     userLabel: string;
     details: string[];
   };
 
   const auditTimeline = useMemo<AuditTimelineItem[]>(() => {
-    const items = (auditLogs || []).map((log) => {
+    const items = (auditLogs || [])
+      .map((log) => {
       const next = (log.new_values || {}) as Record<string, any>;
       const prev = (log.old_values || {}) as Record<string, any>;
       const details: string[] = [];
@@ -1037,7 +1134,8 @@ export function WorkOrdersPage() {
 
       if (next.pause_reason !== undefined) {
         includeReasonIfPresent();
-        if (details.length === 0) details.push(formatAuditFields(log));
+        if (details.length === 0) details.push(...formatAuditFields(log));
+        if (details.length === 0) return null;
         return {
           id: log.id,
           title: 'Pausa',
@@ -1049,7 +1147,8 @@ export function WorkOrdersPage() {
 
       if (next.cancel_reason !== undefined) {
         includeReasonIfPresent();
-        if (details.length === 0) details.push(formatAuditFields(log));
+        if (details.length === 0) details.push(...formatAuditFields(log));
+        if (details.length === 0) return null;
         return {
           id: log.id,
           title: 'Cancelamento',
@@ -1068,7 +1167,8 @@ export function WorkOrdersPage() {
         next.downtime_category !== undefined
       ) {
         includeDowntimeIfPresent();
-        if (details.length === 0) details.push(formatAuditFields(log));
+        if (details.length === 0) details.push(...formatAuditFields(log));
+        if (details.length === 0) return null;
         return {
           id: log.id,
           title: 'Paragem',
@@ -1080,7 +1180,8 @@ export function WorkOrdersPage() {
 
       if (next.root_cause !== undefined || next.corrective_action !== undefined) {
         includeRcaIfPresent();
-        if (details.length === 0) details.push(formatAuditFields(log));
+        if (details.length === 0) details.push(...formatAuditFields(log));
+        if (details.length === 0) return null;
         return {
           id: log.id,
           title: 'Causa raiz / Ação corretiva',
@@ -1093,7 +1194,8 @@ export function WorkOrdersPage() {
       if (next.work_performed !== undefined) {
         const value = typeof next.work_performed === 'string' ? next.work_performed.trim() : '';
         if (value) details.push(`Trabalho realizado: ${value}`);
-        if (details.length === 0) details.push(formatAuditFields(log));
+        if (details.length === 0) details.push(...formatAuditFields(log));
+        if (details.length === 0) return null;
         return {
           id: log.id,
           title: 'Trabalho realizado',
@@ -1104,15 +1206,17 @@ export function WorkOrdersPage() {
       }
 
       // Fallback
-      details.push(formatAuditFields(log));
+      details.push(...formatAuditFields(log));
+      if (details.length === 0) return null;
       return {
         id: log.id,
-        title: String(log.action || 'Atualização'),
+        title: formatAuditActionTitle(log.action),
         createdAt: log.created_at,
         userLabel: formatAuditUser(log),
         details,
       };
-    });
+    })
+    .filter((item): item is AuditTimelineItem => item !== null);
 
     return items.sort((a, b) => {
       const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -1179,7 +1283,12 @@ export function WorkOrdersPage() {
     try {
       const workOrder = await getWorkOrder(selectedPlant, workOrderId);
       setEditingOrder(workOrder);
-      setOrderTasks(workOrder.tasks || []);
+      try {
+        const tasks = await getWorkOrderTasks(selectedPlant, workOrderId);
+        setOrderTasks(Array.isArray(tasks) ? (tasks as WorkOrderTask[]) : []);
+      } catch {
+        setOrderTasks([]);
+      }
       setUpdateForm({
         status: workOrder.status || 'aberta',
         sub_status: workOrder.sub_status || '',
@@ -1248,12 +1357,13 @@ export function WorkOrdersPage() {
     setTasksSaving(true);
     setTasksError(null);
     try {
-      const task = await addWorkOrderTask(
+      await addWorkOrderTask(
         selectedPlant,
         editingOrder.id,
         newTaskDescription.trim(),
       );
-      setOrderTasks((prev) => [...prev, task]);
+      const tasks = await getWorkOrderTasks(selectedPlant, editingOrder.id);
+      setOrderTasks(Array.isArray(tasks) ? (tasks as WorkOrderTask[]) : []);
       setNewTaskDescription('');
     } catch (err: any) {
       setTasksError(err.message || 'Erro ao adicionar tarefa.');
