@@ -971,19 +971,15 @@ export class MaintenanceService {
         )
       );
 
-      // Invalidate cache
-      try {
-                schedule_anchor_mode:
-                  (input as any).schedule_anchor_mode !== undefined
-                    ? (input as any).schedule_anchor_mode
-                    : (plan as any).schedule_anchor_mode,
-        await RedisService.delMultiple([
-          CacheKeys.maintenancePlans(tenant_id, plant_id),
-          CacheKeys.maintenancePlan(tenant_id, plan_id),
-        ]);
-      } catch (cacheError) {
-        logger.warn('Maintenance cache invalidation error:', cacheError);
-      }
+    // Invalidate cache
+    try {
+      await RedisService.delMultiple([
+        CacheKeys.maintenancePlans(tenant_id, plant_id),
+        CacheKeys.maintenancePlan(tenant_id, plan_id),
+      ]);
+    } catch (cacheError) {
+      logger.warn('Maintenance cache invalidation error:', cacheError);
+    }
 
     return { success: true };
   }

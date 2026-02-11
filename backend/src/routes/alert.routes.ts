@@ -36,7 +36,7 @@ const upload = multer({
       const ext = path.extname(original).slice(0, 12);
       const safeBase = path
         .basename(original, path.extname(original))
-        .replace(/[^a-zA-Z0-9-_\.]/g, '_')
+        .replace(/[^a-zA-Z0-9_.-]/g, '_')
         .slice(0, 60);
       cb(null, `${Date.now()}-${safeBase}${ext}`);
     },

@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   backend:
-    name: Backend (type-check, build)
+    name: Backend (type-check, lint, build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -32,11 +32,14 @@ jobs:
       - name: Type-check
         run: npm run type-check
 
+      - name: Lint
+        run: npm run lint
+
       - name: Build
         run: npm run build
 
   frontend:
-    name: Frontend (type-check, build)
+    name: Frontend (type-check, lint, build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -56,6 +59,9 @@ jobs:
 
       - name: Type-check
         run: npm run type-check
+
+      - name: Lint
+        run: npm run lint
 
       - name: Build
         run: npm run build
