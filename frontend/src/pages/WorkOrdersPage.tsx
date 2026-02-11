@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
  
 import { MainLayout } from '../layouts/MainLayout';
 import {
+  Activity,
   AlertCircle,
   AlertTriangle,
   CheckCircle2,
@@ -961,11 +962,11 @@ export function WorkOrdersPage() {
 
   const getPriorityMeta = (value: any) => {
     const key = String(value || '').trim().toLowerCase();
-    if (key === 'critica') return { label: 'Crítica', Icon: AlertTriangle };
-    if (key === 'alta') return { label: 'Alta', Icon: AlertCircle };
-    if (key === 'media') return { label: 'Média', Icon: Clock };
-    if (key === 'baixa') return { label: 'Baixa', Icon: Clock };
-    return { label: formatPriorityLabelForAudit(value), Icon: AlertCircle };
+    if (key === 'critica') return { label: 'Crítica', Icon: AlertTriangle, className: 'text-rose-600' };
+    if (key === 'alta') return { label: 'Alta', Icon: AlertCircle, className: 'text-amber-600' };
+    if (key === 'baixa') return { label: 'Baixa', Icon: Clock, className: 'text-[color:var(--dash-muted)]' };
+    if (key === 'media') return { label: 'Média', Icon: Activity, className: 'text-emerald-600' };
+    return { label: formatPriorityLabelForAudit(value), Icon: AlertCircle, className: 'text-[color:var(--dash-muted)]' };
   };
 
   const isSameAuditValue = (a: any, b: any) => {
@@ -2475,7 +2476,7 @@ export function WorkOrdersPage() {
                         const Icon = meta.Icon;
                         return (
                           <div className="mt-1 inline-flex items-center gap-2 theme-text">
-                            <Icon size={14} className="opacity-80" />
+                            <Icon size={16} className={meta.className} />
                             <span>{meta.label}</span>
                           </div>
                         );
@@ -2701,35 +2702,39 @@ export function WorkOrdersPage() {
                       <button
                         type="button"
                         onClick={handleUpdate}
-                        className="btn-primary inline-flex h-9 w-9 items-center justify-center"
+                        className="btn-primary inline-flex h-10 w-10 items-center justify-center"
                         disabled={updating}
                         title="Guardar alterações"
                         aria-label="Guardar alterações"
                       >
-                        {updating ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                        {updating ? (
+                          <Loader2 size={18} className="animate-spin" />
+                        ) : (
+                          <Save size={18} className="text-white" />
+                        )}
                       </button>
                     )}
                     {editingPermissions?.canDeleteOrder && (
                       <button
                         type="button"
                         onClick={handleDeleteOrder}
-                        className="btn-secondary inline-flex h-9 w-9 items-center justify-center text-rose-600"
+                        className="btn-secondary inline-flex h-10 w-10 items-center justify-center"
                         disabled={updating}
                         title="Eliminar"
                         aria-label="Eliminar"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={18} className="text-rose-600" />
                       </button>
                     )}
                     <button
                       type="button"
                       onClick={() => setEditingOrder(null)}
-                      className="btn-secondary inline-flex h-9 w-9 items-center justify-center"
+                      className="btn-secondary inline-flex h-10 w-10 items-center justify-center"
                       disabled={updating}
                       title="Fechar"
                       aria-label="Fechar"
                     >
-                      <X size={16} />
+                      <X size={18} className="theme-text-muted" />
                     </button>
                   </div>
                       </>
@@ -2809,7 +2814,7 @@ export function WorkOrdersPage() {
                               !['concluida', 'fechada', 'cancelada'].includes(editingOrder.status) && (
                                 <button
                                   type="button"
-                                  className="btn-secondary inline-flex h-8 w-8 items-center justify-center text-rose-600"
+                                  className="btn-secondary inline-flex h-9 w-9 items-center justify-center"
                                   disabled={tasksSaving}
                                   title="Remover tarefa"
                                   aria-label="Remover tarefa"
@@ -2819,7 +2824,7 @@ export function WorkOrdersPage() {
                                     void handleRemoveTask(task);
                                   }}
                                 >
-                                  <Trash2 size={14} />
+                                  <Trash2 size={16} className="text-rose-600" />
                                 </button>
                               )}
                           </span>
@@ -2843,13 +2848,17 @@ export function WorkOrdersPage() {
                       />
                       <button
                         type="button"
-                        className="btn-secondary inline-flex h-9 w-9 items-center justify-center"
+                        className="btn-secondary inline-flex h-10 w-10 items-center justify-center"
                         onClick={handleAddTask}
                         disabled={tasksSaving}
                         title="Adicionar tarefa"
                         aria-label="Adicionar tarefa"
                       >
-                        {tasksSaving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                        {tasksSaving ? (
+                          <Loader2 size={18} className="animate-spin" />
+                        ) : (
+                          <Plus size={18} className="text-emerald-600" />
+                        )}
                       </button>
                     </div>
                   )}
