@@ -1,5 +1,7 @@
 import express, { Express } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -21,6 +23,7 @@ import setupPublicRoutes from './routes/setup.public.routes.js';
 import debugRoutes from './routes/debug.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
+import docsRoutes from './routes/docs.routes.js';
 import { errorHandler, notFoundHandler, requestLogger } from './middlewares/error.js';
 import { tenantSlugMiddleware } from './middlewares/tenant.js';
 
@@ -31,7 +34,31 @@ const __dirname = dirname(__filename);
 export function createApp(): Express {
   const app = express();
 
+  app.disable('x-powered-by');
+  app.set('trust proxy', 1);
+
   // Middleware
+  app.use(
+    helmet({
+      // Swagger UI and some embedded resources can break under strict CSP.
+      contentSecurityPolicy: false,
+    }),
+  );
+
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(
@@ -42,6 +69,15 @@ export function createApp(): Express {
   );
   app.use(requestLogger());
 
+  // Serve uploaded documents (local storage fallback)
+  app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+  // API docs (no tenant required)
+  app.use('/api', docsRoutes);
+
+  // Global API rate limiting
+  app.use('/api', apiLimiter);
+
   // Routes
   app.use('/api/setup', setupPublicRoutes);
 
@@ -49,6 +85,7 @@ export function createApp(): Express {
   // Without this, /api/auth/login falls back to DEFAULT_TENANT_ID which may not
   // match the tenant id created by seeds/restores in production.
   app.use('/api/auth', tenantSlugMiddleware);
+  app.use('/api/auth', authLimiter);
   app.use('/api/auth', authRoutes);
 
   app.use('/api', tenantSlugMiddleware);

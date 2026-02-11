@@ -58,6 +58,9 @@ Overall Project:          ██████████████████
 - [x] Downtime e Preventivas como modos completos (KPIs + gráficos + tabela + export)
 - [x] Fix cores de badges (status/prioridade) em “Ordens Filtradas” (`7dc24c3`)
 - [x] Robustez no load (ordens/preventivas independentes) (`8fd2246`)
+- [x] Settings: Biblioteca de Documentos com upload funcional (multipart), pré-visualização e histórico de versões
+- [x] Settings: Alertas com ação “Testar” (endpoint + UI)
+- [x] Backend: hardening inicial (Helmet + rate limiting) + Swagger/OpenAPI em `/api/docs`
 
 ### Phase 3B: Real-time Infrastructure (COMPLETE ✅)
 - [x] WebSocket/Socket.io with tenant rooms & JWT auth
@@ -107,12 +110,10 @@ Overall Project:          ██████████████████
   - ETA: 2-3 days
 
 - 🔄 **DocumentsLibrary** (20% - File management)
-  - Drag-drop upload
+  - Upload (multipart) + Download
   - PDF/image preview
   - Version history
-  - Tagging system
-  - Sharing & expiration alerts
-  - ETA: 3-4 days
+  - ETA: 0-1 day (polish)
 
 - 🔄 **MaintenancePlannerSettings** (0% - Wizard UI)
   - Multi-step form
@@ -186,7 +187,7 @@ Overall Project:          ██████████████████
 | Test coverage <80% | Low | 🔜 Sprint 5 | P3 |
 | Docker Compose missing | Low | 🔜 Sprint 4 | P3 |
 | CI/CD pipeline needed | High | 🔜 Sprint 3 | P2 |
-| Rate limiting not enforced | High | 🔜 Sprint 4 | P2 |
+| Rate limiting not enforced | High | ✅ Done | P2 |
 | Monitoring dashboard missing | Medium | 🔜 Sprint 6 | P2 |
 
 ---

@@ -271,6 +271,7 @@ function AlertsSettings() {
   const [alerts, setAlerts] = React.useState<any[]>([]);
   const [assets, setAssets] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [testingId, setTestingId] = React.useState<string | null>(null);
   const [showForm, setShowForm] = React.useState(false);
   const [editingAlert, setEditingAlert] = React.useState<any>(null);
   const [formData, setFormData] = React.useState({
@@ -356,6 +357,19 @@ function AlertsSettings() {
       fetchAlerts();
     } catch (error) {
       console.error('Failed to delete alert:', error);
+    }
+  };
+
+  const handleTestAlert = async (alertId: string) => {
+    try {
+      setTestingId(alertId);
+      await apiCall(`/alerts/configurations/${alertId}/test`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error('Failed to test alert:', error);
+    } finally {
+      setTestingId(null);
     }
   };
 
@@ -655,6 +669,13 @@ function AlertsSettings() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleTestAlert(alert.id)}
+                    disabled={testingId === alert.id}
+                    className="rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)] disabled:opacity-60"
+                  >
+                    {testingId === alert.id ? 'Testando…' : 'Testar'}
+                  </button>
                   <button
                     onClick={() => handleEdit(alert)}
                     className="rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
@@ -2353,10 +2374,12 @@ function DocumentsLibrarySettings() {
   const [selectedAsset, setSelectedAsset] = React.useState<string>('');
   const [documentType, setDocumentType] = React.useState('manual');
   const [expandedDoc, setExpandedDoc] = React.useState<string | null>(null);
+  const [versionsByDocId, setVersionsByDocId] = React.useState<Record<string, any[]>>({});
+  const [versionsLoadingId, setVersionsLoadingId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     fetchAssets();
-  }, []);
+  }, [selectedPlant]);
 
   React.useEffect(() => {
     if (selectedAsset) {
@@ -2409,12 +2432,55 @@ function DocumentsLibrarySettings() {
         body: formData,
       });
 
-      if (response.ok) {
-        fetchDocuments(selectedAsset);
-        e.target.value = '';
-      }
+      if (!response.ok) throw new Error('Upload failed');
+
+      fetchDocuments(selectedAsset);
+      e.target.value = '';
     } catch (error) {
       console.error('Failed to upload document:', error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const fetchVersions = async (docId: string) => {
+    try {
+      setVersionsLoadingId(docId);
+      const data = await apiCall(`/alerts/documents/${docId}/versions`);
+      const rows = Array.isArray(data) ? data : (data?.data || []);
+      setVersionsByDocId((prev) => ({ ...prev, [docId]: rows }));
+    } catch (error) {
+      console.error('Failed to fetch document versions:', error);
+      setVersionsByDocId((prev) => ({ ...prev, [docId]: [] }));
+    } finally {
+      setVersionsLoadingId(null);
+    }
+  };
+
+  const handleUploadNewVersion = async (doc: any, file: File) => {
+    if (!file || !selectedAsset) return;
+    try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append('asset_id', selectedAsset);
+      formData.append('document_type', doc.document_type);
+      formData.append('title', doc.title);
+      formData.append('file', file);
+
+      const token = localStorage.getItem('token');
+
+      const response = await fetch('/api/alerts/documents', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+
+      await fetchDocuments(selectedAsset);
+      await fetchVersions(doc.id);
+    } catch (error) {
+      console.error('Failed to upload new version:', error);
     } finally {
       setUploading(false);
     }
@@ -2563,7 +2629,13 @@ function DocumentsLibrarySettings() {
               className="overflow-hidden rounded-2xl border theme-border theme-card shadow-sm"
             >
               <button
-                onClick={() => setExpandedDoc(expandedDoc === doc.id ? null : doc.id)}
+                onClick={() => {
+                  const next = expandedDoc === doc.id ? null : doc.id;
+                  setExpandedDoc(next);
+                  if (next) {
+                    void fetchVersions(doc.id);
+                  }
+                }}
                 className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-[color:var(--dash-surface)]"
               >
                 <div className="flex flex-1 items-center gap-3">
@@ -2592,6 +2664,53 @@ function DocumentsLibrarySettings() {
               {/* Expanded Details */}
               {expandedDoc === doc.id && (
                 <div className="space-y-3 border-t border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                  {/* Preview */}
+                  <div className="rounded-2xl border theme-border bg-[color:var(--dash-panel)] p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-sm font-semibold theme-text">Pré-visualização</div>
+                      <a
+                        href={doc.file_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text transition hover:bg-[color:var(--dash-surface)]"
+                      >
+                        Abrir
+                      </a>
+                    </div>
+
+                    {(() => {
+                      const ext = String(doc.file_extension || '').toLowerCase();
+                      const isPdf = ext === 'pdf' || String(doc.file_url || '').toLowerCase().includes('.pdf');
+                      const isImage = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext);
+
+                      if (isPdf) {
+                        return (
+                          <iframe
+                            src={doc.file_url}
+                            className="mt-3 h-[360px] w-full rounded-2xl border theme-border bg-white"
+                            title={`Preview-${doc.id}`}
+                          />
+                        );
+                      }
+
+                      if (isImage) {
+                        return (
+                          <img
+                            src={doc.file_url}
+                            alt={doc.title}
+                            className="mt-3 max-h-[360px] w-full rounded-2xl border theme-border bg-white object-contain"
+                          />
+                        );
+                      }
+
+                      return (
+                        <div className="mt-3 text-sm theme-text-muted">
+                          Pré-visualização indisponível para este formato.
+                        </div>
+                      );
+                    })()}
+                  </div>
+
                   <div className="grid gap-4 text-sm sm:grid-cols-2">
                     <div>
                       <span className="font-medium theme-text">Tamanho:</span>
@@ -2625,12 +2744,72 @@ function DocumentsLibrarySettings() {
                     >
                       Download
                     </a>
+
                     <button
                       onClick={() => handleDeleteDocument(doc.id)}
                       className="rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-[color:var(--dash-surface)]"
                     >
                       Eliminar
                     </button>
+                  </div>
+
+                  {/* Versions */}
+                  <div className="rounded-2xl border theme-border bg-[color:var(--dash-panel)] p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-semibold theme-text">Versões</div>
+                      <button
+                        onClick={() => fetchVersions(doc.id)}
+                        disabled={versionsLoadingId === doc.id}
+                        className="rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text transition hover:bg-[color:var(--dash-surface)] disabled:opacity-60"
+                      >
+                        {versionsLoadingId === doc.id ? 'A carregar…' : 'Atualizar'}
+                      </button>
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      {(versionsByDocId[doc.id] || []).length === 0 ? (
+                        <div className="text-sm theme-text-muted">Sem histórico disponível.</div>
+                      ) : (
+                        (versionsByDocId[doc.id] || []).map((v: any) => (
+                          <div
+                            key={v.id}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border theme-border bg-[color:var(--dash-surface)] px-3 py-2"
+                          >
+                            <div className="text-sm theme-text">
+                              <span className="font-semibold">v{v.version_number}</span>
+                              <span className="theme-text-muted">
+                                {' '}
+                                • {new Date(v.created_at).toLocaleDateString('pt-PT')}
+                              </span>
+                            </div>
+                            <a
+                              href={v.file_url}
+                              download
+                              className="rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text transition hover:bg-[color:var(--dash-panel)]"
+                            >
+                              Download
+                            </a>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <div className="mt-4">
+                      <label className="block text-xs font-semibold uppercase tracking-wide theme-text-muted">
+                        Carregar nova versão
+                      </label>
+                      <input
+                        type="file"
+                        disabled={uploading}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (!f) return;
+                          void handleUploadNewVersion(doc, f);
+                          e.target.value = '';
+                        }}
+                        className="mt-2 block w-full text-sm theme-text-muted file:mr-4 file:rounded-full file:border-0 file:bg-[color:var(--settings-accent)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:opacity-90"
+                      />
+                    </div>
                   </div>
                 </div>
               )}

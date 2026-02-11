@@ -1,4 +1,9 @@
 import { Router, Response } from 'express';
+import path from 'path';
+import fs from 'fs';
+import multer from 'multer';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { validateRequest } from '../middlewares/validation.js';
 import { authMiddleware } from '../middlewares/auth.js';
 import { AlertService } from '../services/alert.service.js';
@@ -8,6 +13,36 @@ import { z } from 'zod';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 
 const router = Router();
+
+// ESM __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const uploadBaseDir = path.join(__dirname, '../../uploads');
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, _file, cb) => {
+      const tenantId = (req as AuthenticatedRequest).user?.tenantId || 'unknown-tenant';
+      const dest = path.join(uploadBaseDir, tenantId, 'documents');
+      try {
+        fs.mkdirSync(dest, { recursive: true });
+      } catch {
+        // ignore
+      }
+      cb(null, dest);
+    },
+    filename: (_req, file, cb) => {
+      const original = file.originalname || 'file';
+      const ext = path.extname(original).slice(0, 12);
+      const safeBase = path
+        .basename(original, path.extname(original))
+        .replace(/[^a-zA-Z0-9-_\.]/g, '_')
+        .slice(0, 60);
+      cb(null, `${Date.now()}-${safeBase}${ext}`);
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 // ========== ALERT CONFIGURATION ROUTES ==========
 
@@ -95,6 +130,36 @@ router.put(
     }
   },
 );
+
+// POST /api/alerts/configurations/:id/test
+router.post('/configurations/:id/test', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const tenantId = req.user?.tenantId;
+    const userId = req.user?.userId;
+    const { id } = req.params;
+
+    if (!tenantId || !userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const config = await AlertService.getAlertConfigurationById(id, tenantId);
+    if (!config) {
+      return res.status(404).json({ error: 'Alert configuration not found' });
+    }
+
+    const alert = await AlertService.createAlert({
+      tenant_id: tenantId,
+      alert_config_id: config.id,
+      asset_id: config.asset_id,
+      severity: 'low',
+      message: `Teste de alerta (${config.alert_type}) — ${new Date().toISOString()}`,
+    });
+
+    return res.json({ success: true, data: alert });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to test alert configuration' });
+  }
+});
 
 // DELETE /api/alerts/configurations/:id
 router.delete('/configurations/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
@@ -238,37 +303,73 @@ router.get('/documents', authMiddleware, async (req: AuthenticatedRequest, res: 
 });
 
 // POST /api/alerts/documents
+// Supports JSON payload (file_url) or multipart/form-data with 'file'.
 const uploadDocSchema = z.object({
   asset_id: z.string().uuid(),
   document_type: z.string(),
   title: z.string(),
   description: z.string().optional(),
-  file_url: z.string().url(),
-  file_size_mb: z.number().optional(),
+  file_url: z.string().url().optional(),
+  file_size_mb: z.coerce.number().optional(),
   file_extension: z.string().optional(),
-  tags: z.array(z.string()).optional(),
+  tags: z.union([z.array(z.string()), z.string()]).optional(),
   expires_at: z.string().datetime().optional(),
 });
 
-router.post(
-  '/documents',
-  authMiddleware,
-  validateRequest(uploadDocSchema),
-  async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const tenantId = req.user?.tenantId;
-      const userId = req.user?.userId;
+router.post('/documents', authMiddleware, upload.single('file'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const tenantId = req.user?.tenantId;
+    const userId = req.user?.userId;
 
-      if (!tenantId || !userId) {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
+    if (!tenantId || !userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
-      const document = await DocumentService.uploadDocument({
-        tenant_id: tenantId,
-        uploaded_by: userId,
-        ...req.body,
-        expires_at: req.body.expires_at ? new Date(req.body.expires_at) : undefined,
-      });
+    const parsed = uploadDocSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+    }
+
+    const body = parsed.data;
+    const file = (req as any).file as Express.Multer.File | undefined;
+
+    let fileUrl = body.file_url;
+    let fileExtension = body.file_extension;
+    let fileSizeMb = body.file_size_mb;
+
+    if (file) {
+      const relative = path.relative(uploadBaseDir, file.path).split(path.sep).join('/');
+      fileUrl = `/uploads/${relative}`;
+      fileExtension = fileExtension || path.extname(file.originalname).replace('.', '') || undefined;
+      fileSizeMb = fileSizeMb || Math.round((file.size / (1024 * 1024)) * 100) / 100;
+    }
+
+    if (!fileUrl) {
+      return res.status(400).json({ error: 'Missing file_url or file upload' });
+    }
+
+    const tags = Array.isArray(body.tags)
+      ? body.tags
+      : typeof body.tags === 'string'
+        ? body.tags
+            .split(',')
+            .map((t) => t.trim())
+            .filter(Boolean)
+        : undefined;
+
+    const document = await DocumentService.uploadDocument({
+      tenant_id: tenantId,
+      uploaded_by: userId,
+      asset_id: body.asset_id,
+      document_type: body.document_type,
+      title: body.title,
+      description: body.description,
+      file_url: fileUrl,
+      file_size_mb: fileSizeMb,
+      file_extension: fileExtension,
+      tags,
+      expires_at: body.expires_at ? new Date(body.expires_at) : undefined,
+    });
 
       if (isSocketManagerReady()) {
         const socketManager = getSocketManager();
@@ -280,12 +381,11 @@ router.post(
         });
       }
 
-      return res.status(201).json({ success: true, data: document });
-    } catch (error) {
-      return res.status(500).json({ error: 'Failed to upload document' });
-    }
-  },
-);
+    return res.status(201).json({ success: true, data: document });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to upload document' });
+  }
+});
 
 // GET /api/alerts/documents/:id/versions
 router.get('/documents/:id/versions', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {

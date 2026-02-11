@@ -56,6 +56,15 @@ export class AlertService {
     return alert;
   }
 
+  static async getAlertConfigurationById(alertId: string, tenantId: string) {
+    return db.query.alertConfigurations.findFirst({
+      where: and(
+        eq(alertConfigurations.id, alertId),
+        eq(alertConfigurations.tenant_id, tenantId),
+      ),
+    });
+  }
+
   static async getAlertConfigurations(tenantId: string, assetId?: string): Promise<any[]> {
     try {
       const cacheKey = CacheKeys.alertConfigs(tenantId, assetId);
