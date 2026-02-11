@@ -27,9 +27,18 @@ function shouldUsePgSsl(connectionString?: string): boolean {
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  max: Number(process.env.PG_POOL_MAX || 10),
+  idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT_MS || 30_000),
+  connectionTimeoutMillis: Number(process.env.PG_CONN_TIMEOUT_MS || 5_000),
+  query_timeout: Number(process.env.PG_QUERY_TIMEOUT_MS || 15_000),
   ...(shouldUsePgSsl(process.env.DATABASE_URL)
     ? { ssl: { rejectUnauthorized: false } }
     : {}),
+});
+
+pool.on('error', (err: any) => {
+  // Prevent unhandled errors from bringing the process down and surface the root cause.
+  console.error('❌ Unexpected PG pool error:', err);
 });
 
 export const db = drizzle(pool, { schema });

@@ -7,6 +7,7 @@ import { DEFAULT_TENANT_ID } from '../config/constants.js';
 import { db } from '../config/database.js';
 import { users } from '../db/schema.js';
 import { sql } from 'drizzle-orm';
+import { TimeoutError, withTimeout } from '../utils/timeout.js';
 
 export class AuthController {
   static async status(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -46,6 +47,7 @@ export class AuthController {
   }
 
   static async login(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const startedAt = Date.now();
     try {
       const { username, password } = req.body;
 
@@ -58,7 +60,12 @@ export class AuthController {
       }
 
       const tenantId = req.tenantId || DEFAULT_TENANT_ID;
-      const user = await AuthService.validateCredentials(tenantId, username, password);
+      const safeUsername = String(username).trim().toLowerCase();
+      const user = await withTimeout(
+        AuthService.validateCredentials(tenantId, safeUsername, password),
+        Number(process.env.AUTH_LOGIN_TIMEOUT_MS || 12_000),
+        'AuthService.validateCredentials',
+      );
 
       if (!user) {
         res.status(401).json({
@@ -68,7 +75,11 @@ export class AuthController {
         return;
       }
 
-      const plantIds = await AuthService.getUserPlantIds(user.id, user.tenant_id, user.role);
+      const plantIds = await withTimeout(
+        AuthService.getUserPlantIds(user.id, user.tenant_id, user.role),
+        Number(process.env.AUTH_LOGIN_TIMEOUT_MS || 12_000),
+        'AuthService.getUserPlantIds',
+      );
 
       const payload: any = {
         userId: user.id,
@@ -99,7 +110,36 @@ export class AuthController {
         },
       });
     } catch (error) {
-      logger.error('Login error:', error);
+      const durationMs = Date.now() - startedAt;
+
+      logger.error('Login error', {
+        durationMs,
+        tenantId: req.tenantId,
+        tenantSlug: req.tenantSlug,
+        username: req.body?.username,
+        error,
+      });
+
+      const message = error instanceof Error ? error.message : 'Login failed';
+
+      // Convert common transient issues into a clearer response for production.
+      const isTimeout = error instanceof TimeoutError;
+      const isTransientDb =
+        error instanceof Error &&
+        (message.toLowerCase().includes('timeout') ||
+          message.toLowerCase().includes('connection terminated') ||
+          message.toLowerCase().includes('too many clients') ||
+          message.toLowerCase().includes('econnreset') ||
+          message.toLowerCase().includes('etimedout'));
+
+      if (isTimeout || isTransientDb) {
+        res.status(503).json({
+          success: false,
+          error: 'Service temporarily unavailable',
+        });
+        return;
+      }
+
       res.status(500).json({
         success: false,
         error: 'Login failed',
