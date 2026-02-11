@@ -2624,16 +2624,10 @@ export function WorkOrdersPage() {
                     )}
 
                     {canUpdateStatus && (
-                      <div>
-                        <label className="mb-1 block text-sm font-medium theme-text">Estado</label>
-                        <select
-                          className="input"
-                          value={updateForm.status}
-                          onChange={(event) =>
-                            setUpdateForm({ ...updateForm, status: event.target.value })
-                          }
-                        >
-                          {(allowedStatusOptionsForEdit || [
+                      (() => {
+                        const statusOptions =
+                          allowedStatusOptionsForEdit ||
+                          [
                             { value: 'aberta', label: 'Aberta' },
                             { value: 'em_analise', label: 'Em Análise' },
                             { value: 'em_execucao', label: 'Em Execução' },
@@ -2641,13 +2635,55 @@ export function WorkOrdersPage() {
                             { value: 'concluida', label: 'Concluída' },
                             { value: 'fechada', label: 'Fechada' },
                             { value: 'cancelada', label: 'Cancelada' },
-                          ]).map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                          ];
+                        const canPause = statusOptions.some((opt) => opt.value === 'em_pausa');
+                        const canCancel = statusOptions.some((opt) => opt.value === 'cancelada');
+
+                        return (
+                          <div>
+                            <label className="mb-1 block text-sm font-medium theme-text">Estado</label>
+
+                            <div className="space-y-2">
+                              <select
+                                className="input"
+                                value={updateForm.status}
+                                onChange={(event) =>
+                                  setUpdateForm({ ...updateForm, status: event.target.value })
+                                }
+                              >
+                                {statusOptions.map((opt) => (
+                                  <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
+
+                              <div className="flex flex-wrap gap-2">
+                                {canPause && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setUpdateForm({ ...updateForm, status: 'em_pausa' })}
+                                    disabled={updateForm.status === 'em_pausa'}
+                                    className="rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-1 text-xs font-semibold theme-text transition hover:bg-[color:var(--dash-surface)] disabled:opacity-60"
+                                  >
+                                    Pausar
+                                  </button>
+                                )}
+                                {canCancel && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setUpdateForm({ ...updateForm, status: 'cancelada' })}
+                                    disabled={updateForm.status === 'cancelada'}
+                                    className="rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-[color:var(--dash-surface)] disabled:opacity-60"
+                                  >
+                                    Cancelar
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()
                     )}
 
                       {canUpdateStatus && updateForm.status === 'em_pausa' && (

@@ -1406,6 +1406,41 @@ function PreventiveMaintenanceSettings({
     return `${safeValue} ${safeUnit}`;
   };
 
+  const getPlanForSchedule = (schedule: any) =>
+    plans.find((p) => p.id === (schedule.plan_id || schedule.planId)) || null;
+
+  const suggestSkipToNextCycleLocal = (schedule: any) => {
+    const plan = getPlanForSchedule(schedule);
+    const now = new Date();
+    const currentIso = schedule?.scheduled_for || schedule?.scheduledFor || '';
+    const baseRaw = currentIso ? new Date(currentIso) : now;
+    const base = new Date(Math.max(now.getTime(), baseRaw.getTime()));
+
+    const freqValue = Number(plan?.frequency_value || plan?.frequencyValue || 0);
+    const freqUnit = String(plan?.frequency_type || plan?.frequency_unit || plan?.frequencyUnit || '').toLowerCase();
+
+    const next = new Date(base);
+    if (Number.isFinite(freqValue) && freqValue > 0) {
+      if (freqUnit === 'hours') next.setHours(next.getHours() + freqValue);
+      else if (freqUnit === 'days') next.setDate(next.getDate() + freqValue);
+      else next.setMonth(next.getMonth() + freqValue);
+    } else {
+      next.setDate(next.getDate() + 7);
+    }
+
+    return toDatetimeLocalFromIso(next.toISOString());
+  };
+
+  const openReschedule = (schedule: any, mode: 'delay' | 'skip') => {
+    const fallbackLocal = toDatetimeLocalFromIso(schedule.scheduled_for);
+    const suggestedLocal = mode === 'skip' ? suggestSkipToNextCycleLocal(schedule) : fallbackLocal;
+    setPendingReschedule({
+      scheduleId: schedule.id,
+      scheduled_for_local: suggestedLocal,
+      reason: '',
+    });
+  };
+
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -2063,7 +2098,11 @@ function PreventiveMaintenanceSettings({
 
                       <div className="flex flex-wrap items-center gap-2">
                         <select
-                          value={schedule.status || 'agendada'}
+                          value={
+                            pendingReschedule?.scheduleId === schedule.id
+                              ? 'reagendada'
+                              : schedule.status || 'agendada'
+                          }
                           onChange={(e) => handleScheduleStatusChange(schedule, e.target.value)}
                           className="input h-9 py-1"
                         >
@@ -2073,6 +2112,25 @@ function PreventiveMaintenanceSettings({
                           <option value="concluida">Concluída</option>
                           <option value="fechada">Fechada</option>
                         </select>
+
+                        {!(schedule.status === 'concluida' || schedule.status === 'fechada') && (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openReschedule(schedule, 'delay')}
+                              className="inline-flex items-center justify-center rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
+                            >
+                              Adiar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openReschedule(schedule, 'skip')}
+                              className="inline-flex items-center justify-center rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-1 text-xs font-semibold theme-text transition hover:bg-[color:var(--dash-surface)]"
+                            >
+                              Skip ciclo
+                            </button>
+                          </div>
+                        )}
 
                         {pendingReschedule && pendingReschedule.scheduleId === schedule.id && (
                           <div className="flex flex-col gap-2 rounded-[16px] border theme-border bg-[color:var(--dash-panel)] p-3">

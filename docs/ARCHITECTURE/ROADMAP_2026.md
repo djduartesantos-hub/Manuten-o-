@@ -20,7 +20,15 @@
    - modos completos de **Downtime** e **Preventivas** (KPIs + gráficos + tabela)
 - UX de Ordens/Preventivas: ícones mais responsivos no mobile e consistência com o Dashboard.
 
+- Settings/Hardening (fecho de MVP):
+   - Biblioteca de Documentos: upload alinhado com backend (multipart), preview e histórico de versões
+   - Alertas: botão “Testar” por configuração
+   - Warnings: mini charts (distribuição + métricas + progress bars)
+   - Backend: Helmet + rate limiting + Swagger/OpenAPI (`/api/docs`, `/api/openapi.json`)
+
 **Referências (commits):** `fded497`, `763b477`, `7dc24c3`, `8fd2246`, `49af06d`, `6476ef8`.
+
+**Referências (Settings/Hardening):** `d3e4b6e`, `b15b1c2`.
 
 ---
 
@@ -96,32 +104,23 @@ Este track é o plano **prático** para as próximas iterações, com foco em op
 - ✅ **API Routes** (`/api/alerts/*`) - 13 endpoints
 - ✅ **SettingsPage Layout** - Sidebar navigation + 5 seções
 - ✅ **RolesPermissions Dashboard** - Matrix de permissões por role
+- ✅ **Swagger/OpenAPI** - `/api/docs` + `/api/openapi.json`
+- ✅ **Hardening básico** - Helmet + rate limiting
 
-#### A Completar (Próximas 2-3 semanas) 🔄
-- [ ] **AlertsSettings Component** - Form builder para alertas
-  - Seletor de tipo (SLA, failure_rate, stock, maintenance_overdue)
-  - Threshold input com validação
-  - Seletor de roles para notificação
-  - Test notification button
-  - Lista com editar/deletar inline
-  - Tempo estimado: **2-3 dias**
+#### A Completar (Próximas 1-2 semanas) 🔄
+- ✅ **AlertsSettings Component**
+   - CRUD + validações + lista + botão “Testar”
 
-- [ ] **PredictiveWarnings Dashboard** - Análise automática
-  - Gráficos de histórico de falhas
-  - Trend line MTBF
-  - Severity badges (🔴 CRÍTICO, 🟠 ALTO, 🟡 MÉDIO)
-  - Confidence score (%)
-  - Action recommendations
-  - Tempo estimado: **2-3 dias**
+- ✅ **PredictiveWarnings Dashboard**
+   - Severity badges + recomendações + mini charts (distribuição + métricas)
 
-- [ ] **DocumentsLibrary Component** - Gerenciamento de docs
-  - Drag-drop upload
-  - Preview inline (PDF, imagens)
-  - Histórico de versões
-  - Tagging system
-  - Compartilhamento com roles
-  - Documentos expirando alert
-  - Tempo estimado: **3-4 dias**
+- ✅ **DocumentsLibrary Component**
+   - Upload + preview + histórico de versões (fallback local em `/uploads/...`)
+
+- [ ] **DocumentsLibrary (polish)**
+   - Tagging system (UX + validações)
+   - Documentos expirando/alert (UI consumindo `/api/alerts/documents/expiring`)
+   - Storage externo (S3/R2) para produção
 
 - [ ] **MaintenancePlannerSettings** - Wizard preventivo
   - Multi-step wizard
