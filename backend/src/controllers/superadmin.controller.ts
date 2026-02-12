@@ -452,6 +452,92 @@ export async function getTenantsActivity(req: AuthenticatedRequest, res: Respons
   }
 }
 
+export async function exportTenantsActivity(req: AuthenticatedRequest, res: Response) {
+  try {
+    const format = String((req.query as any)?.format || 'csv').toLowerCase();
+    const daysRaw = Number((req.query as any)?.days ?? 30);
+    const days = Number.isFinite(daysRaw) ? Math.min(Math.max(Math.trunc(daysRaw), 1), 365) : 30;
+    const limitRaw = Number((req.query as any)?.limit ?? 50);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 200) : 50;
+
+    const rows = await db.execute(sql`
+      SELECT
+        t.id,
+        t.name,
+        t.slug,
+        t.is_active,
+        t.subscription_plan,
+        COALESCE(u.logins_window, 0)::int AS logins_window,
+        COALESCE(s.completed_window, 0)::int AS completed_window,
+        COALESCE(o.overdue_open, 0)::int AS overdue_open
+      FROM tenants t
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS logins_window
+        FROM users
+        WHERE last_login IS NOT NULL
+          AND last_login >= NOW() - (${days}::int * interval '1 day')
+        GROUP BY tenant_id
+      ) u ON u.tenant_id = t.id
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS completed_window
+        FROM preventive_maintenance_schedules
+        WHERE completed_at IS NOT NULL
+          AND completed_at >= NOW() - (${days}::int * interval '1 day')
+        GROUP BY tenant_id
+      ) s ON s.tenant_id = t.id
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS overdue_open
+        FROM preventive_maintenance_schedules
+        WHERE scheduled_for < NOW()
+          AND status IN ('agendada','em_execucao','reagendada')
+        GROUP BY tenant_id
+      ) o ON o.tenant_id = t.id
+      ORDER BY (COALESCE(u.logins_window, 0) + COALESCE(s.completed_window, 0)) DESC, t.created_at ASC
+      LIMIT ${limit};
+    `);
+
+    const data = ((rows as any)?.rows ?? []).map((r: any) => ({
+      tenant_id: String(r.id),
+      tenant_name: String(r.name || ''),
+      tenant_slug: String(r.slug || ''),
+      is_active: Boolean(r.is_active),
+      subscription_plan: r.subscription_plan === null || r.subscription_plan === undefined ? null : String(r.subscription_plan),
+      days,
+      logins: Number(r.logins_window ?? 0),
+      preventive_completed: Number(r.completed_window ?? 0),
+      preventive_overdue_open: Number(r.overdue_open ?? 0),
+    }));
+
+    if (format === 'json') {
+      return res.json({ success: true, data });
+    }
+
+    const headers = [
+      'tenant_id',
+      'tenant_name',
+      'tenant_slug',
+      'is_active',
+      'subscription_plan',
+      'days',
+      'logins',
+      'preventive_completed',
+      'preventive_overdue_open',
+    ];
+    const csv = [
+      headers.join(','),
+      ...data.map((r: any) =>
+        headers.map((h) => toCsvValue((r as any)[h])).join(','),
+      ),
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="superadmin_tenants_activity.csv"');
+    return res.status(200).send(csv);
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to export tenants activity' });
+  }
+}
+
 export async function listPlantMetrics(req: AuthenticatedRequest, res: Response) {
   try {
     if (!hasTenantOverrideHeader(req)) {
@@ -738,6 +824,76 @@ export async function getRbacDrift(req: AuthenticatedRequest, res: Response) {
   }
 }
 
+export async function exportRbacDrift(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!hasTenantOverrideHeader(req)) {
+      return res.status(400).json({ success: false, error: 'Select a tenant (Empresa) to export RBAC drift' });
+    }
+
+    const format = String((req.query as any)?.format || 'csv').toLowerCase();
+    const tenantId = String(req.tenantId || '');
+
+    const rolesZeroPerms = await db.execute(sql`
+      SELECT r.key, r.name
+      FROM rbac_roles r
+      LEFT JOIN rbac_role_permissions rp
+        ON rp.tenant_id = r.tenant_id AND rp.role_key = r.key
+      WHERE r.tenant_id = ${tenantId}
+      GROUP BY r.key, r.name
+      HAVING COUNT(rp.permission_key) = 0
+      ORDER BY r.key ASC;
+    `);
+
+    const permsUnused = await db.execute(sql`
+      SELECT p.key, p.label, p.group_name
+      FROM rbac_permissions p
+      LEFT JOIN rbac_role_permissions rp
+        ON rp.permission_key = p.key AND rp.tenant_id = ${tenantId}
+      GROUP BY p.key, p.label, p.group_name
+      HAVING COUNT(rp.role_key) = 0
+      ORDER BY p.group_name ASC, p.key ASC
+      LIMIT 200;
+    `);
+
+    const data = {
+      tenantId,
+      rolesWithNoPermissions: ((rolesZeroPerms as any)?.rows ?? []).map((r: any) => ({
+        key: String(r.key),
+        name: String(r.name || ''),
+      })),
+      permissionsUnused: ((permsUnused as any)?.rows ?? []).map((r: any) => ({
+        key: String(r.key),
+        label: String(r.label || ''),
+        group_name: String(r.group_name || ''),
+      })),
+    };
+
+    if (format === 'json') {
+      return res.json({ success: true, data });
+    }
+
+    const headers = ['type', 'key', 'name', 'label', 'group_name'];
+    const rows: any[] = [];
+    for (const r of data.rolesWithNoPermissions) {
+      rows.push({ type: 'role_no_permissions', key: r.key, name: r.name, label: '', group_name: '' });
+    }
+    for (const p of data.permissionsUnused) {
+      rows.push({ type: 'permission_unused', key: p.key, name: '', label: p.label, group_name: p.group_name });
+    }
+
+    const csv = [
+      headers.join(','),
+      ...rows.map((r: any) => headers.map((h) => toCsvValue(r[h])).join(',')),
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="superadmin_rbac_drift.csv"');
+    return res.status(200).send(csv);
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to export RBAC drift' });
+  }
+}
+
 export async function getUserSecurityInsights(req: AuthenticatedRequest, res: Response) {
   try {
     if (!hasTenantOverrideHeader(req)) {
@@ -807,6 +963,111 @@ export async function getUserSecurityInsights(req: AuthenticatedRequest, res: Re
     return res.json({ success: true, data: { days, topPasswordResets } });
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to fetch user security insights' });
+  }
+}
+
+export async function exportUserSecurityInsights(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!hasTenantOverrideHeader(req)) {
+      return res.status(400).json({ success: false, error: 'Select a tenant (Empresa) to export user security insights' });
+    }
+
+    const format = String((req.query as any)?.format || 'csv').toLowerCase();
+    const daysRaw = Number((req.query as any)?.days ?? 30);
+    const days = Number.isFinite(daysRaw) ? Math.min(Math.max(Math.trunc(daysRaw), 1), 365) : 30;
+    const limitRaw = Number((req.query as any)?.limit ?? 50);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 200) : 50;
+
+    const tenantId = String(req.tenantId || '');
+
+    const available = await SuperadminAuditService.isAvailable();
+    if (!available) {
+      const empty = { days, tenantId, topPasswordResets: [] as any[] };
+      if (format === 'json') return res.json({ success: true, data: empty });
+
+      const headers = ['tenant_id', 'days', 'user_id', 'username', 'email', 'reset_count', 'last_reset_at', 'is_active', 'last_login'];
+      const csv = [headers.join(',')].join('\n');
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="superadmin_user_security.csv"');
+      return res.status(200).send(csv);
+    }
+
+    const rows = await db.execute(sql`
+      SELECT
+        entity_id,
+        COUNT(*)::int AS reset_count,
+        MAX(created_at) AS last_reset_at
+      FROM superadmin_audit_logs
+      WHERE action = 'user.reset_password'
+        AND affected_tenant_id = ${tenantId}
+        AND created_at >= NOW() - (${days}::int * interval '1 day')
+      GROUP BY entity_id
+      ORDER BY COUNT(*) DESC, MAX(created_at) DESC
+      LIMIT ${limit};
+    `);
+
+    const ids = ((rows as any)?.rows ?? []).map((r: any) => String(r.entity_id));
+    let usersRows: any[] = [];
+    if (ids.length > 0) {
+      const usersResult = await db.execute(sql`
+        SELECT id, username, email, first_name, last_name, is_active, last_login
+        FROM users
+        WHERE tenant_id = ${tenantId}
+          AND id = ANY(${ids}::uuid[]);
+      `);
+      usersRows = (usersResult as any)?.rows ?? [];
+    }
+    const userById = new Map<string, any>();
+    for (const u of usersRows) userById.set(String(u.id), u);
+
+    const topPasswordResets = ((rows as any)?.rows ?? []).map((r: any) => {
+      const u = userById.get(String(r.entity_id));
+      return {
+        userId: String(r.entity_id),
+        resetCount: Number(r.reset_count ?? 0),
+        lastResetAt: r.last_reset_at ?? null,
+        user: u
+          ? {
+              id: String(u.id),
+              username: String(u.username || ''),
+              email: String(u.email || ''),
+              first_name: String(u.first_name || ''),
+              last_name: String(u.last_name || ''),
+              is_active: Boolean(u.is_active),
+              last_login: u.last_login ?? null,
+            }
+          : null,
+      };
+    });
+
+    const data = { tenantId, days, topPasswordResets };
+    if (format === 'json') {
+      return res.json({ success: true, data });
+    }
+
+    const headers = ['tenant_id', 'days', 'user_id', 'username', 'email', 'reset_count', 'last_reset_at', 'is_active', 'last_login'];
+    const csvRows = topPasswordResets.map((r: any) => ({
+      tenant_id: tenantId,
+      days,
+      user_id: r.userId,
+      username: r.user?.username || '',
+      email: r.user?.email || '',
+      reset_count: r.resetCount,
+      last_reset_at: r.lastResetAt,
+      is_active: r.user?.is_active ?? '',
+      last_login: r.user?.last_login ?? '',
+    }));
+
+    const csv = [
+      headers.join(','),
+      ...csvRows.map((r: any) => headers.map((h) => toCsvValue(r[h])).join(',')),
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="superadmin_user_security.csv"');
+    return res.status(200).send(csv);
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to export user security insights' });
   }
 }
 
@@ -887,6 +1148,102 @@ export async function getIntegrityChecks(req: AuthenticatedRequest, res: Respons
     return res.json({ success: true, data: { tenantId, checks } });
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to run integrity checks' });
+  }
+}
+
+export async function exportIntegrityChecks(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!hasTenantOverrideHeader(req)) {
+      return res.status(400).json({ success: false, error: 'Select a tenant (Empresa) to export integrity checks' });
+    }
+
+    const format = String((req.query as any)?.format || 'csv').toLowerCase();
+    const tenantId = String(req.tenantId || '');
+
+    const assetsMissingPlant = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM assets a
+      WHERE a.tenant_id = ${tenantId}
+        AND NOT EXISTS (SELECT 1 FROM plants p WHERE p.id = a.plant_id);
+    `);
+
+    const schedulesMissingAsset = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM preventive_maintenance_schedules s
+      WHERE s.tenant_id = ${tenantId}
+        AND NOT EXISTS (SELECT 1 FROM assets a WHERE a.id = s.asset_id);
+    `);
+
+    const schedulesMissingPlan = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM preventive_maintenance_schedules s
+      WHERE s.tenant_id = ${tenantId}
+        AND NOT EXISTS (SELECT 1 FROM maintenance_plans p WHERE p.id = s.plan_id);
+    `);
+
+    const userPlantsMissingUser = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM user_plants up
+      WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = up.user_id);
+    `);
+
+    const userPlantsMissingPlant = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM user_plants up
+      WHERE NOT EXISTS (SELECT 1 FROM plants p WHERE p.id = up.plant_id);
+    `);
+
+    const checks = [
+      {
+        key: 'assets_missing_plant',
+        label: 'Assets sem fábrica válida',
+        count: Number((assetsMissingPlant as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+      {
+        key: 'schedules_missing_asset',
+        label: 'Preventivas sem asset válido',
+        count: Number((schedulesMissingAsset as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+      {
+        key: 'schedules_missing_plan',
+        label: 'Preventivas sem plano válido',
+        count: Number((schedulesMissingPlan as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+      {
+        key: 'user_plants_missing_user',
+        label: 'UserPlants com user inexistente',
+        count: Number((userPlantsMissingUser as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+      {
+        key: 'user_plants_missing_plant',
+        label: 'UserPlants com fábrica inexistente',
+        count: Number((userPlantsMissingPlant as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+    ];
+
+    const data = { tenantId, checks };
+    if (format === 'json') {
+      return res.json({ success: true, data });
+    }
+
+    const headers = ['tenant_id', 'key', 'label', 'count', 'severity'];
+    const csv = [
+      headers.join(','),
+      ...checks.map((c: any) =>
+        [tenantId, c.key, c.label, c.count, c.severity].map(toCsvValue).join(','),
+      ),
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="superadmin_integrity_checks.csv"');
+    return res.status(200).send(csv);
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to export integrity checks' });
   }
 }
 

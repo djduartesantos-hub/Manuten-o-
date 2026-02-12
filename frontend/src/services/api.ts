@@ -62,12 +62,18 @@ export async function apiCall<T = any>(
         endpoint.startsWith('/superadmin/metrics/users/anomalies?') ||
         endpoint === '/superadmin/metrics/users/security' ||
         endpoint.startsWith('/superadmin/metrics/users/security?') ||
+        endpoint === '/superadmin/metrics/users/security/export' ||
+        endpoint.startsWith('/superadmin/metrics/users/security/export?') ||
         endpoint === '/superadmin/metrics/rbac/drift' ||
         endpoint.startsWith('/superadmin/metrics/rbac/drift?') ||
+        endpoint === '/superadmin/metrics/rbac/drift/export' ||
+        endpoint.startsWith('/superadmin/metrics/rbac/drift/export?') ||
         endpoint === '/superadmin/diagnostics/bundle/export' ||
         endpoint.startsWith('/superadmin/diagnostics/bundle/export?') ||
         endpoint === '/superadmin/diagnostics/integrity' ||
-        endpoint.startsWith('/superadmin/diagnostics/integrity?');
+        endpoint.startsWith('/superadmin/diagnostics/integrity?') ||
+        endpoint === '/superadmin/diagnostics/integrity/export' ||
+        endpoint.startsWith('/superadmin/diagnostics/integrity/export?');
 
       if (tenantScopedSuperadmin) {
         const selectedTenantId = localStorage.getItem('superadminTenantId');
@@ -142,12 +148,18 @@ async function apiCallRaw(
         endpoint.startsWith('/superadmin/metrics/users/anomalies?') ||
         endpoint === '/superadmin/metrics/users/security' ||
         endpoint.startsWith('/superadmin/metrics/users/security?') ||
+        endpoint === '/superadmin/metrics/users/security/export' ||
+        endpoint.startsWith('/superadmin/metrics/users/security/export?') ||
         endpoint === '/superadmin/metrics/rbac/drift' ||
         endpoint.startsWith('/superadmin/metrics/rbac/drift?') ||
         endpoint === '/superadmin/diagnostics/bundle/export' ||
         endpoint.startsWith('/superadmin/diagnostics/bundle/export?') ||
         endpoint === '/superadmin/diagnostics/integrity' ||
-        endpoint.startsWith('/superadmin/diagnostics/integrity?');
+        endpoint.startsWith('/superadmin/diagnostics/integrity?') ||
+        endpoint === '/superadmin/diagnostics/integrity/export' ||
+        endpoint.startsWith('/superadmin/diagnostics/integrity/export?') ||
+        endpoint === '/superadmin/metrics/rbac/drift/export' ||
+        endpoint.startsWith('/superadmin/metrics/rbac/drift/export?');
 
       if (tenantScopedSuperadmin) {
         const selectedTenantId = localStorage.getItem('superadminTenantId');
@@ -288,6 +300,17 @@ export async function getSuperadminTenantsActivity(days?: number, limit?: number
   return apiCall(`/superadmin/metrics/activity/tenants${qs ? `?${qs}` : ''}`);
 }
 
+export async function downloadSuperadminTenantsActivity(format: 'csv' | 'json' = 'csv', days = 30, limit = 200) {
+  const qs = new URLSearchParams({
+    format,
+    days: String(days),
+    limit: String(limit),
+  });
+  const res = await apiCallRaw(`/superadmin/metrics/activity/tenants/export?${qs.toString()}`);
+  const blob = await res.blob();
+  triggerDownload(blob, format === 'json' ? 'superadmin_tenants_activity.json' : 'superadmin_tenants_activity.csv');
+}
+
 export async function getSuperadminTenantsMetrics(): Promise<any[]> {
   return apiCall('/superadmin/metrics/tenants');
 }
@@ -322,12 +345,37 @@ export async function getSuperadminUserSecurityInsights(days?: number, limit?: n
   return apiCall(`/superadmin/metrics/users/security${qs ? `?${qs}` : ''}`);
 }
 
+export async function downloadSuperadminUserSecurity(format: 'csv' | 'json' = 'csv', days = 30, limit = 200) {
+  const qs = new URLSearchParams({
+    format,
+    days: String(days),
+    limit: String(limit),
+  });
+  const res = await apiCallRaw(`/superadmin/metrics/users/security/export?${qs.toString()}`);
+  const blob = await res.blob();
+  triggerDownload(blob, format === 'json' ? 'superadmin_user_security.json' : 'superadmin_user_security.csv');
+}
+
 export async function getSuperadminRbacDrift(): Promise<any> {
   return apiCall('/superadmin/metrics/rbac/drift');
 }
 
+export async function downloadSuperadminRbacDrift(format: 'csv' | 'json' = 'csv') {
+  const qs = new URLSearchParams({ format });
+  const res = await apiCallRaw(`/superadmin/metrics/rbac/drift/export?${qs.toString()}`);
+  const blob = await res.blob();
+  triggerDownload(blob, format === 'json' ? 'superadmin_rbac_drift.json' : 'superadmin_rbac_drift.csv');
+}
+
 export async function getSuperadminIntegrityChecks(): Promise<any> {
   return apiCall('/superadmin/diagnostics/integrity');
+}
+
+export async function downloadSuperadminIntegrityChecks(format: 'csv' | 'json' = 'csv') {
+  const qs = new URLSearchParams({ format });
+  const res = await apiCallRaw(`/superadmin/diagnostics/integrity/export?${qs.toString()}`);
+  const blob = await res.blob();
+  triggerDownload(blob, format === 'json' ? 'superadmin_integrity_checks.json' : 'superadmin_integrity_checks.csv');
 }
 
 export async function downloadSuperadminDiagnosticsBundle(options?: {

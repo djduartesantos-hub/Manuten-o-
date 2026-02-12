@@ -19,11 +19,14 @@ router.get('/metrics/dashboard', SuperAdminController.getDashboardMetrics);
 router.get('/metrics/tenants', SuperAdminController.listTenantMetrics);
 router.get('/metrics/tenants/export', SuperAdminController.exportTenantMetrics);
 router.get('/metrics/activity/tenants', SuperAdminController.getTenantsActivity);
+router.get('/metrics/activity/tenants/export', SuperAdminController.exportTenantsActivity);
 router.get('/metrics/plants', SuperAdminController.listPlantMetrics);
 router.get('/metrics/plants/export', SuperAdminController.exportPlantMetrics);
 router.get('/metrics/users/anomalies', SuperAdminController.getUserAnomalies);
 router.get('/metrics/users/security', SuperAdminController.getUserSecurityInsights);
+router.get('/metrics/users/security/export', SuperAdminController.exportUserSecurityInsights);
 router.get('/metrics/rbac/drift', SuperAdminController.getRbacDrift);
+router.get('/metrics/rbac/drift/export', SuperAdminController.exportRbacDrift);
 
 // Database (status)
 router.get('/db/status', SuperAdminController.getDbStatus);
@@ -33,6 +36,7 @@ router.get('/health', SuperAdminController.getHealth);
 router.get('/diagnostics/tenants', SuperAdminController.getTenantDiagnostics);
 router.get('/diagnostics/bundle/export', SuperAdminController.exportDiagnosticsBundle);
 router.get('/diagnostics/integrity', SuperAdminController.getIntegrityChecks);
+router.get('/diagnostics/integrity/export', SuperAdminController.exportIntegrityChecks);
 
 // SuperAdmin audit logs
 router.get('/audit', SuperAdminController.listSuperadminAudit);

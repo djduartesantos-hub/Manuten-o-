@@ -8,10 +8,14 @@ import {
   createSuperadminTenant,
   downloadSuperadminDbStatusJson,
   downloadSuperadminDiagnosticsBundle,
+  downloadSuperadminIntegrityChecks,
   downloadSuperadminPlantsMetrics,
+  downloadSuperadminRbacDrift,
   downloadSetupRunsExport,
   downloadSuperadminAudit,
+  downloadSuperadminTenantsActivity,
   downloadSuperadminTenantsMetrics,
+  downloadSuperadminUserSecurity,
   getSuperadminAudit,
   getSuperadminDashboardMetrics,
   getSuperadminTenantsActivity,
@@ -1152,8 +1156,45 @@ export function SuperAdminSettings() {
                   </div>
 
                   <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
-                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
-                      Top empresas por atividade (30d)
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                          Top empresas por atividade (30d)
+                        </div>
+                        <div className="mt-1 text-xs text-[color:var(--dash-muted)]">Export global</div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="btn-secondary h-9 px-3"
+                          onClick={async () => {
+                            setError('');
+                            try {
+                              await downloadSuperadminTenantsActivity('csv', 30, 200);
+                            } catch (err: any) {
+                              setError(err?.message || 'Falha ao exportar CSV');
+                            }
+                          }}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          CSV
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary h-9 px-3"
+                          onClick={async () => {
+                            setError('');
+                            try {
+                              await downloadSuperadminTenantsActivity('json', 30, 200);
+                            } catch (err: any) {
+                              setError(err?.message || 'Falha ao exportar JSON');
+                            }
+                          }}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          JSON
+                        </button>
+                      </div>
                     </div>
                     <div className="mt-3 space-y-2">
                       {dashboardActivity.length === 0 ? (
@@ -1525,8 +1566,45 @@ export function SuperAdminSettings() {
 
               <div className="mt-4 grid gap-3 lg:grid-cols-3">
                 <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
-                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
-                    RBAC drift
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                        RBAC drift
+                      </div>
+                      <div className="mt-1 text-xs text-[color:var(--dash-muted)]">Export (tenant)</div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={async () => {
+                          setError('');
+                          try {
+                            await downloadSuperadminRbacDrift('csv');
+                          } catch (err: any) {
+                            setError(err?.message || 'Falha ao exportar CSV');
+                          }
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        CSV
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={async () => {
+                          setError('');
+                          try {
+                            await downloadSuperadminRbacDrift('json');
+                          } catch (err: any) {
+                            setError(err?.message || 'Falha ao exportar JSON');
+                          }
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        JSON
+                      </button>
+                    </div>
                   </div>
                   <div className="mt-3 text-sm text-[color:var(--dash-muted)]">
                     Roles sem permissões:{' '}
@@ -1543,8 +1621,45 @@ export function SuperAdminSettings() {
                 </div>
 
                 <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
-                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
-                    Integridade
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                        Integridade
+                      </div>
+                      <div className="mt-1 text-xs text-[color:var(--dash-muted)]">Export (tenant)</div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={async () => {
+                          setError('');
+                          try {
+                            await downloadSuperadminIntegrityChecks('csv');
+                          } catch (err: any) {
+                            setError(err?.message || 'Falha ao exportar CSV');
+                          }
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        CSV
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={async () => {
+                          setError('');
+                          try {
+                            await downloadSuperadminIntegrityChecks('json');
+                          } catch (err: any) {
+                            setError(err?.message || 'Falha ao exportar JSON');
+                          }
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        JSON
+                      </button>
+                    </div>
                   </div>
                   <div className="mt-3 space-y-2">
                     {(integrityChecks?.checks || []).slice(0, 5).map((c: any) => (
@@ -1558,8 +1673,45 @@ export function SuperAdminSettings() {
                 </div>
 
                 <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
-                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
-                    Segurança (30d)
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                        Segurança (30d)
+                      </div>
+                      <div className="mt-1 text-xs text-[color:var(--dash-muted)]">Export (tenant)</div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={async () => {
+                          setError('');
+                          try {
+                            await downloadSuperadminUserSecurity('csv', 30, 200);
+                          } catch (err: any) {
+                            setError(err?.message || 'Falha ao exportar CSV');
+                          }
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        CSV
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={async () => {
+                          setError('');
+                          try {
+                            await downloadSuperadminUserSecurity('json', 30, 200);
+                          } catch (err: any) {
+                            setError(err?.message || 'Falha ao exportar JSON');
+                          }
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        JSON
+                      </button>
+                    </div>
                   </div>
                   <div className="mt-3 space-y-2">
                     {(securityInsights?.topPasswordResets || []).length === 0 ? (
