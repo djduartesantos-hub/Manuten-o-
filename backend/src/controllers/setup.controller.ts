@@ -286,35 +286,36 @@ export class SetupController {
       VALUES (${tenantId}, NULL, 'superadmin', '/settings', NOW(), NOW());
     `);
 
-    // Optional cleanup: remove legacy Leitor role if not used
-    const leitorUser = await db.execute(sql`
-      SELECT 1
-      FROM users
-      WHERE tenant_id = ${tenantId} AND role = 'leitor'
-      LIMIT 1;
-    `);
-    const leitorPlant = await db.execute(sql`
-      SELECT 1
-      FROM user_plants up
-      JOIN plants p ON p.id = up.plant_id
-      WHERE p.tenant_id = ${tenantId} AND up.role = 'leitor'
-      LIMIT 1;
+    // Migrate/remove legacy Leitor role -> Operador
+    // - Preserves access by moving users to operador
+    // - Ensures the Leitor role no longer exists after running DB updates
+    await db.execute(sql`
+      UPDATE users
+      SET role = 'operador', updated_at = NOW()
+      WHERE tenant_id = ${tenantId} AND role = 'leitor';
     `);
 
-    if ((leitorUser.rows?.length || 0) === 0 && (leitorPlant.rows?.length || 0) === 0) {
-      await db.execute(sql`
-        DELETE FROM rbac_role_permissions
-        WHERE tenant_id = ${tenantId} AND role_key = 'leitor';
-      `);
-      await db.execute(sql`
-        DELETE FROM rbac_role_home_pages
-        WHERE tenant_id = ${tenantId} AND role_key = 'leitor';
-      `);
-      await db.execute(sql`
-        DELETE FROM rbac_roles
-        WHERE tenant_id = ${tenantId} AND key = 'leitor';
-      `);
-    }
+    await db.execute(sql`
+      UPDATE user_plants up
+      SET role = 'operador'
+      FROM plants p
+      WHERE up.plant_id = p.id
+        AND p.tenant_id = ${tenantId}
+        AND up.role = 'leitor';
+    `);
+
+    await db.execute(sql`
+      DELETE FROM rbac_role_permissions
+      WHERE tenant_id = ${tenantId} AND role_key = 'leitor';
+    `);
+    await db.execute(sql`
+      DELETE FROM rbac_role_home_pages
+      WHERE tenant_id = ${tenantId} AND role_key = 'leitor';
+    `);
+    await db.execute(sql`
+      DELETE FROM rbac_roles
+      WHERE tenant_id = ${tenantId} AND key = 'leitor';
+    `);
   }
   private static async applyCorrectionsInternal(): Promise<{
     migrations: string[];
