@@ -53,6 +53,9 @@ RUN npm ci
 COPY --from=backend-builder /app/backend/dist ./dist
 COPY --from=backend-builder /app/backend/drizzle.config.mjs ./
 
+# Copy backend runtime scripts (used by npm scripts, e.g. db:preflight)
+COPY --from=backend-builder /app/backend/scripts ./scripts
+
 # Copy built frontend from builder
 COPY --from=frontend-builder /app/frontend/dist ./public
 
