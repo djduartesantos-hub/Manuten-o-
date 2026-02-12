@@ -19,6 +19,20 @@ type TenantPasswordPolicy = {
   lockoutMinutes: number;
 };
 
+function isMissingColumnOrRelationError(error: unknown): boolean {
+  const message =
+    error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+
+  // Postgres codes:
+  // - 42703: undefined_column
+  // - 42P01: undefined_table
+  const code = (error as any)?.code;
+  if (code === '42703' || code === '42P01') return true;
+
+  const lower = String(message || '').toLowerCase();
+  return lower.includes('does not exist') && (lower.includes('column') || lower.includes('relation'));
+}
+
 export class AuthService {
   private static sessionVersionCache = new Map<
     string,
@@ -119,24 +133,41 @@ export class AuthService {
       return cached.policy;
     }
 
-    const row = await db.query.tenants.findFirst({
-      where: (fields: any, { eq }: any) => eq(fields.id, tenantId),
-      columns: {
-        password_min_length: true,
-        password_expiration_days: true,
-        password_max_failed_attempts: true,
-        password_lockout_minutes: true,
-      } as any,
-    });
+    // Defaults keep login working even if the DB is not migrated yet.
+    const defaults: TenantPasswordPolicy = {
+      minLength: 10,
+      expirationDays: null,
+      maxFailedAttempts: 10,
+      lockoutMinutes: 15,
+    };
+
+    let row: any = null;
+    try {
+      row = await db.query.tenants.findFirst({
+        where: (fields: any, { eq }: any) => eq(fields.id, tenantId),
+        columns: {
+          password_min_length: true,
+          password_expiration_days: true,
+          password_max_failed_attempts: true,
+          password_lockout_minutes: true,
+        } as any,
+      });
+    } catch (error) {
+      if (!isMissingColumnOrRelationError(error)) {
+        throw error;
+      }
+      // DB not migrated: fall back to defaults.
+      row = null;
+    }
 
     const policy: TenantPasswordPolicy = {
-      minLength: Math.max(6, Math.min(64, Number((row as any)?.password_min_length ?? 10) || 10)),
+      minLength: Math.max(6, Math.min(64, Number(row?.password_min_length ?? defaults.minLength) || defaults.minLength)),
       expirationDays:
-        (row as any)?.password_expiration_days == null
+        row?.password_expiration_days == null
           ? null
-          : Math.max(1, Math.min(3650, Number((row as any).password_expiration_days) || 0)) || null,
-      maxFailedAttempts: Math.max(0, Math.min(50, Number((row as any)?.password_max_failed_attempts ?? 10) || 10)),
-      lockoutMinutes: Math.max(0, Math.min(24 * 60, Number((row as any)?.password_lockout_minutes ?? 15) || 15)),
+          : Math.max(1, Math.min(3650, Number(row.password_expiration_days) || 0)) || null,
+      maxFailedAttempts: Math.max(0, Math.min(50, Number(row?.password_max_failed_attempts ?? defaults.maxFailedAttempts) || defaults.maxFailedAttempts)),
+      lockoutMinutes: Math.max(0, Math.min(24 * 60, Number(row?.password_lockout_minutes ?? defaults.lockoutMinutes) || defaults.lockoutMinutes)),
     };
 
     AuthService.tenantPolicyCache.set(tenantId, { policy, expiresAt: Date.now() + cacheMs });
@@ -145,14 +176,21 @@ export class AuthService {
   static async findUserByUsername(tenantId: string, username: string) {
     const normalized = username.trim().toLowerCase();
     const result = await db
-      .select()
+      .select({
+        id: users.id,
+        tenant_id: users.tenant_id,
+        username: users.username,
+        email: users.email,
+        password_hash: users.password_hash,
+        first_name: users.first_name,
+        last_name: users.last_name,
+        role: users.role,
+        is_active: users.is_active,
+        // Optional/newer columns are intentionally NOT selected to
+        // keep compatibility with older DB schemas.
+      } as any)
       .from(users)
-      .where(
-        and(
-          eq(users.tenant_id, tenantId),
-          sql`lower(${users.username}) = ${normalized}`,
-        ),
-      )
+      .where(and(eq(users.tenant_id, tenantId), sql`lower(${users.username}) = ${normalized}`))
       .limit(1);
 
     return result[0];
@@ -161,14 +199,19 @@ export class AuthService {
   static async findUserByEmail(tenantId: string, email: string) {
     const normalized = email.trim().toLowerCase();
     const result = await db
-      .select()
+      .select({
+        id: users.id,
+        tenant_id: users.tenant_id,
+        username: users.username,
+        email: users.email,
+        password_hash: users.password_hash,
+        first_name: users.first_name,
+        last_name: users.last_name,
+        role: users.role,
+        is_active: users.is_active,
+      } as any)
       .from(users)
-      .where(
-        and(
-          eq(users.tenant_id, tenantId),
-          sql`lower(${users.email}) = ${normalized}`,
-        ),
-      )
+      .where(and(eq(users.tenant_id, tenantId), sql`lower(${users.email}) = ${normalized}`))
       .limit(1);
 
     return result[0];
@@ -226,6 +269,8 @@ export class AuthService {
 
     const policy = await AuthService.getTenantPasswordPolicy(tenantId);
 
+    // If the DB schema is not migrated yet, lockout columns may be missing.
+    // In that case, these fields will be undefined and lockout is effectively disabled.
     const lockedUntil = (user as any).locked_until ? new Date((user as any).locked_until) : null;
     if (lockedUntil && lockedUntil.getTime() > Date.now()) {
       throw new AuthError('ACCOUNT_LOCKED', 'Conta temporariamente bloqueada');
@@ -242,22 +287,30 @@ export class AuthService {
       if (maxFailed > 0) {
         if (nextAttempts >= maxFailed && lockoutMinutes > 0) {
           const until = new Date(Date.now() + lockoutMinutes * 60_000);
-          await db
-            .update(users)
-            .set({
-              failed_login_attempts: 0,
-              locked_until: until,
-              updated_at: new Date(),
-            } as any)
-            .where(and(eq(users.tenant_id, tenantId), eq(users.id, user.id)));
+          try {
+            await db
+              .update(users)
+              .set({
+                failed_login_attempts: 0,
+                locked_until: until,
+                updated_at: new Date(),
+              } as any)
+              .where(and(eq(users.tenant_id, tenantId), eq(users.id, user.id)));
+          } catch (error) {
+            if (!isMissingColumnOrRelationError(error)) throw error;
+          }
 
           throw new AuthError('ACCOUNT_LOCKED', 'Conta temporariamente bloqueada');
         }
 
-        await db
-          .update(users)
-          .set({ failed_login_attempts: nextAttempts, updated_at: new Date() } as any)
-          .where(and(eq(users.tenant_id, tenantId), eq(users.id, user.id)));
+        try {
+          await db
+            .update(users)
+            .set({ failed_login_attempts: nextAttempts, updated_at: new Date() } as any)
+            .where(and(eq(users.tenant_id, tenantId), eq(users.id, user.id)));
+        } catch (error) {
+          if (!isMissingColumnOrRelationError(error)) throw error;
+        }
       }
 
       return null;
