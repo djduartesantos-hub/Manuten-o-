@@ -13,7 +13,14 @@ function formatWhen(iso: string) {
 }
 
 export function NotificationsPage() {
-  const { notifications, unreadCount, markAllRead, clearNotifications, deleteNotification } = useSocket();
+  const {
+  notifications,
+  unreadCount,
+  markAllRead,
+  clearNotifications,
+  deleteNotification,
+  markNotificationRead,
+  } = useSocket();
 
   return (
     <MainLayout>
@@ -79,6 +86,17 @@ export function NotificationsPage() {
 
 				<div className="flex items-center gap-2">
 					<p className="text-xs theme-text-muted">{formatWhen(n.createdAt)}</p>
+          {!n.read ? (
+            <button
+              type="button"
+              onClick={() => markNotificationRead(n.id)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border theme-border theme-card theme-text-muted transition hover:bg-[color:var(--dash-surface)] hover:theme-text"
+              aria-label="Marcar como lida"
+              title="Marcar como lida"
+            >
+              <Check className="h-4 w-4" />
+            </button>
+          ) : null}
 					<button
 						type="button"
 						onClick={() => deleteNotification(n.id)}

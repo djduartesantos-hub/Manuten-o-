@@ -834,3 +834,9 @@ export async function deleteInboxNotification(notificationId: string): Promise<{
     method: 'DELETE',
   });
 }
+
+export async function markInboxNotificationRead(notificationId: string): Promise<{ updated: number }> {
+  return apiCall(`/notifications/inbox/${encodeURIComponent(notificationId)}/read`, {
+    method: 'PATCH',
+  });
+}

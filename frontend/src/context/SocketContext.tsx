@@ -7,6 +7,7 @@ import {
   clearNotificationsInbox,
 	deleteInboxNotification,
   getNotificationsInbox,
+	markInboxNotificationRead,
   markNotificationsReadAll,
 } from '../services/api';
 
@@ -19,6 +20,7 @@ interface SocketContextType {
   markAllRead: () => Promise<void>;
   clearNotifications: () => Promise<void>;
 	deleteNotification: (notificationId: string) => Promise<void>;
+	markNotificationRead: (notificationId: string) => Promise<void>;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -221,6 +223,25 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     try {
       await deleteInboxNotification(id);
+    } catch {
+      // best-effort
+    }
+  }, []);
+
+  const markNotificationRead = React.useCallback(async (notificationId: string) => {
+    const id = String(notificationId || '').trim();
+    if (!id) return;
+
+    setNotifications((prev) =>
+      prev.map((n) => {
+        if (n.id !== id) return n;
+        if (!n.read) setUnreadCount((u) => Math.max(0, u - 1));
+        return { ...n, read: true };
+      }),
+    );
+
+    try {
+      await markInboxNotificationRead(id);
     } catch {
       // best-effort
     }
@@ -544,6 +565,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         markAllRead,
         clearNotifications,
 			deleteNotification,
+			markNotificationRead,
       }}
     >
       {children}
@@ -565,6 +587,7 @@ export function useSocket() {
       markAllRead: async () => {},
       clearNotifications: async () => {},
 		deleteNotification: async () => {},
+		markNotificationRead: async () => {},
     };
   }
   return context;
