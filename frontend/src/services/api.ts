@@ -214,7 +214,15 @@ function triggerDownload(blob: Blob, filename: string) {
 // ============================================================================
 
 export async function getSuperadminTenants(): Promise<
-  Array<{ id: string; name: string; slug: string; is_active: boolean; created_at?: any; updated_at?: any }>
+  Array<{
+    id: string;
+    name: string;
+    slug: string;
+    is_active: boolean;
+    is_read_only?: boolean;
+    created_at?: any;
+    updated_at?: any;
+  }>
 > {
   return apiCall('/superadmin/tenants');
 }
@@ -224,6 +232,7 @@ export async function createSuperadminTenant(data: {
   slug: string;
   description?: string | null;
   is_active?: boolean;
+  is_read_only?: boolean;
 }) {
   return apiCall('/superadmin/tenants', {
     method: 'POST',
@@ -236,6 +245,7 @@ export async function updateSuperadminTenant(tenantId: string, data: {
   slug?: string;
   description?: string | null;
   is_active?: boolean;
+  is_read_only?: boolean;
 }) {
   return apiCall(`/superadmin/tenants/${tenantId}`, {
     method: 'PATCH',

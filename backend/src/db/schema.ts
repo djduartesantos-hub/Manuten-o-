@@ -62,6 +62,7 @@ export const tenants = pgTable(
     logo_url: text('logo_url'),
     subscription_plan: text('subscription_plan').default('basic'),
     is_active: boolean('is_active').default(true),
+    is_read_only: boolean('is_read_only').default(false),
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
     deleted_at: timestamp('deleted_at', { withTimezone: true }),

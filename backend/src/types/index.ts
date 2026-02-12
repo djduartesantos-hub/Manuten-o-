@@ -35,6 +35,7 @@ export interface AuthenticatedRequest extends Express.Request {
   user?: JWTPayload;
   tenantId?: string;
   tenantSlug?: string;
+  tenantIsReadOnly?: boolean;
   plantId?: string;
   ip?: string;
   path?: string;

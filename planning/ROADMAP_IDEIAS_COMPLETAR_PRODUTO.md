@@ -153,7 +153,7 @@ Este documento é um “banco de ideias” orientado a tornar o produto mais com
 12. Tool de integridade com detalhes.
 13. Tool de RBAC drift com sugestões.
 14. Tool de segurança com recomendações.
-15. “Quarantine tenant” (read-only mode).
+15. ✅ “Quarantine tenant” (read-only mode).
 16. Export multi-format (zip com múltiplos CSV).
 17. Captura de ambiente (versões).
 18. SLA interno por ticket.
@@ -330,7 +330,7 @@ Este documento é um “banco de ideias” orientado a tornar o produto mais com
 1. Config central de feature flags.
 2. Gestão de planos/subscrição.
 3. Health score por tenant.
-4. Quarentena (read-only).
+4. ✅ Quarentena (read-only).
 5. Bundles automáticos.
 6. Export global multi-tenant.
 7. Auditoria avançada.

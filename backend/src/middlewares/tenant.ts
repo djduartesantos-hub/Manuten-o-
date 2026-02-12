@@ -9,6 +9,7 @@ let cachedTenant:
   | {
       id: string;
       slug: string;
+      isReadOnly: boolean;
       expiresAt: number;
     }
   | undefined;
@@ -29,6 +30,7 @@ async function resolveTenant() {
     cachedTenant = {
       id: preferred.id,
       slug: preferred.slug,
+      isReadOnly: Boolean((preferred as any).is_read_only),
       expiresAt: now + TENANT_CACHE_TTL_MS,
     };
     return cachedTenant;
@@ -42,6 +44,7 @@ async function resolveTenant() {
     cachedTenant = {
       id: fallback.id,
       slug: fallback.slug,
+      isReadOnly: Boolean((fallback as any).is_read_only),
       expiresAt: now + TENANT_CACHE_TTL_MS,
     };
     return cachedTenant;
@@ -50,6 +53,7 @@ async function resolveTenant() {
   cachedTenant = {
     id: DEFAULT_TENANT_ID,
     slug: DEFAULT_TENANT_SLUG,
+    isReadOnly: false,
     expiresAt: now + TENANT_CACHE_TTL_MS,
   };
 
@@ -104,6 +108,7 @@ export async function tenantSlugMiddleware(
 
       req.tenantId = tenant.id;
       req.tenantSlug = tenant.slug;
+      req.tenantIsReadOnly = Boolean((tenant as any).is_read_only);
       next();
       return;
     }
@@ -111,10 +116,12 @@ export async function tenantSlugMiddleware(
     const resolved = await resolveTenant();
     req.tenantId = resolved.id;
     req.tenantSlug = resolved.slug;
+    req.tenantIsReadOnly = Boolean(resolved.isReadOnly);
     next();
   } catch (error) {
     req.tenantId = DEFAULT_TENANT_ID;
     req.tenantSlug = DEFAULT_TENANT_SLUG;
+    req.tenantIsReadOnly = false;
     // In single-tenant deployments we prefer a safe fallback over blocking the request.
     // Downstream handlers can still fail if the DB is unreachable, but the error
     // should come from the actual operation (auth/query) rather than tenant resolution.

@@ -332,7 +332,7 @@ export function SuperAdminSettings() {
   const navigate = useNavigate();
   const { selectedPlant, plants, setPlants, setSelectedPlant } = useAppStore();
   const [tenants, setTenants] = React.useState<
-    Array<{ id: string; name: string; slug: string; is_active: boolean }>
+    Array<{ id: string; name: string; slug: string; is_active: boolean; is_read_only?: boolean }>
   >([]);
   const [tenantMetrics, setTenantMetrics] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -857,6 +857,18 @@ export function SuperAdminSettings() {
     }
   };
 
+  const toggleTenantReadOnly = async (tenantId: string, nextReadOnly: boolean) => {
+    setError('');
+    setSuccess('');
+    try {
+      await updateSuperadminTenant(tenantId, { is_read_only: nextReadOnly });
+      setSuccess(nextReadOnly ? 'Empresa em modo read-only.' : 'Modo read-only removido.');
+      await loadTenants();
+    } catch (err: any) {
+      setError(err?.message || 'Falha ao atualizar modo read-only');
+    }
+  };
+
   return (
     <div className="space-y-8">
       <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-5">
@@ -1314,6 +1326,11 @@ export function SuperAdminSettings() {
 
               <div className="mt-5 space-y-2">
                 {(tenantMetrics.length > 0 ? tenantMetrics : tenants).map((t: any) => (
+                  (() => {
+                    const base = tenants.find((x) => String(x.id) === String(t.id));
+                    const isActive = typeof t?.is_active === 'boolean' ? Boolean(t.is_active) : Boolean(base?.is_active);
+                    const isReadOnly = typeof t?.is_read_only === 'boolean' ? Boolean(t.is_read_only) : Boolean(base?.is_read_only);
+                    return (
                   <div
                     key={t.id}
                     className="flex items-center justify-between gap-3 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-4 py-3"
@@ -1326,6 +1343,11 @@ export function SuperAdminSettings() {
                           users={String((t as any).users ?? '—')} • fábricas={String((t as any).plants ?? '—')} • último login={
                             (t as any).last_login ? String((t as any).last_login) : '—'
                           }
+                        </div>
+                      ) : null}
+                      {isReadOnly ? (
+                        <div className="mt-1 text-xs font-semibold text-[color:var(--dash-muted)]">
+                          Modo read-only ativo
                         </div>
                       ) : null}
                     </div>
@@ -1353,12 +1375,21 @@ export function SuperAdminSettings() {
                       <button
                         type="button"
                         className="btn-secondary h-9 px-3"
-                        onClick={() => void toggleTenantActive(t.id, !t.is_active)}
+                        onClick={() => void toggleTenantReadOnly(t.id, !isReadOnly)}
                       >
-                        {t.is_active ? 'Desativar' : 'Ativar'}
+                        {isReadOnly ? 'Remover read-only' : 'Read-only'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={() => void toggleTenantActive(t.id, !isActive)}
+                      >
+                        {isActive ? 'Desativar' : 'Ativar'}
                       </button>
                     </div>
                   </div>
+                    );
+                  })()
                 ))}
               </div>
             </section>

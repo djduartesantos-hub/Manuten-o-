@@ -37,6 +37,7 @@ export async function listTenants(_req: AuthenticatedRequest, res: Response) {
       name: String(t.name || ''),
       slug: String(t.slug || ''),
       is_active: Boolean(t.is_active),
+      is_read_only: Boolean(t.is_read_only),
       created_at: t.created_at,
       updated_at: t.updated_at,
     }));
@@ -49,7 +50,7 @@ export async function listTenants(_req: AuthenticatedRequest, res: Response) {
 
 export async function createTenant(req: AuthenticatedRequest, res: Response) {
   try {
-    const { name, slug, description, is_active } = req.body || {};
+    const { name, slug, description, is_active, is_read_only } = req.body || {};
 
     const safeName = String(name || '').trim();
     const safeSlug = normalizeSlug(slug);
@@ -78,6 +79,7 @@ export async function createTenant(req: AuthenticatedRequest, res: Response) {
         slug: safeSlug,
         description: description ? String(description) : null,
         is_active: is_active ?? true,
+        is_read_only: Boolean(is_read_only),
         created_at: new Date(),
         updated_at: new Date(),
       } as any)
@@ -89,7 +91,12 @@ export async function createTenant(req: AuthenticatedRequest, res: Response) {
         entity_type: 'tenant',
         entity_id: String(created.id),
         affected_tenant_id: String(created.id),
-        metadata: { name: safeName, slug: safeSlug, is_active: Boolean(created.is_active) },
+        metadata: {
+          name: safeName,
+          slug: safeSlug,
+          is_active: Boolean(created.is_active),
+          is_read_only: Boolean((created as any).is_read_only),
+        },
       });
     }
 
@@ -114,7 +121,7 @@ export async function updateTenant(req: AuthenticatedRequest, res: Response) {
       return res.status(404).json({ success: false, error: 'Tenant not found' });
     }
 
-    const { name, slug, description, is_active } = req.body || {};
+    const { name, slug, description, is_active, is_read_only } = req.body || {};
 
     const patch: any = { updated_at: new Date() };
 
@@ -149,6 +156,10 @@ export async function updateTenant(req: AuthenticatedRequest, res: Response) {
       patch.is_active = Boolean(is_active);
     }
 
+    if (is_read_only !== undefined) {
+      patch.is_read_only = Boolean(is_read_only);
+    }
+
     const [updated] = await db
       .update(tenants)
       .set(patch)
@@ -167,12 +178,14 @@ export async function updateTenant(req: AuthenticatedRequest, res: Response) {
             slug: String((before as any)?.slug ?? ''),
             description: (before as any)?.description ?? null,
             is_active: Boolean((before as any)?.is_active),
+            is_read_only: Boolean((before as any)?.is_read_only),
           },
           after: {
             name: String((updated as any)?.name ?? ''),
             slug: String((updated as any)?.slug ?? ''),
             description: (updated as any)?.description ?? null,
             is_active: Boolean((updated as any)?.is_active),
+            is_read_only: Boolean((updated as any)?.is_read_only),
           },
         },
       });

@@ -29,6 +29,7 @@ import superadminRoutes from './routes/superadmin.routes.js';
 import { errorHandler, notFoundHandler, requestLogger } from './middlewares/error.js';
 import { tenantSlugMiddleware } from './middlewares/tenant.js';
 import { requestIdMiddleware } from './middlewares/request-id.js';
+import { tenantReadOnlyGuard } from './middlewares/tenant-readonly.js';
 
 // ESM __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -94,6 +95,7 @@ export function createApp(): Express {
   app.use('/api/auth', authRoutes);
 
   app.use('/api', tenantSlugMiddleware);
+  app.use('/api', tenantReadOnlyGuard);
   app.use('/api', tenantRoutes);
   app.use('/api', workOrderRoutes);
   app.use('/api', assetRoutes);

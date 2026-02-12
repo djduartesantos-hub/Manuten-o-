@@ -14,8 +14,8 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 
 **Must**
 - Autenticação/Autorização consistente em todas as rotas (incl. tenant scope) e auditoria dos caminhos críticos.
-- Logs estruturados + request id (mínimo em produção).
-- Rate limit nos endpoints sensíveis (auth, reset password, exports grandes).
+- ✅ Logs estruturados + request id (mínimo em produção).
+- ✅ Rate limit nos endpoints sensíveis (auth, reset password, exports grandes).
 - Erros padronizados (não vazar stack/segredos).
 - Backups e recuperação (runbook simples).
 
@@ -24,7 +24,7 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - Política de retenção de audit logs (config).
 
 **Could**
-- “Read-only mode” por tenant (quarentena) para suporte.
+- ✅ “Read-only mode” por tenant (quarentena) para suporte.
 
 **Dependências**
 - BD: opcional (tabelas de config/retention, se necessário)
@@ -166,7 +166,7 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 
 **Should**
 - “Health score” por tenant e alertas.
-- Modo quarentena/readonly.
+- ✅ Modo quarentena/readonly.
 
 **Could**
 - Sistema de Tickets (ver docs/ROADMAP_SUPERADMIN_TICKETS.md)
