@@ -14,12 +14,21 @@ router.get('/tenants', SuperAdminController.listTenants);
 router.post('/tenants', SuperAdminController.createTenant);
 router.patch('/tenants/:tenantId', SuperAdminController.updateTenant);
 
+// Metrics / exports
+router.get('/metrics/dashboard', SuperAdminController.getDashboardMetrics);
+router.get('/metrics/tenants', SuperAdminController.listTenantMetrics);
+router.get('/metrics/tenants/export', SuperAdminController.exportTenantMetrics);
+router.get('/metrics/plants', SuperAdminController.listPlantMetrics);
+router.get('/metrics/plants/export', SuperAdminController.exportPlantMetrics);
+router.get('/metrics/users/anomalies', SuperAdminController.getUserAnomalies);
+
 // Database (status)
 router.get('/db/status', SuperAdminController.getDbStatus);
 
 // Health / diagnostics
 router.get('/health', SuperAdminController.getHealth);
 router.get('/diagnostics/tenants', SuperAdminController.getTenantDiagnostics);
+router.get('/diagnostics/bundle/export', SuperAdminController.exportDiagnosticsBundle);
 
 // SuperAdmin audit logs
 router.get('/audit', SuperAdminController.listSuperadminAudit);

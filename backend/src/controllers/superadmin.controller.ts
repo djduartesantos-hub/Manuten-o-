@@ -206,10 +206,656 @@ export async function getHealth(_req: AuthenticatedRequest, res: Response) {
         version: process.env.GIT_SHA || process.env.RENDER_GIT_COMMIT || null,
         dbOk,
         dbTime,
+        config: {
+          nodeEnv: process.env.NODE_ENV || null,
+          timezone: process.env.TZ || null,
+          nodeVersion: process.version,
+          platform: process.platform,
+          arch: process.arch,
+        },
       },
     });
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to fetch health status' });
+  }
+}
+
+function hasTenantOverrideHeader(req: AuthenticatedRequest): boolean {
+  const headerTenantId = (req as any)?.headers?.['x-tenant-id'];
+  const headerTenantSlug = (req as any)?.headers?.['x-tenant-slug'];
+  return Boolean(
+    (typeof headerTenantId === 'string' && headerTenantId.trim().length > 0) ||
+      (typeof headerTenantSlug === 'string' && headerTenantSlug.trim().length > 0),
+  );
+}
+
+export async function getDashboardMetrics(_req: AuthenticatedRequest, res: Response) {
+  try {
+    const serverTime = new Date().toISOString();
+    const rows = await db.execute(sql`
+      SELECT
+        (SELECT COUNT(*)::int FROM tenants) AS tenants_total,
+        (SELECT COUNT(*)::int FROM tenants WHERE is_active = true) AS tenants_active,
+        (SELECT COUNT(*)::int FROM plants) AS plants_total,
+        (SELECT COUNT(*)::int FROM users) AS users_total,
+        (SELECT COUNT(*)::int FROM tenants WHERE created_at >= NOW() - interval '24 hours') AS tenants_created_24h,
+        (SELECT COUNT(*)::int FROM users WHERE created_at >= NOW() - interval '24 hours') AS users_created_24h,
+        (SELECT COUNT(*)::int FROM users WHERE last_login >= NOW() - interval '24 hours') AS logins_24h;
+    `);
+
+    const r = (rows as any)?.rows?.[0] ?? {};
+    return res.json({
+      success: true,
+      data: {
+        serverTime,
+        totals: {
+          tenants: Number(r.tenants_total ?? 0),
+          tenantsActive: Number(r.tenants_active ?? 0),
+          plants: Number(r.plants_total ?? 0),
+          users: Number(r.users_total ?? 0),
+        },
+        last24h: {
+          tenantsCreated: Number(r.tenants_created_24h ?? 0),
+          usersCreated: Number(r.users_created_24h ?? 0),
+          logins: Number(r.logins_24h ?? 0),
+        },
+      },
+    });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to fetch dashboard metrics' });
+  }
+}
+
+export async function listTenantMetrics(_req: AuthenticatedRequest, res: Response) {
+  try {
+    const rows = await db.execute(sql`
+      SELECT
+        t.id,
+        t.name,
+        t.slug,
+        t.is_active,
+        t.created_at,
+        t.updated_at,
+        COALESCE(u.user_count, 0)::int AS users,
+        COALESCE(p.plant_count, 0)::int AS plants,
+        u.last_login AS last_login
+      FROM tenants t
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS user_count, MAX(last_login) AS last_login
+        FROM users
+        GROUP BY tenant_id
+      ) u ON u.tenant_id = t.id
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS plant_count
+        FROM plants
+        GROUP BY tenant_id
+      ) p ON p.tenant_id = t.id
+      ORDER BY t.created_at ASC;
+    `);
+
+    const data = ((rows as any)?.rows ?? []).map((r: any) => ({
+      id: String(r.id),
+      name: String(r.name || ''),
+      slug: String(r.slug || ''),
+      is_active: Boolean(r.is_active),
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+      users: Number(r.users ?? 0),
+      plants: Number(r.plants ?? 0),
+      last_login: r.last_login ?? null,
+    }));
+
+    return res.json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to fetch tenant metrics' });
+  }
+}
+
+export async function exportTenantMetrics(req: AuthenticatedRequest, res: Response) {
+  try {
+    const format = String((req.query as any)?.format || 'csv').toLowerCase();
+    const rows = await db.execute(sql`
+      SELECT
+        t.id,
+        t.name,
+        t.slug,
+        t.is_active,
+        t.created_at,
+        t.updated_at,
+        COALESCE(u.user_count, 0)::int AS users,
+        COALESCE(p.plant_count, 0)::int AS plants,
+        u.last_login AS last_login
+      FROM tenants t
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS user_count, MAX(last_login) AS last_login
+        FROM users
+        GROUP BY tenant_id
+      ) u ON u.tenant_id = t.id
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS plant_count
+        FROM plants
+        GROUP BY tenant_id
+      ) p ON p.tenant_id = t.id
+      ORDER BY t.created_at ASC;
+    `);
+
+    const data = ((rows as any)?.rows ?? []).map((r: any) => ({
+      id: String(r.id),
+      name: String(r.name || ''),
+      slug: String(r.slug || ''),
+      is_active: Boolean(r.is_active),
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+      users: Number(r.users ?? 0),
+      plants: Number(r.plants ?? 0),
+      last_login: r.last_login ?? null,
+    }));
+
+    if (format === 'json') {
+      return res.json({ success: true, data });
+    }
+
+    const headers = ['id', 'name', 'slug', 'is_active', 'users', 'plants', 'last_login', 'created_at', 'updated_at'];
+    const csv = [
+      headers.join(','),
+      ...data.map((r: any) =>
+        [
+          r.id,
+          r.name,
+          r.slug,
+          r.is_active,
+          r.users,
+          r.plants,
+          r.last_login,
+          r.created_at,
+          r.updated_at,
+        ]
+          .map(toCsvValue)
+          .join(','),
+      ),
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="superadmin_tenants_metrics.csv"');
+    return res.status(200).send(csv);
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to export tenant metrics' });
+  }
+}
+
+export async function listPlantMetrics(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!hasTenantOverrideHeader(req)) {
+      return res.status(400).json({ success: false, error: 'Select a tenant (Empresa) to view plant diagnostics' });
+    }
+
+    const tenantId = String(req.tenantId || '');
+    const rows = await db.execute(sql`
+      SELECT
+        p.id,
+        p.name,
+        p.code,
+        p.is_active,
+        p.created_at,
+        COALESCE(a.asset_count, 0)::int AS assets,
+        COALESCE(o.overdue_count, 0)::int AS overdue,
+        COALESCE(s.scheduled_30d, 0)::int AS scheduled_30d,
+        COALESCE(s.completed_30d, 0)::int AS completed_30d
+      FROM plants p
+      LEFT JOIN (
+        SELECT plant_id, COUNT(*)::int AS asset_count
+        FROM assets
+        WHERE tenant_id = ${tenantId}
+        GROUP BY plant_id
+      ) a ON a.plant_id = p.id
+      LEFT JOIN (
+        SELECT plant_id, COUNT(*)::int AS overdue_count
+        FROM preventive_maintenance_schedules
+        WHERE tenant_id = ${tenantId}
+          AND scheduled_for < NOW()
+          AND status IN ('agendada','em_execucao','reagendada')
+        GROUP BY plant_id
+      ) o ON o.plant_id = p.id
+      LEFT JOIN (
+        SELECT
+          plant_id,
+          COUNT(*) FILTER (WHERE scheduled_for >= NOW() - interval '30 days')::int AS scheduled_30d,
+          COUNT(*) FILTER (WHERE completed_at IS NOT NULL AND completed_at >= NOW() - interval '30 days')::int AS completed_30d
+        FROM preventive_maintenance_schedules
+        WHERE tenant_id = ${tenantId}
+        GROUP BY plant_id
+      ) s ON s.plant_id = p.id
+      WHERE p.tenant_id = ${tenantId}
+      ORDER BY p.created_at ASC;
+    `);
+
+    const data = ((rows as any)?.rows ?? []).map((r: any) => {
+      const scheduled = Number(r.scheduled_30d ?? 0);
+      const completed = Number(r.completed_30d ?? 0);
+      const rate = scheduled > 0 ? completed / scheduled : null;
+      return {
+        id: String(r.id),
+        name: String(r.name || ''),
+        code: String(r.code || ''),
+        is_active: Boolean(r.is_active),
+        created_at: r.created_at,
+        assets: Number(r.assets ?? 0),
+        overdue: Number(r.overdue ?? 0),
+        scheduled_30d: scheduled,
+        completed_30d: completed,
+        completion_rate_30d: rate,
+      };
+    });
+
+    return res.json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to fetch plant metrics' });
+  }
+}
+
+export async function exportPlantMetrics(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!hasTenantOverrideHeader(req)) {
+      return res.status(400).json({ success: false, error: 'Select a tenant (Empresa) to export plant metrics' });
+    }
+
+    const format = String((req.query as any)?.format || 'csv').toLowerCase();
+    const tenantId = String(req.tenantId || '');
+
+    const rows = await db.execute(sql`
+      SELECT
+        p.id,
+        p.name,
+        p.code,
+        p.is_active,
+        p.created_at,
+        COALESCE(a.asset_count, 0)::int AS assets,
+        COALESCE(o.overdue_count, 0)::int AS overdue,
+        COALESCE(s.scheduled_30d, 0)::int AS scheduled_30d,
+        COALESCE(s.completed_30d, 0)::int AS completed_30d
+      FROM plants p
+      LEFT JOIN (
+        SELECT plant_id, COUNT(*)::int AS asset_count
+        FROM assets
+        WHERE tenant_id = ${tenantId}
+        GROUP BY plant_id
+      ) a ON a.plant_id = p.id
+      LEFT JOIN (
+        SELECT plant_id, COUNT(*)::int AS overdue_count
+        FROM preventive_maintenance_schedules
+        WHERE tenant_id = ${tenantId}
+          AND scheduled_for < NOW()
+          AND status IN ('agendada','em_execucao','reagendada')
+        GROUP BY plant_id
+      ) o ON o.plant_id = p.id
+      LEFT JOIN (
+        SELECT
+          plant_id,
+          COUNT(*) FILTER (WHERE scheduled_for >= NOW() - interval '30 days')::int AS scheduled_30d,
+          COUNT(*) FILTER (WHERE completed_at IS NOT NULL AND completed_at >= NOW() - interval '30 days')::int AS completed_30d
+        FROM preventive_maintenance_schedules
+        WHERE tenant_id = ${tenantId}
+        GROUP BY plant_id
+      ) s ON s.plant_id = p.id
+      WHERE p.tenant_id = ${tenantId}
+      ORDER BY p.created_at ASC;
+    `);
+
+    const data = ((rows as any)?.rows ?? []).map((r: any) => {
+      const scheduled = Number(r.scheduled_30d ?? 0);
+      const completed = Number(r.completed_30d ?? 0);
+      const rate = scheduled > 0 ? completed / scheduled : null;
+      return {
+        id: String(r.id),
+        name: String(r.name || ''),
+        code: String(r.code || ''),
+        is_active: Boolean(r.is_active),
+        created_at: r.created_at,
+        assets: Number(r.assets ?? 0),
+        overdue: Number(r.overdue ?? 0),
+        scheduled_30d: scheduled,
+        completed_30d: completed,
+        completion_rate_30d: rate,
+      };
+    });
+
+    if (format === 'json') {
+      return res.json({ success: true, data });
+    }
+
+    const headers = [
+      'id',
+      'name',
+      'code',
+      'is_active',
+      'assets',
+      'overdue',
+      'scheduled_30d',
+      'completed_30d',
+      'completion_rate_30d',
+      'created_at',
+    ];
+    const csv = [
+      headers.join(','),
+      ...data.map((r: any) =>
+        [
+          r.id,
+          r.name,
+          r.code,
+          r.is_active,
+          r.assets,
+          r.overdue,
+          r.scheduled_30d,
+          r.completed_30d,
+          r.completion_rate_30d,
+          r.created_at,
+        ]
+          .map(toCsvValue)
+          .join(','),
+      ),
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="superadmin_plants_metrics.csv"');
+    return res.status(200).send(csv);
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to export plant metrics' });
+  }
+}
+
+export async function getUserAnomalies(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!hasTenantOverrideHeader(req)) {
+      return res.status(400).json({ success: false, error: 'Select a tenant (Empresa) to view user diagnostics' });
+    }
+
+    const tenantId = String(req.tenantId || '');
+
+    const withoutPlantsRows = await db.execute(sql`
+      SELECT id, username, email, first_name, last_name, role, is_active, last_login, created_at
+      FROM users u
+      WHERE u.tenant_id = ${tenantId}
+        AND NOT EXISTS (
+          SELECT 1 FROM user_plants up WHERE up.user_id = u.id
+        )
+      ORDER BY last_login DESC NULLS LAST, created_at DESC
+      LIMIT 50;
+    `);
+
+    const withoutRoleRows = await db.execute(sql`
+      SELECT id, username, email, first_name, last_name, role, is_active, last_login, created_at
+      FROM users u
+      WHERE u.tenant_id = ${tenantId}
+        AND (u.role IS NULL OR LENGTH(TRIM(u.role)) = 0)
+      ORDER BY last_login DESC NULLS LAST, created_at DESC
+      LIMIT 50;
+    `);
+
+    const unknownRoleRows = await db.execute(sql`
+      SELECT id, username, email, first_name, last_name, role, is_active, last_login, created_at
+      FROM users u
+      WHERE u.tenant_id = ${tenantId}
+        AND NOT EXISTS (
+          SELECT 1 FROM rbac_roles r WHERE r.tenant_id = ${tenantId} AND r.key = u.role
+        )
+      ORDER BY last_login DESC NULLS LAST, created_at DESC
+      LIMIT 50;
+    `);
+
+    const mapUser = (r: any) => ({
+      id: String(r.id),
+      username: String(r.username || ''),
+      email: String(r.email || ''),
+      first_name: String(r.first_name || ''),
+      last_name: String(r.last_name || ''),
+      role: r.role === null || r.role === undefined ? null : String(r.role),
+      is_active: Boolean(r.is_active),
+      last_login: r.last_login ?? null,
+      created_at: r.created_at ?? null,
+    });
+
+    const usersWithoutPlants = ((withoutPlantsRows as any)?.rows ?? []).map(mapUser);
+    const usersWithoutRole = ((withoutRoleRows as any)?.rows ?? []).map(mapUser);
+    const usersWithUnknownRole = ((unknownRoleRows as any)?.rows ?? []).map(mapUser);
+
+    return res.json({
+      success: true,
+      data: {
+        usersWithoutPlants,
+        usersWithoutRole,
+        usersWithUnknownRole,
+      },
+    });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to fetch user anomalies' });
+  }
+}
+
+export async function exportDiagnosticsBundle(req: AuthenticatedRequest, res: Response) {
+  try {
+    const auditLimitRaw = Number((req.query as any)?.auditLimit ?? 50);
+    const auditLimit = Number.isFinite(auditLimitRaw) ? Math.min(Math.max(Math.trunc(auditLimitRaw), 1), 200) : 50;
+    const diagLimitRaw = Number((req.query as any)?.diagnosticsLimit ?? 10);
+    const diagnosticsLimit = Number.isFinite(diagLimitRaw) ? Math.min(Math.max(Math.trunc(diagLimitRaw), 1), 50) : 10;
+    const dbLimitRaw = Number((req.query as any)?.dbRunsLimit ?? 10);
+    const dbRunsLimit = Number.isFinite(dbLimitRaw) ? Math.min(Math.max(Math.trunc(dbLimitRaw), 1), 50) : 10;
+
+    const serverTime = new Date().toISOString();
+    const ping = await db.execute(sql`SELECT 1 AS ok;`);
+    const dbOk = Number((ping as any)?.rows?.[0]?.ok ?? 0) === 1;
+
+    let dbTime: string | null = null;
+    try {
+      const dbNowResult = await db.execute(sql`SELECT NOW() AS now;`);
+      dbTime = String((dbNowResult as any)?.rows?.[0]?.now ?? '') || null;
+    } catch {
+      dbTime = null;
+    }
+
+    const health = {
+      apiOk: true,
+      serverTime,
+      uptimeSeconds: Math.floor(process.uptime()),
+      version: process.env.GIT_SHA || process.env.RENDER_GIT_COMMIT || null,
+      dbOk,
+      dbTime,
+      config: {
+        nodeEnv: process.env.NODE_ENV || null,
+        timezone: process.env.TZ || null,
+        nodeVersion: process.version,
+        platform: process.platform,
+        arch: process.arch,
+      },
+    };
+
+    // tenant diagnostics
+    const diagReq: any = { query: { limit: diagnosticsLimit } };
+    // Reuse the same SQL pattern from getTenantDiagnostics (inlined here)
+    const diagRows = await db.execute(sql`
+      SELECT
+        t.id,
+        t.name,
+        t.slug,
+        t.is_active,
+        COALESCE(u.user_count, 0)::int AS users,
+        COALESCE(p.plant_count, 0)::int AS plants
+      FROM tenants t
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS user_count
+        FROM users
+        GROUP BY tenant_id
+      ) u ON u.tenant_id = t.id
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS plant_count
+        FROM plants
+        GROUP BY tenant_id
+      ) p ON p.tenant_id = t.id
+      ORDER BY COALESCE(u.user_count, 0) DESC, COALESCE(p.plant_count, 0) DESC, t.created_at ASC
+      LIMIT ${diagnosticsLimit};
+    `);
+
+    const topTenants = ((diagRows as any)?.rows ?? []).map((r: any) => ({
+      id: String(r.id),
+      name: String(r.name || ''),
+      slug: String(r.slug || ''),
+      is_active: Boolean(r.is_active),
+      users: Number(r.users ?? 0),
+      plants: Number(r.plants ?? 0),
+    }));
+
+    const warningsRows = await db.execute(sql`
+      SELECT
+        t.id,
+        t.name,
+        t.slug,
+        t.is_active,
+        COALESCE(u.user_count, 0)::int AS users,
+        COALESCE(p.plant_count, 0)::int AS plants
+      FROM tenants t
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS user_count
+        FROM users
+        GROUP BY tenant_id
+      ) u ON u.tenant_id = t.id
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS plant_count
+        FROM plants
+        GROUP BY tenant_id
+      ) p ON p.tenant_id = t.id
+      WHERE (t.is_active = true AND COALESCE(p.plant_count, 0) = 0)
+         OR (t.is_active = true AND COALESCE(u.user_count, 0) = 0)
+         OR (t.is_active = false AND COALESCE(u.user_count, 0) > 0)
+      ORDER BY t.is_active DESC, COALESCE(u.user_count, 0) DESC;
+    `);
+
+    const warnings = ((warningsRows as any)?.rows ?? []).map((r: any) => {
+      const usersCount = Number(r.users ?? 0);
+      const plantsCount = Number(r.plants ?? 0);
+      const isActive = Boolean(r.is_active);
+
+      let type = 'warning';
+      if (isActive && plantsCount === 0) type = 'active_without_plants';
+      else if (isActive && usersCount === 0) type = 'active_without_users';
+      else if (!isActive && usersCount > 0) type = 'inactive_with_users';
+
+      return {
+        type,
+        tenant: {
+          id: String(r.id),
+          name: String(r.name || ''),
+          slug: String(r.slug || ''),
+          is_active: isActive,
+        },
+        users: usersCount,
+        plants: plantsCount,
+      };
+    });
+
+    const tenantDiagnostics = { topTenants, warnings };
+
+    // db status (global or tenant depending on override)
+    const hasOverride = hasTenantOverrideHeader(req);
+    const tenantId = String(req.tenantId || '');
+    const tenantSlug = String(req.tenantSlug || '');
+
+    let userCount: number | null = null;
+    let plantCount: number | null = null;
+    if (hasOverride) {
+      try {
+        const userCountResult = await db.execute(
+          sql`SELECT COUNT(*)::int AS count FROM users WHERE tenant_id = ${tenantId};`,
+        );
+        userCount = Number((userCountResult as any)?.rows?.[0]?.count ?? 0);
+      } catch {
+        userCount = null;
+      }
+
+      try {
+        const plantCountResult = await db.execute(
+          sql`SELECT COUNT(*)::int AS count FROM plants WHERE tenant_id = ${tenantId};`,
+        );
+        plantCount = Number((plantCountResult as any)?.rows?.[0]?.count ?? 0);
+      } catch {
+        plantCount = null;
+      }
+    }
+
+    let migrationsTable: string | null = null;
+    let latestMigration: any | null = null;
+    try {
+      const tableCheck = await db.execute(
+        sql`SELECT to_regclass('public.__drizzle_migrations') AS name;`,
+      );
+      migrationsTable = String((tableCheck as any)?.rows?.[0]?.name ?? '') || null;
+
+      if (migrationsTable) {
+        const latest = await db.execute(
+          sql`SELECT * FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 1;`,
+        );
+        latestMigration = (latest as any)?.rows?.[0] ?? null;
+      }
+    } catch {
+      migrationsTable = null;
+      latestMigration = null;
+    }
+
+    let lastSetupRun: any | null = null;
+    let setupRuns: any[] = [];
+    if (hasOverride) {
+      try {
+        const tableCheck = await db.execute(sql`SELECT to_regclass('public.setup_db_runs') AS name;`);
+        const tableName = String((tableCheck as any)?.rows?.[0]?.name ?? '') || null;
+        if (tableName) {
+          const runs = await db.execute(sql`
+            SELECT id, tenant_id, run_type, user_id, migrations, patches, created_at
+            FROM setup_db_runs
+            WHERE tenant_id = ${tenantId}
+            ORDER BY created_at DESC
+            LIMIT ${dbRunsLimit};
+          `);
+          setupRuns = (runs as any)?.rows ?? [];
+          lastSetupRun = setupRuns[0] ?? null;
+        }
+      } catch {
+        lastSetupRun = null;
+        setupRuns = [];
+      }
+    }
+
+    const dbStatus = {
+      scope: hasOverride ? 'tenant' : 'global',
+      tenantId,
+      tenantSlug,
+      serverTime,
+      dbOk,
+      dbTime,
+      counts: {
+        users: userCount,
+        plants: plantCount,
+      },
+      drizzleMigrations: {
+        table: migrationsTable,
+        latest: latestMigration,
+      },
+      lastSetupRun,
+      setupRuns,
+    };
+
+    const audit = await SuperadminAuditService.list({ limit: auditLimit, offset: 0, from: null, to: null });
+
+    const bundle = {
+      generatedAt: serverTime,
+      health,
+      tenantDiagnostics,
+      dbStatus,
+      audit,
+    };
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="superadmin_diagnostics_bundle.json"');
+    return res.status(200).send(JSON.stringify({ success: true, data: bundle }, null, 2));
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to export diagnostics bundle' });
   }
 }
 

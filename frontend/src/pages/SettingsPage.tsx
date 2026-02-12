@@ -6,12 +6,19 @@ import { useAuth } from '../hooks/useAuth';
 import {
   apiCall,
   createSuperadminTenant,
+  downloadSuperadminDbStatusJson,
+  downloadSuperadminDiagnosticsBundle,
+  downloadSuperadminPlantsMetrics,
   downloadSetupRunsExport,
   downloadSuperadminAudit,
+  downloadSuperadminTenantsMetrics,
   getSuperadminAudit,
+  getSuperadminDashboardMetrics,
   getSuperadminHealth,
   getSuperadminDbStatus,
+  getSuperadminPlantsMetrics,
   getSuperadminTenantDiagnostics,
+  getSuperadminTenantsMetrics,
   updateSuperadminTenant,
   purgeSuperadminAudit,
   createAdminRole,
@@ -26,6 +33,7 @@ import {
   getAssets,
   getSuperadminTenants,
   getUserPlants,
+  getSuperadminUserAnomalies,
   resetSuperadminUserPassword,
   searchSuperadminUsers,
   setAdminRolePermissions,
@@ -318,6 +326,7 @@ export function SuperAdminSettings() {
   const [tenants, setTenants] = React.useState<
     Array<{ id: string; name: string; slug: string; is_active: boolean }>
   >([]);
+  const [tenantMetrics, setTenantMetrics] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string>('');
   const [success, setSuccess] = React.useState<string>('');
@@ -392,6 +401,19 @@ export function SuperAdminSettings() {
   const [loadingDbStatus, setLoadingDbStatus] = React.useState(false);
   const [dbRunsLimit, setDbRunsLimit] = React.useState<number>(10);
 
+  const [dashboardMetrics, setDashboardMetrics] = React.useState<any | null>(null);
+  const [dashboardAudit, setDashboardAudit] = React.useState<any[]>([]);
+  const [loadingDashboard, setLoadingDashboard] = React.useState(false);
+
+  const [plantMetrics, setPlantMetrics] = React.useState<any[]>([]);
+  const [loadingPlantMetrics, setLoadingPlantMetrics] = React.useState(false);
+
+  const [userAnomalies, setUserAnomalies] = React.useState<any | null>(null);
+  const [loadingUserAnomalies, setLoadingUserAnomalies] = React.useState(false);
+
+  const [rbacMatrix, setRbacMatrix] = React.useState<{ roles: any[]; permissions: any[]; byRole: Record<string, Set<string>> } | null>(null);
+  const [loadingRbacMatrix, setLoadingRbacMatrix] = React.useState(false);
+
   const slugifyTenantSlug = (value: string) => {
     const raw = String(value || '').trim().toLowerCase();
     if (!raw) return '';
@@ -439,13 +461,104 @@ export function SuperAdminSettings() {
       const data = await getSuperadminTenants();
       const safe = Array.isArray(data) ? data : [];
       setTenants(safe);
+
+      try {
+        const metrics = await getSuperadminTenantsMetrics();
+        setTenantMetrics(Array.isArray(metrics) ? metrics : []);
+      } catch {
+        setTenantMetrics([]);
+      }
     } catch (err: any) {
       setTenants([]);
+      setTenantMetrics([]);
       setError(err?.message || 'Falha ao carregar empresas');
     } finally {
       setLoading(false);
     }
   };
+
+  const loadDashboard = React.useCallback(async () => {
+    setLoadingDashboard(true);
+    setError('');
+    try {
+      const [metrics, audit] = await Promise.all([
+        getSuperadminDashboardMetrics(),
+        getSuperadminAudit({ limit: 10, offset: 0 }),
+      ]);
+      setDashboardMetrics(metrics || null);
+      setDashboardAudit(Array.isArray(audit) ? audit : []);
+    } catch (err: any) {
+      setDashboardMetrics(null);
+      setDashboardAudit([]);
+      setError(err?.message || 'Falha ao carregar dashboard');
+    } finally {
+      setLoadingDashboard(false);
+    }
+  }, []);
+
+  const loadPlantMetrics = React.useCallback(async () => {
+    if (!selectedTenantId) {
+      setPlantMetrics([]);
+      return;
+    }
+    setLoadingPlantMetrics(true);
+    setError('');
+    try {
+      const rows = await getSuperadminPlantsMetrics();
+      setPlantMetrics(Array.isArray(rows) ? rows : []);
+    } catch (err: any) {
+      setPlantMetrics([]);
+      setError(err?.message || 'Falha ao carregar métricas de fábricas');
+    } finally {
+      setLoadingPlantMetrics(false);
+    }
+  }, [selectedTenantId]);
+
+  const loadUserDiagnostics = React.useCallback(async () => {
+    if (!selectedTenantId) {
+      setUserAnomalies(null);
+      setRbacMatrix(null);
+      return;
+    }
+
+    setLoadingUserAnomalies(true);
+    setLoadingRbacMatrix(true);
+    setError('');
+
+    try {
+      const [anoms, rolesData, permsData] = await Promise.all([
+        getSuperadminUserAnomalies(),
+        getAdminRoles(),
+        getAdminPermissions(),
+      ]);
+
+      const roles = Array.isArray(rolesData) ? rolesData : [];
+      const permissions = Array.isArray(permsData) ? permsData : [];
+
+      const permsByRole: Record<string, Set<string>> = {};
+      await Promise.all(
+        roles.map(async (r: any) => {
+          try {
+            const list = await getAdminRolePermissions(String(r.key));
+            const keys = Array.isArray(list) ? list.map((x) => String(x)) : [];
+            permsByRole[String(r.key)] = new Set(keys);
+          } catch {
+            permsByRole[String(r.key)] = new Set();
+          }
+        }),
+      );
+
+      setUserAnomalies(anoms || null);
+      setRbacMatrix({ roles, permissions, byRole: permsByRole });
+    } catch (err: any) {
+      setUserAnomalies(null);
+      setRbacMatrix(null);
+      setError(err?.message || 'Falha ao carregar diagnósticos de utilizadores/RBAC');
+    } finally {
+      setLoadingUserAnomalies(false);
+      setLoadingRbacMatrix(false);
+    }
+  }, [selectedTenantId]);
 
   const reloadPlantsForSelectedTenant = async () => {
     try {
@@ -576,11 +689,20 @@ export function SuperAdminSettings() {
   React.useEffect(() => {
     if (step === 'dashboard') {
       void loadDbStatus();
+      void loadDashboard();
       return;
     }
 
     if (step === 'updates' && selectedTenantId) {
       void loadDbStatus();
+    }
+
+    if (step === 'plants' && selectedTenantId) {
+      void loadPlantMetrics();
+    }
+
+    if (step === 'users' && selectedTenantId) {
+      void loadUserDiagnostics();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, selectedTenantId, dbRunsLimit]);
@@ -851,9 +973,15 @@ export function SuperAdminSettings() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">Empresas</div>
-                        <div className="mt-2 text-2xl font-semibold text-[color:var(--dash-ink)]">{String(tenants.length)}</div>
+                        <div className="mt-2 text-2xl font-semibold text-[color:var(--dash-ink)]">
+                          {dashboardMetrics?.totals?.tenants != null ? String(dashboardMetrics.totals.tenants) : String(tenants.length)}
+                        </div>
                         <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
-                          Ativas {String(tenants.filter((t) => t.is_active).length)} • Inativas {String(tenants.filter((t) => !t.is_active).length)}
+                          Ativas {dashboardMetrics?.totals?.tenantsActive != null ? String(dashboardMetrics.totals.tenantsActive) : String(tenants.filter((t) => t.is_active).length)}
+                          {' '}• Inativas {dashboardMetrics?.totals?.tenants != null && dashboardMetrics?.totals?.tenantsActive != null ? String(Math.max(0, Number(dashboardMetrics.totals.tenants) - Number(dashboardMetrics.totals.tenantsActive))) : String(tenants.filter((t) => !t.is_active).length)}
+                        </div>
+                        <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                          24h: +{dashboardMetrics?.last24h?.tenantsCreated != null ? String(dashboardMetrics.last24h.tenantsCreated) : '—'}
                         </div>
                       </div>
                       <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
@@ -903,21 +1031,99 @@ export function SuperAdminSettings() {
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">Registos</div>
                         <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
-                          Users:{' '}
+                          Users total:{' '}
                           <span className="font-semibold text-[color:var(--dash-ink)]">
-                            {dbStatus?.scope === 'tenant' ? String(dbStatus?.counts?.users ?? '-') : '—'}
+                            {dashboardMetrics?.totals?.users != null ? String(dashboardMetrics.totals.users) : '—'}
                           </span>
                         </div>
                         <div className="mt-1 text-sm text-[color:var(--dash-muted)]">
-                          Fábricas:{' '}
+                          Fábricas total:{' '}
                           <span className="font-semibold text-[color:var(--dash-ink)]">
-                            {dbStatus?.scope === 'tenant' ? String(dbStatus?.counts?.plants ?? '-') : '—'}
+                            {dashboardMetrics?.totals?.plants != null ? String(dashboardMetrics.totals.plants) : '—'}
                           </span>
+                        </div>
+                        <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                          24h: +users {dashboardMetrics?.last24h?.usersCreated != null ? String(dashboardMetrics.last24h.usersCreated) : '—'} • logins {dashboardMetrics?.last24h?.logins != null ? String(dashboardMetrics.last24h.logins) : '—'}
                         </div>
                       </div>
                       <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
                         <Server className="h-5 w-5 text-[color:var(--dash-muted)]" />
                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                  <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                          Últimos eventos (SuperAdmin)
+                        </div>
+                        <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                          Top 10 auditoria
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={() => void loadDashboard()}
+                        disabled={loadingDashboard}
+                      >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Atualizar
+                      </button>
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      {dashboardAudit.length === 0 ? (
+                        <div className="text-sm text-[color:var(--dash-muted)]">
+                          {loadingDashboard ? 'A carregar...' : 'Sem eventos.'}
+                        </div>
+                      ) : (
+                        dashboardAudit.map((row: any) => (
+                          <div
+                            key={String(row.id)}
+                            className="rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="text-sm font-semibold text-[color:var(--dash-ink)] truncate">
+                                  {String(row.action)}
+                                </div>
+                                <div className="text-xs text-[color:var(--dash-muted)] truncate">
+                                  {String(row.entity_type)} • {String(row.entity_id)}
+                                </div>
+                              </div>
+                              <div className="text-xs whitespace-nowrap text-[color:var(--dash-muted)]">
+                                {row.created_at ? String(row.created_at) : '—'}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                      Ações rápidas
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button type="button" className="btn-secondary h-9 px-3" onClick={() => setStepAndUrl('tenant')}>Empresas</button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={() => setStepAndUrl('support')}
+                      >
+                        Suporte
+                      </button>
+                      {selectedTenantId ? (
+                        <button type="button" className="btn-secondary h-9 px-3" onClick={() => setStepAndUrl('plants')}>Fábricas</button>
+                      ) : null}
+                      {selectedTenantId ? (
+                        <button type="button" className="btn-secondary h-9 px-3" onClick={() => setStepAndUrl('users')}>Utilizadores</button>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -950,6 +1156,39 @@ export function SuperAdminSettings() {
                 Criar e ativar/desativar empresas.
               </p>
 
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="btn-secondary h-9 px-3"
+                  onClick={async () => {
+                    setError('');
+                    try {
+                      await downloadSuperadminTenantsMetrics('csv');
+                    } catch (err: any) {
+                      setError(err?.message || 'Falha ao exportar CSV');
+                    }
+                  }}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Export CSV
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary h-9 px-3"
+                  onClick={async () => {
+                    setError('');
+                    try {
+                      await downloadSuperadminTenantsMetrics('json');
+                    } catch (err: any) {
+                      setError(err?.message || 'Falha ao exportar JSON');
+                    }
+                  }}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Export JSON
+                </button>
+              </div>
+
               <div className="mt-4 grid gap-3 md:grid-cols-3">
                 <input
                   className="h-10 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 text-sm"
@@ -979,7 +1218,7 @@ export function SuperAdminSettings() {
               </div>
 
               <div className="mt-5 space-y-2">
-                {tenants.map((t) => (
+                {(tenantMetrics.length > 0 ? tenantMetrics : tenants).map((t: any) => (
                   <div
                     key={t.id}
                     className="flex items-center justify-between gap-3 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-4 py-3"
@@ -987,6 +1226,13 @@ export function SuperAdminSettings() {
                     <div className="min-w-0">
                       <div className="font-semibold text-[color:var(--dash-ink)] truncate">{t.name}</div>
                       <div className="text-xs text-[color:var(--dash-muted)] truncate">{t.slug}</div>
+                      {'users' in t || 'plants' in t || 'last_login' in t ? (
+                        <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                          users={String((t as any).users ?? '—')} • fábricas={String((t as any).plants ?? '—')} • último login={
+                            (t as any).last_login ? String((t as any).last_login) : '—'
+                          }
+                        </div>
+                      ) : null}
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -998,6 +1244,16 @@ export function SuperAdminSettings() {
                         }}
                       >
                         Selecionar
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={() => {
+                          void handleSelectTenant(t.id);
+                          setStepAndUrl('support');
+                        }}
+                      >
+                        Suporte
                       </button>
                       <button
                         type="button"
@@ -1019,6 +1275,83 @@ export function SuperAdminSettings() {
               <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
                 Gestão de fábricas para a empresa selecionada.
               </p>
+
+              <div className="mt-4 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                      Saúde por fábrica
+                    </div>
+                    <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                      ativos, preventivas em atraso e taxa de conclusão (30 dias)
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="btn-secondary h-9 px-3"
+                      onClick={() => void loadPlantMetrics()}
+                      disabled={loadingPlantMetrics}
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Atualizar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary h-9 px-3"
+                      onClick={async () => {
+                        setError('');
+                        try {
+                          await downloadSuperadminPlantsMetrics('csv');
+                        } catch (err: any) {
+                          setError(err?.message || 'Falha ao exportar CSV');
+                        }
+                      }}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Export CSV
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary h-9 px-3"
+                      onClick={async () => {
+                        setError('');
+                        try {
+                          await downloadSuperadminPlantsMetrics('json');
+                        } catch (err: any) {
+                          setError(err?.message || 'Falha ao exportar JSON');
+                        }
+                      }}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Export JSON
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-3 space-y-2">
+                  {plantMetrics.length === 0 ? (
+                    <div className="text-sm text-[color:var(--dash-muted)]">
+                      {loadingPlantMetrics ? 'A carregar...' : 'Sem dados.'}
+                    </div>
+                  ) : (
+                    plantMetrics.map((p: any) => (
+                      <div key={String(p.id)} className="rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="font-semibold text-[color:var(--dash-ink)] truncate">{String(p.name)}</div>
+                            <div className="text-xs text-[color:var(--dash-muted)]">{String(p.code)} • assets={String(p.assets)} • atraso={String(p.overdue)}</div>
+                          </div>
+                          <div className="text-xs text-[color:var(--dash-muted)]">
+                            30d: {String(p.completed_30d)} / {String(p.scheduled_30d)} ({p.completion_rate_30d == null ? '—' : `${Math.round(Number(p.completion_rate_30d) * 100)}%`})
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
               <div className="mt-6">
                 <PlantsPage embedded key={`plants-${selectedTenantId}`} />
               </div>
@@ -1031,6 +1364,109 @@ export function SuperAdminSettings() {
               <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
                 Permissões, roles e utilizadores para a empresa selecionada.
               </p>
+
+              <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                        Detecções
+                      </div>
+                      <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                        utilizadores sem fábrica / role inválida
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-secondary h-9 px-3"
+                      onClick={() => void loadUserDiagnostics()}
+                      disabled={loadingUserAnomalies || loadingRbacMatrix}
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Atualizar
+                    </button>
+                  </div>
+
+                  {userAnomalies ? (
+                    <div className="mt-3 space-y-2 text-sm text-[color:var(--dash-muted)]">
+                      <div>
+                        Sem fábrica: <span className="font-semibold text-[color:var(--dash-ink)]">{String(userAnomalies.usersWithoutPlants?.length ?? 0)}</span>
+                      </div>
+                      <div>
+                        Sem role: <span className="font-semibold text-[color:var(--dash-ink)]">{String(userAnomalies.usersWithoutRole?.length ?? 0)}</span>
+                      </div>
+                      <div>
+                        Role desconhecida: <span className="font-semibold text-[color:var(--dash-ink)]">{String(userAnomalies.usersWithUnknownRole?.length ?? 0)}</span>
+                      </div>
+
+                      {(userAnomalies.usersWithoutPlants || []).slice(0, 5).length > 0 ? (
+                        <div className="mt-3">
+                          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                            Exemplos (sem fábrica)
+                          </div>
+                          <div className="mt-2 space-y-2">
+                            {(userAnomalies.usersWithoutPlants || []).slice(0, 5).map((u: any) => (
+                              <div key={String(u.id)} className="rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
+                                <div className="text-sm font-semibold text-[color:var(--dash-ink)] truncate">{String(u.username)}</div>
+                                <div className="text-xs text-[color:var(--dash-muted)] truncate">{String(u.email)} • role={String(u.role ?? '—')}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="mt-3 text-sm text-[color:var(--dash-muted)]">
+                      {loadingUserAnomalies ? 'A carregar...' : 'Sem dados.'}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                    Matriz de permissões (read-only)
+                  </div>
+                  <div className="mt-3 text-sm text-[color:var(--dash-muted)]">
+                    {loadingRbacMatrix ? 'A carregar...' : rbacMatrix ? (
+                      <div className="max-h-[320px] overflow-auto rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
+                        <table className="min-w-full text-left text-xs">
+                          <thead className="sticky top-0 bg-[color:var(--dash-surface)]">
+                            <tr>
+                              <th className="px-3 py-2 font-semibold text-[color:var(--dash-ink)]">Permissão</th>
+                              {rbacMatrix.roles.slice(0, 6).map((r: any) => (
+                                <th key={String(r.key)} className="px-3 py-2 font-semibold text-[color:var(--dash-ink)]">{String(r.key)}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rbacMatrix.permissions.slice(0, 30).map((p: any) => (
+                              <tr key={String(p.key)} className="border-t border-[color:var(--dash-border)]">
+                                <td className="px-3 py-2 text-[color:var(--dash-muted)]">{String(p.key)}</td>
+                                {rbacMatrix.roles.slice(0, 6).map((r: any) => {
+                                  const has = rbacMatrix.byRole[String(r.key)]?.has(String(p.key));
+                                  return (
+                                    <td key={`${String(p.key)}-${String(r.key)}`} className="px-3 py-2">
+                                      <span className={has ? 'font-semibold text-[color:var(--dash-ink)]' : 'text-[color:var(--dash-muted)]'}>
+                                        {has ? '✓' : '—'}
+                                      </span>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : 'Sem dados.'}
+                    {rbacMatrix ? (
+                      <div className="mt-2 text-xs text-[color:var(--dash-muted)]">
+                        Mostra até 6 roles e 30 permissões (para manter leve).
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
               <div className="mt-6 space-y-10">
                 <PermissionsSettings key={`perm-${selectedTenantId}`} />
                 <ManagementSettings mode="usersOnly" key={`mgmt-${selectedTenantId}`} />
@@ -1044,6 +1480,50 @@ export function SuperAdminSettings() {
               <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
                 Estas ferramentas operam sobre a empresa selecionada.
               </p>
+
+              <div className="mt-4 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                      Checklist de setup
+                    </div>
+                    <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                      validações rápidas para suporte
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="btn-secondary h-9 px-3"
+                      onClick={async () => {
+                        setError('');
+                        try {
+                          await downloadSuperadminDbStatusJson(dbRunsLimit);
+                        } catch (err: any) {
+                          setError(err?.message || 'Falha ao exportar status');
+                        }
+                      }}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Export status (JSON)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-2 md:grid-cols-4">
+                  {[
+                    { label: 'DB OK', ok: Boolean(dbStatus?.dbOk) },
+                    { label: 'Migrações OK', ok: Boolean(dbStatus?.drizzleMigrations?.table) },
+                    { label: 'Última run', ok: Boolean(dbStatus?.lastSetupRun) },
+                    { label: 'Scope = Empresa', ok: String(dbStatus?.scope || '') === 'tenant' },
+                  ].map((c) => (
+                    <div key={c.label} className="rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3">
+                      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">{c.label}</div>
+                      <div className="mt-2 text-sm font-semibold text-[color:var(--dash-ink)]">{c.ok ? 'OK' : '—'}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               <div className="mt-5 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -1208,6 +1688,23 @@ export function SuperAdminSettings() {
                       <RefreshCw className="mr-2 h-4 w-4" />
                       Atualizar
                     </button>
+
+                    <button
+                      type="button"
+                      className="btn-secondary h-9 px-3"
+                      onClick={async () => {
+                        setError('');
+                        try {
+                          await downloadSuperadminDiagnosticsBundle(100);
+                        } catch (err: any) {
+                          setError(err?.message || 'Falha ao gerar bundle');
+                        }
+                      }}
+                      title="Download: health + db status + diagnostics + audit"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Bundle diagnóstico
+                    </button>
                   </div>
                 </div>
 
@@ -1241,6 +1738,19 @@ export function SuperAdminSettings() {
                           {supportHealth?.version ? String(supportHealth.version) : '—'}
                         </span>
                       </div>
+                      {supportHealth?.config ? (
+                        <div className="mt-3 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
+                          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                            Config (read-only)
+                          </div>
+                          <div className="mt-1 text-xs">
+                            env={String(supportHealth.config.nodeEnv ?? '—')} • tz={String(supportHealth.config.timezone ?? '—')}
+                          </div>
+                          <div className="mt-1 text-xs">
+                            node={String(supportHealth.config.nodeVersion ?? '—')} • {String(supportHealth.config.platform ?? '—')}/{String(supportHealth.config.arch ?? '—')}
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 

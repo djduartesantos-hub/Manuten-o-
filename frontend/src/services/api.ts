@@ -47,13 +47,23 @@ export async function apiCall<T = any>(
     const payload = parseJwtPayload(token);
     const role = String(payload?.role || '').trim().toLowerCase();
     if (role === 'superadmin') {
-      // Only apply tenant override for tenant-scoped endpoints.
-      // Do NOT apply it to tenant-management endpoints so a stale tenantId doesn't
-      // block listing/creating/updating tenants.
-      const isTenantManagement =
-        endpoint === '/superadmin/tenants' || endpoint.startsWith('/superadmin/tenants/');
+      // SuperAdmin default scope is GLOBAL.
+      // Only send tenant override headers for endpoints that are explicitly tenant-scoped.
+      const tenantScopedSuperadmin =
+        endpoint === '/superadmin/db/status' ||
+        endpoint.startsWith('/superadmin/db/status?') ||
+        endpoint === '/superadmin/db/runs/export' ||
+        endpoint.startsWith('/superadmin/db/runs/export?') ||
+        endpoint === '/superadmin/metrics/plants' ||
+        endpoint.startsWith('/superadmin/metrics/plants?') ||
+        endpoint === '/superadmin/metrics/plants/export' ||
+        endpoint.startsWith('/superadmin/metrics/plants/export?') ||
+        endpoint === '/superadmin/metrics/users/anomalies' ||
+        endpoint.startsWith('/superadmin/metrics/users/anomalies?') ||
+        endpoint === '/superadmin/diagnostics/bundle/export' ||
+        endpoint.startsWith('/superadmin/diagnostics/bundle/export?');
 
-      if (!isTenantManagement) {
+      if (tenantScopedSuperadmin) {
         const selectedTenantId = localStorage.getItem('superadminTenantId');
         if (selectedTenantId && selectedTenantId.trim().length > 0) {
           headers['x-tenant-id'] = selectedTenantId.trim();
@@ -113,10 +123,21 @@ async function apiCallRaw(
     const payload = parseJwtPayload(token);
     const role = String(payload?.role || '').trim().toLowerCase();
     if (role === 'superadmin') {
-      const isTenantManagement =
-        endpoint === '/superadmin/tenants' || endpoint.startsWith('/superadmin/tenants/');
+      const tenantScopedSuperadmin =
+        endpoint === '/superadmin/db/status' ||
+        endpoint.startsWith('/superadmin/db/status?') ||
+        endpoint === '/superadmin/db/runs/export' ||
+        endpoint.startsWith('/superadmin/db/runs/export?') ||
+        endpoint === '/superadmin/metrics/plants' ||
+        endpoint.startsWith('/superadmin/metrics/plants?') ||
+        endpoint === '/superadmin/metrics/plants/export' ||
+        endpoint.startsWith('/superadmin/metrics/plants/export?') ||
+        endpoint === '/superadmin/metrics/users/anomalies' ||
+        endpoint.startsWith('/superadmin/metrics/users/anomalies?') ||
+        endpoint === '/superadmin/diagnostics/bundle/export' ||
+        endpoint.startsWith('/superadmin/diagnostics/bundle/export?');
 
-      if (!isTenantManagement) {
+      if (tenantScopedSuperadmin) {
         const selectedTenantId = localStorage.getItem('superadminTenantId');
         if (selectedTenantId && selectedTenantId.trim().length > 0) {
           headers['x-tenant-id'] = selectedTenantId.trim();
@@ -241,6 +262,54 @@ export async function getSuperadminHealth(): Promise<{
   dbTime?: string | null;
 }> {
   return apiCall('/superadmin/health');
+}
+
+export async function getSuperadminDashboardMetrics(): Promise<any> {
+  return apiCall('/superadmin/metrics/dashboard');
+}
+
+export async function getSuperadminTenantsMetrics(): Promise<any[]> {
+  return apiCall('/superadmin/metrics/tenants');
+}
+
+export async function downloadSuperadminTenantsMetrics(format: 'csv' | 'json') {
+  const res = await apiCallRaw(`/superadmin/metrics/tenants/export?format=${encodeURIComponent(format)}`);
+  const blob = await res.blob();
+  const ext = format === 'json' ? 'json' : 'csv';
+  triggerDownload(blob, `superadmin_tenants_metrics.${ext}`);
+}
+
+export async function getSuperadminPlantsMetrics(): Promise<any[]> {
+  return apiCall('/superadmin/metrics/plants');
+}
+
+export async function downloadSuperadminPlantsMetrics(format: 'csv' | 'json') {
+  const res = await apiCallRaw(`/superadmin/metrics/plants/export?format=${encodeURIComponent(format)}`);
+  const blob = await res.blob();
+  const ext = format === 'json' ? 'json' : 'csv';
+  triggerDownload(blob, `superadmin_plants_metrics.${ext}`);
+}
+
+export async function getSuperadminUserAnomalies(): Promise<any> {
+  return apiCall('/superadmin/metrics/users/anomalies');
+}
+
+export async function downloadSuperadminDiagnosticsBundle(auditLimit?: number) {
+  const params = new URLSearchParams();
+  if (auditLimit && Number.isFinite(auditLimit)) params.set('auditLimit', String(auditLimit));
+  const qs = params.toString();
+  const res = await apiCallRaw(`/superadmin/diagnostics/bundle/export${qs ? `?${qs}` : ''}`);
+  const blob = await res.blob();
+  triggerDownload(blob, 'superadmin_diagnostics_bundle.json');
+}
+
+export async function downloadSuperadminDbStatusJson(limit?: number) {
+  const params = new URLSearchParams();
+  if (limit && Number.isFinite(limit)) params.set('limit', String(limit));
+  const qs = params.toString();
+  const res = await apiCallRaw(`/superadmin/db/status${qs ? `?${qs}` : ''}`);
+  const blob = await res.blob();
+  triggerDownload(blob, 'superadmin_db_status.json');
 }
 
 export async function getSuperadminTenantDiagnostics(limit?: number): Promise<{
