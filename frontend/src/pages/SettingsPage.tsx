@@ -54,6 +54,7 @@ import {
   updateAdminPlant,
   updateAdminRole,
   updateAdminUser,
+  revokeAdminUserSessions,
   updateNotificationRules,
 } from '../services/api';
 import {
@@ -5692,6 +5693,7 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
+  const [revokingUserId, setRevokingUserId] = React.useState<string | null>(null);
   const [activeDbTool, setActiveDbTool] = React.useState<
     'setup' | 'migrations' | 'bootstrap' | null
   >(null);
@@ -5763,6 +5765,19 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
       setError(err.message || 'Falha ao carregar dados de gestão');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRevokeSessions = async (userId: string) => {
+    setRevokingUserId(userId);
+    setError(null);
+    try {
+      await revokeAdminUserSessions(userId);
+      await loadAdminData();
+    } catch (err: any) {
+      setError(err?.message || 'Falha ao revogar sessões');
+    } finally {
+      setRevokingUserId(null);
     }
   };
 
@@ -6389,6 +6404,15 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
                   >
                     {user.is_active ? 'Ativo' : 'Inativo'}
                   </span>
+                  <button
+                    type="button"
+                    className="text-xs theme-text-muted hover:text-rose-600"
+                    title="Revogar sessões"
+                    disabled={saving || revokingUserId === String(user.id)}
+                    onClick={() => handleRevokeSessions(String(user.id))}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </button>
                   <button
                     className="text-xs theme-text-muted hover:text-[color:var(--dash-text)]"
                     onClick={() => handleStartUserEdit(user)}

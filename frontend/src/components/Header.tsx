@@ -25,7 +25,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../context/store';
 import { useSocket } from '../context/SocketContext';
 import { useTheme } from '../context/ThemeContext';
-import { getSuperadminDbStatus, getSuperadminTenants } from '../services/api';
+import { getSuperadminDbStatus, getSuperadminTenants, logoutSessions } from '../services/api';
 
 interface NavItem {
   label: string;
@@ -222,7 +222,13 @@ export function Header() {
   ])
   .filter((section) => section.items.length > 0);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await logoutSessions();
+    } catch {
+      // Best-effort: local logout still clears client state.
+    }
+
     logout();
     window.location.href = '/login';
   };

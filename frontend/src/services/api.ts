@@ -658,6 +658,12 @@ export async function login(
   );
 }
 
+export async function logoutSessions(): Promise<{ message?: string } | void> {
+  return apiCall('/auth/logout', {
+    method: 'POST',
+  });
+}
+
 export type UserProfile = {
   id: string;
   username: string;
@@ -1131,6 +1137,12 @@ export async function updateAdminUser(userId: string, data: any) {
   return apiCall(`/admin/users/${userId}`, {
     method: 'PATCH',
     body: JSON.stringify(data),
+  });
+}
+
+export async function revokeAdminUserSessions(userId: string) {
+  return apiCall(`/admin/users/${encodeURIComponent(String(userId))}/revoke-sessions`, {
+    method: 'POST',
   });
 }
 
