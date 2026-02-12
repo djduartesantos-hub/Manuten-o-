@@ -38,6 +38,36 @@ function shouldUseSsl(connectionString) {
   return process.env.NODE_ENV === 'production';
 }
 
+async function hasUsersTable() {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    console.error('[drizzle-migrate] DATABASE_URL is not set; cannot check existing schema');
+    process.exit(1);
+  }
+
+  const ssl = shouldUseSsl(connectionString) ? { rejectUnauthorized: false } : undefined;
+  const client = new Client({ connectionString, ...(ssl ? { ssl } : {}) });
+
+  try {
+    await client.connect();
+    const existsRes = await client.query(
+      `SELECT EXISTS (
+         SELECT 1
+         FROM information_schema.tables
+         WHERE table_name = 'users'
+           AND table_schema NOT IN ('pg_catalog', 'information_schema')
+       ) AS exists;`,
+    );
+    return existsRes.rows?.[0]?.exists === true;
+  } finally {
+    try {
+      await client.end();
+    } catch {
+      // ignore
+    }
+  }
+}
+
 async function verifyUsersTable() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
@@ -111,6 +141,24 @@ const autoApprove =
   env.DRIZZLE_AUTO_APPROVE !== undefined
     ? env.DRIZZLE_AUTO_APPROVE === 'true' || env.DRIZZLE_AUTO_APPROVE === '1'
     : env.NODE_ENV === 'production';
+
+const pushMode = (env.DRIZZLE_PUSH_MODE ?? 'auto').toLowerCase();
+// auto: run push only if users table is missing (fresh DB)
+// never: skip push entirely
+// always: always run push (may require interactive confirmation on data loss)
+
+if (pushMode === 'never') {
+  console.log('[drizzle-migrate] DRIZZLE_PUSH_MODE=never; skipping db:push');
+  process.exit(0);
+}
+
+if (pushMode === 'auto') {
+  const exists = await hasUsersTable();
+  if (exists) {
+    console.log('[drizzle-migrate] existing DB detected (users table present); skipping db:push');
+    process.exit(0);
+  }
+}
 
 const pushTimeoutMs = Number(env.DRIZZLE_PUSH_TIMEOUT_MS ?? 180000);
 
