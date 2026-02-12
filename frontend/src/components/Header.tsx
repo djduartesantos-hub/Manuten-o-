@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Menu,
   X,
@@ -25,6 +25,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../context/store';
 import { useSocket } from '../context/SocketContext';
 import { useTheme } from '../context/ThemeContext';
+import { getSuperadminDbStatus, getSuperadminTenants } from '../services/api';
 
 interface NavItem {
   label: string;
@@ -47,12 +48,91 @@ export function Header() {
   const [openDropdown, setOpenDropdown] = React.useState<string | null>(null);
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.trim() || 'U';
   const { theme, setTheme } = useTheme();
   const isDark = theme.name === 'dark';
 
   const isSuperAdmin = String(user?.role || '') === 'superadmin';
   const superAdminHome = '/superadmin/dashboard';
+
+  const [superadminTenants, setSuperadminTenants] = React.useState<
+    Array<{ id: string; name: string; slug: string; is_active: boolean }>
+  >([]);
+  const [loadingSuperadminTenants, setLoadingSuperadminTenants] = React.useState(false);
+  const [superadminTenantId, setSuperadminTenantId] = React.useState<string>(() => {
+    const stored = localStorage.getItem('superadminTenantId');
+    return stored && stored.trim().length > 0 ? stored.trim() : '';
+  });
+
+  const [dbStatusLabel, setDbStatusLabel] = React.useState<string>('—');
+  const [loadingDbStatus, setLoadingDbStatus] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!isSuperAdmin) return;
+
+    let cancelled = false;
+    setLoadingSuperadminTenants(true);
+    (async () => {
+      try {
+        const data = await getSuperadminTenants();
+        if (!cancelled) setSuperadminTenants(Array.isArray(data) ? data : []);
+      } catch {
+        if (!cancelled) setSuperadminTenants([]);
+      } finally {
+        if (!cancelled) setLoadingSuperadminTenants(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isSuperAdmin]);
+
+  React.useEffect(() => {
+    if (!isSuperAdmin) return;
+
+    const handleExternalChange = () => {
+      const stored = localStorage.getItem('superadminTenantId');
+      setSuperadminTenantId(stored && stored.trim().length > 0 ? stored.trim() : '');
+    };
+
+    window.addEventListener('superadmin-tenant-changed', handleExternalChange);
+    return () => window.removeEventListener('superadmin-tenant-changed', handleExternalChange);
+  }, [isSuperAdmin]);
+
+  React.useEffect(() => {
+    if (!isSuperAdmin) return;
+
+    if (!superadminTenantId) {
+      setDbStatusLabel('—');
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingDbStatus(true);
+    (async () => {
+      try {
+        const status = await getSuperadminDbStatus(1);
+        if (cancelled) return;
+        setDbStatusLabel(status?.dbOk ? 'OK' : 'Erro');
+      } catch {
+        if (!cancelled) setDbStatusLabel('Erro');
+      } finally {
+        if (!cancelled) setLoadingDbStatus(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isSuperAdmin, superadminTenantId, location.pathname]);
+
+  const activeTenantName = React.useMemo(() => {
+    if (!superadminTenantId) return 'Global';
+    const match = superadminTenants.find((t) => t.id === superadminTenantId);
+    return match?.name || 'Empresa';
+  }, [superadminTenantId, superadminTenants]);
 
   const navSections: NavSection[] = (isSuperAdmin
     ? [
@@ -297,8 +377,8 @@ export function Header() {
 
           {/* Right Side */}
           <div className="flex items-center gap-3">
-            {/* Plant Selector */}
-            {plants.length > 0 && (
+            {/* Plant Selector (non-superadmin) */}
+            {!isSuperAdmin && plants.length > 0 && (
               <div className="hidden sm:flex items-center">
                 <select
                   className="rounded-full border theme-border theme-card px-3 py-2 text-sm font-semibold text-[color:var(--dash-ink)] shadow-sm transition hover:bg-[color:var(--dash-panel)] focus:outline-none focus:ring-2 focus:ring-emerald-200"
@@ -311,6 +391,61 @@ export function Header() {
                     </option>
                   ))}
                 </select>
+              </div>
+            )}
+
+            {/* SuperAdmin: Global/Empresa selector + DB status */}
+            {isSuperAdmin && (
+              <div className="hidden sm:flex items-center gap-3">
+                <div className="flex flex-col items-end leading-tight">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.25em] theme-text-muted">
+                    Empresa ativa
+                  </div>
+                  <select
+                    className="rounded-full border theme-border theme-card px-3 py-2 text-sm font-semibold text-[color:var(--dash-ink)] shadow-sm transition hover:bg-[color:var(--dash-panel)] focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    value={superadminTenantId}
+                    onChange={(e) => {
+                      const next = String(e.target.value || '').trim();
+                      setSuperadminTenantId(next);
+                      if (next) localStorage.setItem('superadminTenantId', next);
+                      else localStorage.removeItem('superadminTenantId');
+
+                      window.dispatchEvent(new Event('superadmin-tenant-changed'));
+
+                      if (!location.pathname.startsWith('/superadmin')) {
+                        navigate(superAdminHome);
+                      }
+                    }}
+                    disabled={loadingSuperadminTenants}
+                    title={loadingSuperadminTenants ? 'A carregar empresas...' : activeTenantName}
+                  >
+                    <option value="">Global</option>
+                    {superadminTenants.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.slug}){t.is_active ? '' : ' — inativa'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col items-end leading-tight">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.25em] theme-text-muted">
+                    Estado da BD
+                  </div>
+                  <div
+                    className={
+                      'rounded-full border theme-border theme-card px-3 py-2 text-sm font-semibold shadow-sm ' +
+                      (dbStatusLabel === 'OK'
+                        ? 'text-emerald-700'
+                        : dbStatusLabel === 'Erro'
+                          ? 'text-rose-700'
+                          : 'text-[color:var(--dash-ink)]')
+                    }
+                    title={superadminTenantId ? `Empresa: ${activeTenantName}` : 'Selecione uma empresa para ver estado da BD'}
+                  >
+                    {loadingDbStatus ? 'A carregar...' : dbStatusLabel}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -449,8 +584,8 @@ export function Header() {
               </button>
             </div>
 
-            {/* Mobile Plant Selector */}
-            {plants.length > 0 && (
+            {/* Mobile Plant Selector (non-superadmin) */}
+            {!isSuperAdmin && plants.length > 0 && (
               <div className="mb-4 px-4">
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wider theme-text-muted">
                   Planta
@@ -466,6 +601,57 @@ export function Header() {
                     </option>
                   ))}
                 </select>
+              </div>
+            )}
+
+            {/* Mobile SuperAdmin Selector + DB */}
+            {isSuperAdmin && (
+              <div className="mb-4 px-4 space-y-3">
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wider theme-text-muted">
+                    Empresa ativa
+                  </label>
+                  <select
+                    className="w-full rounded-full border theme-border theme-card px-3 py-2 text-sm font-semibold text-[color:var(--dash-ink)] focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    value={superadminTenantId}
+                    onChange={(e) => {
+                      const next = String(e.target.value || '').trim();
+                      setSuperadminTenantId(next);
+                      if (next) localStorage.setItem('superadminTenantId', next);
+                      else localStorage.removeItem('superadminTenantId');
+                      window.dispatchEvent(new Event('superadmin-tenant-changed'));
+                      if (!location.pathname.startsWith('/superadmin')) {
+                        navigate(superAdminHome);
+                      }
+                    }}
+                    disabled={loadingSuperadminTenants}
+                  >
+                    <option value="">Global</option>
+                    {superadminTenants.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.slug}){t.is_active ? '' : ' — inativa'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wider theme-text-muted">
+                    Estado da BD
+                  </label>
+                  <div
+                    className={
+                      'w-full rounded-full border theme-border theme-card px-3 py-2 text-sm font-semibold shadow-sm ' +
+                      (dbStatusLabel === 'OK'
+                        ? 'text-emerald-700'
+                        : dbStatusLabel === 'Erro'
+                          ? 'text-rose-700'
+                          : 'text-[color:var(--dash-ink)]')
+                    }
+                  >
+                    {loadingDbStatus ? 'A carregar...' : dbStatusLabel}
+                  </div>
+                </div>
               </div>
             )}
 

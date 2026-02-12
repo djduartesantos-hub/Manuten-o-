@@ -315,6 +315,15 @@ export function SuperAdminSettings() {
     return stored && stored.trim().length > 0 ? stored.trim() : '';
   });
 
+  React.useEffect(() => {
+    const onTenantChanged = () => {
+      const stored = localStorage.getItem('superadminTenantId');
+      setSelectedTenantId(stored && stored.trim().length > 0 ? stored.trim() : '');
+    };
+    window.addEventListener('superadmin-tenant-changed', onTenantChanged);
+    return () => window.removeEventListener('superadmin-tenant-changed', onTenantChanged);
+  }, []);
+
   type SuperAdminStep = 'dashboard' | 'tenant' | 'plants' | 'users' | 'updates';
 
   const isSuperAdminRoute = location.pathname.startsWith('/superadmin');
@@ -356,7 +365,7 @@ export function SuperAdminSettings() {
       updates: true,
     };
 
-    const fallback: SuperAdminStep = selectedTenantId ? 'dashboard' : 'tenant';
+    const fallback: SuperAdminStep = 'dashboard';
     const initial = (fromPath && allowed[fromPath] ? fromPath : null) || (fromUrl && allowed[fromUrl] ? fromUrl : null) || fallback;
     if ((initial === 'plants' || initial === 'users' || initial === 'updates') && !selectedTenantId) {
       return 'tenant';
@@ -418,12 +427,6 @@ export function SuperAdminSettings() {
       const data = await getSuperadminTenants();
       const safe = Array.isArray(data) ? data : [];
       setTenants(safe);
-
-      if (!selectedTenantId && safe.length > 0) {
-        const first = String(safe[0].id);
-        setSelectedTenantId(first);
-        localStorage.setItem('superadminTenantId', first);
-      }
     } catch (err: any) {
       setTenants([]);
       setError(err?.message || 'Falha ao carregar empresas');
@@ -474,6 +477,7 @@ export function SuperAdminSettings() {
     setSuccess('');
     if (id) localStorage.setItem('superadminTenantId', id);
     else localStorage.removeItem('superadminTenantId');
+    window.dispatchEvent(new Event('superadmin-tenant-changed'));
 
     // Changing tenant means plant list must be reloaded.
     // This keeps admin/plant-scoped widgets aligned.
@@ -599,6 +603,8 @@ export function SuperAdminSettings() {
   const requireTenantForStep = step === 'plants' || step === 'users' || step === 'updates';
   const missingTenant = requireTenantForStep && !selectedTenantId;
 
+  const visibleSteps = selectedTenantId ? steps : steps.filter((s) => !s.requiresTenant);
+
   const handleCreateTenant = async () => {
     const name = newTenant.name.trim();
     const slug = slugifyTenantSlug(newTenant.slug);
@@ -650,39 +656,19 @@ export function SuperAdminSettings() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-2 min-w-[280px]">
-            <label className="text-xs font-semibold text-[color:var(--dash-muted)]">
-              Empresa ativa
-            </label>
-            <select
-              className="h-10 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-3 text-sm text-[color:var(--dash-ink)]"
-              value={selectedTenantId}
-              onChange={(e) => {
-                void handleSelectTenant(e.target.value);
-              }}
-              disabled={loading}
-            >
-              {tenants.length === 0 ? (
-                <option value="">{loading ? 'A carregar...' : 'Sem empresas'}</option>
-              ) : (
-                tenants.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} ({t.slug}){t.is_active ? '' : ' — inativa'}
-                  </option>
-                ))
-              )}
-            </select>
-
-            {selectedTenant && (
-              <div className="text-xs text-[color:var(--dash-muted)]">
-                Empresa: <span className="font-semibold">{selectedTenant.name}</span>
-                {selectedPlant ? (
-                  <span className="ml-2">• Planta OK</span>
-                ) : (
-                  <span className="ml-2 text-red-700">• Sem planta</span>
-                )}
-              </div>
-            )}
+          <div className="flex flex-col items-start gap-2">
+            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+              Contexto
+            </div>
+            <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-4 py-3 text-sm text-[color:var(--dash-muted)]">
+              Empresa ativa:{' '}
+              <span className="font-semibold text-[color:var(--dash-ink)]">
+                {selectedTenant ? selectedTenant.name : 'Global'}
+              </span>
+              {selectedTenant ? (
+                <span className="ml-2 text-xs">({selectedTenant.slug})</span>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -704,11 +690,22 @@ export function SuperAdminSettings() {
 
       <div className="grid gap-6 md:grid-cols-[260px,1fr]">
         <nav className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-3">
-          <div className="px-2 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-            Super Admin
+          <div className="px-2 py-2">
+            <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+              Super Admin
+            </div>
+            <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
+              {selectedTenant ? (
+                <span>
+                  Empresa: <span className="font-semibold text-[color:var(--dash-ink)]">{selectedTenant.name}</span>
+                </span>
+              ) : (
+                <span className="font-semibold text-[color:var(--dash-ink)]">Global</span>
+              )}
+            </div>
           </div>
           <div className="space-y-2">
-            {steps.map((s) => {
+            {visibleSteps.map((s) => {
               const isActive = s.id === step;
               const isLocked = Boolean(s.requiresTenant) && !selectedTenantId;
               return (
@@ -752,74 +749,122 @@ export function SuperAdminSettings() {
           )}
 
           {step === 'dashboard' && (
-            <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
-              <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Dashboard</h4>
-              <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
-                Resumo global e do contexto selecionado.
-              </p>
-
-              <div className="mt-4 grid gap-3 md:grid-cols-3">
-                <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
-                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
-                    Empresas
-                  </div>
-                  <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
-                    Total: <span className="font-semibold text-[color:var(--dash-ink)]">{String(tenants.length)}</span>
-                  </div>
-                  <div className="mt-1 text-sm text-[color:var(--dash-muted)]">
-                    Ativas:{' '}
-                    <span className="font-semibold text-[color:var(--dash-ink)]">
-                      {String(tenants.filter((t) => t.is_active).length)}
-                    </span>
-                    {'  '}• Inativas:{' '}
-                    <span className="font-semibold text-[color:var(--dash-ink)]">
-                      {String(tenants.filter((t) => !t.is_active).length)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
-                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
-                    Fábricas
-                  </div>
-                  <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
-                    Contexto: <span className="font-semibold text-[color:var(--dash-ink)]">{selectedTenant?.name || '—'}</span>
-                  </div>
-                  <div className="mt-1 text-sm text-[color:var(--dash-muted)]">
-                    Fábricas carregadas: <span className="font-semibold text-[color:var(--dash-ink)]">{String(plants.length)}</span>
-                  </div>
-                  <div className="mt-1 text-sm text-[color:var(--dash-muted)]">
-                    Planta selecionada:{' '}
-                    <span className="font-semibold text-[color:var(--dash-ink)]">{selectedPlant || '—'}</span>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
-                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
-                    Base de dados
-                  </div>
-                  <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
-                    DB:{' '}
-                    <span className="font-semibold text-[color:var(--dash-ink)]">
-                      {selectedTenantId ? (dbStatus ? (dbStatus.dbOk ? 'OK' : 'Erro') : loadingDbStatus ? 'A carregar...' : '—') : 'Selecione uma empresa'}
-                    </span>
-                  </div>
-                  {selectedTenantId && dbStatus?.counts ? (
-                    <div className="mt-1 text-sm text-[color:var(--dash-muted)]">
-                      Users: <span className="font-semibold text-[color:var(--dash-ink)]">{String(dbStatus.counts.users ?? '-')}</span>
-                      {'  '}• Plants:{' '}
-                      <span className="font-semibold text-[color:var(--dash-ink)]">{String(dbStatus.counts.plants ?? '-')}</span>
+            <section className="overflow-hidden rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
+              <div className="h-2 w-full bg-[linear-gradient(90deg,#0f766e,#38bdf8)]" />
+              <div className="p-5">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                      Super Admin
                     </div>
-                  ) : null}
-                  {selectedTenantId && dbStatus?.lastSetupRun ? (
-                    <div className="mt-1 text-sm text-[color:var(--dash-muted)]">
-                      Última execução:{' '}
-                      <span className="font-semibold text-[color:var(--dash-ink)]">
-                        {String(dbStatus.lastSetupRun.run_type || '-')}
-                      </span>
-                    </div>
-                  ) : null}
+                    <h4 className="mt-2 text-lg font-semibold text-[color:var(--dash-ink)]">Dashboard</h4>
+                    <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                      Resumo global e do contexto selecionado.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button type="button" className="btn-secondary h-9 px-3" onClick={() => setStepAndUrl('tenant')}>
+                      Empresas
+                    </button>
+                    {selectedTenantId ? (
+                      <button type="button" className="btn-secondary h-9 px-3" onClick={() => setStepAndUrl('updates')}>
+                        Atualizações
+                      </button>
+                    ) : (
+                      <button type="button" className="btn-secondary h-9 px-3" onClick={() => navigate('/settings')}>
+                        Configurações genéricas
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                <div className="mt-5 grid gap-3 md:grid-cols-4">
+                  <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">Empresas</div>
+                        <div className="mt-2 text-2xl font-semibold text-[color:var(--dash-ink)]">{String(tenants.length)}</div>
+                        <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                          Ativas {String(tenants.filter((t) => t.is_active).length)} • Inativas {String(tenants.filter((t) => !t.is_active).length)}
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
+                        <Building2 className="h-5 w-5 text-[color:var(--dash-muted)]" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">Empresa ativa</div>
+                        <div className="mt-2 text-base font-semibold text-[color:var(--dash-ink)] truncate">
+                          {selectedTenant ? selectedTenant.name : 'Global'}
+                        </div>
+                        <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                          {selectedTenant ? String(selectedTenant.slug) : 'Selecione uma empresa no topo'}
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
+                        <Users className="h-5 w-5 text-[color:var(--dash-muted)]" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">Estado da BD</div>
+                        <div className="mt-2 text-2xl font-semibold text-[color:var(--dash-ink)]">
+                          {selectedTenantId ? (loadingDbStatus ? '…' : dbStatus ? (dbStatus.dbOk ? 'OK' : 'Erro') : '—') : '—'}
+                        </div>
+                        <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                          {selectedTenantId ? (dbStatus?.dbTime ? `Hora BD: ${String(dbStatus.dbTime)}` : 'Sem dados') : 'Global não tem BD por tenant'}
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
+                        <Database className="h-5 w-5 text-[color:var(--dash-muted)]" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">Registos</div>
+                        <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
+                          Users: <span className="font-semibold text-[color:var(--dash-ink)]">{selectedTenantId ? String(dbStatus?.counts?.users ?? '-') : '—'}</span>
+                        </div>
+                        <div className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                          Fábricas:{' '}
+                          <span className="font-semibold text-[color:var(--dash-ink)]">{selectedTenantId ? String(dbStatus?.counts?.plants ?? '-') : '—'}</span>
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
+                        <Server className="h-5 w-5 text-[color:var(--dash-muted)]" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedTenantId && dbStatus?.lastSetupRun ? (
+                  <div className="mt-4 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">Última execução</div>
+                        <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
+                          Tipo:{' '}
+                          <span className="font-semibold text-[color:var(--dash-ink)]">{String(dbStatus.lastSetupRun.run_type || '-')}</span>
+                          {dbStatus.lastSetupRun.created_at ? <span> • {String(dbStatus.lastSetupRun.created_at)}</span> : null}
+                        </div>
+                      </div>
+                      <button type="button" className="btn-secondary h-9 px-3" onClick={() => void loadDbStatus()} disabled={loadingDbStatus}>
+                        Recarregar
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </section>
           )}
