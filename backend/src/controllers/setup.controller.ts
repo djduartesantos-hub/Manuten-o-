@@ -28,6 +28,109 @@ import { DEFAULT_TENANT_ID, DEFAULT_TENANT_SLUG } from '../config/constants.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export class SetupController {
+  private static appendTail(current: string, chunk: string, maxChars: number): string {
+    const next = current + chunk;
+    return next.length > maxChars ? next.slice(next.length - maxChars) : next;
+  }
+
+  private static async runDrizzlePushInternal(): Promise<{
+    ok: boolean;
+    durationMs: number;
+    stdoutTail: string;
+    stderrTail: string;
+  }> {
+    const startedAt = Date.now();
+    const env = { ...process.env };
+
+    const verbose = env.DB_PUSH_VERBOSE === 'true' || env.DB_PUSH_VERBOSE === '1';
+    const autoApprove =
+      env.DRIZZLE_AUTO_APPROVE !== undefined
+        ? env.DRIZZLE_AUTO_APPROVE === 'true' || env.DRIZZLE_AUTO_APPROVE === '1'
+        : env.NODE_ENV === 'production';
+    const timeoutMs = Number(env.DB_PUSH_TIMEOUT_MS ?? 600_000);
+
+    // Limit TLS bypass to the migration subprocess only.
+    const configured = env.PG_TLS_REJECT_UNAUTHORIZED ?? env.NODE_TLS_REJECT_UNAUTHORIZED;
+    if (configured === undefined && env.NODE_ENV === 'production') {
+      env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    }
+
+    let stdoutTail = '';
+    let stderrTail = '';
+    const MAX_TAIL_CHARS = 16 * 1024;
+
+    return await new Promise((resolve, reject) => {
+      const child = spawn('npm', ['run', 'db:push'], {
+        cwd: process.cwd(),
+        stdio: verbose ? 'inherit' : ['pipe', 'pipe', 'pipe'],
+        env,
+      });
+
+      let approveInterval: any;
+      let timedOut = false;
+
+      const timeout = setTimeout(() => {
+        timedOut = true;
+        try {
+          child.kill('SIGTERM');
+        } catch {
+          // ignore
+        }
+      }, timeoutMs);
+
+      if (!verbose) {
+        child.stdout?.on('data', (d) => {
+          stdoutTail = SetupController.appendTail(stdoutTail, d.toString('utf8'), MAX_TAIL_CHARS);
+        });
+        child.stderr?.on('data', (d) => {
+          stderrTail = SetupController.appendTail(stderrTail, d.toString('utf8'), MAX_TAIL_CHARS);
+        });
+      }
+
+      if (autoApprove) {
+        try {
+          let remaining = Number(env.DRIZZLE_AUTO_APPROVE_COUNT ?? 120);
+          const intervalMs = Number(env.DRIZZLE_AUTO_APPROVE_INTERVAL_MS ?? 250);
+          approveInterval = setInterval(() => {
+            if (remaining <= 0) return;
+            remaining--;
+            try {
+              child.stdin?.write('y\n');
+            } catch {
+              // ignore
+            }
+          }, intervalMs);
+        } catch {
+          // ignore
+        }
+      }
+
+      child.on('exit', (code) => {
+        clearTimeout(timeout);
+        if (approveInterval) clearInterval(approveInterval);
+
+        const durationMs = Date.now() - startedAt;
+
+        if (timedOut) {
+          resolve({ ok: false, durationMs, stdoutTail, stderrTail: `${stderrTail}\n[timeout] db:push timed out after ${timeoutMs}ms`.trim() });
+          return;
+        }
+
+        if (code !== 0) {
+          resolve({ ok: false, durationMs, stdoutTail, stderrTail });
+          return;
+        }
+
+        resolve({ ok: true, durationMs, stdoutTail, stderrTail });
+      });
+
+      child.on('error', (error) => {
+        clearTimeout(timeout);
+        if (approveInterval) clearInterval(approveInterval);
+        reject(error);
+      });
+    });
+  }
   private static async ensureSetupDbRunsTable(): Promise<void> {
     await db.execute(sql.raw(`
       CREATE TABLE IF NOT EXISTS setup_db_runs (
@@ -1430,43 +1533,26 @@ export class SetupController {
   }
 
   private static async clearAllInternal(includeTenants: boolean): Promise<void> {
-    const tables = [
-      'stock_reservations',
-      'stock_movements',
-      'meter_readings',
-      'attachments',
-      'audit_logs',
-      'work_order_tasks',
-      'work_orders',
-      'maintenance_tasks',
-      'maintenance_plans',
-      'maintenance_kit_items',
-      'maintenance_kits',
-      'assets',
-      'spare_parts',
-      'suppliers',
-      'asset_categories',
-      'user_plants',
-      'users',
-      'plants',
-    ];
+    const excluded = includeTenants ? ['__never__'] : ['tenants', '__never__'];
+    const excludedSql = excluded.map((t) => `'${t.replace(/'/g, "''")}'`).join(', ');
 
-    if (includeTenants) {
-      tables.push('tenants');
-    }
-
-    for (const table of tables) {
-      await db.execute(
-        sql.raw(
-          `DO $$
+    // Truncate everything in public schema (best-effort) so bootstrap really starts clean.
+    await db.execute(
+      sql.raw(
+        `DO $$
+DECLARE r record;
 BEGIN
-  IF to_regclass('public.${table}') IS NOT NULL THEN
-    EXECUTE 'TRUNCATE TABLE ${table} CASCADE';
-  END IF;
-END $$;`
-        )
-      );
-    }
+  FOR r IN (
+    SELECT tablename
+    FROM pg_tables
+    WHERE schemaname = 'public'
+      AND tablename NOT IN (${excludedSql})
+  ) LOOP
+    EXECUTE 'TRUNCATE TABLE ' || quote_ident(r.tablename) || ' CASCADE';
+  END LOOP;
+END $$;`,
+      ),
+    );
   }
 
   /**
@@ -1502,15 +1588,46 @@ END $$;`
    */
   static async bootstrapAll(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
+      const requiredToken = process.env.SETUP_TOKEN || process.env.BOOTSTRAP_TOKEN;
+      if (requiredToken) {
+        const headerTokenRaw = (req.headers as any)?.['x-setup-token'];
+        const headerToken = Array.isArray(headerTokenRaw) ? headerTokenRaw[0] : headerTokenRaw;
+        const provided = String(headerToken || (req.body as any)?.token || '').trim();
+        if (!provided || provided !== String(requiredToken)) {
+          res.status(403).json({
+            success: false,
+            error: 'Setup token inválido',
+          });
+          return;
+        }
+      }
+
       const tenantSlug = DEFAULT_TENANT_SLUG;
       const tenantId = DEFAULT_TENANT_ID;
 
-      await SetupController.ensureSchemaReady();
-
       await SetupController.clearAllInternal(true);
 
-      const migrations = await SetupController.runMigrationsInternal();
+      // Apply latest schema via Drizzle (so new columns/features exist)
+      const drizzlePush = await SetupController.runDrizzlePushInternal();
+      if (!drizzlePush.ok) {
+        res.status(500).json({
+          success: false,
+          error: 'Falha ao aplicar schema (Drizzle db:push)',
+          data: {
+            stdoutTail: drizzlePush.stdoutTail,
+            stderrTail: drizzlePush.stderrTail,
+          },
+        });
+        return;
+      }
+
+      const migrations =
+        process.env.RUN_SQL_MIGRATIONS === 'true' || process.env.RUN_SQL_MIGRATIONS === '1'
+          ? await SetupController.runMigrationsInternal()
+          : [];
+
       await SetupController.ensureTenantsTable();
+      await SetupController.ensureRbacSeedForTenant(tenantId);
       const seedResult = await SetupController.seedDemoDataInternal(tenantId, tenantSlug);
 
       const demoUsers = [
@@ -1559,12 +1676,15 @@ END $$;`
           tenantId,
           tenantSlug,
           loginUrl: '/login',
-          migrations,
+          migrations: ['drizzle:push', ...migrations],
           seed: seedResult,
           adminUsername: 'superadmin',
           adminEmail: 'superadmin@cmms.com',
           passwordHint: 'SuperAdmin@123456',
           demoUsers,
+          drizzle: {
+            durationMs: drizzlePush.durationMs,
+          },
         },
       });
     } catch (error) {

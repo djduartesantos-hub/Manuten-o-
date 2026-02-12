@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { AlertCircle, CheckCircle, Database, Loader2 } from 'lucide-react';
-import { bootstrapDatabase } from '../services/api';
+import { bootstrapDatabaseWithOptions } from '../services/api';
 
 interface BootstrapResult {
   tenantId: string;
   loginUrl: string;
   migrations: string[];
+  drizzle?: {
+    durationMs: number;
+  };
   seed: {
     added: {
       users: number;
@@ -31,6 +34,7 @@ export function SetupInitPage({ embedded = false }: SetupInitPageProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<BootstrapResult | null>(null);
+  const [setupToken, setSetupToken] = useState('');
 
   const handleBootstrap = async () => {
     if (!confirm('Isto vai APAGAR TODOS os dados e recriar a base de dados. Continuar?')) {
@@ -46,7 +50,9 @@ export function SetupInitPage({ embedded = false }: SetupInitPageProps) {
     setResult(null);
 
     try {
-      const data = await bootstrapDatabase();
+      const data = await bootstrapDatabaseWithOptions({
+        setupToken: setupToken.trim() ? setupToken.trim() : undefined,
+      });
       setResult(data as BootstrapResult);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao iniciar setup');
@@ -64,12 +70,27 @@ export function SetupInitPage({ embedded = false }: SetupInitPageProps) {
           </div>
           <h1 className="text-3xl font-bold theme-text">Setup Inicial da Base de Dados</h1>
           <p className="mt-2 text-sm theme-text-muted">
-            Esta pagina apaga todos os dados existentes, executa migracoes e carrega dados demo.
+            Esta pagina apaga todos os dados existentes, aplica o schema atualizado (Drizzle) e carrega dados demo.
           </p>
         </div>
 
         <div className="rounded-3xl border theme-border theme-card p-6 shadow-sm">
-          <div className="mt-4 flex flex-wrap gap-3">
+          <div className="mt-4 grid gap-3">
+            <label className="text-sm theme-text">
+              Setup token (opcional)
+              <input
+                value={setupToken}
+                onChange={(e) => setSetupToken(e.target.value)}
+                placeholder="Se o servidor exigir SETUP_TOKEN"
+                className="input mt-2 h-10"
+                disabled={loading}
+              />
+              <div className="mt-1 text-xs theme-text-muted">
+                Se o servidor tiver `SETUP_TOKEN`/`BOOTSTRAP_TOKEN`, tens de preencher.
+              </div>
+            </label>
+
+            <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={handleBootstrap}
@@ -80,8 +101,9 @@ export function SetupInitPage({ embedded = false }: SetupInitPageProps) {
               Executar Setup
             </button>
             <div className="text-xs theme-text-muted">
-              Sem login. O setup apaga todos os dados antes de recriar.
+              Sem login. O setup apaga tudo e pode demorar alguns minutos.
             </div>
+          </div>
           </div>
 
           {error && (
@@ -126,6 +148,11 @@ export function SetupInitPage({ embedded = false }: SetupInitPageProps) {
               <div className="mt-3 text-xs theme-text-muted">
                 Migracoes executadas: {result.migrations.length > 0 ? result.migrations.join(', ') : 'nenhuma'}
               </div>
+              {result.drizzle?.durationMs ? (
+                <div className="mt-1 text-xs theme-text-muted">
+                  Drizzle db:push: {Math.round(result.drizzle.durationMs / 1000)}s
+                </div>
+              ) : null}
             </div>
           )}
         </div>

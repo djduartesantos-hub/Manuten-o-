@@ -1431,9 +1431,59 @@ export async function clearAllData() {
 }
 
 export async function bootstrapDatabase() {
-  return publicApiCall('/api/setup/bootstrap', {
-    method: 'POST',
-  });
+  return bootstrapDatabaseWithOptions({});
+}
+
+export async function bootstrapDatabaseWithOptions(options: { setupToken?: string } = {}) {
+  const controller = new AbortController();
+  const timeoutMs = 10 * 60 * 1000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch('/api/setup/bootstrap', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.setupToken ? { 'x-setup-token': options.setupToken } : {}),
+      },
+      body: JSON.stringify(options.setupToken ? { token: options.setupToken } : {}),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const raw = await res.text();
+      let parsed: any = null;
+      if (raw) {
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          parsed = null;
+        }
+      }
+
+      const requestId = res.headers.get('x-request-id') || (parsed?.requestId as string | undefined);
+      const message =
+        (typeof parsed?.error === 'string' && parsed.error.trim()) ||
+        (typeof parsed?.message === 'string' && parsed.message.trim()) ||
+        (raw?.trim() ? raw.trim() : '') ||
+        res.statusText ||
+        'API request failed';
+      throw new Error(requestId ? `${message} (requestId: ${requestId})` : message);
+    }
+
+    const payload = (await res.json()) as ApiResponse<any>;
+    if (!payload?.success) {
+      throw new Error(payload?.error || 'API request failed');
+    }
+    return payload.data;
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      throw new Error('Timeout do setup. O servidor pode continuar a processar; verifique os logs e tente novamente.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export async function getNotificationRules() {
