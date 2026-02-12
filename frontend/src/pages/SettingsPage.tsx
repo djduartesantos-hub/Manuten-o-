@@ -726,11 +726,11 @@ function SuperAdminSettings() {
         <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
           <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Utilizadores & RBAC</h4>
           <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
-            Permissões, roles e gestão administrativa para a empresa selecionada.
+            Permissões, roles e utilizadores para a empresa selecionada.
           </p>
           <div className="mt-6 space-y-10">
             <PermissionsSettings key={`perm-${selectedTenantId}`} />
-            <ManagementSettings key={`mgmt-${selectedTenantId}`} />
+            <ManagementSettings mode="usersOnly" key={`mgmt-${selectedTenantId}`} />
           </div>
         </section>
       )}
@@ -769,50 +769,58 @@ function SuperAdminSettings() {
                       </div>
                     ) : null}
                     {dbStatus.lastSetupRun ? (
-                      <div className="mt-2 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3">
+                      <div className="mt-3 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3">
                         <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
-                          Última execução (setup)
+                          Última execução
                         </div>
                         <div className="mt-2">
                           Tipo: <span className="font-semibold text-[color:var(--dash-ink)]">{String(dbStatus.lastSetupRun.run_type || '-')}</span>
-
-                        {dbStatus.lastSetupRun ? (
-                          <div className="mt-3 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3">
-                            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
-                              Última atualização aplicada
-                            </div>
+                        </div>
+                        {dbStatus.lastSetupRun.created_at ? (
+                          <div>Data: {String(dbStatus.lastSetupRun.created_at)}</div>
+                        ) : null}
+                        {(() => {
+                          const migrations = normalizeStringList(dbStatus.lastSetupRun.migrations);
+                          const patches = normalizeStringList(dbStatus.lastSetupRun.patches);
+                          if (migrations.length === 0 && patches.length === 0) return null;
+                          return (
                             <div className="mt-2">
-                              Tipo: <span className="font-semibold text-[color:var(--dash-ink)]">{String(dbStatus.lastSetupRun.run_type || '-')}</span>
+                              {migrations.length > 0 ? <div>Migrações: {migrations.join(', ')}</div> : null}
+                              {patches.length > 0 ? <div>Patches: {patches.join(', ')}</div> : null}
                             </div>
-                            {dbStatus.lastSetupRun.created_at ? (
-                              <div>Data: {String(dbStatus.lastSetupRun.created_at)}</div>
-                            ) : null}
+                          );
+                        })()}
+                      </div>
+                    ) : null}
 
-                            {(() => {
-                              const migrations = normalizeStringList(dbStatus.lastSetupRun.migrations);
-                              const patches = normalizeStringList(dbStatus.lastSetupRun.patches);
-                              if (migrations.length === 0 && patches.length === 0) return null;
-                              return (
-                                <div className="mt-2">
-                                  {migrations.length > 0 ? (
-                                    <div>Migrações: {migrations.join(', ')}</div>
-                                  ) : null}
-                                  {patches.length > 0 ? <div>Patches: {patches.join(', ')}</div> : null}
+                    {Array.isArray((dbStatus as any).setupRuns) && (dbStatus as any).setupRuns.length > 0 ? (
+                      <div className="mt-3 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3">
+                        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                          Histórico (últimas {(dbStatus as any).setupRuns.length})
+                        </div>
+                        <div className="mt-2 space-y-2">
+                          {(dbStatus as any).setupRuns.map((run: any, idx: number) => {
+                            const migrations = normalizeStringList(run?.migrations);
+                            const patches = normalizeStringList(run?.patches);
+                            return (
+                              <div
+                                key={String(run?.id || `${run?.created_at || 'run'}-${idx}`)}
+                                className="rounded-lg border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-2"
+                              >
+                                <div>
+                                  <span className="font-semibold text-[color:var(--dash-ink)]">{String(run?.run_type || '-')}</span>
+                                  {run?.created_at ? <span> · {String(run.created_at)}</span> : null}
                                 </div>
-                              );
-                            })()}
-                          </div>
-                        ) : null}
+                                {migrations.length > 0 ? (
+                                  <div className="text-xs">Migrações: {migrations.join(', ')}</div>
+                                ) : null}
+                                {patches.length > 0 ? (
+                                  <div className="text-xs">Patches: {patches.join(', ')}</div>
+                                ) : null}
+                              </div>
+                            );
+                          })}
                         </div>
-                        <div>
-                          Data: <span className="font-semibold text-[color:var(--dash-ink)]">{String(dbStatus.lastSetupRun.created_at || '-')}</span>
-                        </div>
-                        {Array.isArray(dbStatus.lastSetupRun.migrations) && dbStatus.lastSetupRun.migrations.length > 0 ? (
-                          <div>Migrações: {dbStatus.lastSetupRun.migrations.join(', ')}</div>
-                        ) : null}
-                        {Array.isArray(dbStatus.lastSetupRun.patches) && dbStatus.lastSetupRun.patches.length > 0 ? (
-                          <div>Patches: {dbStatus.lastSetupRun.patches.join(', ')}</div>
-                        ) : null}
                       </div>
                     ) : null}
                   </div>
@@ -4160,8 +4168,11 @@ function PermissionsSettings() {
   );
 }
 
-function ManagementSettings() {
+type ManagementSettingsMode = 'full' | 'usersOnly';
+
+function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }) {
   const { selectedPlant } = useAppStore();
+  const usersOnly = mode === 'usersOnly';
   const [plants, setPlants] = React.useState<any[]>([]);
   const [users, setUsers] = React.useState<any[]>([]);
   const [roles, setRoles] = React.useState<Array<{ value: string; label: string }>>([]);
@@ -4562,15 +4573,17 @@ function ManagementSettings() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
-          Administração
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold theme-text">Gestão administrativa</h2>
-        <p className="mt-1 text-sm theme-text-muted">
-          Controle plantas, utilizadores, roles e equipamentos sem sair das configurações.
-        </p>
-      </div>
+      {!usersOnly ? (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
+            Administração
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold theme-text">Gestão administrativa</h2>
+          <p className="mt-1 text-sm theme-text-muted">
+            Controle plantas, utilizadores, roles e equipamentos sem sair das configurações.
+          </p>
+        </div>
+      ) : null}
 
       {error && (
         <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text shadow-sm">
@@ -4579,71 +4592,76 @@ function ManagementSettings() {
         </div>
       )}
 
-      <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold theme-text">Ferramentas da base de dados</h3>
-            <p className="text-sm theme-text-muted">Menu rápido de configuração e migrações.</p>
+      {!usersOnly ? (
+        <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold theme-text">Ferramentas da base de dados</h3>
+              <p className="text-sm theme-text-muted">Menu rápido de configuração e migrações.</p>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            {dbTools.map((tool) => {
+              const Icon = tool.icon;
+              return (
+                <button
+                  key={tool.id}
+                  onClick={() => setActiveDbTool(tool.id)}
+                  className="group rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 text-left shadow-sm transition hover:bg-[color:var(--dash-surface)]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold theme-text">{tool.title}</p>
+                      <p className="mt-1 text-xs theme-text-muted">{tool.description}</p>
+                    </div>
+                    <span className="flex h-9 w-9 items-center justify-center rounded-2xl border theme-border bg-[color:var(--dash-surface)] text-[color:var(--dash-accent)] transition group-hover:bg-[color:var(--dash-surface-2)]">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                  </div>
+                  <div className="mt-3 text-xs font-semibold text-[color:var(--dash-accent)]">Abrir</div>
+                </button>
+              );
+            })}
           </div>
         </div>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          {dbTools.map((tool) => {
-            const Icon = tool.icon;
-            return (
-              <button
-                key={tool.id}
-                onClick={() => setActiveDbTool(tool.id)}
-                className="group rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 text-left shadow-sm transition hover:bg-[color:var(--dash-surface)]"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold theme-text">{tool.title}</p>
-                    <p className="mt-1 text-xs theme-text-muted">{tool.description}</p>
-                  </div>
-                  <span className="flex h-9 w-9 items-center justify-center rounded-2xl border theme-border bg-[color:var(--dash-surface)] text-[color:var(--dash-accent)] transition group-hover:bg-[color:var(--dash-surface-2)]">
-                    <Icon className="h-4 w-4" />
-                  </span>
-                </div>
-                <div className="mt-3 text-xs font-semibold text-[color:var(--dash-accent)]">Abrir</div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      ) : null}
 
-      <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold theme-text">Menu administrativo</h3>
-            <p className="text-sm theme-text-muted">Aceda às páginas de gestão.</p>
+      {!usersOnly ? (
+        <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold theme-text">Menu administrativo</h3>
+              <p className="text-sm theme-text-muted">Aceda às páginas de gestão.</p>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            {adminPanels.map((panel) => {
+              const Icon = panel.icon;
+              return (
+                <button
+                  key={panel.id}
+                  onClick={() => setActiveAdminPanel(panel.id)}
+                  className="group rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 text-left shadow-sm transition hover:bg-[color:var(--dash-surface)]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold theme-text">{panel.title}</p>
+                      <p className="mt-1 text-xs theme-text-muted">{panel.description}</p>
+                    </div>
+                    <span className="flex h-9 w-9 items-center justify-center rounded-2xl border theme-border bg-[color:var(--dash-surface)] text-[color:var(--dash-accent)] transition group-hover:bg-[color:var(--dash-surface-2)]">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                  </div>
+                  <div className="mt-3 text-xs font-semibold text-[color:var(--dash-accent)]">Abrir</div>
+                </button>
+              );
+            })}
           </div>
         </div>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          {adminPanels.map((panel) => {
-            const Icon = panel.icon;
-            return (
-              <button
-                key={panel.id}
-                onClick={() => setActiveAdminPanel(panel.id)}
-                className="group rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 text-left shadow-sm transition hover:bg-[color:var(--dash-surface)]"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold theme-text">{panel.title}</p>
-                    <p className="mt-1 text-xs theme-text-muted">{panel.description}</p>
-                  </div>
-                  <span className="flex h-9 w-9 items-center justify-center rounded-2xl border theme-border bg-[color:var(--dash-surface)] text-[color:var(--dash-accent)] transition group-hover:bg-[color:var(--dash-surface-2)]">
-                    <Icon className="h-4 w-4" />
-                  </span>
-                </div>
-                <div className="mt-3 text-xs font-semibold text-[color:var(--dash-accent)]">Abrir</div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      ) : null}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+      {!usersOnly ? (
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="relative overflow-hidden rounded-[28px] border theme-border theme-card p-5 shadow-sm space-y-6">
           <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
           <div className="flex items-center justify-between">
@@ -4792,6 +4810,7 @@ function ManagementSettings() {
           )}
         </div>
       </div>
+      ) : null}
 
       <div className="relative overflow-hidden rounded-[28px] border theme-border theme-card p-5 shadow-sm space-y-6">
         <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
@@ -4871,7 +4890,7 @@ function ManagementSettings() {
         </div>
       </div>
 
-      {plantModalOpen && (
+      {!usersOnly && plantModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
           <div
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
@@ -5235,7 +5254,7 @@ function ManagementSettings() {
         </div>
       )}
 
-      {plantUsersModalOpen && plantUsersPlant && (
+      {!usersOnly && plantUsersModalOpen && plantUsersPlant && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
           <div
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
@@ -5308,7 +5327,7 @@ function ManagementSettings() {
         </div>
       )}
 
-      {activeDbTool && (
+      {!usersOnly && activeDbTool && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
           <div
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
@@ -5330,7 +5349,7 @@ function ManagementSettings() {
         </div>
       )}
 
-      {activeAdminPanel === 'plants' && (
+      {!usersOnly && activeAdminPanel === 'plants' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
           <div
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
@@ -5350,7 +5369,7 @@ function ManagementSettings() {
         </div>
       )}
 
-      {activeAdminPanel === 'suppliers' && (
+      {!usersOnly && activeAdminPanel === 'suppliers' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
           <div
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
@@ -5370,7 +5389,7 @@ function ManagementSettings() {
         </div>
       )}
 
-      {activeAdminPanel === 'spareparts' && (
+      {!usersOnly && activeAdminPanel === 'spareparts' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
           <div
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
@@ -5390,7 +5409,7 @@ function ManagementSettings() {
         </div>
       )}
 
-      {activeAdminPanel === 'stock' && (
+      {!usersOnly && activeAdminPanel === 'stock' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
           <div
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"

@@ -134,6 +134,11 @@ export async function getDbStatus(req: AuthenticatedRequest, res: Response) {
     const tenantId = String(req.tenantId || '');
     const tenantSlug = String(req.tenantSlug || '');
 
+    const limitRaw = Number((req.query as any)?.limit ?? 10);
+    const setupRunsLimit = Number.isFinite(limitRaw)
+      ? Math.min(Math.max(Math.trunc(limitRaw), 1), 50)
+      : 10;
+
     const serverTime = new Date().toISOString();
 
     const ping = await db.execute(sql`SELECT 1 AS ok;`);
@@ -184,21 +189,24 @@ export async function getDbStatus(req: AuthenticatedRequest, res: Response) {
     }
 
     let lastSetupRun: any | null = null;
+    let setupRuns: any[] = [];
     try {
       const tableCheck = await db.execute(sql`SELECT to_regclass('public.setup_db_runs') AS name;`);
       const tableName = String((tableCheck as any)?.rows?.[0]?.name ?? '') || null;
       if (tableName) {
-        const latestRun = await db.execute(sql`
+        const runs = await db.execute(sql`
           SELECT id, tenant_id, run_type, user_id, migrations, patches, created_at
           FROM setup_db_runs
           WHERE tenant_id = ${tenantId}
           ORDER BY created_at DESC
-          LIMIT 1;
+          LIMIT ${setupRunsLimit};
         `);
-        lastSetupRun = (latestRun as any)?.rows?.[0] ?? null;
+        setupRuns = (runs as any)?.rows ?? [];
+        lastSetupRun = setupRuns[0] ?? null;
       }
     } catch {
       lastSetupRun = null;
+      setupRuns = [];
     }
 
     return res.json({
@@ -218,6 +226,7 @@ export async function getDbStatus(req: AuthenticatedRequest, res: Response) {
           latest: latestMigration,
         },
         lastSetupRun,
+        setupRuns,
       },
     });
   } catch {

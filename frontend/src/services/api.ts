@@ -144,6 +144,15 @@ export async function getSuperadminDbStatus(): Promise<{
     patches?: any;
     created_at?: any;
   } | null;
+  setupRuns?: Array<{
+    id?: string;
+    tenant_id?: string;
+    run_type?: string;
+    user_id?: string | null;
+    migrations?: any;
+    patches?: any;
+    created_at?: any;
+  }>;
 }> {
   return apiCall('/superadmin/db/status');
 }
