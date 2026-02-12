@@ -1,8 +1,9 @@
 import React from 'react';
+import toast from 'react-hot-toast';
 import { MainLayout } from '../layouts/MainLayout';
 import { useAppStore } from '../context/store';
 import { useAuth } from '../hooks/useAuth';
-import { getWorkOrders } from '../services/api';
+import { getWorkOrders, updateWorkOrder } from '../services/api';
 
 type WorkOrderRow = {
   id: string;
@@ -55,6 +56,7 @@ export function TechnicianWorkOrdersHomePage() {
   const [workOrders, setWorkOrders] = React.useState<WorkOrderRow[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [assigningId, setAssigningId] = React.useState<string | null>(null);
 
   const currentUserId = user?.id;
 
@@ -91,6 +93,34 @@ export function TechnicianWorkOrdersHomePage() {
   const available = React.useMemo(() => {
     return workOrders.filter((o) => !o.assigned_to && String(o.status || '').toLowerCase() === 'aberta');
   }, [workOrders]);
+
+  const assignToMe = async (workOrderId: string) => {
+    if (!selectedPlant) {
+      toast.error('Plant não selecionada');
+      return;
+    }
+
+    if (!currentUserId) {
+      toast.error('Utilizador não autenticado');
+      return;
+    }
+
+    setAssigningId(workOrderId);
+    try {
+      await updateWorkOrder(selectedPlant, workOrderId, {
+        assigned_to: currentUserId,
+      });
+
+      setWorkOrders((prev) =>
+        prev.map((o) => (o.id === workOrderId ? { ...o, assigned_to: currentUserId } : o)),
+      );
+      toast.success('Ordem assumida');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Falha ao assumir a ordem');
+    } finally {
+      setAssigningId(null);
+    }
+  };
 
   return (
     <MainLayout>
@@ -176,7 +206,17 @@ export function TechnicianWorkOrdersHomePage() {
                       ) : null}
                     </div>
 
-                    <span className={badgeForStatus(o.status) + ' text-xs'}>{labelStatus(o.status)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={badgeForStatus(o.status) + ' text-xs'}>{labelStatus(o.status)}</span>
+                      <button
+                        type="button"
+                        onClick={() => void assignToMe(o.id)}
+                        disabled={loading || assigningId === o.id}
+                        className="rounded-full bg-[color:var(--dash-accent)] px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {assigningId === o.id ? 'A assumir…' : 'Assumir'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

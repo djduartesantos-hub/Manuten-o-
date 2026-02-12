@@ -124,6 +124,7 @@ export class SetupController {
       { key: 'gestor_manutencao', name: 'Gestor Manutenção' },
       { key: 'supervisor', name: 'Supervisor' },
       { key: 'tecnico', name: 'Técnico' },
+      { key: 'operador', name: 'Operador' },
       { key: 'leitor', name: 'Leitor' },
     ];
 
@@ -218,6 +219,13 @@ export class SetupController {
         'stock:write',
         'suppliers:read',
         'kits:read',
+      ],
+      operador: [
+        'dashboard:read',
+        'notifications:read',
+        'assets:read',
+        'workorders:read',
+        'workorders:write',
       ],
       leitor: [
         'dashboard:read',

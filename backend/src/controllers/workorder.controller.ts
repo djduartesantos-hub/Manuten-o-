@@ -16,6 +16,13 @@ import {
 const stockReservationService = new StockReservationService();
 
 export class WorkOrderController {
+  private static normalizeRole(role?: string | null) {
+    const v = String(role || '').trim().toLowerCase();
+    if (v === 'technician' || v === 'tech') return 'tecnico';
+    if (v === 'operator') return 'operador';
+    return v;
+  }
+
   private static isAdmin(role?: string) {
     return role === 'superadmin' || role === 'admin_empresa';
   }
@@ -29,6 +36,8 @@ export class WorkOrderController {
       const { plantId } = req.params;
       const { status } = req.query;
       const tenantId = req.tenantId;
+      const userId = req.user?.userId;
+      const role = WorkOrderController.normalizeRole(req.user?.role);
 
       if (!tenantId || !plantId) {
         res.status(400).json({
@@ -38,15 +47,50 @@ export class WorkOrderController {
         return;
       }
 
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
       const workOrders = await WorkOrderService.getPlantWorkOrders(
         tenantId,
         plantId,
         status as string,
       );
 
+      const allWorkOrders: any[] = Array.isArray(workOrders) ? (workOrders as any[]) : [];
+
+      const isAdmin = WorkOrderController.isAdmin(role);
+      const isManager = WorkOrderController.isManager(role);
+
+      const filtered = (() => {
+        if (isAdmin || isManager) return allWorkOrders;
+
+        if (role === 'operador') {
+          return allWorkOrders.filter((o: any) => String(o.created_by || '') === String(userId));
+        }
+
+        if (role === 'tecnico') {
+          return allWorkOrders.filter((o: any) => {
+            const assignedTo = String(o.assigned_to || '');
+            const isAssignedToMe = assignedTo && assignedTo === String(userId);
+            if (isAssignedToMe) return true;
+
+            const isUnassigned = !o.assigned_to;
+            if (!isUnassigned) return false;
+
+            const st = String(o.status || '').toLowerCase();
+            return st === 'aberta' || st === 'em_analise';
+          });
+        }
+
+        // Default: keep behaviour for other roles.
+        return allWorkOrders;
+      })();
+
       res.json({
         success: true,
-        data: workOrders,
+        data: filtered,
       });
     } catch (error) {
       logger.error('List work orders error:', error);
@@ -62,12 +106,19 @@ export class WorkOrderController {
       const { workOrderId } = req.params;
       const { plantId } = req.params;
       const tenantId = req.tenantId;
+      const userId = req.user?.userId;
+      const role = WorkOrderController.normalizeRole(req.user?.role);
 
       if (!tenantId || !workOrderId || !plantId) {
         res.status(400).json({
           success: false,
           error: 'Work order ID and plant ID are required',
         });
+        return;
+      }
+
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
         return;
       }
 
@@ -79,6 +130,31 @@ export class WorkOrderController {
           error: 'Work order not found',
         });
         return;
+      }
+
+      const isAdmin = WorkOrderController.isAdmin(role);
+      const isManager = WorkOrderController.isManager(role);
+
+      if (!isAdmin && !isManager) {
+        if (role === 'operador') {
+          if (String((workOrder as any).created_by || '') !== String(userId)) {
+            res.status(404).json({ success: false, error: 'Work order not found' });
+            return;
+          }
+        }
+
+        if (role === 'tecnico') {
+          const assignedTo = String((workOrder as any).assigned_to || '');
+          const isAssignedToMe = assignedTo && assignedTo === String(userId);
+          const isUnassigned = !(workOrder as any).assigned_to;
+          const st = String((workOrder as any).status || '').toLowerCase();
+          const isAvailable = isUnassigned && (st === 'aberta' || st === 'em_analise');
+
+          if (!isAssignedToMe && !isAvailable) {
+            res.status(404).json({ success: false, error: 'Work order not found' });
+            return;
+          }
+        }
       }
 
       res.json({

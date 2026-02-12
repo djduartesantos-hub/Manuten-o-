@@ -10,6 +10,7 @@ export class AuthService {
       maintenance_manager: 'gestor_manutencao',
       planner: 'gestor_manutencao',
       technician: 'tecnico',
+      operator: 'operador',
     };
 
     return roleAliases[role] || role;
