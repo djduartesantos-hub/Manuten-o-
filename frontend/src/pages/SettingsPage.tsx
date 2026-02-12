@@ -311,6 +311,12 @@ function SuperAdminSettings() {
     return stored && stored.trim().length > 0 ? stored.trim() : '';
   });
 
+  type SuperAdminStep = 'tenant' | 'plants' | 'users' | 'updates';
+
+  const [step, setStep] = React.useState<SuperAdminStep>(() => {
+    return selectedTenantId ? 'plants' : 'tenant';
+  });
+
   const [newTenant, setNewTenant] = React.useState({ name: '', slug: '' });
   const [creatingTenant, setCreatingTenant] = React.useState(false);
 
@@ -371,6 +377,40 @@ function SuperAdminSettings() {
     await reloadPlantsForSelectedTenant();
   };
 
+  React.useEffect(() => {
+    // If tenant gets cleared, force the wizard back to tenant step.
+    if (!selectedTenantId && step !== 'tenant') {
+      setStep('tenant');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTenantId]);
+
+  const steps: Array<{ id: SuperAdminStep; title: string; description: string }> = [
+    {
+      id: 'tenant',
+      title: 'Empresas',
+      description: 'Selecionar e gerir empresas (contexto global).',
+    },
+    {
+      id: 'plants',
+      title: 'Fábricas',
+      description: 'Gerir fábricas da empresa selecionada.',
+    },
+    {
+      id: 'users',
+      title: 'Utilizadores & RBAC',
+      description: 'Roles, permissões e gestão administrativa.',
+    },
+    {
+      id: 'updates',
+      title: 'Atualizações',
+      description: 'Atualizações gerais e setup/admin DB.',
+    },
+  ];
+
+  const requireTenantForStep = step !== 'tenant';
+  const missingTenant = requireTenantForStep && !selectedTenantId;
+
   const handleCreateTenant = async () => {
     const name = newTenant.name.trim();
     const slug = newTenant.slug.trim().toLowerCase();
@@ -409,22 +449,22 @@ function SuperAdminSettings() {
   return (
     <div className="space-y-8">
       <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-5">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-              Contexto global
+              Assistente global
             </p>
             <h4 className="mt-2 text-lg font-semibold text-[color:var(--dash-ink)]">
-              Selecionar empresa
+              Instalação & Configuração
             </h4>
             <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
-              A empresa selecionada será usada nas ações de gestão abaixo.
+              Siga os passos para configurar e gerir o projeto por empresa.
             </p>
           </div>
 
           <div className="flex flex-col gap-2 min-w-[280px]">
             <label className="text-xs font-semibold text-[color:var(--dash-muted)]">
-              Empresa
+              Empresa ativa
             </label>
             <select
               className="h-10 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-3 text-sm text-[color:var(--dash-ink)]"
@@ -445,119 +485,186 @@ function SuperAdminSettings() {
               )}
             </select>
 
-            {error && (
-              <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-800">
-                {success}
-              </div>
-            )}
-
             {selectedTenant && (
               <div className="text-xs text-[color:var(--dash-muted)]">
-                Empresa ativa: <span className="font-semibold">{selectedTenant.name}</span>
+                Empresa: <span className="font-semibold">{selectedTenant.name}</span>
                 {selectedPlant ? (
-                  <span className="ml-2">• Planta selecionada OK</span>
+                  <span className="ml-2">• Planta OK</span>
                 ) : (
-                  <span className="ml-2 text-red-700">• Sem planta selecionada</span>
+                  <span className="ml-2 text-red-700">• Sem planta</span>
                 )}
               </div>
             )}
           </div>
         </div>
-      </section>
 
-      <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
-        <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Empresas</h4>
-        <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
-          Criar e ativar/desativar empresas.
-        </p>
+        {(error || success) && (
+          <div className="mt-4 space-y-2">
+            {error && (
+              <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-800">
+                {success}
+              </div>
+            )}
+          </div>
+        )}
 
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <input
-            className="h-10 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 text-sm"
-            placeholder="Nome da empresa"
-            value={newTenant.name}
-            onChange={(e) => setNewTenant((s) => ({ ...s, name: e.target.value }))}
-          />
-          <input
-            className="h-10 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 text-sm"
-            placeholder="slug (ex: acme-industria)"
-            value={newTenant.slug}
-            onChange={(e) => setNewTenant((s) => ({ ...s, slug: e.target.value }))}
-          />
-          <button
-            type="button"
-            className="btn-primary h-10"
-            onClick={() => void handleCreateTenant()}
-            disabled={creatingTenant}
-          >
-            Criar empresa
-          </button>
-        </div>
-
-        <div className="mt-5 space-y-2">
-          {tenants.map((t) => (
-            <div
-              key={t.id}
-              className="flex items-center justify-between gap-3 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-4 py-3"
-            >
-              <div className="min-w-0">
-                <div className="font-semibold text-[color:var(--dash-ink)] truncate">
-                  {t.name}
+        <div className="mt-5 grid gap-2 md:grid-cols-4">
+          {steps.map((s, idx) => {
+            const isActive = s.id === step;
+            const isLocked = s.id !== 'tenant' && !selectedTenantId;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                className={
+                  isActive
+                    ? 'rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 text-left'
+                    : 'rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4 text-left hover:bg-[color:var(--dash-surface-2)]'
+                }
+                onClick={() => {
+                  if (isLocked) {
+                    setStep('tenant');
+                    setError('Selecione uma empresa antes de avançar.');
+                    return;
+                  }
+                  setStep(s.id);
+                }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                      Passo {idx + 1}
+                    </div>
+                    <div className="mt-1 font-semibold text-[color:var(--dash-ink)] truncate">
+                      {s.title}
+                    </div>
+                    <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                      {s.description}
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-[color:var(--dash-muted)]" />
                 </div>
-                <div className="text-xs text-[color:var(--dash-muted)] truncate">{t.slug}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="btn-secondary h-9 px-3"
-                  onClick={() => void handleSelectTenant(t.id)}
-                >
-                  Selecionar
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary h-9 px-3"
-                  onClick={() => void toggleTenantActive(t.id, !t.is_active)}
-                >
-                  {t.is_active ? 'Desativar' : 'Ativar'}
-                </button>
-              </div>
-            </div>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </section>
 
-      {selectedTenantId ? (
+      {missingTenant && (
+        <section className="rounded-[24px] border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-700">
+          Selecione uma empresa no Passo 1 para continuar.
+        </section>
+      )}
+
+      {step === 'tenant' && (
         <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
-          <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Gestão (empresa selecionada)</h4>
+          <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Empresas</h4>
           <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
-            Utilizadores, fábricas e RBAC operam sobre a empresa selecionada.
+            Criar e ativar/desativar empresas.
           </p>
 
-          <div className="mt-6 space-y-10">
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <input
+              className="h-10 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 text-sm"
+              placeholder="Nome da empresa"
+              value={newTenant.name}
+              onChange={(e) => setNewTenant((s) => ({ ...s, name: e.target.value }))}
+            />
+            <input
+              className="h-10 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 text-sm"
+              placeholder="slug (ex: acme-industria)"
+              value={newTenant.slug}
+              onChange={(e) => setNewTenant((s) => ({ ...s, slug: e.target.value }))}
+            />
+            <button
+              type="button"
+              className="btn-primary h-10"
+              onClick={() => void handleCreateTenant()}
+              disabled={creatingTenant}
+            >
+              Criar empresa
+            </button>
+          </div>
+
+          <div className="mt-5 space-y-2">
+            {tenants.map((t) => (
+              <div
+                key={t.id}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-4 py-3"
+              >
+                <div className="min-w-0">
+                  <div className="font-semibold text-[color:var(--dash-ink)] truncate">
+                    {t.name}
+                  </div>
+                  <div className="text-xs text-[color:var(--dash-muted)] truncate">{t.slug}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="btn-secondary h-9 px-3"
+                    onClick={() => {
+                      void handleSelectTenant(t.id);
+                      setStep('plants');
+                    }}
+                  >
+                    Selecionar
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary h-9 px-3"
+                    onClick={() => void toggleTenantActive(t.id, !t.is_active)}
+                  >
+                    {t.is_active ? 'Desativar' : 'Ativar'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {step === 'plants' && selectedTenantId && (
+        <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
+          <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Fábricas</h4>
+          <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+            Gestão de fábricas para a empresa selecionada.
+          </p>
+          <div className="mt-6">
             <PlantsPage embedded key={`plants-${selectedTenantId}`} />
+          </div>
+        </section>
+      )}
+
+      {step === 'users' && selectedTenantId && (
+        <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
+          <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Utilizadores & RBAC</h4>
+          <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+            Permissões, roles e gestão administrativa para a empresa selecionada.
+          </p>
+          <div className="mt-6 space-y-10">
             <PermissionsSettings key={`perm-${selectedTenantId}`} />
             <ManagementSettings key={`mgmt-${selectedTenantId}`} />
           </div>
         </section>
-      ) : null}
+      )}
 
-      <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
-        <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Atualizações & Base de dados</h4>
-        <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
-          Estas ferramentas operam sobre a empresa selecionada.
-        </p>
-        <div className="mt-5 space-y-8">
-          <DatabaseUpdatePage embedded />
-          <AdminSetupPage embedded />
-        </div>
-      </section>
+      {step === 'updates' && selectedTenantId && (
+        <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
+          <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Atualizações & Base de dados</h4>
+          <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+            Estas ferramentas operam sobre a empresa selecionada.
+          </p>
+          <div className="mt-5 space-y-8">
+            <DatabaseUpdatePage embedded />
+            <AdminSetupPage embedded />
+          </div>
+        </section>
+      )}
     </div>
   );
 }
