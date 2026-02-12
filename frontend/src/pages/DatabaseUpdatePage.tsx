@@ -355,7 +355,7 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
           <div className="mt-3 grid gap-2 text-xs theme-text">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
-                <span className="font-semibold theme-text">admin_empresa</span>
+                <span className="font-semibold theme-text">superadmin</span>
                 <span className="theme-text-muted"> — admin (admin@cmms.com)</span>
               </div>
               <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Admin@123456</div>
@@ -387,13 +387,6 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
                 <span className="theme-text-muted"> — operador (operador@cmms.com)</span>
               </div>
               <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Operador@123456</div>
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="min-w-0">
-                <span className="font-semibold theme-text">leitor</span>
-                <span className="theme-text-muted"> — leitor (leitor@cmms.com)</span>
-              </div>
-              <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Leitor@123456</div>
             </div>
           </div>
         </div>

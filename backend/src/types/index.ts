@@ -4,7 +4,7 @@ export enum UserRole {
   GestorManutencao = 'gestor_manutencao',
   Supervisor = 'supervisor',
   Tecnico = 'tecnico',
-  Leitor = 'leitor',
+  Operador = 'operador',
 }
 
 export enum OrderStatus {

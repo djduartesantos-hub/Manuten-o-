@@ -13,18 +13,18 @@ const allowedRoles = [
   'supervisor',
   'tecnico',
   'operador',
-  'leitor',
 ];
 
 const roleLabels: Record<string, string> = {
-  superadmin: 'Super Admin',
+  superadmin: 'SuperAdministrador',
   admin_empresa: 'Admin Empresa',
-  gestor_manutencao: 'Gestor Manutencao',
+  gestor_manutencao: 'Gestor Manutenção',
   supervisor: 'Supervisor',
-  tecnico: 'Tecnico',
+  tecnico: 'Técnico',
   operador: 'Operador',
-  leitor: 'Leitor',
 };
+
+const PROTECTED_ROLE_KEYS = new Set<string>(['superadmin']);
 
 const normalizePlantIds = (value: unknown) => {
   if (Array.isArray(value)) {
@@ -39,6 +39,8 @@ const normalizePlantIds = (value: unknown) => {
 };
 
 const normalizeRole = (role: unknown) => String(role || '').trim().toLowerCase();
+
+const isProtectedRoleKey = (roleKey: unknown) => PROTECTED_ROLE_KEYS.has(normalizeRole(roleKey));
 
 const isSafeRoleKey = (value: string) => /^[a-z0-9_]+$/.test(value);
 
@@ -535,12 +537,15 @@ export async function listRoles(_req: AuthenticatedRequest, res: Response) {
 
     return res.json({
       success: true,
-      data: (result.rows || []).map((r: any) => ({
-        value: String(r.key),
-        label: String(r.name),
-        description: r.description === null || r.description === undefined ? null : String(r.description),
-        is_system: Boolean(r.is_system),
-      })),
+      data: (result.rows || [])
+        .map((r: any) => ({
+          value: String(r.key),
+          label: String(r.name),
+          description:
+            r.description === null || r.description === undefined ? null : String(r.description),
+          is_system: Boolean(r.is_system),
+        }))
+        .filter((r: any) => normalizeRole(r?.value) !== 'leitor'),
     });
   } catch {
     return res.json({
@@ -570,6 +575,10 @@ export async function createRole(req: AuthenticatedRequest, res: Response) {
 
     if (!roleKey || !isSafeRoleKey(roleKey)) {
       return res.status(400).json({ success: false, error: 'Invalid role key' });
+    }
+
+    if (isProtectedRoleKey(roleKey)) {
+      return res.status(403).json({ success: false, error: 'Role reservada do sistema' });
     }
 
     if (!roleName) {
@@ -626,6 +635,13 @@ export async function updateRole(req: AuthenticatedRequest, res: Response) {
     const normalizedKey = normalizeRole(roleKey);
     if (!normalizedKey || !isSafeRoleKey(normalizedKey)) {
       return res.status(400).json({ success: false, error: 'Invalid role key' });
+    }
+
+    if (isProtectedRoleKey(normalizedKey)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Role protegida: não pode ser alterada',
+      });
     }
 
     const existing = await db.execute(sql`
@@ -767,10 +783,24 @@ export async function listRoleHomePages(req: AuthenticatedRequest, res: Response
         data: allowedRoles.map((roleKey) => ({
           role_key: roleKey,
           plant_id: null,
-          home_path: roleKey === 'tecnico' ? '/tecnico' : roleKey === 'operador' ? '/operador' : '/dashboard',
+          home_path:
+            roleKey === 'superadmin'
+              ? '/settings'
+              : roleKey === 'tecnico'
+                ? '/tecnico'
+                : roleKey === 'operador'
+                  ? '/operador'
+                  : '/dashboard',
           plant_override: null,
           global_base: null,
-          suggested_home: roleKey === 'tecnico' ? '/tecnico' : roleKey === 'operador' ? '/operador' : '/dashboard',
+          suggested_home:
+            roleKey === 'superadmin'
+              ? '/settings'
+              : roleKey === 'tecnico'
+                ? '/tecnico'
+                : roleKey === 'operador'
+                  ? '/operador'
+                  : '/dashboard',
         })),
       });
     }
@@ -799,7 +829,13 @@ export async function setRoleHomePages(req: AuthenticatedRequest, res: Response)
         const homePath = normalizeHomePath(e?.home_path);
         return { roleKey, homePath };
       })
-      .filter((e: any) => e.roleKey && e.homePath && roleKeys.has(e.roleKey));
+      .filter(
+        (e: any) =>
+          e.roleKey &&
+          e.homePath &&
+          roleKeys.has(e.roleKey) &&
+          !isProtectedRoleKey(e.roleKey),
+      );
 
     // Ensure one entry per role_key (last write wins)
     const byRoleKey = new Map<string, string>();
@@ -815,12 +851,12 @@ export async function setRoleHomePages(req: AuthenticatedRequest, res: Response)
     if (plantId) {
       await db.execute(sql`
         DELETE FROM rbac_role_home_pages
-        WHERE tenant_id = ${tenantId} AND plant_id = ${plantId}
+        WHERE tenant_id = ${tenantId} AND plant_id = ${plantId} AND role_key <> 'superadmin'
       `);
     } else {
       await db.execute(sql`
         DELETE FROM rbac_role_home_pages
-        WHERE tenant_id = ${tenantId} AND plant_id IS NULL
+        WHERE tenant_id = ${tenantId} AND plant_id IS NULL AND role_key <> 'superadmin'
       `);
     }
 
@@ -925,6 +961,13 @@ export async function setRolePermissions(req: AuthenticatedRequest, res: Respons
       : [];
 
     const normalizedRoleKey = normalizeRole(roleKey);
+
+    if (isProtectedRoleKey(normalizedRoleKey)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Permissões do SuperAdministrador não podem ser alteradas',
+      });
+    }
 
     // Replace set
     await db.execute(sql`

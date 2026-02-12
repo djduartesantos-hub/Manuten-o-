@@ -407,7 +407,7 @@ function AlertsSettings() {
     'gestor_manutencao',
     'supervisor',
     'tecnico',
-    'leitor',
+    'operador',
   ];
 
   return (
@@ -3114,6 +3114,8 @@ function PermissionsSettings() {
   const [roleMeta, setRoleMeta] = React.useState({ name: '', description: '' });
   const [newRole, setNewRole] = React.useState({ key: '', name: '', description: '' });
 
+  const isProtectedRole = String(activeRole || '').trim().toLowerCase() === 'superadmin';
+
   const loadBase = async () => {
     setLoading(true);
     setError(null);
@@ -3210,6 +3212,7 @@ function PermissionsSettings() {
   }, [activeRole, roles]);
 
   const togglePerm = (key: string) => {
+    if (isProtectedRole) return;
     setRolePerms((current) => {
       const next = new Set(current);
       if (next.has(key)) next.delete(key);
@@ -3220,6 +3223,10 @@ function PermissionsSettings() {
 
   const handleSave = async () => {
     if (!activeRole) return;
+    if (isProtectedRole) {
+      setError('SuperAdministrador é protegido: permissões não podem ser alteradas.');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -3233,6 +3240,10 @@ function PermissionsSettings() {
 
   const handleSaveRoleMeta = async () => {
     if (!activeRole) return;
+    if (isProtectedRole) {
+      setError('SuperAdministrador é protegido: este role não pode ser alterado.');
+      return;
+    }
     const name = String(roleMeta.name || '').trim();
     const description = String(roleMeta.description || '').trim();
 
@@ -3334,7 +3345,7 @@ function PermissionsSettings() {
         <button
           className="btn-primary"
           onClick={handleSave}
-          disabled={saving || loading || !activeRole}
+          disabled={saving || loading || !activeRole || isProtectedRole}
         >
           Guardar permissões
         </button>
@@ -3361,7 +3372,7 @@ function PermissionsSettings() {
                 className="input mt-2 h-10"
                 value={roleMeta.name}
                 onChange={(e) => setRoleMeta((p) => ({ ...p, name: e.target.value }))}
-                disabled={loading || savingRole || !activeRole}
+                disabled={loading || savingRole || !activeRole || isProtectedRole}
               />
             </div>
 
@@ -3373,14 +3384,14 @@ function PermissionsSettings() {
                 className="input mt-2 min-h-[90px]"
                 value={roleMeta.description}
                 onChange={(e) => setRoleMeta((p) => ({ ...p, description: e.target.value }))}
-                disabled={loading || savingRole || !activeRole}
+                disabled={loading || savingRole || !activeRole || isProtectedRole}
               />
             </div>
 
             <button
               className="btn-primary w-full"
               onClick={handleSaveRoleMeta}
-              disabled={loading || savingRole || !activeRole}
+              disabled={loading || savingRole || !activeRole || isProtectedRole}
               type="button"
             >
               {savingRole ? 'A guardar…' : 'Guardar role'}
@@ -3478,7 +3489,7 @@ function PermissionsSettings() {
                     role_key: r.value,
                     home_path:
                       homeByRole[r.value] || suggestedHomeByRole[r.value] || '/dashboard',
-                  }));
+                  })).filter((e) => String((e as any)?.role_key || '').toLowerCase() !== 'superadmin');
                   await setAdminRoleHomes(homeScopePlantId, entries);
                   await loadRoleHomes(homeScopePlantId);
                 } catch (err: any) {
@@ -3515,7 +3526,7 @@ function PermissionsSettings() {
                     onChange={(e) =>
                       setHomeByRole((prev) => ({ ...prev, [r.value]: e.target.value }))
                     }
-                    disabled={loadingHomes || savingHomes}
+                    disabled={loadingHomes || savingHomes || String(r.value).toLowerCase() === 'superadmin'}
                   >
                     <option value="/dashboard">Dashboard</option>
                     <option value="/tecnico">Técnico</option>
@@ -3556,7 +3567,7 @@ function PermissionsSettings() {
                           checked={rolePerms.has(String(p.key))}
                           onChange={() => togglePerm(String(p.key))}
                           className="mt-1 rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
-                          disabled={saving}
+                          disabled={saving || isProtectedRole}
                         />
                         <div className="min-w-0">
                           <div className="text-sm font-semibold theme-text truncate">{p.label}</div>

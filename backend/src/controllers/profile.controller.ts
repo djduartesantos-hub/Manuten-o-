@@ -21,13 +21,12 @@ function toProfileDto(user: any) {
 }
 
 const fallbackRoleLabels: Record<string, string> = {
-  superadmin: 'Super Admin',
+  superadmin: 'SuperAdministrador',
   admin_empresa: 'Admin Empresa',
-  gestor_manutencao: 'Gestor Manutencao',
+  gestor_manutencao: 'Gestor Manutenção',
   supervisor: 'Supervisor',
-  tecnico: 'Tecnico',
+  tecnico: 'Técnico',
   operador: 'Operador',
-  leitor: 'Leitor',
 };
 
 const normalizeHomePath = (value: unknown) => {

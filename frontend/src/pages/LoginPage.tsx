@@ -26,21 +26,21 @@ function resolveLoginStyle(search: string): LoginStyle {
 }
 
 type DemoKey =
+  | 'superadmin'
   | 'admin_empresa'
   | 'gestor_manutencao'
   | 'supervisor'
   | 'tecnico'
   | 'operador'
-  | 'leitor'
   | 'custom';
 
 const DEMO_ACCOUNTS: Array<{ key: Exclude<DemoKey, 'custom'>; label: string; username: string; password: string }> = [
+  { key: 'superadmin', label: 'SuperAdministrador', username: 'admin', password: 'Admin@123456' },
   { key: 'admin_empresa', label: 'Admin Empresa', username: 'admin', password: 'Admin@123456' },
   { key: 'gestor_manutencao', label: 'Gestor Manutenção', username: 'gestor', password: 'Gestor@123456' },
   { key: 'supervisor', label: 'Supervisor', username: 'supervisor', password: 'Supervisor@123456' },
   { key: 'tecnico', label: 'Técnico', username: 'tech', password: 'Tech@123456' },
   { key: 'operador', label: 'Operador', username: 'operador', password: 'Operador@123456' },
-  { key: 'leitor', label: 'Leitor', username: 'leitor', password: 'Leitor@123456' },
 ];
 
 function DemoLoginSelector(props: {

@@ -115,12 +115,12 @@ async function ensureRbacStructureAndSeed(tenantId: string): Promise<void> {
 
   // Roles base por tenant
   const roles: Array<{ key: string; name: string; description?: string }> = [
+    { key: 'superadmin', name: 'SuperAdministrador' },
     { key: 'admin_empresa', name: 'Admin Empresa' },
     { key: 'gestor_manutencao', name: 'Gestor Manutenção' },
     { key: 'supervisor', name: 'Supervisor' },
     { key: 'tecnico', name: 'Técnico' },
     { key: 'operador', name: 'Operador' },
-    { key: 'leitor', name: 'Leitor' },
   ];
 
   for (const r of roles) {
@@ -135,6 +135,7 @@ async function ensureRbacStructureAndSeed(tenantId: string): Promise<void> {
   }
 
   const rolePerms: Record<string, string[]> = {
+    superadmin: permissions.map((p) => p.key),
     admin_empresa: permissions.map((p) => p.key),
     gestor_manutencao: [
       'dashboard:read',
@@ -196,18 +197,6 @@ async function ensureRbacStructureAndSeed(tenantId: string): Promise<void> {
       'workorders:read',
       'workorders:write',
       'stock:read',
-    ],
-    leitor: [
-      'dashboard:read',
-      'notifications:read',
-      'assets:read',
-      'categories:read',
-      'workorders:read',
-      'plans:read',
-      'schedules:read',
-      'stock:read',
-      'suppliers:read',
-      'kits:read',
     ],
   };
 

@@ -130,7 +130,7 @@ cmms-enterprise/
 - `password_hash` - Bcrypt hash
 - `first_name`, `last_name`
 - `phone`
-- `role` - 'superadmin', 'admin_empresa', 'gestor_manutencao', 'supervisor', 'tecnico', 'leitor'
+- `role` - 'superadmin', 'admin_empresa', 'gestor_manutencao', 'supervisor', 'tecnico', 'operador'
 - `is_active`, `last_login`
 - Timestamps soft-delete
 
@@ -278,7 +278,7 @@ GET    /api/t/:tenantSlug/dashboard/kpis
 | `gestor_manutencao` | Gestor | Manutenção da sua empresa |
 | `supervisor` | Supervisor | Supervisão |
 | `tecnico` | Técnico | Ordens atribuídas |
-| `leitor` | Leitor | Read-only |
+| `operador` | Operador | Regista/atualiza ordens |
 
 ## 🔐 Segurança
 

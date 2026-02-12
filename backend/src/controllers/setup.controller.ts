@@ -145,12 +145,12 @@ export class SetupController {
   private static async ensureRbacSeedForTenant(tenantId: string): Promise<void> {
     // Roles base (por tenant)
     const roles: Array<{ key: string; name: string; description?: string }> = [
+      { key: 'superadmin', name: 'SuperAdministrador' },
       { key: 'admin_empresa', name: 'Admin Empresa' },
       { key: 'gestor_manutencao', name: 'Gestor Manutenção' },
       { key: 'supervisor', name: 'Supervisor' },
       { key: 'tecnico', name: 'Técnico' },
       { key: 'operador', name: 'Operador' },
-      { key: 'leitor', name: 'Leitor' },
     ];
 
     for (const r of roles) {
@@ -252,18 +252,6 @@ export class SetupController {
         'workorders:read',
         'workorders:write',
       ],
-      leitor: [
-        'dashboard:read',
-        'notifications:read',
-        'assets:read',
-        'categories:read',
-        'workorders:read',
-        'plans:read',
-        'schedules:read',
-        'stock:read',
-        'suppliers:read',
-        'kits:read',
-      ],
     };
 
     for (const [roleKey, perms] of Object.entries(rolePerms)) {
@@ -274,6 +262,58 @@ export class SetupController {
           ON CONFLICT (tenant_id, role_key, permission_key) DO NOTHING;
         `);
       }
+    }
+
+    // SuperAdministrador: always maximum permissions
+    await db.execute(sql`
+      DELETE FROM rbac_role_permissions
+      WHERE tenant_id = ${tenantId} AND role_key = 'superadmin';
+    `);
+    await db.execute(sql`
+      INSERT INTO rbac_role_permissions (tenant_id, role_key, permission_key)
+      SELECT ${tenantId}, 'superadmin', key
+      FROM rbac_permissions
+      ON CONFLICT (tenant_id, role_key, permission_key) DO NOTHING;
+    `);
+
+    // SuperAdministrador: fixed home page (global base)
+    await db.execute(sql`
+      DELETE FROM rbac_role_home_pages
+      WHERE tenant_id = ${tenantId} AND role_key = 'superadmin';
+    `);
+    await db.execute(sql`
+      INSERT INTO rbac_role_home_pages (tenant_id, plant_id, role_key, home_path, created_at, updated_at)
+      VALUES (${tenantId}, NULL, 'superadmin', '/settings', NOW(), NOW());
+    `);
+
+    // Optional cleanup: remove legacy Leitor role if not used
+    const leitorUser = await db.execute(sql`
+      SELECT 1
+      FROM users
+      WHERE tenant_id = ${tenantId} AND role = 'leitor'
+      LIMIT 1;
+    `);
+    const leitorPlant = await db.execute(sql`
+      SELECT 1
+      FROM user_plants up
+      JOIN plants p ON p.id = up.plant_id
+      WHERE p.tenant_id = ${tenantId} AND up.role = 'leitor'
+      LIMIT 1;
+    `);
+
+    if ((leitorUser.rows?.length || 0) === 0 && (leitorPlant.rows?.length || 0) === 0) {
+      await db.execute(sql`
+        DELETE FROM rbac_role_permissions
+        WHERE tenant_id = ${tenantId} AND role_key = 'leitor';
+      `);
+      await db.execute(sql`
+        DELETE FROM rbac_role_home_pages
+        WHERE tenant_id = ${tenantId} AND role_key = 'leitor';
+      `);
+      await db.execute(sql`
+        DELETE FROM rbac_roles
+        WHERE tenant_id = ${tenantId} AND key = 'leitor';
+      `);
     }
   }
   private static async applyCorrectionsInternal(): Promise<{
@@ -508,7 +548,6 @@ export class SetupController {
     const demoManagerId = '00000000-0000-0000-0000-000000000003';
     const demoSupervisorId = '00000000-0000-0000-0000-000000000004';
     const demoOperatorId = '00000000-0000-0000-0000-000000000005';
-    const demoReaderId = '00000000-0000-0000-0000-000000000006';
     const demoCategoryId = '10000000-0000-0000-0000-000000000001';
     const demoSupplierId = '60000000-0000-0000-0000-000000000001';
     const demoKitId = '70000000-0000-0000-0000-000000000001';
@@ -527,7 +566,6 @@ export class SetupController {
     const existingManager = await db.execute(sql`SELECT id FROM users WHERE username = 'gestor'`);
     const existingSupervisor = await db.execute(sql`SELECT id FROM users WHERE username = 'supervisor'`);
     const existingOperator = await db.execute(sql`SELECT id FROM users WHERE username = 'operador'`);
-    const existingReader = await db.execute(sql`SELECT id FROM users WHERE username = 'leitor'`);
     const existingCategory = await db.execute(
       sql`SELECT id FROM asset_categories WHERE id = ${demoCategoryId}`,
     );
@@ -683,26 +721,6 @@ export class SetupController {
       usersAdded++;
     }
 
-    // Insert reader user (only if doesn't exist)
-    if (existingReader.rows.length === 0) {
-      const readerPasswordHash = await bcrypt.hash('Leitor@123456', 10);
-      await db
-        .insert(users)
-        .values({
-          id: demoReaderId,
-          tenant_id: tenantId,
-          username: 'leitor',
-          email: 'leitor@cmms.com',
-          password_hash: readerPasswordHash,
-          first_name: 'Leitor',
-          last_name: 'CMMS',
-          role: 'leitor',
-          is_active: true,
-        })
-        .onConflictDoNothing();
-      usersAdded++;
-    }
-
     // Link users to plant (with conflict handling)
     await db
       .insert(userPlants)
@@ -712,7 +730,6 @@ export class SetupController {
         { id: uuidv4(), user_id: demoSupervisorId, plant_id: demoPlantId, role: 'supervisor' },
         { id: uuidv4(), user_id: demoTechId, plant_id: demoPlantId, role: 'tecnico' },
         { id: uuidv4(), user_id: demoOperatorId, plant_id: demoPlantId, role: 'operador' },
-        { id: uuidv4(), user_id: demoReaderId, plant_id: demoPlantId, role: 'leitor' },
       ])
       .onConflictDoNothing();
 
@@ -1432,7 +1449,7 @@ END $$;`
 
       const demoUsers = [
         {
-          role: 'admin_empresa',
+          role: 'superadmin',
           username: 'admin',
           email: 'admin@cmms.com',
           passwordHint: 'Admin@123456',
@@ -1460,12 +1477,6 @@ END $$;`
           username: 'operador',
           email: 'operador@cmms.com',
           passwordHint: 'Operador@123456',
-        },
-        {
-          role: 'leitor',
-          username: 'leitor',
-          email: 'leitor@cmms.com',
-          passwordHint: 'Leitor@123456',
         },
       ];
 

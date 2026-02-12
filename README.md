@@ -210,12 +210,12 @@ WebSocket real-time, Redis caching, Elasticsearch search, Bull job queue.
 
 ### 👥 Gestão de Utilizadores
 **6 Roles Predefinidos:**
-1. **SuperAdmin** - Acesso total
+1. **SuperAdministrador** - Acesso total
 2. **AdminEmpresa** - Gestor da empresa
 3. **GestorManutencao** - Supervisor
 4. **Supervisor** - Gestor de turno
 5. **Tecnico** - Executa ordens
-6. **Leitor** - Visualização apenas
+6. **Operador** - Regista/atualiza ordens
 
 ---
 
@@ -546,7 +546,7 @@ Content-Type: application/json
 | GestorManutencao | Criar/editar ordens, sua planta |
 | Supervisor | Ver/atribuir ordens, sua planta |
 | Tecnico | Executar ordens, sua planta |
-| Leitor | Apenas visualização, sua planta |
+| Operador | Registar/atualizar ordens, sua planta |
 
 ### 2. Equipamentos (Assets) ✨ **[Phase 1]**
 
