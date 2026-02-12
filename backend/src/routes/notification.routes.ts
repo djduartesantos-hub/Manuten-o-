@@ -3,6 +3,7 @@ import { authMiddleware } from '../middlewares/auth.js';
 import { requirePermission } from '../middlewares/permissions.js';
 import {
 	clearNotificationsInbox,
+	deleteNotificationInboxItem,
 	getNotificationsInbox,
 	getNotificationRules,
 	markNotificationsReadAll,
@@ -16,7 +17,8 @@ router.get('/rules', requirePermission('notifications:read', 'tenant'), getNotif
 router.put('/rules', requirePermission('notifications:write', 'tenant'), updateNotificationRules);
 
 router.get('/inbox', requirePermission('notifications:read', 'tenant'), getNotificationsInbox);
-router.patch('/inbox/read-all', requirePermission('notifications:write', 'tenant'), markNotificationsReadAll);
-router.delete('/inbox', requirePermission('notifications:write', 'tenant'), clearNotificationsInbox);
+router.patch('/inbox/read-all', requirePermission('notifications:read', 'tenant'), markNotificationsReadAll);
+router.delete('/inbox', requirePermission('notifications:read', 'tenant'), clearNotificationsInbox);
+router.delete('/inbox/:notificationId', requirePermission('notifications:read', 'tenant'), deleteNotificationInboxItem);
 
 export default router;

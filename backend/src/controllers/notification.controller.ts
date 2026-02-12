@@ -227,3 +227,38 @@ export async function clearNotificationsInbox(req: AuthenticatedRequest, res: Re
     });
   }
 }
+
+export async function deleteNotificationInboxItem(req: AuthenticatedRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId;
+    const userId = req.user?.userId;
+    const notificationId = String(req.params?.notificationId || '').trim();
+
+    if (!tenantId || !userId) {
+      res.status(401).json({ success: false, error: 'Not authenticated' });
+      return;
+    }
+
+    if (!notificationId) {
+      res.status(400).json({ success: false, error: 'Notification ID is required' });
+      return;
+    }
+
+    const result = await db
+      .delete(notifications)
+      .where(
+        and(
+          eq(notifications.tenant_id, tenantId),
+          eq(notifications.user_id, userId),
+          eq(notifications.id, notificationId),
+        ),
+      );
+
+    res.json({ success: true, data: { deleted: result.rowCount ?? 0 } });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete notification',
+    });
+  }
+}

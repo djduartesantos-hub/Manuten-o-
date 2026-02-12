@@ -828,3 +828,9 @@ export async function clearNotificationsInbox(): Promise<{ deleted: number }> {
     method: 'DELETE',
   });
 }
+
+export async function deleteInboxNotification(notificationId: string): Promise<{ deleted: number }> {
+  return apiCall(`/notifications/inbox/${encodeURIComponent(notificationId)}`, {
+    method: 'DELETE',
+  });
+}

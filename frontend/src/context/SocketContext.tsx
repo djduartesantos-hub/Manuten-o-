@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { AlertTriangle, CheckCircle2, Info, X, XCircle } from 'lucide-react';
 import {
   clearNotificationsInbox,
+	deleteInboxNotification,
   getNotificationsInbox,
   markNotificationsReadAll,
 } from '../services/api';
@@ -17,6 +18,7 @@ interface SocketContextType {
   unreadCount: number;
   markAllRead: () => Promise<void>;
   clearNotifications: () => Promise<void>;
+	deleteNotification: (notificationId: string) => Promise<void>;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -200,6 +202,25 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     setUnreadCount(0);
     try {
       await clearNotificationsInbox();
+    } catch {
+      // best-effort
+    }
+  }, []);
+
+  const deleteNotification = React.useCallback(async (notificationId: string) => {
+    const id = String(notificationId || '').trim();
+    if (!id) return;
+
+    setNotifications((prev) => {
+      const target = prev.find((n) => n.id === id);
+      if (target && !target.read) {
+        setUnreadCount((u) => Math.max(0, u - 1));
+      }
+      return prev.filter((n) => n.id !== id);
+    });
+
+    try {
+      await deleteInboxNotification(id);
     } catch {
       // best-effort
     }
@@ -522,6 +543,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         unreadCount,
         markAllRead,
         clearNotifications,
+			deleteNotification,
       }}
     >
       {children}
@@ -542,6 +564,7 @@ export function useSocket() {
       unreadCount: 0,
       markAllRead: async () => {},
       clearNotifications: async () => {},
+		deleteNotification: async () => {},
     };
   }
   return context;
