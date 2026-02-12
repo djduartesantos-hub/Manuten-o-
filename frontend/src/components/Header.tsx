@@ -111,7 +111,7 @@ export function Header() {
       try {
         const status = await getSuperadminDbStatus(1);
         if (cancelled) return;
-        setDbStatusLabel(status?.dbOk ? 'OK' : 'Erro');
+        setDbStatusLabel(status?.dbOk ? 'Online' : 'Erro');
       } catch {
         if (!cancelled) setDbStatusLabel('Erro');
       } finally {
@@ -137,31 +137,7 @@ export function Header() {
           icon: LayoutDashboard,
           items: [
             {
-              label: 'Dashboard',
-              href: '/superadmin/dashboard',
-              active: location.pathname === '/superadmin' || location.pathname === '/superadmin/dashboard',
-              icon: LayoutDashboard,
-            },
-            {
-              label: 'Empresas',
-              href: '/superadmin/empresas',
-              active: location.pathname === '/superadmin/empresas',
-              icon: Users,
-            },
-            {
-              label: 'Fábricas',
-              href: '/superadmin/fabricas',
-              active: location.pathname === '/superadmin/fabricas',
-              icon: Wrench,
-            },
-            {
-              label: 'Utilizadores & RBAC',
-              href: '/superadmin/utilizadores',
-              active: location.pathname === '/superadmin/utilizadores',
-              icon: Users,
-            },
-            {
-              label: 'Atualizações',
+              label: 'Base de dados',
               href: '/superadmin/atualizacoes',
               active: location.pathname === '/superadmin/atualizacoes',
               icon: Settings,
@@ -412,9 +388,6 @@ export function Header() {
                     <div className="text-[10px] font-semibold uppercase tracking-[0.25em] theme-text-muted">
                       Empresa ativa
                     </div>
-                    <div className="text-xs theme-text-muted">
-                      {superadminTenantId ? activeTenantName : 'Global (predefinido)'}
-                    </div>
                   </div>
                   <select
                     className="rounded-xl border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-sm font-semibold text-[color:var(--dash-ink)] focus:outline-none focus:ring-2 focus:ring-emerald-200"
@@ -446,18 +419,17 @@ export function Header() {
                     <div className="text-[10px] font-semibold uppercase tracking-[0.25em] theme-text-muted">
                       Estado da BD
                     </div>
-                    <div className="text-xs theme-text-muted">Ping (global/tenant)</div>
                   </div>
                   <div
                     className={
                       'rounded-xl border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-sm font-semibold ' +
-                      (dbStatusLabel === 'OK'
+                      (dbStatusLabel === 'Online'
                         ? 'text-emerald-700'
                         : dbStatusLabel === 'Erro'
                           ? 'text-rose-700'
                           : 'text-[color:var(--dash-ink)]')
                     }
-                    title={superadminTenantId ? `Empresa: ${activeTenantName}` : 'Global (ping)'}
+                    title={superadminTenantId ? `Empresa: ${activeTenantName}` : 'Global'}
                   >
                     {loadingDbStatus ? '…' : dbStatusLabel}
                   </div>
@@ -660,7 +632,7 @@ export function Header() {
                   <div
                     className={
                       'w-full rounded-full border theme-border theme-card px-3 py-2 text-sm font-semibold shadow-sm ' +
-                      (dbStatusLabel === 'OK'
+                      (dbStatusLabel === 'Online'
                         ? 'text-emerald-700'
                         : dbStatusLabel === 'Erro'
                           ? 'text-rose-700'

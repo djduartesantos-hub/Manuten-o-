@@ -819,7 +819,7 @@ export function SuperAdminSettings() {
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">Estado da BD</div>
                         <div className="mt-2 text-2xl font-semibold text-[color:var(--dash-ink)]">
-                          {loadingDbStatus ? '…' : dbStatus ? (dbStatus.dbOk ? 'OK' : 'Erro') : '—'}
+                            {loadingDbStatus ? '…' : dbStatus ? (dbStatus.dbOk ? 'Online' : 'Erro') : '—'}
                         </div>
                         <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
                           {(() => {
@@ -1006,7 +1006,7 @@ export function SuperAdminSettings() {
                         <div>
                           DB:{' '}
                           <span className="font-semibold text-[color:var(--dash-ink)]">
-                            {dbStatus.dbOk ? 'OK' : 'Erro'}
+                            {dbStatus.dbOk ? 'Online' : 'Erro'}
                           </span>
                         </div>
                         {dbStatus.dbTime ? <div>Hora BD: {String(dbStatus.dbTime)}</div> : null}
