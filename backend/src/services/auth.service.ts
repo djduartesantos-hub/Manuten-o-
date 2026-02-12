@@ -1,7 +1,23 @@
 import { db } from '../config/database.js';
-import { users, userPlants, plants } from '../db/schema.js';
+import { tenants, users, userPlants, plants } from '../db/schema.js';
 import { and, eq, sql } from 'drizzle-orm';
 import { comparePasswords, hashPassword } from '../auth/jwt.js';
+
+export class AuthError extends Error {
+  code: string;
+
+  constructor(code: string, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+type TenantPasswordPolicy = {
+  minLength: number;
+  expirationDays: number | null;
+  maxFailedAttempts: number;
+  lockoutMinutes: number;
+};
 
 export class AuthService {
   private static sessionVersionCache = new Map<
@@ -93,6 +109,39 @@ export class AuthService {
 
     return roleAliases[role] || role;
   }
+
+  private static tenantPolicyCache = new Map<string, { policy: TenantPasswordPolicy; expiresAt: number }>();
+
+  private static async getTenantPasswordPolicy(tenantId: string): Promise<TenantPasswordPolicy> {
+    const cacheMs = Number(process.env.AUTH_TENANT_POLICY_CACHE_MS || 60_000);
+    const cached = AuthService.tenantPolicyCache.get(tenantId);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.policy;
+    }
+
+    const row = await db.query.tenants.findFirst({
+      where: (fields: any, { eq }: any) => eq(fields.id, tenantId),
+      columns: {
+        password_min_length: true,
+        password_expiration_days: true,
+        password_max_failed_attempts: true,
+        password_lockout_minutes: true,
+      } as any,
+    });
+
+    const policy: TenantPasswordPolicy = {
+      minLength: Math.max(6, Math.min(64, Number((row as any)?.password_min_length ?? 10) || 10)),
+      expirationDays:
+        (row as any)?.password_expiration_days == null
+          ? null
+          : Math.max(1, Math.min(3650, Number((row as any).password_expiration_days) || 0)) || null,
+      maxFailedAttempts: Math.max(0, Math.min(50, Number((row as any)?.password_max_failed_attempts ?? 10) || 10)),
+      lockoutMinutes: Math.max(0, Math.min(24 * 60, Number((row as any)?.password_lockout_minutes ?? 15) || 15)),
+    };
+
+    AuthService.tenantPolicyCache.set(tenantId, { policy, expiresAt: Date.now() + cacheMs });
+    return policy;
+  }
   static async findUserByUsername(tenantId: string, username: string) {
     const normalized = username.trim().toLowerCase();
     const result = await db
@@ -175,11 +224,67 @@ export class AuthService {
       return null;
     }
 
+    const policy = await AuthService.getTenantPasswordPolicy(tenantId);
+
+    const lockedUntil = (user as any).locked_until ? new Date((user as any).locked_until) : null;
+    if (lockedUntil && lockedUntil.getTime() > Date.now()) {
+      throw new AuthError('ACCOUNT_LOCKED', 'Conta temporariamente bloqueada');
+    }
+
     const isPasswordValid = await comparePasswords(password, user.password_hash);
 
     if (!isPasswordValid) {
+      const maxFailed = Number(policy.maxFailedAttempts ?? 0);
+      const lockoutMinutes = Number(policy.lockoutMinutes ?? 0);
+      const currentAttempts = Number((user as any).failed_login_attempts ?? 0);
+      const nextAttempts = currentAttempts + 1;
+
+      if (maxFailed > 0) {
+        if (nextAttempts >= maxFailed && lockoutMinutes > 0) {
+          const until = new Date(Date.now() + lockoutMinutes * 60_000);
+          await db
+            .update(users)
+            .set({
+              failed_login_attempts: 0,
+              locked_until: until,
+              updated_at: new Date(),
+            } as any)
+            .where(and(eq(users.tenant_id, tenantId), eq(users.id, user.id)));
+
+          throw new AuthError('ACCOUNT_LOCKED', 'Conta temporariamente bloqueada');
+        }
+
+        await db
+          .update(users)
+          .set({ failed_login_attempts: nextAttempts, updated_at: new Date() } as any)
+          .where(and(eq(users.tenant_id, tenantId), eq(users.id, user.id)));
+      }
+
       return null;
     }
+
+    const expirationDays = policy.expirationDays;
+    if (expirationDays && expirationDays > 0) {
+      const changedAt = (user as any).password_changed_at ? new Date((user as any).password_changed_at) : null;
+      if (changedAt) {
+        const ageMs = Date.now() - changedAt.getTime();
+        const maxAgeMs = expirationDays * 24 * 60 * 60_000;
+        if (ageMs > maxAgeMs) {
+          throw new AuthError('PASSWORD_EXPIRED', 'Password expirada');
+        }
+      }
+    }
+
+    // Success: reset counters + track last login
+    await db
+      .update(users)
+      .set({
+        failed_login_attempts: 0,
+        locked_until: null,
+        last_login: new Date(),
+        updated_at: new Date(),
+      } as any)
+      .where(and(eq(users.tenant_id, tenantId), eq(users.id, user.id)));
 
     // In single-tenant mode, skip plantIds loading
     // All authenticated users can access all plants
@@ -207,6 +312,9 @@ export class AuthService {
         username: normalizedUsername,
         email: normalizedEmail,
         password_hash: passwordHash,
+        password_changed_at: new Date(),
+        failed_login_attempts: 0,
+        locked_until: null,
         first_name: data.first_name,
         last_name: data.last_name,
         role: data.role,

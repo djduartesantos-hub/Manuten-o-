@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../types/index.js';
-import { AuthService } from '../services/auth.service.js';
+import { AuthError, AuthService } from '../services/auth.service.js';
 import { generateToken, generateRefreshToken, verifyRefreshToken } from '../auth/jwt.js';
 import { logger } from '../config/logger.js';
 import { DEFAULT_TENANT_ID } from '../config/constants.js';
@@ -69,11 +69,26 @@ export class AuthController {
 
       const tenantId = req.tenantId || DEFAULT_TENANT_ID;
       const safeUsername = String(username).trim().toLowerCase();
-      const user = await withTimeout(
-        AuthService.validateCredentials(tenantId, safeUsername, password),
-        Number(process.env.AUTH_LOGIN_TIMEOUT_MS || 12_000),
-        'AuthService.validateCredentials',
-      );
+      let user: any;
+      try {
+        user = await withTimeout(
+          AuthService.validateCredentials(tenantId, safeUsername, password),
+          Number(process.env.AUTH_LOGIN_TIMEOUT_MS || 12_000),
+          'AuthService.validateCredentials',
+        );
+      } catch (err: any) {
+        if (err instanceof AuthError) {
+          if (err.code === 'ACCOUNT_LOCKED') {
+            res.status(429).json({ success: false, error: 'Conta temporariamente bloqueada. Tente novamente mais tarde.' });
+            return;
+          }
+          if (err.code === 'PASSWORD_EXPIRED') {
+            res.status(403).json({ success: false, error: 'Password expirada. Contacte o administrador para reset.' });
+            return;
+          }
+        }
+        throw err;
+      }
 
       if (!user) {
         res.status(401).json({
