@@ -283,7 +283,7 @@ export class SetupController {
     `);
     await db.execute(sql`
       INSERT INTO rbac_role_home_pages (tenant_id, plant_id, role_key, home_path, created_at, updated_at)
-      VALUES (${tenantId}, NULL, 'superadmin', '/settings', NOW(), NOW());
+      VALUES (${tenantId}, NULL, 'superadmin', '/settings?panel=superadmin', NOW(), NOW());
     `);
 
     // Migrate/remove legacy Leitor role -> Operador

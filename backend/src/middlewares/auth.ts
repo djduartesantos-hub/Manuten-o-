@@ -67,11 +67,14 @@ export function authMiddleware(
     }
 
     if (req.tenantId && req.tenantId !== payloadAny.tenantId) {
-      res.status(403).json({
-        success: false,
-        error: 'Access denied to this tenant',
-      });
-      return;
+      // SuperAdmin can operate across tenants (tenant context may come from middleware/header)
+      if (String(payloadAny.role) !== UserRole.SuperAdmin) {
+        res.status(403).json({
+          success: false,
+          error: 'Access denied to this tenant',
+        });
+        return;
+      }
     }
 
     req.user = payloadAny;

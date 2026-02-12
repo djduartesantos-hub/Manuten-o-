@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import { useAppStore } from '../context/store';
+import { useAuth } from '../hooks/useAuth';
 import {
   apiCall,
+  createSuperadminTenant,
+  updateSuperadminTenant,
   createAdminRole,
   createAdminUser,
   deactivateAdminPlant,
@@ -14,6 +17,8 @@ import {
   getAdminRoles,
   getAdminUsers,
   getAssets,
+  getSuperadminTenants,
+  getUserPlants,
   setAdminRolePermissions,
   setAdminRoleHomes,
   createPreventiveSchedule,
@@ -62,11 +67,13 @@ type SettingTab =
   | 'warnings'
   | 'documents'
   | 'permissions'
-  | 'management';
+  | 'management'
+  | 'superadmin';
 
 export function SettingsPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activePanel, setActivePanel] = useState<SettingTab | null>(null);
   const [preventiveSub, setPreventiveSub] = useState<'plans' | 'schedules' | null>(null);
 
@@ -120,6 +127,16 @@ export function SettingsPage() {
         icon: <Users className="w-5 h-5" />,
         description: 'Plantas, utilizadores, roles e equipamentos',
       },
+      ...(String(user?.role || '') === 'superadmin'
+        ? [
+            {
+              id: 'superadmin' as const,
+              label: 'SuperAdministrador',
+              icon: <Shield className="w-5 h-5" />,
+              description: 'Gestão global do projeto (empresas, bases de dados e RBAC)',
+            },
+          ]
+        : []),
     ];
 
   const activeMeta = tabs.find((tab) => tab.id === activePanel) || null;
@@ -136,6 +153,10 @@ export function SettingsPage() {
       } else {
         setPreventiveSub(null);
       }
+    } else if (String(user?.role || '') === 'superadmin') {
+      // SuperAdmin should land directly in the global management panel
+      setActivePanel('superadmin');
+      setPreventiveSub(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
@@ -260,12 +281,277 @@ export function SettingsPage() {
                 {activePanel === 'documents' && <DocumentsLibrarySettings />}
                 {activePanel === 'permissions' && <PermissionsSettings />}
                 {activePanel === 'management' && <ManagementSettings />}
+                {activePanel === 'superadmin' && <SuperAdminSettings />}
               </div>
             </div>
           </div>
         )}
       </div>
     </MainLayout>
+  );
+}
+
+function SuperAdminSettings() {
+  const { selectedPlant, setPlants, setSelectedPlant } = useAppStore();
+  const [tenants, setTenants] = React.useState<
+    Array<{ id: string; name: string; slug: string; is_active: boolean }>
+  >([]);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string>('');
+  const [success, setSuccess] = React.useState<string>('');
+
+  const [selectedTenantId, setSelectedTenantId] = React.useState<string>(() => {
+    const stored = localStorage.getItem('superadminTenantId');
+    return stored && stored.trim().length > 0 ? stored.trim() : '';
+  });
+
+  const [newTenant, setNewTenant] = React.useState({ name: '', slug: '' });
+  const [creatingTenant, setCreatingTenant] = React.useState(false);
+
+  const loadTenants = async () => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      const data = await getSuperadminTenants();
+      const safe = Array.isArray(data) ? data : [];
+      setTenants(safe);
+
+      if (!selectedTenantId && safe.length > 0) {
+        const first = String(safe[0].id);
+        setSelectedTenantId(first);
+        localStorage.setItem('superadminTenantId', first);
+      }
+    } catch (err: any) {
+      setTenants([]);
+      setError(err?.message || 'Falha ao carregar empresas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const reloadPlantsForSelectedTenant = async () => {
+    try {
+      const plants = await getUserPlants();
+      const safePlants = Array.isArray(plants) ? plants : [];
+      setPlants(safePlants);
+      if (safePlants.length > 0) {
+        setSelectedPlant(safePlants[0].id);
+      } else {
+        setSelectedPlant('');
+      }
+    } catch {
+      setPlants([]);
+      setSelectedPlant('');
+    }
+  };
+
+  React.useEffect(() => {
+    loadTenants();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const selectedTenant = tenants.find((t) => t.id === selectedTenantId) || null;
+
+  const handleSelectTenant = async (id: string) => {
+    setSelectedTenantId(id);
+    setError('');
+    setSuccess('');
+    if (id) localStorage.setItem('superadminTenantId', id);
+    else localStorage.removeItem('superadminTenantId');
+
+    // Changing tenant means plant list must be reloaded.
+    // This keeps admin/plant-scoped widgets aligned.
+    await reloadPlantsForSelectedTenant();
+  };
+
+  const handleCreateTenant = async () => {
+    const name = newTenant.name.trim();
+    const slug = newTenant.slug.trim().toLowerCase();
+    if (!name || !slug) {
+      setError('Nome e slug são obrigatórios');
+      return;
+    }
+
+    setCreatingTenant(true);
+    setError('');
+    setSuccess('');
+    try {
+      await createSuperadminTenant({ name, slug });
+      setSuccess('Empresa criada com sucesso.');
+      setNewTenant({ name: '', slug: '' });
+      await loadTenants();
+    } catch (err: any) {
+      setError(err?.message || 'Falha ao criar empresa');
+    } finally {
+      setCreatingTenant(false);
+    }
+  };
+
+  const toggleTenantActive = async (tenantId: string, nextActive: boolean) => {
+    setError('');
+    setSuccess('');
+    try {
+      await updateSuperadminTenant(tenantId, { is_active: nextActive });
+      setSuccess('Estado da empresa atualizado.');
+      await loadTenants();
+    } catch (err: any) {
+      setError(err?.message || 'Falha ao atualizar empresa');
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+              Contexto global
+            </p>
+            <h4 className="mt-2 text-lg font-semibold text-[color:var(--dash-ink)]">
+              Selecionar empresa
+            </h4>
+            <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+              A empresa selecionada será usada nas ações de gestão abaixo.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2 min-w-[280px]">
+            <label className="text-xs font-semibold text-[color:var(--dash-muted)]">
+              Empresa
+            </label>
+            <select
+              className="h-10 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-3 text-sm text-[color:var(--dash-ink)]"
+              value={selectedTenantId}
+              onChange={(e) => {
+                void handleSelectTenant(e.target.value);
+              }}
+              disabled={loading}
+            >
+              {tenants.length === 0 ? (
+                <option value="">{loading ? 'A carregar...' : 'Sem empresas'}</option>
+              ) : (
+                tenants.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.slug}){t.is_active ? '' : ' — inativa'}
+                  </option>
+                ))
+              )}
+            </select>
+
+            {error && (
+              <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-800">
+                {success}
+              </div>
+            )}
+
+            {selectedTenant && (
+              <div className="text-xs text-[color:var(--dash-muted)]">
+                Empresa ativa: <span className="font-semibold">{selectedTenant.name}</span>
+                {selectedPlant ? (
+                  <span className="ml-2">• Planta selecionada OK</span>
+                ) : (
+                  <span className="ml-2 text-red-700">• Sem planta selecionada</span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
+        <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Empresas</h4>
+        <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+          Criar e ativar/desativar empresas.
+        </p>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <input
+            className="h-10 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 text-sm"
+            placeholder="Nome da empresa"
+            value={newTenant.name}
+            onChange={(e) => setNewTenant((s) => ({ ...s, name: e.target.value }))}
+          />
+          <input
+            className="h-10 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 text-sm"
+            placeholder="slug (ex: acme-industria)"
+            value={newTenant.slug}
+            onChange={(e) => setNewTenant((s) => ({ ...s, slug: e.target.value }))}
+          />
+          <button
+            type="button"
+            className="btn-primary h-10"
+            onClick={() => void handleCreateTenant()}
+            disabled={creatingTenant}
+          >
+            Criar empresa
+          </button>
+        </div>
+
+        <div className="mt-5 space-y-2">
+          {tenants.map((t) => (
+            <div
+              key={t.id}
+              className="flex items-center justify-between gap-3 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-4 py-3"
+            >
+              <div className="min-w-0">
+                <div className="font-semibold text-[color:var(--dash-ink)] truncate">
+                  {t.name}
+                </div>
+                <div className="text-xs text-[color:var(--dash-muted)] truncate">{t.slug}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="btn-secondary h-9 px-3"
+                  onClick={() => void handleSelectTenant(t.id)}
+                >
+                  Selecionar
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary h-9 px-3"
+                  onClick={() => void toggleTenantActive(t.id, !t.is_active)}
+                >
+                  {t.is_active ? 'Desativar' : 'Ativar'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {selectedTenantId ? (
+        <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
+          <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Gestão (empresa selecionada)</h4>
+          <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+            Utilizadores, fábricas e RBAC operam sobre a empresa selecionada.
+          </p>
+
+          <div className="mt-6 space-y-10">
+            <PermissionsSettings key={`perm-${selectedTenantId}`} />
+            <ManagementSettings key={`mgmt-${selectedTenantId}`} />
+          </div>
+        </section>
+      ) : null}
+
+      <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
+        <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Atualizações & Base de dados</h4>
+        <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+          Estas ferramentas operam sobre a empresa selecionada.
+        </p>
+        <div className="mt-5 space-y-8">
+          <DatabaseUpdatePage embedded />
+          <AdminSetupPage embedded />
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -3625,6 +3911,9 @@ function ManagementSettings() {
     role: 'tecnico',
     plant_ids: [] as string[],
   });
+  const [generateUserPassword, setGenerateUserPassword] = React.useState(false);
+  const [oneTimePassword, setOneTimePassword] = React.useState('');
+  const [oneTimePasswordUsername, setOneTimePasswordUsername] = React.useState('');
   const [newUserPlantRoles, setNewUserPlantRoles] = React.useState<Record<string, string>>({});
   const [editingUserId, setEditingUserId] = React.useState<string | null>(null);
   const [userForm, setUserForm] = React.useState({
@@ -3831,8 +4120,13 @@ function ManagementSettings() {
   };
 
   const handleCreateUser = async () => {
-    if (!newUser.username || !newUser.email || !newUser.password || !newUser.first_name || !newUser.last_name) {
+    if (!newUser.username || !newUser.email || !newUser.first_name || !newUser.last_name) {
       setError('Preencha os campos obrigatorios do utilizador');
+      return;
+    }
+
+    if (!generateUserPassword && !newUser.password) {
+      setError('Defina uma password temporária ou ative a geração automática');
       return;
     }
 
@@ -3844,10 +4138,21 @@ function ManagementSettings() {
     setSaving(true);
     setError(null);
     try {
-      await createAdminUser({
+      const createdUsername = String(newUser.username || '').trim();
+      const payload: any = {
         ...newUser,
         plant_roles: buildPlantRolesPayload(newUser.plant_ids, newUser.role, newUserPlantRoles),
-      });
+      };
+
+      if (generateUserPassword) {
+        payload.generatePassword = true;
+        delete payload.password;
+      }
+
+      const created = await createAdminUser(payload);
+      const tempPassword =
+        String((created as any)?.temp_password || (created as any)?.tempPassword || '').trim();
+
       setNewUser({
         username: '',
         email: '',
@@ -3859,7 +4164,13 @@ function ManagementSettings() {
       });
       setNewUserPlantRoles({});
       await loadAdminData();
-      setUserModalOpen(false);
+
+      if (tempPassword) {
+        setOneTimePasswordUsername(createdUsername);
+        setOneTimePassword(tempPassword);
+      } else {
+        setUserModalOpen(false);
+      }
     } catch (err: any) {
       setError(err.message || 'Erro ao criar utilizador');
     } finally {
@@ -4214,6 +4525,9 @@ function ManagementSettings() {
                   plant_ids: [],
                 });
                 setUserModalOpen(true);
+                setGenerateUserPassword(false);
+                setOneTimePassword('');
+                setOneTimePasswordUsername('');
               }}
               disabled={saving}
             >
@@ -4372,6 +4686,8 @@ function ManagementSettings() {
             onClick={() => {
               setUserModalOpen(false);
               setEditingUserId(null);
+              setOneTimePassword('');
+              setOneTimePasswordUsername('');
             }}
           />
           <div className="relative w-full max-w-2xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-lg">
@@ -4379,6 +4695,8 @@ function ManagementSettings() {
               onClick={() => {
                 setUserModalOpen(false);
                 setEditingUserId(null);
+                setOneTimePassword('');
+                setOneTimePasswordUsername('');
               }}
               className="absolute right-4 top-4 rounded-full border theme-border theme-card px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
             >
@@ -4426,14 +4744,62 @@ function ManagementSettings() {
                     value={newUser.email}
                     onChange={(event) => setNewUser({ ...newUser, email: event.target.value })}
                   />
-                  <input
-                    className="input"
-                    placeholder="Password temporária"
-                    value={newUser.password}
-                    onChange={(event) => setNewUser({ ...newUser, password: event.target.value })}
-                  />
+                  <div className="md:col-span-2 rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-3">
+                    <label className="flex items-center gap-2 text-xs theme-text-muted">
+                      <input
+                        type="checkbox"
+                        checked={generateUserPassword}
+                        onChange={(event) => {
+                          setGenerateUserPassword(event.target.checked);
+                          setOneTimePassword('');
+                          setOneTimePasswordUsername('');
+                          if (event.target.checked) {
+                            setNewUser({ ...newUser, password: '' });
+                          }
+                        }}
+                        className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
+                      />
+                      Gerar password temporária automaticamente (mostrar 1 vez)
+                    </label>
+                    {!generateUserPassword && (
+                      <input
+                        className="input mt-3"
+                        placeholder="Password temporária"
+                        value={newUser.password}
+                        onChange={(event) => setNewUser({ ...newUser, password: event.target.value })}
+                      />
+                    )}
+                  </div>
                 </>
               )}
+
+              {userModalMode === 'create' && oneTimePassword ? (
+                <div className="md:col-span-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-800">
+                    Password gerada (mostrar 1 vez)
+                  </p>
+                  <p className="mt-2 text-sm theme-text">
+                    Utilizador: <span className="font-semibold">{oneTimePasswordUsername || '(novo)'}</span>
+                  </p>
+                  <div className="mt-2 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div className="rounded-xl border theme-border bg-[color:var(--dash-panel)] px-3 py-2 font-mono text-sm theme-text">
+                      {oneTimePassword}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-secondary h-9 px-3"
+                      onClick={() => {
+                        void navigator.clipboard?.writeText(oneTimePassword);
+                      }}
+                    >
+                      Copiar
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs theme-text-muted">
+                    Guarde esta password agora — não será possível voltar a ver.
+                  </p>
+                </div>
+              ) : null}
               <select
                 className="input"
                 value={userModalMode === 'create' ? newUser.role : userForm.role}

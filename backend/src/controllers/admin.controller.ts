@@ -1,10 +1,25 @@
 import { Response } from 'express';
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { AuthenticatedRequest } from '../types/index.js';
 import { db } from '../config/database.js';
 import { assets, plants, rbacRoles, userPlants, users } from '../db/schema.js';
+
+function generateTempPassword(length = 14): string {
+  // Base64url gives URL-safe chars; slice for desired length.
+  // This password is only returned once (in the create response).
+  return randomBytes(24).toString('base64url').slice(0, length);
+}
+
+function stripUserSensitiveFields(user: any) {
+  if (!user || typeof user !== 'object') return user;
+  // Never return password hashes in API responses.
+  // Keep the rest of the shape unchanged.
+  const { password_hash: _passwordHash, ...rest } = user;
+  return rest;
+}
 
 const allowedRoles = [
   'superadmin',
@@ -296,14 +311,34 @@ export async function listUsers(req: AuthenticatedRequest, res: Response) {
 export async function createUser(req: AuthenticatedRequest, res: Response) {
   try {
     const tenantId = req.tenantId;
-    const { username, email, password, first_name, last_name, role, plant_ids, plant_roles, is_active } = req.body || {};
+    const {
+      username,
+      email,
+      password,
+      first_name,
+      last_name,
+      role,
+      plant_ids,
+      plant_roles,
+      is_active,
+      generatePassword,
+      generate_password,
+    } = req.body || {};
 
     if (!tenantId) {
       return res.status(400).json({ success: false, error: 'Tenant ID is required' });
     }
 
-    if (!username || !email || !password || !first_name || !last_name) {
+    const shouldGeneratePassword = Boolean(generatePassword ?? generate_password);
+    const incomingPassword = typeof password === 'string' ? password : String(password || '');
+    const finalPassword = shouldGeneratePassword ? generateTempPassword() : incomingPassword;
+
+    if (!username || !email || !first_name || !last_name) {
       return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    if (!finalPassword || String(finalPassword).trim().length === 0) {
+      return res.status(400).json({ success: false, error: 'Password is required' });
     }
 
     const roleKey = normalizeRole(role);
@@ -353,7 +388,7 @@ export async function createUser(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({ success: false, error: 'Invalid plant selection' });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(finalPassword, 10);
     const [user] = await db
       .insert(users)
       .values({
@@ -383,7 +418,12 @@ export async function createUser(req: AuthenticatedRequest, res: Response) {
 
     await db.insert(userPlants).values(userPlantRows);
 
-    return res.status(201).json({ success: true, data: user });
+    const safeUser = stripUserSensitiveFields(user);
+    const responseData = shouldGeneratePassword
+      ? { ...safeUser, temp_password: finalPassword }
+      : safeUser;
+
+    return res.status(201).json({ success: true, data: responseData });
   } catch (error) {
     return res.status(500).json({ success: false, error: 'Failed to create user' });
   }
@@ -495,7 +535,7 @@ export async function updateUser(req: AuthenticatedRequest, res: Response) {
       await db.insert(userPlants).values(userPlantRows);
     }
 
-    return res.json({ success: true, data: updated });
+    return res.json({ success: true, data: stripUserSensitiveFields(updated) });
   } catch (error) {
     return res.status(500).json({ success: false, error: 'Failed to update user' });
   }
@@ -785,7 +825,7 @@ export async function listRoleHomePages(req: AuthenticatedRequest, res: Response
           plant_id: null,
           home_path:
             roleKey === 'superadmin'
-              ? '/settings'
+              ? '/settings?panel=superadmin'
               : roleKey === 'tecnico'
                 ? '/tecnico'
                 : roleKey === 'operador'
@@ -795,7 +835,7 @@ export async function listRoleHomePages(req: AuthenticatedRequest, res: Response
           global_base: null,
           suggested_home:
             roleKey === 'superadmin'
-              ? '/settings'
+              ? '/settings?panel=superadmin'
               : roleKey === 'tecnico'
                 ? '/tecnico'
                 : roleKey === 'operador'

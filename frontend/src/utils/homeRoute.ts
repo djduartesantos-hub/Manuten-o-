@@ -1,6 +1,11 @@
 export function getHomeRouteForRole(role?: string): string {
   const normalized = (role || '').toLowerCase();
 
+  // SuperAdmin
+  if (['superadmin', 'super_admin', 'dev'].includes(normalized)) {
+    return '/settings?panel=superadmin';
+  }
+
   // Technician
   if (['tecnico', 'technician', 'tech'].includes(normalized)) {
     return '/tecnico';

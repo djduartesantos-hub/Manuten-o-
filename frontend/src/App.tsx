@@ -44,6 +44,13 @@ function App() {
 
     React.useEffect(() => {
       if (!isAuthenticated) return;
+
+      // SuperAdmin main page is Settings (global)
+      if (String(user?.role || '') === 'superadmin') {
+        navigate('/settings?panel=superadmin', { replace: true });
+        return;
+      }
+
       if (!selectedPlant) return;
 
       let cancelled = false;
@@ -66,6 +73,7 @@ function App() {
       };
     }, [isAuthenticated, navigate, selectedPlant, user?.role]);
 
+    if (String(user?.role || '') === 'superadmin') return null;
     if (!selectedPlant) return null;
     if (loading) return null;
     return null;

@@ -10,6 +10,22 @@ interface ApiResponse<T = any> {
   message?: string;
 }
 
+function parseJwtPayload(token: string): any | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+
+    const json = atob(padded);
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
 export async function apiCall<T = any>(
   endpoint: string,
   options: RequestInit = {},
@@ -27,6 +43,20 @@ export async function apiCall<T = any>(
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
+
+    const payload = parseJwtPayload(token);
+    const role = String(payload?.role || '').trim().toLowerCase();
+    if (role === 'superadmin') {
+      // Only apply tenant override for tenant-scoped endpoints.
+      // Do NOT apply it to /superadmin/* endpoints so a stale tenantId doesn't
+      // block listing tenants.
+      if (!endpoint.startsWith('/superadmin')) {
+        const selectedTenantId = localStorage.getItem('superadminTenantId');
+        if (selectedTenantId && selectedTenantId.trim().length > 0) {
+          headers['x-tenant-id'] = selectedTenantId.trim();
+        }
+      }
+    }
   }
 
   let response: Response;
@@ -58,6 +88,40 @@ export async function apiCall<T = any>(
   }
 
   return result.data as T;
+}
+
+// ============================================================================
+// SUPERADMIN (global)
+// ============================================================================
+
+export async function getSuperadminTenants(): Promise<
+  Array<{ id: string; name: string; slug: string; is_active: boolean; created_at?: any; updated_at?: any }>
+> {
+  return apiCall('/superadmin/tenants');
+}
+
+export async function createSuperadminTenant(data: {
+  name: string;
+  slug: string;
+  description?: string | null;
+  is_active?: boolean;
+}) {
+  return apiCall('/superadmin/tenants', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateSuperadminTenant(tenantId: string, data: {
+  name?: string;
+  slug?: string;
+  description?: string | null;
+  is_active?: boolean;
+}) {
+  return apiCall(`/superadmin/tenants/${tenantId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
 }
 
 async function publicApiCall<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
