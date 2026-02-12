@@ -840,3 +840,9 @@ export async function markInboxNotificationRead(notificationId: string): Promise
     method: 'PATCH',
   });
 }
+
+export async function markInboxNotificationUnread(notificationId: string): Promise<{ updated: number }> {
+  return apiCall(`/notifications/inbox/${encodeURIComponent(notificationId)}/unread`, {
+    method: 'PATCH',
+  });
+}

@@ -7,6 +7,7 @@ import {
 	getNotificationsInbox,
 	getNotificationRules,
 	markNotificationRead,
+	markNotificationUnread,
 	markNotificationsReadAll,
 	updateNotificationRules,
 } from '../controllers/notification.controller.js';
@@ -20,6 +21,7 @@ router.put('/rules', requirePermission('notifications:write', 'tenant'), updateN
 router.get('/inbox', requirePermission('notifications:read', 'tenant'), getNotificationsInbox);
 router.patch('/inbox/read-all', requirePermission('notifications:read', 'tenant'), markNotificationsReadAll);
 router.patch('/inbox/:notificationId/read', requirePermission('notifications:read', 'tenant'), markNotificationRead);
+router.patch('/inbox/:notificationId/unread', requirePermission('notifications:read', 'tenant'), markNotificationUnread);
 router.delete('/inbox', requirePermission('notifications:read', 'tenant'), clearNotificationsInbox);
 router.delete('/inbox/:notificationId', requirePermission('notifications:read', 'tenant'), deleteNotificationInboxItem);
 

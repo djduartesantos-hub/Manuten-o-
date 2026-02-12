@@ -1,7 +1,7 @@
 import React from 'react';
 import { MainLayout } from '../layouts/MainLayout';
 import { useSocket } from '../context/SocketContext';
-import { Bell, Check, Trash2 } from 'lucide-react';
+import { Bell, Check, Mail, Trash2 } from 'lucide-react';
 
 function formatWhen(iso: string) {
   try {
@@ -20,6 +20,7 @@ export function NotificationsPage() {
   clearNotifications,
   deleteNotification,
   markNotificationRead,
+	markNotificationUnread,
   } = useSocket();
 
   return (
@@ -101,7 +102,17 @@ export function NotificationsPage() {
                       >
                         <Check className="h-4 w-4" />
                       </button>
-                    ) : null}
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => markNotificationUnread(n.id)}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl border theme-border theme-card theme-text-muted transition hover:bg-[color:var(--dash-surface)] hover:theme-text"
+                        aria-label="Marcar como não lida"
+                        title="Marcar como não lida"
+                      >
+                        <Mail className="h-4 w-4" />
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => deleteNotification(n.id)}
