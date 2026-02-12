@@ -20,6 +20,7 @@ interface BootstrapResult {
   adminUsername: string;
   adminEmail: string;
   passwordHint: string;
+  demoUsers?: Array<{ role: string; username: string; email: string; passwordHint: string }>;
 }
 
 interface SetupInitPageProps {
@@ -102,6 +103,26 @@ export function SetupInitPage({ embedded = false }: SetupInitPageProps) {
                 <div>Email: {result.adminEmail}</div>
                 <div>Senha: {result.passwordHint}</div>
               </div>
+
+              {Array.isArray(result.demoUsers) && result.demoUsers.length > 0 ? (
+                <div className="mt-4 rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+                  <div className="text-sm font-semibold theme-text">Credenciais demo</div>
+                  <div className="mt-3 grid gap-2 text-xs theme-text">
+                    {result.demoUsers.map((u) => (
+                      <div key={u.role} className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="font-semibold theme-text">{u.role}</span>
+                          <span className="theme-text-muted"> — {u.username} ({u.email})</span>
+                        </div>
+                        <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">
+                          {u.passwordHint}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="mt-3 text-xs theme-text-muted">
                 Migracoes executadas: {result.migrations.length > 0 ? result.migrations.join(', ') : 'nenhuma'}
               </div>

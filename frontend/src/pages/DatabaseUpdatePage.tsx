@@ -346,6 +346,57 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
             </div>
           )}
         </div>
+
+        <div className="mt-6 rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+          <div className="text-sm font-semibold theme-text">Credenciais demo</div>
+          <p className="mt-1 text-xs theme-text-muted">
+            Após “Carregar Dados Demo”, pode entrar com qualquer role.
+          </p>
+          <div className="mt-3 grid gap-2 text-xs theme-text">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="font-semibold theme-text">admin_empresa</span>
+                <span className="theme-text-muted"> — admin (admin@cmms.com)</span>
+              </div>
+              <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Admin@123456</div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="font-semibold theme-text">gestor_manutencao</span>
+                <span className="theme-text-muted"> — gestor (gestor@cmms.com)</span>
+              </div>
+              <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Gestor@123456</div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="font-semibold theme-text">supervisor</span>
+                <span className="theme-text-muted"> — supervisor (supervisor@cmms.com)</span>
+              </div>
+              <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Supervisor@123456</div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="font-semibold theme-text">tecnico</span>
+                <span className="theme-text-muted"> — tech (tech@cmms.com)</span>
+              </div>
+              <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Tech@123456</div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="font-semibold theme-text">operador</span>
+                <span className="theme-text-muted"> — operador (operador@cmms.com)</span>
+              </div>
+              <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Operador@123456</div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="font-semibold theme-text">leitor</span>
+                <span className="theme-text-muted"> — leitor (leitor@cmms.com)</span>
+              </div>
+              <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Leitor@123456</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -480,6 +480,10 @@ export class SetupController {
     const demoPlantId = '0fab0000-0000-0000-0000-000000000001';
     const demoAdminId = '00000001-0000-0000-0000-000000000001';
     const demoTechId = '00000000-0000-0000-0000-000000000002';
+    const demoManagerId = '00000000-0000-0000-0000-000000000003';
+    const demoSupervisorId = '00000000-0000-0000-0000-000000000004';
+    const demoOperatorId = '00000000-0000-0000-0000-000000000005';
+    const demoReaderId = '00000000-0000-0000-0000-000000000006';
     const demoCategoryId = '10000000-0000-0000-0000-000000000001';
     const demoSupplierId = '60000000-0000-0000-0000-000000000001';
     const demoKitId = '70000000-0000-0000-0000-000000000001';
@@ -495,6 +499,10 @@ export class SetupController {
     const existingPlant = await db.execute(sql`SELECT id FROM plants WHERE id = ${demoPlantId}`);
     const existingAdmin = await db.execute(sql`SELECT id FROM users WHERE id = ${demoAdminId}`);
     const existingTech = await db.execute(sql`SELECT id FROM users WHERE username = 'tech'`);
+    const existingManager = await db.execute(sql`SELECT id FROM users WHERE username = 'gestor'`);
+    const existingSupervisor = await db.execute(sql`SELECT id FROM users WHERE username = 'supervisor'`);
+    const existingOperator = await db.execute(sql`SELECT id FROM users WHERE username = 'operador'`);
+    const existingReader = await db.execute(sql`SELECT id FROM users WHERE username = 'leitor'`);
     const existingCategory = await db.execute(
       sql`SELECT id FROM asset_categories WHERE id = ${demoCategoryId}`,
     );
@@ -590,12 +598,96 @@ export class SetupController {
       usersAdded++;
     }
 
+    // Insert maintenance manager user (only if doesn't exist)
+    if (existingManager.rows.length === 0) {
+      const managerPasswordHash = await bcrypt.hash('Gestor@123456', 10);
+      await db
+        .insert(users)
+        .values({
+          id: demoManagerId,
+          tenant_id: tenantId,
+          username: 'gestor',
+          email: 'gestor@cmms.com',
+          password_hash: managerPasswordHash,
+          first_name: 'Gestor',
+          last_name: 'CMMS',
+          role: 'gestor_manutencao',
+          is_active: true,
+        })
+        .onConflictDoNothing();
+      usersAdded++;
+    }
+
+    // Insert supervisor user (only if doesn't exist)
+    if (existingSupervisor.rows.length === 0) {
+      const supervisorPasswordHash = await bcrypt.hash('Supervisor@123456', 10);
+      await db
+        .insert(users)
+        .values({
+          id: demoSupervisorId,
+          tenant_id: tenantId,
+          username: 'supervisor',
+          email: 'supervisor@cmms.com',
+          password_hash: supervisorPasswordHash,
+          first_name: 'Supervisor',
+          last_name: 'CMMS',
+          role: 'supervisor',
+          is_active: true,
+        })
+        .onConflictDoNothing();
+      usersAdded++;
+    }
+
+    // Insert operator user (only if doesn't exist)
+    if (existingOperator.rows.length === 0) {
+      const operatorPasswordHash = await bcrypt.hash('Operador@123456', 10);
+      await db
+        .insert(users)
+        .values({
+          id: demoOperatorId,
+          tenant_id: tenantId,
+          username: 'operador',
+          email: 'operador@cmms.com',
+          password_hash: operatorPasswordHash,
+          first_name: 'Operador',
+          last_name: 'CMMS',
+          role: 'operador',
+          is_active: true,
+        })
+        .onConflictDoNothing();
+      usersAdded++;
+    }
+
+    // Insert reader user (only if doesn't exist)
+    if (existingReader.rows.length === 0) {
+      const readerPasswordHash = await bcrypt.hash('Leitor@123456', 10);
+      await db
+        .insert(users)
+        .values({
+          id: demoReaderId,
+          tenant_id: tenantId,
+          username: 'leitor',
+          email: 'leitor@cmms.com',
+          password_hash: readerPasswordHash,
+          first_name: 'Leitor',
+          last_name: 'CMMS',
+          role: 'leitor',
+          is_active: true,
+        })
+        .onConflictDoNothing();
+      usersAdded++;
+    }
+
     // Link users to plant (with conflict handling)
     await db
       .insert(userPlants)
       .values([
         { id: uuidv4(), user_id: demoAdminId, plant_id: demoPlantId, role: 'admin_empresa' },
+        { id: uuidv4(), user_id: demoManagerId, plant_id: demoPlantId, role: 'gestor_manutencao' },
+        { id: uuidv4(), user_id: demoSupervisorId, plant_id: demoPlantId, role: 'supervisor' },
         { id: uuidv4(), user_id: demoTechId, plant_id: demoPlantId, role: 'tecnico' },
+        { id: uuidv4(), user_id: demoOperatorId, plant_id: demoPlantId, role: 'operador' },
+        { id: uuidv4(), user_id: demoReaderId, plant_id: demoPlantId, role: 'leitor' },
       ])
       .onConflictDoNothing();
 
@@ -688,42 +780,100 @@ export class SetupController {
       }
     }
 
-    const workOrderBaseIds = [
-      '50000000-0000-0000-0000-000000000001',
-      '50000000-0000-0000-0000-000000000002',
-      '50000000-0000-0000-0000-000000000003',
+    const workOrderSeedRows: Array<{
+      id: string;
+      assetIndex: number;
+      title: string;
+      status: 'aberta' | 'em_analise' | 'em_execucao' | 'concluida';
+      priority: 'baixa' | 'media' | 'alta' | 'critica';
+      assignedTo?: string | null;
+      createdBy: string;
+      planIndex?: number | null;
+    }> = [
+      {
+        id: '50000000-0000-0000-0000-000000000001',
+        assetIndex: 0,
+        planIndex: 0,
+        assignedTo: demoTechId,
+        createdBy: demoAdminId,
+        title: 'Ordem Demo 1 (atribuída)',
+        status: 'aberta',
+        priority: 'media',
+      },
+      {
+        id: '50000000-0000-0000-0000-000000000002',
+        assetIndex: 1,
+        planIndex: 1,
+        assignedTo: demoTechId,
+        createdBy: demoAdminId,
+        title: 'Ordem Demo 2 (em execução)',
+        status: 'em_execucao',
+        priority: 'media',
+      },
+      {
+        id: '50000000-0000-0000-0000-000000000003',
+        assetIndex: 2,
+        planIndex: 2,
+        assignedTo: demoTechId,
+        createdBy: demoAdminId,
+        title: 'Ordem Demo 3 (concluída)',
+        status: 'concluida',
+        priority: 'alta',
+      },
+      {
+        id: '50000000-0000-0000-0000-000000000004',
+        assetIndex: 3,
+        planIndex: null,
+        assignedTo: null,
+        createdBy: demoAdminId,
+        title: 'Ordem Demo 4 (disponível)',
+        status: 'aberta',
+        priority: 'baixa',
+      },
+      {
+        id: '50000000-0000-0000-0000-000000000005',
+        assetIndex: 4,
+        planIndex: null,
+        assignedTo: null,
+        createdBy: demoOperatorId,
+        title: 'Ordem Demo 5 (criada por operador)',
+        status: 'aberta',
+        priority: 'media',
+      },
     ];
 
-    for (let i = 0; i < 3; i++) {
-      const existingOrder = await db.execute(
-        sql`SELECT id FROM work_orders WHERE id = ${workOrderBaseIds[i]}`,
-      );
+    for (const row of workOrderSeedRows) {
+      const existingOrder = await db.execute(sql`SELECT id FROM work_orders WHERE id = ${row.id}`);
+      if (existingOrder.rows.length > 0) continue;
 
-      if (existingOrder.rows.length === 0) {
-        await db
-          .insert(workOrders)
-          .values({
-            id: workOrderBaseIds[i],
-            tenant_id: tenantId,
-            plant_id: demoPlantId,
-            asset_id: assetBaseIds[i],
-            plan_id: planBaseIds[i],
-            assigned_to: demoTechId,
-            created_by: demoAdminId,
-            title: `Ordem Demo ${i + 1}`,
-            description: 'Ordem de trabalho demonstrativa',
-            status: i === 1 ? 'em_execucao' : i === 2 ? 'concluida' : 'aberta',
-            priority: i === 2 ? 'alta' : 'media',
-            scheduled_date: new Date(),
-            started_at: i >= 1 ? new Date() : undefined,
-            completed_at: i === 2 ? new Date() : undefined,
-            estimated_hours: '2',
-            actual_hours: i === 2 ? '1.5' : undefined,
-            notes: 'Gerado automaticamente pelo seed demo',
-          })
-          .onConflictDoNothing();
-        workOrdersAdded++;
-      }
+      const now = new Date();
+      const startedAt = row.status === 'em_execucao' ? now : undefined;
+      const completedAt = row.status === 'concluida' ? now : undefined;
+
+      await db
+        .insert(workOrders)
+        .values({
+          id: row.id,
+          tenant_id: tenantId,
+          plant_id: demoPlantId,
+          asset_id: assetBaseIds[row.assetIndex],
+          plan_id: typeof row.planIndex === 'number' ? planBaseIds[row.planIndex] : null,
+          assigned_to: row.assignedTo ?? null,
+          created_by: row.createdBy,
+          title: row.title,
+          description: 'Ordem de trabalho demonstrativa',
+          status: row.status,
+          priority: row.priority,
+          scheduled_date: now,
+          started_at: startedAt,
+          completed_at: completedAt,
+          estimated_hours: '2',
+          actual_hours: row.status === 'concluida' ? '1.5' : undefined,
+          notes: 'Gerado automaticamente pelo seed demo',
+        })
+        .onConflictDoNothing();
+
+      workOrdersAdded++;
     }
 
     // Spare parts with fixed IDs
@@ -841,7 +991,7 @@ export class SetupController {
           id: demoReservationId,
           tenant_id: tenantId,
           plant_id: demoPlantId,
-          work_order_id: workOrderBaseIds[0],
+          work_order_id: '50000000-0000-0000-0000-000000000001',
           spare_part_id: sparePartBaseIds[0],
           quantity: 1,
           status: 'ativa',
@@ -1255,6 +1405,45 @@ END $$;`
       await SetupController.ensureTenantsTable();
       const seedResult = await SetupController.seedDemoDataInternal(tenantId, tenantSlug);
 
+      const demoUsers = [
+        {
+          role: 'admin_empresa',
+          username: 'admin',
+          email: 'admin@cmms.com',
+          passwordHint: 'Admin@123456',
+        },
+        {
+          role: 'gestor_manutencao',
+          username: 'gestor',
+          email: 'gestor@cmms.com',
+          passwordHint: 'Gestor@123456',
+        },
+        {
+          role: 'supervisor',
+          username: 'supervisor',
+          email: 'supervisor@cmms.com',
+          passwordHint: 'Supervisor@123456',
+        },
+        {
+          role: 'tecnico',
+          username: 'tech',
+          email: 'tech@cmms.com',
+          passwordHint: 'Tech@123456',
+        },
+        {
+          role: 'operador',
+          username: 'operador',
+          email: 'operador@cmms.com',
+          passwordHint: 'Operador@123456',
+        },
+        {
+          role: 'leitor',
+          username: 'leitor',
+          email: 'leitor@cmms.com',
+          passwordHint: 'Leitor@123456',
+        },
+      ];
+
       res.json({
         success: true,
         message: 'Database bootstrap completed',
@@ -1267,6 +1456,7 @@ END $$;`
           adminUsername: 'admin',
           adminEmail: 'admin@cmms.com',
           passwordHint: 'Admin@123456',
+          demoUsers,
         },
       });
     } catch (error) {
