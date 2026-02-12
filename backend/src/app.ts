@@ -28,6 +28,7 @@ import profileRoutes from './routes/profile.routes.js';
 import superadminRoutes from './routes/superadmin.routes.js';
 import { errorHandler, notFoundHandler, requestLogger } from './middlewares/error.js';
 import { tenantSlugMiddleware } from './middlewares/tenant.js';
+import { requestIdMiddleware } from './middlewares/request-id.js';
 
 // ESM __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -69,6 +70,8 @@ export function createApp(): Express {
       credentials: true,
     }),
   );
+
+  app.use(requestIdMiddleware);
   app.use(requestLogger());
 
   // Serve uploaded documents (local storage fallback)

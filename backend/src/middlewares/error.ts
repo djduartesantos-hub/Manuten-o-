@@ -4,11 +4,14 @@ import { logger } from '../config/logger.js';
 
 export function errorHandler(
   err: any,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction,
 ): void {
-  logger.error('Error:', err);
+  logger.error('Error', {
+    requestId: req.requestId,
+    error: err instanceof Error ? { message: err.message, stack: err.stack } : err,
+  });
 
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal server error';
@@ -16,6 +19,7 @@ export function errorHandler(
   res.status(statusCode).json({
     success: false,
     error: message,
+    requestId: req.requestId,
     ...(process.env.NODE_ENV === 'development' && { details: err.stack }),
   });
 }
@@ -32,7 +36,12 @@ export function notFoundHandler(
 }
 
 export function requestLogger() {
-  return morgan('combined', {
+  morgan.token('requestId', (req: Request) => String(req.requestId || '-'));
+
+  const combinedWithRequestId =
+    ':requestId :remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"';
+
+  return morgan(combinedWithRequestId, {
     stream: {
       write: (message: string) => logger.info(message),
     },
