@@ -117,7 +117,7 @@ async function ensureRbacStructureAndSeed(tenantId: string): Promise<void> {
   const roles: Array<{ key: string; name: string; description?: string }> = [
     { key: 'superadmin', name: 'SuperAdministrador' },
     { key: 'admin_empresa', name: 'Admin Empresa' },
-    { key: 'gestor_manutencao', name: 'Gestor Manutenção' },
+    { key: 'gestor_manutencao', name: 'Gestor Fábrica' },
     { key: 'supervisor', name: 'Supervisor' },
     { key: 'tecnico', name: 'Técnico' },
     { key: 'operador', name: 'Operador' },
@@ -232,13 +232,13 @@ export async function autoSeedDemoIfEmpty(): Promise<void> {
 
   const tenantId = tenantSlug === DEFAULT_TENANT_SLUG ? DEFAULT_TENANT_ID : uuidv4();
 
-  const adminEmail = normalize(process.env.ADMIN_EMAIL || 'admin@cmms.com');
-  const adminUsername = normalize(process.env.ADMIN_USERNAME || 'admin');
-  const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123456';
+  const adminEmail = normalize(process.env.ADMIN_EMAIL || 'superadmin@cmms.com');
+  const adminUsername = normalize(process.env.ADMIN_USERNAME || 'superadmin');
+  const adminPassword = process.env.ADMIN_PASSWORD || 'SuperAdmin@123456';
 
-  const techEmail = normalize(process.env.TECH_EMAIL || 'tech@cmms.com');
-  const techUsername = normalize(process.env.TECH_USERNAME || 'tech');
-  const techPassword = process.env.TECH_PASSWORD || 'Tech@123456';
+  const techEmail = normalize(process.env.TECH_EMAIL || 'tecnico@cmms.com');
+  const techUsername = normalize(process.env.TECH_USERNAME || 'tecnico');
+  const techPassword = process.env.TECH_PASSWORD || 'Tecnico@123456';
 
   const adminId = uuidv4();
   const techId = uuidv4();

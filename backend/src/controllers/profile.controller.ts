@@ -23,7 +23,7 @@ function toProfileDto(user: any) {
 const fallbackRoleLabels: Record<string, string> = {
   superadmin: 'SuperAdministrador',
   admin_empresa: 'Admin Empresa',
-  gestor_manutencao: 'Gestor Manutenção',
+  gestor_manutencao: 'Gestor Fábrica',
   supervisor: 'Supervisor',
   tecnico: 'Técnico',
   operador: 'Operador',

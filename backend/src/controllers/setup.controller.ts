@@ -147,7 +147,7 @@ export class SetupController {
     const roles: Array<{ key: string; name: string; description?: string }> = [
       { key: 'superadmin', name: 'SuperAdministrador' },
       { key: 'admin_empresa', name: 'Admin Empresa' },
-      { key: 'gestor_manutencao', name: 'Gestor Manutenção' },
+      { key: 'gestor_manutencao', name: 'Gestor Fábrica' },
       { key: 'supervisor', name: 'Supervisor' },
       { key: 'tecnico', name: 'Técnico' },
       { key: 'operador', name: 'Operador' },
@@ -545,6 +545,7 @@ export class SetupController {
     // Use fixed demo IDs so we can check if they exist
     const demoPlantId = '0fab0000-0000-0000-0000-000000000001';
     const demoAdminId = '00000001-0000-0000-0000-000000000001';
+    const demoSuperAdminId = '00000001-0000-0000-0000-000000000006';
     const demoTechId = '00000000-0000-0000-0000-000000000002';
     const demoManagerId = '00000000-0000-0000-0000-000000000003';
     const demoSupervisorId = '00000000-0000-0000-0000-000000000004';
@@ -563,10 +564,11 @@ export class SetupController {
     // Check what already exists
     const existingPlant = await db.execute(sql`SELECT id FROM plants WHERE id = ${demoPlantId}`);
     const existingAdmin = await db.execute(sql`SELECT id FROM users WHERE id = ${demoAdminId}`);
-    const existingTech = await db.execute(sql`SELECT id FROM users WHERE username = 'tech'`);
-    const existingManager = await db.execute(sql`SELECT id FROM users WHERE username = 'gestor'`);
-    const existingSupervisor = await db.execute(sql`SELECT id FROM users WHERE username = 'supervisor'`);
-    const existingOperator = await db.execute(sql`SELECT id FROM users WHERE username = 'operador'`);
+    const existingSuperAdmin = await db.execute(sql`SELECT id FROM users WHERE id = ${demoSuperAdminId}`);
+    const existingTech = await db.execute(sql`SELECT id FROM users WHERE id = ${demoTechId}`);
+    const existingManager = await db.execute(sql`SELECT id FROM users WHERE id = ${demoManagerId}`);
+    const existingSupervisor = await db.execute(sql`SELECT id FROM users WHERE id = ${demoSupervisorId}`);
+    const existingOperator = await db.execute(sql`SELECT id FROM users WHERE id = ${demoOperatorId}`);
     const existingCategory = await db.execute(
       sql`SELECT id FROM asset_categories WHERE id = ${demoCategoryId}`,
     );
@@ -622,110 +624,132 @@ export class SetupController {
         .onConflictDoNothing();
     }
 
-    // Insert admin user (only if doesn't exist)
-    if (existingAdmin.rows.length === 0) {
+    // Upsert demo users (IDs fixos para manter referências dos dados demo)
+    // Admin Empresa
+    {
       const passwordHash = await bcrypt.hash('Admin@123456', 10);
-      await db
-        .insert(users)
-        .values({
-          id: demoAdminId,
-          tenant_id: tenantId,
-          username: 'admin',
-          email: 'admin@cmms.com',
-          password_hash: passwordHash,
-          first_name: 'Admin',
-          last_name: 'CMMS',
-          role: 'superadmin',
-          is_active: true,
-        })
-        .onConflictDoNothing();
-      usersAdded++;
+      await db.execute(sql`
+        INSERT INTO users (id, tenant_id, username, email, password_hash, first_name, last_name, role, is_active)
+        VALUES (${demoAdminId}, ${tenantId}, 'admin', 'admin@cmms.com', ${passwordHash}, 'Admin', 'Empresa', 'admin_empresa', TRUE)
+        ON CONFLICT (id) DO UPDATE
+        SET tenant_id = EXCLUDED.tenant_id,
+            username = EXCLUDED.username,
+            email = EXCLUDED.email,
+            password_hash = EXCLUDED.password_hash,
+            first_name = EXCLUDED.first_name,
+            last_name = EXCLUDED.last_name,
+            role = EXCLUDED.role,
+            is_active = EXCLUDED.is_active,
+            updated_at = NOW();
+      `);
+      if (existingAdmin.rows.length === 0) usersAdded++;
     }
 
-    // Insert technician user (only if doesn't exist)
-    if (existingTech.rows.length === 0) {
-      const techPasswordHash = await bcrypt.hash('Tech@123456', 10);
-      await db
-        .insert(users)
-        .values({
-          id: demoTechId,
-          tenant_id: tenantId,
-          username: 'tech',
-          email: 'tech@cmms.com',
-          password_hash: techPasswordHash,
-          first_name: 'Tecnico',
-          last_name: 'CMMS',
-          role: 'tecnico',
-          is_active: true,
-        })
-        .onConflictDoNothing();
-      usersAdded++;
+    // SuperAdministrador
+    {
+      const passwordHash = await bcrypt.hash('SuperAdmin@123456', 10);
+      await db.execute(sql`
+        INSERT INTO users (id, tenant_id, username, email, password_hash, first_name, last_name, role, is_active)
+        VALUES (${demoSuperAdminId}, ${tenantId}, 'superadmin', 'superadmin@cmms.com', ${passwordHash}, 'Super', 'Administrador', 'superadmin', TRUE)
+        ON CONFLICT (id) DO UPDATE
+        SET tenant_id = EXCLUDED.tenant_id,
+            username = EXCLUDED.username,
+            email = EXCLUDED.email,
+            password_hash = EXCLUDED.password_hash,
+            first_name = EXCLUDED.first_name,
+            last_name = EXCLUDED.last_name,
+            role = EXCLUDED.role,
+            is_active = EXCLUDED.is_active,
+            updated_at = NOW();
+      `);
+      if (existingSuperAdmin.rows.length === 0) usersAdded++;
     }
 
-    // Insert maintenance manager user (only if doesn't exist)
-    if (existingManager.rows.length === 0) {
-      const managerPasswordHash = await bcrypt.hash('Gestor@123456', 10);
-      await db
-        .insert(users)
-        .values({
-          id: demoManagerId,
-          tenant_id: tenantId,
-          username: 'gestor',
-          email: 'gestor@cmms.com',
-          password_hash: managerPasswordHash,
-          first_name: 'Gestor',
-          last_name: 'CMMS',
-          role: 'gestor_manutencao',
-          is_active: true,
-        })
-        .onConflictDoNothing();
-      usersAdded++;
+    // Técnico
+    {
+      const passwordHash = await bcrypt.hash('Tecnico@123456', 10);
+      await db.execute(sql`
+        INSERT INTO users (id, tenant_id, username, email, password_hash, first_name, last_name, role, is_active)
+        VALUES (${demoTechId}, ${tenantId}, 'tecnico', 'tecnico@cmms.com', ${passwordHash}, 'Técnico', 'CMMS', 'tecnico', TRUE)
+        ON CONFLICT (id) DO UPDATE
+        SET tenant_id = EXCLUDED.tenant_id,
+            username = EXCLUDED.username,
+            email = EXCLUDED.email,
+            password_hash = EXCLUDED.password_hash,
+            first_name = EXCLUDED.first_name,
+            last_name = EXCLUDED.last_name,
+            role = EXCLUDED.role,
+            is_active = EXCLUDED.is_active,
+            updated_at = NOW();
+      `);
+      if (existingTech.rows.length === 0) usersAdded++;
     }
 
-    // Insert supervisor user (only if doesn't exist)
-    if (existingSupervisor.rows.length === 0) {
-      const supervisorPasswordHash = await bcrypt.hash('Supervisor@123456', 10);
-      await db
-        .insert(users)
-        .values({
-          id: demoSupervisorId,
-          tenant_id: tenantId,
-          username: 'supervisor',
-          email: 'supervisor@cmms.com',
-          password_hash: supervisorPasswordHash,
-          first_name: 'Supervisor',
-          last_name: 'CMMS',
-          role: 'supervisor',
-          is_active: true,
-        })
-        .onConflictDoNothing();
-      usersAdded++;
+    // Gestor Fábrica
+    {
+      const passwordHash = await bcrypt.hash('Gestor@123456', 10);
+      await db.execute(sql`
+        INSERT INTO users (id, tenant_id, username, email, password_hash, first_name, last_name, role, is_active)
+        VALUES (${demoManagerId}, ${tenantId}, 'gestor', 'gestor@cmms.com', ${passwordHash}, 'Gestor', 'Fábrica', 'gestor_manutencao', TRUE)
+        ON CONFLICT (id) DO UPDATE
+        SET tenant_id = EXCLUDED.tenant_id,
+            username = EXCLUDED.username,
+            email = EXCLUDED.email,
+            password_hash = EXCLUDED.password_hash,
+            first_name = EXCLUDED.first_name,
+            last_name = EXCLUDED.last_name,
+            role = EXCLUDED.role,
+            is_active = EXCLUDED.is_active,
+            updated_at = NOW();
+      `);
+      if (existingManager.rows.length === 0) usersAdded++;
     }
 
-    // Insert operator user (only if doesn't exist)
-    if (existingOperator.rows.length === 0) {
-      const operatorPasswordHash = await bcrypt.hash('Operador@123456', 10);
-      await db
-        .insert(users)
-        .values({
-          id: demoOperatorId,
-          tenant_id: tenantId,
-          username: 'operador',
-          email: 'operador@cmms.com',
-          password_hash: operatorPasswordHash,
-          first_name: 'Operador',
-          last_name: 'CMMS',
-          role: 'operador',
-          is_active: true,
-        })
-        .onConflictDoNothing();
-      usersAdded++;
+    // Supervisor
+    {
+      const passwordHash = await bcrypt.hash('Supervisor@123456', 10);
+      await db.execute(sql`
+        INSERT INTO users (id, tenant_id, username, email, password_hash, first_name, last_name, role, is_active)
+        VALUES (${demoSupervisorId}, ${tenantId}, 'supervisor', 'supervisor@cmms.com', ${passwordHash}, 'Supervisor', 'CMMS', 'supervisor', TRUE)
+        ON CONFLICT (id) DO UPDATE
+        SET tenant_id = EXCLUDED.tenant_id,
+            username = EXCLUDED.username,
+            email = EXCLUDED.email,
+            password_hash = EXCLUDED.password_hash,
+            first_name = EXCLUDED.first_name,
+            last_name = EXCLUDED.last_name,
+            role = EXCLUDED.role,
+            is_active = EXCLUDED.is_active,
+            updated_at = NOW();
+      `);
+      if (existingSupervisor.rows.length === 0) usersAdded++;
+    }
+
+    // Operador
+    {
+      const passwordHash = await bcrypt.hash('Operador@123456', 10);
+      await db.execute(sql`
+        INSERT INTO users (id, tenant_id, username, email, password_hash, first_name, last_name, role, is_active)
+        VALUES (${demoOperatorId}, ${tenantId}, 'operador', 'operador@cmms.com', ${passwordHash}, 'Operador', 'CMMS', 'operador', TRUE)
+        ON CONFLICT (id) DO UPDATE
+        SET tenant_id = EXCLUDED.tenant_id,
+            username = EXCLUDED.username,
+            email = EXCLUDED.email,
+            password_hash = EXCLUDED.password_hash,
+            first_name = EXCLUDED.first_name,
+            last_name = EXCLUDED.last_name,
+            role = EXCLUDED.role,
+            is_active = EXCLUDED.is_active,
+            updated_at = NOW();
+      `);
+      if (existingOperator.rows.length === 0) usersAdded++;
     }
 
     // Link users to plant (with conflict handling)
     await db
       .insert(userPlants)
       .values([
+        { id: uuidv4(), user_id: demoSuperAdminId, plant_id: demoPlantId, role: 'superadmin' },
         { id: uuidv4(), user_id: demoAdminId, plant_id: demoPlantId, role: 'admin_empresa' },
         { id: uuidv4(), user_id: demoManagerId, plant_id: demoPlantId, role: 'gestor_manutencao' },
         { id: uuidv4(), user_id: demoSupervisorId, plant_id: demoPlantId, role: 'supervisor' },
@@ -1133,16 +1157,16 @@ export class SetupController {
       const plantId = uuidv4();
 
       // Get admin credentials from environment or use defaults
-      const adminEmail = process.env.ADMIN_EMAIL || 'admin@cmms.com';
-      const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-      const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123456';
+      const adminEmail = process.env.ADMIN_EMAIL || 'superadmin@cmms.com';
+      const adminUsername = process.env.ADMIN_USERNAME || 'superadmin';
+      const adminPassword = process.env.ADMIN_PASSWORD || 'SuperAdmin@123456';
 
       const normalizedAdminUsername = adminUsername.trim().toLowerCase();
       const normalizedAdminEmail = adminEmail.trim().toLowerCase();
 
-      const techEmail = process.env.TECH_EMAIL || 'tech@cmms.com';
-      const techUsername = process.env.TECH_USERNAME || 'tech';
-      const techPassword = process.env.TECH_PASSWORD || 'Tech@123456';
+      const techEmail = process.env.TECH_EMAIL || 'tecnico@cmms.com';
+      const techUsername = process.env.TECH_USERNAME || 'tecnico';
+      const techPassword = process.env.TECH_PASSWORD || 'Tecnico@123456';
       const normalizedTechUsername = techUsername.trim().toLowerCase();
       const normalizedTechEmail = techEmail.trim().toLowerCase();
       const techId = uuidv4();
@@ -1451,6 +1475,12 @@ END $$;`
       const demoUsers = [
         {
           role: 'superadmin',
+          username: 'superadmin',
+          email: 'superadmin@cmms.com',
+          passwordHint: 'SuperAdmin@123456',
+        },
+        {
+          role: 'admin_empresa',
           username: 'admin',
           email: 'admin@cmms.com',
           passwordHint: 'Admin@123456',
@@ -1469,9 +1499,9 @@ END $$;`
         },
         {
           role: 'tecnico',
-          username: 'tech',
-          email: 'tech@cmms.com',
-          passwordHint: 'Tech@123456',
+          username: 'tecnico',
+          email: 'tecnico@cmms.com',
+          passwordHint: 'Tecnico@123456',
         },
         {
           role: 'operador',
@@ -1490,9 +1520,9 @@ END $$;`
           loginUrl: '/login',
           migrations,
           seed: seedResult,
-          adminUsername: 'admin',
-          adminEmail: 'admin@cmms.com',
-          passwordHint: 'Admin@123456',
+          adminUsername: 'superadmin',
+          adminEmail: 'superadmin@cmms.com',
+          passwordHint: 'SuperAdmin@123456',
           demoUsers,
         },
       });

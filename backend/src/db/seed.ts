@@ -59,31 +59,31 @@ async function seed() {
 
     console.log('✅ Asset category created');
 
-    // Insert admin user
-    const passwordHash = await bcrypt.hash('Admin@123456', 10);
+    // Insert superadmin user
+    const passwordHash = await bcrypt.hash('SuperAdmin@123456', 10);
     await db.insert(users).values({
       id: adminId,
       tenant_id: tenantId,
-      username: 'admin',
-      email: 'admin@cmms.com',
+      username: 'superadmin',
+      email: 'superadmin@cmms.com',
       password_hash: passwordHash,
-      first_name: 'Admin',
-      last_name: 'CMMS',
+      first_name: 'Super',
+      last_name: 'Administrador',
       role: 'superadmin',
       is_active: true,
     });
 
-    console.log('✅ Admin user created');
+    console.log('✅ Superadmin user created');
 
     // Insert technician user
-    const techPasswordHash = await bcrypt.hash('Tech@123456', 10);
+    const techPasswordHash = await bcrypt.hash('Tecnico@123456', 10);
     await db.insert(users).values({
       id: technicianId,
       tenant_id: tenantId,
-      username: 'tech',
-      email: 'tech@cmms.com',
+      username: 'tecnico',
+      email: 'tecnico@cmms.com',
       password_hash: techPasswordHash,
-      first_name: 'Tecnico',
+      first_name: 'Técnico',
       last_name: 'CMMS',
       role: 'tecnico',
       is_active: true,

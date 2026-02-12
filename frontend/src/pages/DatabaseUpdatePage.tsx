@@ -356,6 +356,13 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
                 <span className="font-semibold theme-text">superadmin</span>
+                <span className="theme-text-muted"> — superadmin (superadmin@cmms.com)</span>
+              </div>
+              <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">SuperAdmin@123456</div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="font-semibold theme-text">admin_empresa</span>
                 <span className="theme-text-muted"> — admin (admin@cmms.com)</span>
               </div>
               <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Admin@123456</div>
@@ -377,9 +384,9 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
                 <span className="font-semibold theme-text">tecnico</span>
-                <span className="theme-text-muted"> — tech (tech@cmms.com)</span>
+                <span className="theme-text-muted"> — tecnico (tecnico@cmms.com)</span>
               </div>
-              <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Tech@123456</div>
+              <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Tecnico@123456</div>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">

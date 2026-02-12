@@ -35,11 +35,11 @@ type DemoKey =
   | 'custom';
 
 const DEMO_ACCOUNTS: Array<{ key: Exclude<DemoKey, 'custom'>; label: string; username: string; password: string }> = [
-  { key: 'superadmin', label: 'SuperAdministrador', username: 'admin', password: 'Admin@123456' },
+  { key: 'superadmin', label: 'SuperAdministrador', username: 'superadmin', password: 'SuperAdmin@123456' },
   { key: 'admin_empresa', label: 'Admin Empresa', username: 'admin', password: 'Admin@123456' },
-  { key: 'gestor_manutencao', label: 'Gestor Manutenção', username: 'gestor', password: 'Gestor@123456' },
+  { key: 'gestor_manutencao', label: 'Gestor Fábrica', username: 'gestor', password: 'Gestor@123456' },
   { key: 'supervisor', label: 'Supervisor', username: 'supervisor', password: 'Supervisor@123456' },
-  { key: 'tecnico', label: 'Técnico', username: 'tech', password: 'Tech@123456' },
+  { key: 'tecnico', label: 'Técnico', username: 'tecnico', password: 'Tecnico@123456' },
   { key: 'operador', label: 'Operador', username: 'operador', password: 'Operador@123456' },
 ];
 

@@ -22,6 +22,11 @@ export class AuthController {
 
       const adminByUsername = await AuthService.findUserByUsername(tenantId, 'admin');
       const adminByEmail = await AuthService.findUserByEmail(tenantId, 'admin@cmms.com');
+      const superadminByUsername = await AuthService.findUserByUsername(tenantId, 'superadmin');
+      const superadminByEmail = await AuthService.findUserByEmail(tenantId, 'superadmin@cmms.com');
+      const tecnicoByUsername = await AuthService.findUserByUsername(tenantId, 'tecnico');
+      const tecnicoByEmail = await AuthService.findUserByEmail(tenantId, 'tecnico@cmms.com');
+      // Backward-compat (demo antigo)
       const techByUsername = await AuthService.findUserByUsername(tenantId, 'tech');
       const techByEmail = await AuthService.findUserByEmail(tenantId, 'tech@cmms.com');
 
@@ -32,7 +37,10 @@ export class AuthController {
           tenantSlug,
           usersInTenant,
           demoUsers: {
+            superadmin: Boolean(superadminByUsername || superadminByEmail),
             admin: Boolean(adminByUsername || adminByEmail),
+            tecnico: Boolean(tecnicoByUsername || tecnicoByEmail),
+            // Backward-compat
             tech: Boolean(techByUsername || techByEmail),
           },
         },
