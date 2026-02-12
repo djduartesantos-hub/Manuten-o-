@@ -112,6 +112,7 @@ export const users = pgTable(
     phone: text('phone'),
     role: text('role').notNull().default('tecnico'),
     is_active: boolean('is_active').default(true),
+    session_version: integer('session_version').notNull().default(0),
     last_login: timestamp('last_login', { withTimezone: true }),
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

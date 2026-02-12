@@ -8,6 +8,13 @@
       "when": 1770927358187,
       "tag": "0000_next_namor",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1770930791240,
+      "tag": "0001_overconfident_cyclops",
+      "breakpoints": true
     }
   ]
 }

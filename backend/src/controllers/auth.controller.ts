@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../types/index.js';
 import { AuthService } from '../services/auth.service.js';
-import { generateToken, generateRefreshToken } from '../auth/jwt.js';
+import { generateToken, generateRefreshToken, verifyRefreshToken } from '../auth/jwt.js';
 import { logger } from '../config/logger.js';
 import { DEFAULT_TENANT_ID } from '../config/constants.js';
 import { db } from '../config/database.js';
@@ -96,6 +96,7 @@ export class AuthController {
         email: user.email,
         role: user.role,
         plantIds: plantIds || [],
+        sessionVersion: Number((user as any)?.session_version ?? 0),
       };
 
       const token = generateToken(payload);
@@ -167,12 +168,51 @@ export class AuthController {
         return;
       }
 
-      const user = await AuthService.findUserById(req.user?.userId || '');
+      const refreshPayload: any = verifyRefreshToken(String(refreshToken));
+      if (!refreshPayload) {
+        res.status(401).json({
+          success: false,
+          error: 'Invalid or expired refresh token',
+        });
+        return;
+      }
+
+      // Backward-compat for older tokens
+      if (!refreshPayload.userId && refreshPayload.id) refreshPayload.userId = refreshPayload.id;
+      if (!refreshPayload.tenantId && refreshPayload.tenant_id) refreshPayload.tenantId = refreshPayload.tenant_id;
+
+      if (!refreshPayload.userId) {
+        res.status(401).json({
+          success: false,
+          error: 'Invalid refresh token payload',
+        });
+        return;
+      }
+
+      const user = await AuthService.findUserById(String(refreshPayload.userId));
 
       if (!user) {
         res.status(401).json({
           success: false,
           error: 'User not found',
+        });
+        return;
+      }
+
+      if (!user.is_active) {
+        res.status(401).json({
+          success: false,
+          error: 'User inactive',
+        });
+        return;
+      }
+
+      const tokenSessionVersion = Number(refreshPayload.sessionVersion ?? 0);
+      const currentSessionVersion = Number((user as any).session_version ?? 0);
+      if (tokenSessionVersion !== currentSessionVersion) {
+        res.status(401).json({
+          success: false,
+          error: 'Session revoked',
         });
         return;
       }
@@ -191,6 +231,7 @@ export class AuthController {
         email: user.email,
         role: user.role,
         plantIds: plantIds || [],
+        sessionVersion: Number((user as any)?.session_version ?? 0),
       };
 
       const newToken = generateToken(payload);
@@ -209,6 +250,23 @@ export class AuthController {
         success: false,
         error: 'Token refresh failed',
       });
+    }
+  }
+
+  static async logout(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
+      const tenantId = req.tenantId || req.user.tenantId || DEFAULT_TENANT_ID;
+      await AuthService.bumpUserSessionVersion({ tenantId, userId: req.user.userId });
+
+      res.json({ success: true, message: 'Sessions revoked' });
+    } catch (error) {
+      logger.error('Logout/revoke sessions error:', error);
+      res.status(500).json({ success: false, error: 'Failed to revoke sessions' });
     }
   }
 }

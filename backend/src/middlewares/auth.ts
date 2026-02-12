@@ -20,11 +20,11 @@ const normalizeRole = (role?: string | UserRole): UserRole | undefined => {
   return allowedRoles.includes(mapped as UserRole) ? (mapped as UserRole) : undefined;
 };
 
-export function authMiddleware(
+export async function authMiddleware(
   req: AuthenticatedRequest & { headers?: any },
   res: Response,
   next: NextFunction,
-): void {
+): Promise<void> {
   try {
     const token = extractTokenFromHeader(req.headers?.authorization);
 
@@ -75,6 +75,30 @@ export function authMiddleware(
         });
         return;
       }
+    }
+
+    // Session revocation check (best-effort, cached)
+    const state = await AuthService.getUserSessionState(String(payloadAny.userId));
+    if (!state) {
+      res.status(401).json({ success: false, error: 'User not found' });
+      return;
+    }
+
+    if (!state.isActive) {
+      res.status(401).json({ success: false, error: 'User inactive' });
+      return;
+    }
+
+    // Ensure tenant is consistent
+    if (String(payloadAny.tenantId) !== String(state.tenantId)) {
+      res.status(401).json({ success: false, error: 'Invalid token tenant' });
+      return;
+    }
+
+    const tokenSessionVersion = Number(payloadAny.sessionVersion ?? 0);
+    if (tokenSessionVersion !== Number(state.sessionVersion)) {
+      res.status(401).json({ success: false, error: 'Session revoked' });
+      return;
     }
 
     req.user = payloadAny;

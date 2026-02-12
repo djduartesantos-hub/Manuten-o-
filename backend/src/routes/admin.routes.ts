@@ -23,6 +23,12 @@ router.post(
 	AdminController.resetUserPassword,
 );
 
+router.post(
+	'/users/:userId/revoke-sessions',
+	requirePermission('admin:users', 'tenant'),
+	AdminController.revokeUserSessions,
+);
+
 // Roles
 router.get('/roles', requirePermission('admin:users', 'tenant'), AdminController.listRoles);
 router.post('/roles', requirePermission('admin:rbac', 'tenant'), AdminController.createRole);

@@ -6,6 +6,8 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { AuthenticatedRequest } from '../types/index.js';
 import { db } from '../config/database.js';
 import { assets, plants, rbacRoles, userPlants, users } from '../db/schema.js';
+import { AuditService } from '../services/audit.service.js';
+import { AuthService } from '../services/auth.service.js';
 
 function generateTempPassword(length = 14): string {
   // Base64url gives URL-safe chars; slice for desired length.
@@ -856,9 +858,34 @@ export async function setRoleHomePages(req: AuthenticatedRequest, res: Response)
       return res.status(400).json({ success: false, error: 'Tenant ID is required' });
     }
 
+    const actorUserId = req.user?.userId;
+    if (!actorUserId) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
     const { plant_id, entries } = req.body || {};
     const plantId = typeof plant_id === 'string' && plant_id.trim().length > 0 ? plant_id.trim() : null;
     const rows = Array.isArray(entries) ? entries : [];
+
+    // Snapshot old state for audit diff
+    const oldRes = plantId
+      ? await db.execute(sql`
+          SELECT role_key, home_path
+          FROM rbac_role_home_pages
+          WHERE tenant_id = ${tenantId} AND plant_id = ${plantId}
+            AND role_key <> 'superadmin'
+          ORDER BY role_key ASC;
+        `)
+      : await db.execute(sql`
+          SELECT role_key, home_path
+          FROM rbac_role_home_pages
+          WHERE tenant_id = ${tenantId} AND plant_id IS NULL
+            AND role_key <> 'superadmin'
+          ORDER BY role_key ASC;
+        `);
+    const oldEntries = ((oldRes.rows || []) as any[])
+      .map((r: any) => ({ roleKey: normalizeRole(r?.role_key), homePath: String(r?.home_path || '').trim() }))
+      .filter((e: any) => e.roleKey && e.homePath);
 
     // Validate role keys using tenant roles (fallback to allowedRoles)
     const roleKeys = await getRoleKeysForTenant(tenantId);
@@ -907,6 +934,17 @@ export async function setRoleHomePages(req: AuthenticatedRequest, res: Response)
       `);
     }
 
+    await AuditService.createLog({
+      tenant_id: tenantId,
+      user_id: actorUserId,
+      action: 'rbac.role_home_pages.update',
+      entity_type: 'rbac_role_home_pages',
+      entity_id: String(plantId || 'global'),
+      old_values: { plant_id: plantId, entries: oldEntries },
+      new_values: { plant_id: plantId, entries: uniqueEntries },
+      ip_address: req.ip || null,
+    });
+
     return res.json({ success: true, message: 'Home pages atualizadas' });
   } catch (error) {
     return res.status(500).json({ success: false, error: 'Failed to update role home pages' });
@@ -945,6 +983,48 @@ export async function resetUserPassword(req: AuthenticatedRequest, res: Response
     return res.json({ success: true, message: 'Password atualizada' });
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to reset password' });
+  }
+}
+
+export async function revokeUserSessions(req: AuthenticatedRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId;
+    const actorUserId = req.user?.userId;
+    const { userId } = req.params;
+
+    if (!tenantId || !userId) {
+      return res.status(400).json({ success: false, error: 'Tenant/user are required' });
+    }
+
+    if (!actorUserId) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const before = await db.query.users.findFirst({
+      where: (fields: any, { eq, and }: any) => and(eq(fields.tenant_id, tenantId), eq(fields.id, userId)),
+      columns: { session_version: true } as any,
+    });
+
+    if (!before) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const newVersion = await AuthService.bumpUserSessionVersion({ tenantId, userId });
+
+    await AuditService.createLog({
+      tenant_id: tenantId,
+      user_id: actorUserId,
+      action: 'user.sessions.revoke',
+      entity_type: 'user',
+      entity_id: String(userId),
+      old_values: { sessionVersion: Number((before as any).session_version ?? 0) },
+      new_values: { sessionVersion: Number(newVersion) },
+      ip_address: req.ip || null,
+    });
+
+    return res.json({ success: true, message: 'Sessions revoked', data: { sessionVersion: newVersion } });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to revoke sessions' });
   }
 }
 
@@ -1009,6 +1089,21 @@ export async function setRolePermissions(req: AuthenticatedRequest, res: Respons
       });
     }
 
+    const actorUserId = req.user?.userId;
+    if (!actorUserId) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const oldRes = await db.execute(sql`
+      SELECT permission_key
+      FROM rbac_role_permissions
+      WHERE tenant_id = ${tenantId} AND role_key = ${normalizedRoleKey}
+      ORDER BY permission_key ASC;
+    `);
+    const oldPerms = ((oldRes.rows || []) as any[])
+      .map((r: any) => String(r?.permission_key || '').trim())
+      .filter((p: string) => p.length > 0);
+
     // Replace set
     await db.execute(sql`
       DELETE FROM rbac_role_permissions
@@ -1022,6 +1117,17 @@ export async function setRolePermissions(req: AuthenticatedRequest, res: Respons
         ON CONFLICT (tenant_id, role_key, permission_key) DO NOTHING;
       `);
     }
+
+    await AuditService.createLog({
+      tenant_id: tenantId,
+      user_id: actorUserId,
+      action: 'rbac.role.permissions.update',
+      entity_type: 'rbac_role',
+      entity_id: String(normalizedRoleKey),
+      old_values: { permissions: oldPerms },
+      new_values: { permissions: perms },
+      ip_address: req.ip || null,
+    });
 
     return res.json({ success: true, message: 'Permissões atualizadas', data: perms });
   } catch {

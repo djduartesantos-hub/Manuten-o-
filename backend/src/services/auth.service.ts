@@ -4,6 +4,84 @@ import { and, eq, sql } from 'drizzle-orm';
 import { comparePasswords, hashPassword } from '../auth/jwt.js';
 
 export class AuthService {
+  private static sessionVersionCache = new Map<
+    string,
+    { sessionVersion: number; isActive: boolean; tenantId: string; expiresAt: number }
+  >();
+
+  private static getSessionCacheKey(userId: string): string {
+    return String(userId);
+  }
+
+  static invalidateSessionCache(userId: string): void {
+    AuthService.sessionVersionCache.delete(AuthService.getSessionCacheKey(userId));
+  }
+
+  static async getUserSessionState(userId: string): Promise<
+    { sessionVersion: number; isActive: boolean; tenantId: string } | null
+  > {
+    const cacheMs = Number(process.env.AUTH_SESSION_CACHE_MS || 5_000);
+    const key = AuthService.getSessionCacheKey(userId);
+    const cached = AuthService.sessionVersionCache.get(key);
+    if (cached && cached.expiresAt > Date.now()) {
+      return {
+        sessionVersion: cached.sessionVersion,
+        isActive: cached.isActive,
+        tenantId: cached.tenantId,
+      };
+    }
+
+    const row = await db.query.users.findFirst({
+      where: (fields: any) => eq(fields.id, userId),
+      columns: {
+        tenant_id: true,
+        is_active: true,
+        session_version: true,
+      } as any,
+    });
+
+    if (!row) {
+      AuthService.sessionVersionCache.delete(key);
+      return null;
+    }
+
+    const sessionVersion = Number((row as any).session_version ?? 0);
+    const isActive = Boolean((row as any).is_active);
+    const tenantId = String((row as any).tenant_id);
+
+    AuthService.sessionVersionCache.set(key, {
+      sessionVersion,
+      isActive,
+      tenantId,
+      expiresAt: Date.now() + cacheMs,
+    });
+
+    return { sessionVersion, isActive, tenantId };
+  }
+
+  static async bumpUserSessionVersion(params: { tenantId: string; userId: string }): Promise<number> {
+    const { tenantId, userId } = params;
+
+    const result = await db.execute(sql`
+      UPDATE users
+      SET session_version = COALESCE(session_version, 0) + 1,
+          updated_at = NOW()
+      WHERE tenant_id = ${tenantId} AND id = ${userId}
+      RETURNING session_version;
+    `);
+
+    AuthService.invalidateSessionCache(userId);
+
+    const newVersion = Number((result as any)?.rows?.[0]?.session_version ?? NaN);
+    if (Number.isNaN(newVersion)) {
+      // Fallback: re-read
+      const state = await AuthService.getUserSessionState(userId);
+      return Number(state?.sessionVersion ?? 0);
+    }
+
+    return newVersion;
+  }
+
   private static normalizeRole(role: string) {
     const roleAliases: Record<string, string> = {
       admin: 'admin_empresa',

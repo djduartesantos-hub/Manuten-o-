@@ -29,6 +29,7 @@ export interface JWTPayload {
   email?: string;
   role: UserRole;
   plantIds?: string[];
+  sessionVersion?: number;
 }
 
 export interface AuthenticatedRequest extends Express.Request {
