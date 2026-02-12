@@ -48,9 +48,12 @@ export async function apiCall<T = any>(
     const role = String(payload?.role || '').trim().toLowerCase();
     if (role === 'superadmin') {
       // Only apply tenant override for tenant-scoped endpoints.
-      // Do NOT apply it to /superadmin/* endpoints so a stale tenantId doesn't
-      // block listing tenants.
-      if (!endpoint.startsWith('/superadmin')) {
+      // Do NOT apply it to tenant-management endpoints so a stale tenantId doesn't
+      // block listing/creating/updating tenants.
+      const isTenantManagement =
+        endpoint === '/superadmin/tenants' || endpoint.startsWith('/superadmin/tenants/');
+
+      if (!isTenantManagement) {
         const selectedTenantId = localStorage.getItem('superadminTenantId');
         if (selectedTenantId && selectedTenantId.trim().length > 0) {
           headers['x-tenant-id'] = selectedTenantId.trim();
@@ -122,6 +125,18 @@ export async function updateSuperadminTenant(tenantId: string, data: {
     method: 'PATCH',
     body: JSON.stringify(data),
   });
+}
+
+export async function getSuperadminDbStatus(): Promise<{
+  tenantId: string;
+  tenantSlug: string;
+  serverTime: string;
+  dbOk: boolean;
+  dbTime?: string;
+  counts?: { users?: number | null; plants?: number | null };
+  drizzleMigrations?: { table?: string | null; latest?: any | null };
+}> {
+  return apiCall('/superadmin/db/status');
 }
 
 async function publicApiCall<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {

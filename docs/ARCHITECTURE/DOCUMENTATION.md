@@ -98,6 +98,11 @@ Manuten-o/
 - [ROADMAP_2026.md](./ROADMAP_2026.md) — roadmap 2026 (em revisão)
 - [PROJECT_STATUS_UPDATE_2026-02-09.md](./PROJECT_STATUS_UPDATE_2026-02-09.md) — registo detalhado de mudanças (inclui addendum 2026-02-11)
 
+### UX / SuperAdministrador (gestão global)
+- Painel: `/settings?panel=superadmin`
+- Passos (stepper): `/settings?panel=superadmin&step=tenant|plants|users|updates`
+- Nota: o layout atual está registado em [PROJECT_STATUS_UPDATE_2026-02-09.md](./PROJECT_STATUS_UPDATE_2026-02-09.md) como base temporária para iterações futuras.
+
 ### APIs e Endpoints
 - [README.md - APIs Disponíveis](./README.md#-apis-disponíveis)
 - [PHASE_1_COMPLETION.md - Asset Endpoints](./PHASE_1_COMPLETION.md#api-documentation)

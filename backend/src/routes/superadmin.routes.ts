@@ -14,4 +14,7 @@ router.get('/tenants', SuperAdminController.listTenants);
 router.post('/tenants', SuperAdminController.createTenant);
 router.patch('/tenants/:tenantId', SuperAdminController.updateTenant);
 
+// Database (status)
+router.get('/db/status', SuperAdminController.getDbStatus);
+
 export default router;

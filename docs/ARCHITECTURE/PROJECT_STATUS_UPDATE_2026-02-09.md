@@ -10,6 +10,15 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 
 ## 1) TL;DR (o que mudou na prática)
 
+### Atualização adicional — 2026-02-12 (SuperAdministrador — painel global)
+
+#### Settings / SuperAdministrador
+- O SuperAdministrador passou a usar um **painel inline** dentro de `/settings` (sem popups/modais a ocupar o ecrã inteiro).
+- Implementado um **assistente (stepper)** estilo “instalação/configuração” para organizar as operações globais por passos.
+- URL agora suporta links diretos para passos específicos:
+  - `/settings?panel=superadmin&step=tenant|plants|users|updates`
+- Nota: este layout foi mantido como **solução temporária** (base para iterações futuras de UX), ficando registado para referência e para atualização posterior de documentos/README.
+
 ### Atualização adicional — 2026-02-11 (UX + Relatórios)
 
 #### UX (Ordens / Preventivas)

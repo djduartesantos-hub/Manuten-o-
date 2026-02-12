@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import {
   apiCall,
   createSuperadminTenant,
+  getSuperadminDbStatus,
   updateSuperadminTenant,
   createAdminRole,
   createAdminUser,
@@ -335,6 +336,9 @@ function SuperAdminSettings() {
   const [newTenant, setNewTenant] = React.useState({ name: '', slug: '' });
   const [creatingTenant, setCreatingTenant] = React.useState(false);
 
+  const [dbStatus, setDbStatus] = React.useState<any | null>(null);
+  const [loadingDbStatus, setLoadingDbStatus] = React.useState(false);
+
   const loadTenants = async () => {
     setLoading(true);
     setError('');
@@ -377,6 +381,19 @@ function SuperAdminSettings() {
     loadTenants();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadDbStatus = async () => {
+    setLoadingDbStatus(true);
+    try {
+      const data = await getSuperadminDbStatus();
+      setDbStatus(data || null);
+    } catch (err: any) {
+      setDbStatus(null);
+      setError(err?.message || 'Falha ao carregar estado da base de dados');
+    } finally {
+      setLoadingDbStatus(false);
+    }
+  };
 
   const selectedTenant = tenants.find((t) => t.id === selectedTenantId) || null;
 
@@ -422,6 +439,13 @@ function SuperAdminSettings() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
+
+  React.useEffect(() => {
+    if (step === 'updates' && selectedTenantId) {
+      void loadDbStatus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, selectedTenantId]);
 
   const steps: Array<{ id: SuperAdminStep; title: string; description: string }> = [
     {
@@ -697,9 +721,56 @@ function SuperAdminSettings() {
           <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
             Estas ferramentas operam sobre a empresa selecionada.
           </p>
+
+          <div className="mt-5 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                  Estado da BD
+                </div>
+                <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
+                  Contexto: <span className="font-semibold text-[color:var(--dash-ink)]">{selectedTenant?.name || selectedTenantId}</span>
+                </div>
+                {dbStatus ? (
+                  <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
+                    <div>
+                      DB: <span className="font-semibold text-[color:var(--dash-ink)]">{dbStatus.dbOk ? 'OK' : 'Erro'}</span>
+                    </div>
+                    {dbStatus.dbTime ? <div>Hora BD: {String(dbStatus.dbTime)}</div> : null}
+                    {dbStatus.serverTime ? <div>Hora servidor: {String(dbStatus.serverTime)}</div> : null}
+                    {dbStatus.counts ? (
+                      <div>
+                        Registos (tenant): users={String(dbStatus.counts.users ?? '-')}, plants={String(dbStatus.counts.plants ?? '-')}
+                      </div>
+                    ) : null}
+                    {dbStatus.drizzleMigrations?.table ? (
+                      <div>
+                        Migrações: <span className="font-semibold">{String(dbStatus.drizzleMigrations.table)}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
+                    {loadingDbStatus ? 'A carregar...' : 'Sem dados de estado.'}
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="button"
+                className="btn-secondary h-9 px-3"
+                onClick={() => void loadDbStatus()}
+                disabled={loadingDbStatus}
+              >
+                Recarregar
+              </button>
+            </div>
+          </div>
+
           <div className="mt-5 space-y-8">
             <DatabaseUpdatePage embedded />
             <AdminSetupPage embedded />
+            <SetupInitPage embedded />
           </div>
         </section>
       )}

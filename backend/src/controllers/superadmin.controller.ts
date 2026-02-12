@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { asc, eq } from 'drizzle-orm';
+import { asc, eq, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../config/database.js';
 import { AuthenticatedRequest } from '../types/index.js';
@@ -126,5 +126,82 @@ export async function updateTenant(req: AuthenticatedRequest, res: Response) {
     return res.json({ success: true, data: updated });
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to update tenant' });
+  }
+}
+
+export async function getDbStatus(req: AuthenticatedRequest, res: Response) {
+  try {
+    const tenantId = String(req.tenantId || '');
+    const tenantSlug = String(req.tenantSlug || '');
+
+    const serverTime = new Date().toISOString();
+
+    const ping = await db.execute(sql`SELECT 1 AS ok;`);
+    const dbOk = Number((ping as any)?.rows?.[0]?.ok ?? 0) === 1;
+
+    const dbNowResult = await db.execute(sql`SELECT NOW() AS now;`);
+    const dbTime = String((dbNowResult as any)?.rows?.[0]?.now ?? '');
+
+    let userCount: number | null = null;
+    let plantCount: number | null = null;
+
+    try {
+      const userCountResult = await db.execute(
+        sql`SELECT COUNT(*)::int AS count FROM users WHERE tenant_id = ${tenantId};`,
+      );
+      userCount = Number((userCountResult as any)?.rows?.[0]?.count ?? 0);
+    } catch {
+      userCount = null;
+    }
+
+    try {
+      const plantCountResult = await db.execute(
+        sql`SELECT COUNT(*)::int AS count FROM plants WHERE tenant_id = ${tenantId};`,
+      );
+      plantCount = Number((plantCountResult as any)?.rows?.[0]?.count ?? 0);
+    } catch {
+      plantCount = null;
+    }
+
+    let migrationsTable: string | null = null;
+    let latestMigration: any | null = null;
+
+    try {
+      const tableCheck = await db.execute(
+        sql`SELECT to_regclass('public.__drizzle_migrations') AS name;`,
+      );
+      migrationsTable = String((tableCheck as any)?.rows?.[0]?.name ?? '') || null;
+
+      if (migrationsTable) {
+        const latest = await db.execute(
+          sql`SELECT * FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 1;`,
+        );
+        latestMigration = (latest as any)?.rows?.[0] ?? null;
+      }
+    } catch {
+      migrationsTable = null;
+      latestMigration = null;
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        tenantId,
+        tenantSlug,
+        serverTime,
+        dbOk,
+        dbTime,
+        counts: {
+          users: userCount,
+          plants: plantCount,
+        },
+        drizzleMigrations: {
+          table: migrationsTable,
+          latest: latestMigration,
+        },
+      },
+    });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to fetch database status' });
   }
 }
