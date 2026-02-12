@@ -168,6 +168,7 @@ export function SettingsPage() {
     const params = new URLSearchParams(location.search);
     params.set('panel', panel);
     if (panel !== 'preventive') params.delete('sub');
+    if (panel !== 'superadmin') params.delete('step');
 
     navigate(`/settings?${params.toString()}`, { replace: true });
   };
@@ -298,6 +299,8 @@ export function SettingsPage() {
 }
 
 function SuperAdminSettings() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { selectedPlant, setPlants, setSelectedPlant } = useAppStore();
   const [tenants, setTenants] = React.useState<
     Array<{ id: string; name: string; slug: string; is_active: boolean }>
@@ -314,7 +317,19 @@ function SuperAdminSettings() {
   type SuperAdminStep = 'tenant' | 'plants' | 'users' | 'updates';
 
   const [step, setStep] = React.useState<SuperAdminStep>(() => {
-    return selectedTenantId ? 'plants' : 'tenant';
+    const params = new URLSearchParams(location.search);
+    const fromUrl = params.get('step') as SuperAdminStep | null;
+    const allowed: Record<SuperAdminStep, true> = {
+      tenant: true,
+      plants: true,
+      users: true,
+      updates: true,
+    };
+
+    const fallback: SuperAdminStep = selectedTenantId ? 'plants' : 'tenant';
+    const initial = fromUrl && allowed[fromUrl] ? fromUrl : fallback;
+    if (initial !== 'tenant' && !selectedTenantId) return 'tenant';
+    return initial;
   });
 
   const [newTenant, setNewTenant] = React.useState({ name: '', slug: '' });
@@ -377,13 +392,36 @@ function SuperAdminSettings() {
     await reloadPlantsForSelectedTenant();
   };
 
+  const setStepAndUrl = React.useCallback(
+    (nextStep: SuperAdminStep) => {
+      setStep(nextStep);
+      const params = new URLSearchParams(location.search);
+      params.set('panel', 'superadmin');
+      params.set('step', nextStep);
+      navigate(`/settings?${params.toString()}`, { replace: true });
+    },
+    [location.search, navigate]
+  );
+
   React.useEffect(() => {
     // If tenant gets cleared, force the wizard back to tenant step.
     if (!selectedTenantId && step !== 'tenant') {
-      setStep('tenant');
+      setStepAndUrl('tenant');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTenantId]);
+
+  React.useEffect(() => {
+    // Keep URL in sync (use replace to avoid growing browser history)
+    const params = new URLSearchParams(location.search);
+    const current = params.get('step');
+    if (current !== step) {
+      params.set('panel', 'superadmin');
+      params.set('step', step);
+      navigate(`/settings?${params.toString()}`, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   const steps: Array<{ id: SuperAdminStep; title: string; description: string }> = [
     {
@@ -528,11 +566,11 @@ function SuperAdminSettings() {
                 }
                 onClick={() => {
                   if (isLocked) {
-                    setStep('tenant');
+                    setStepAndUrl('tenant');
                     setError('Selecione uma empresa antes de avançar.');
                     return;
                   }
-                  setStep(s.id);
+                  setStepAndUrl(s.id);
                 }}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -609,7 +647,7 @@ function SuperAdminSettings() {
                     className="btn-secondary h-9 px-3"
                     onClick={() => {
                       void handleSelectTenant(t.id);
-                      setStep('plants');
+                      setStepAndUrl('plants');
                     }}
                   >
                     Selecionar
