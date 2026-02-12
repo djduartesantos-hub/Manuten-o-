@@ -32,6 +32,7 @@ import {
   deactivateAdminPlant,
   getAdminPlants,
   getAdminPermissions,
+  getAdminRbacMatrix,
   getAdminRolePermissions,
   getAdminRoleHomes,
   getAdminRoles,
@@ -546,30 +547,28 @@ export function SuperAdminSettings() {
     setError('');
 
     try {
-      const [anoms, rolesData, permsData, drift, integrity, security] = await Promise.all([
+      const [anoms, matrix, drift, integrity, security] = await Promise.all([
         getSuperadminUserAnomalies(),
-        getAdminRoles(),
-        getAdminPermissions(),
+        getAdminRbacMatrix({ rolesLimit: 6, rolesOffset: 0, permissionsLimit: 30, permissionsOffset: 0 }),
         getSuperadminRbacDrift(),
         getSuperadminIntegrityChecks(),
         getSuperadminUserSecurityInsights(30, 5),
       ]);
 
-      const roles = Array.isArray(rolesData) ? rolesData : [];
-      const permissions = Array.isArray(permsData) ? permsData : [];
+      const roles = Array.isArray((matrix as any)?.roles) ? (matrix as any).roles : [];
+      const permissions = Array.isArray((matrix as any)?.permissions) ? (matrix as any).permissions : [];
+      const links = Array.isArray((matrix as any)?.rolePermissions) ? (matrix as any).rolePermissions : [];
 
       const permsByRole: Record<string, Set<string>> = {};
-      await Promise.all(
-        roles.map(async (r: any) => {
-          try {
-            const list = await getAdminRolePermissions(String(r.key));
-            const keys = Array.isArray(list) ? list.map((x) => String(x)) : [];
-            permsByRole[String(r.key)] = new Set(keys);
-          } catch {
-            permsByRole[String(r.key)] = new Set();
-          }
-        }),
-      );
+      for (const r of roles) {
+        permsByRole[String((r as any).key)] = new Set();
+      }
+      for (const rp of links) {
+        const rk = String((rp as any).role_key);
+        const pk = String((rp as any).permission_key);
+        if (!permsByRole[rk]) permsByRole[rk] = new Set();
+        permsByRole[rk].add(pk);
+      }
 
       setUserAnomalies(anoms || null);
       setRbacMatrix({ roles, permissions, byRole: permsByRole });

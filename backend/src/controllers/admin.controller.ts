@@ -5,9 +5,32 @@ import { v4 as uuidv4 } from 'uuid';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { AuthenticatedRequest } from '../types/index.js';
 import { db } from '../config/database.js';
-import { assets, plants, rbacRoles, userPlants, users } from '../db/schema.js';
+import {
+  assets,
+  plants,
+  rbacPermissions,
+  rbacRolePermissions,
+  rbacRoles,
+  userPlants,
+  users,
+} from '../db/schema.js';
 import { AuditService } from '../services/audit.service.js';
 import { AuthService } from '../services/auth.service.js';
+
+function clampInt(value: unknown, fallback: number, min: number, max: number): number {
+  const n = typeof value === 'string' ? Number.parseInt(value, 10) : typeof value === 'number' ? value : NaN;
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.trunc(n)));
+}
+
+function toCsvValue(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  const raw = String(value);
+  if (/[",\n\r]/.test(raw)) {
+    return `"${raw.replace(/"/g, '""')}"`;
+  }
+  return raw;
+}
 
 function generateTempPassword(length = 14): string {
   // Base64url gives URL-safe chars; slice for desired length.
@@ -1132,5 +1155,164 @@ export async function setRolePermissions(req: AuthenticatedRequest, res: Respons
     return res.json({ success: true, message: 'Permissões atualizadas', data: perms });
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to update role permissions' });
+  }
+}
+
+export async function getRbacMatrix(req: AuthenticatedRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    }
+
+    const q: any = req.query || {};
+    const rolesLimit = clampInt(q.rolesLimit ?? q.limitRoles ?? q.roles_limit, 25, 1, 200);
+    const rolesOffset = clampInt(q.rolesOffset ?? q.offsetRoles ?? q.roles_offset, 0, 0, 100_000);
+    const permissionsLimit = clampInt(q.permissionsLimit ?? q.limitPermissions ?? q.permissions_limit, 50, 1, 200);
+    const permissionsOffset = clampInt(q.permissionsOffset ?? q.offsetPermissions ?? q.permissions_offset, 0, 0, 100_000);
+
+    const rolesTotalRes = await db.execute(
+      sql`SELECT COUNT(*) AS total FROM rbac_roles WHERE tenant_id = ${tenantId}`,
+    );
+    const permissionsTotalRes = await db.execute(sql`SELECT COUNT(*) AS total FROM rbac_permissions`);
+
+    const roles = await db
+      .select({
+        key: rbacRoles.key,
+        name: rbacRoles.name,
+        description: rbacRoles.description,
+        is_system: rbacRoles.is_system,
+        created_at: rbacRoles.created_at,
+        updated_at: rbacRoles.updated_at,
+      })
+      .from(rbacRoles)
+      .where(eq(rbacRoles.tenant_id, tenantId))
+      .orderBy(rbacRoles.key)
+      .limit(rolesLimit)
+      .offset(rolesOffset);
+
+    const permissions = await db
+      .select({
+        key: rbacPermissions.key,
+        label: rbacPermissions.label,
+        group_name: rbacPermissions.group_name,
+        description: rbacPermissions.description,
+        is_system: rbacPermissions.is_system,
+        created_at: rbacPermissions.created_at,
+        updated_at: rbacPermissions.updated_at,
+      })
+      .from(rbacPermissions)
+      .orderBy(rbacPermissions.group_name, rbacPermissions.label)
+      .limit(permissionsLimit)
+      .offset(permissionsOffset);
+
+    const roleKeys = roles.map((r) => String(r.key));
+    const permKeys = permissions.map((p) => String(p.key));
+
+    const rolePermissions =
+      roleKeys.length === 0 || permKeys.length === 0
+        ? []
+        : await db
+            .select({
+              role_key: rbacRolePermissions.role_key,
+              permission_key: rbacRolePermissions.permission_key,
+            })
+            .from(rbacRolePermissions)
+            .where(
+              and(
+                eq(rbacRolePermissions.tenant_id, tenantId),
+                inArray(rbacRolePermissions.role_key, roleKeys),
+                inArray(rbacRolePermissions.permission_key, permKeys),
+              ),
+            )
+            .orderBy(rbacRolePermissions.role_key, rbacRolePermissions.permission_key);
+
+    return res.json({
+      success: true,
+      data: {
+        tenantId,
+        roles,
+        permissions,
+        rolePermissions,
+        totals: {
+          roles: Number((rolesTotalRes.rows?.[0] as any)?.total || 0),
+          permissions: Number((permissionsTotalRes.rows?.[0] as any)?.total || 0),
+        },
+        page: {
+          rolesLimit,
+          rolesOffset,
+          permissionsLimit,
+          permissionsOffset,
+        },
+      },
+    });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to fetch RBAC matrix' });
+  }
+}
+
+export async function exportRbacMatrix(req: AuthenticatedRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    }
+
+    const format = String((req.query as any)?.format || 'csv').toLowerCase();
+
+    const roles = await db
+      .select({
+        key: rbacRoles.key,
+        name: rbacRoles.name,
+        description: rbacRoles.description,
+        is_system: rbacRoles.is_system,
+      })
+      .from(rbacRoles)
+      .where(eq(rbacRoles.tenant_id, tenantId))
+      .orderBy(rbacRoles.key);
+
+    const permissions = await db
+      .select({
+        key: rbacPermissions.key,
+        label: rbacPermissions.label,
+        group_name: rbacPermissions.group_name,
+        description: rbacPermissions.description,
+      })
+      .from(rbacPermissions)
+      .orderBy(rbacPermissions.group_name, rbacPermissions.label);
+
+    const rolePermissions = await db
+      .select({
+        role_key: rbacRolePermissions.role_key,
+        permission_key: rbacRolePermissions.permission_key,
+      })
+      .from(rbacRolePermissions)
+      .where(eq(rbacRolePermissions.tenant_id, tenantId))
+      .orderBy(rbacRolePermissions.role_key, rbacRolePermissions.permission_key);
+
+    const data = {
+      tenantId,
+      roles,
+      permissions,
+      rolePermissions,
+    };
+
+    if (format === 'json') {
+      return res.json({ success: true, data });
+    }
+
+    const headers = ['role_key', 'permission_key'];
+    const csv = [
+      headers.join(','),
+      ...(rolePermissions || []).map((r: any) =>
+        [toCsvValue(r.role_key), toCsvValue(r.permission_key)].join(','),
+      ),
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="rbac_matrix.csv"');
+    return res.status(200).send(csv);
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to export RBAC matrix' });
   }
 }

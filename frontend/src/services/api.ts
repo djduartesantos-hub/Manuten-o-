@@ -50,6 +50,7 @@ export async function apiCall<T = any>(
       // SuperAdmin default scope is GLOBAL.
       // Only send tenant override headers for endpoints that are explicitly tenant-scoped.
       const tenantScopedSuperadmin =
+        endpoint.startsWith('/admin/') ||
         endpoint === '/superadmin/db/status' ||
         endpoint.startsWith('/superadmin/db/status?') ||
         endpoint === '/superadmin/db/runs/export' ||
@@ -166,6 +167,7 @@ async function apiCallRaw(
     const role = String(payload?.role || '').trim().toLowerCase();
     if (role === 'superadmin') {
       const tenantScopedSuperadmin =
+        endpoint.startsWith('/admin/') ||
         endpoint === '/superadmin/db/status' ||
         endpoint.startsWith('/superadmin/db/status?') ||
         endpoint === '/superadmin/db/runs/export' ||
@@ -1173,6 +1175,36 @@ export async function updateAdminRole(
 
 export async function getAdminPermissions() {
   return apiCall('/admin/permissions');
+}
+
+export async function getAdminRbacMatrix(params?: {
+  rolesLimit?: number;
+  rolesOffset?: number;
+  permissionsLimit?: number;
+  permissionsOffset?: number;
+}): Promise<{
+  tenantId: string;
+  roles: any[];
+  permissions: any[];
+  rolePermissions: Array<{ role_key: string; permission_key: string }>;
+  totals: { roles: number; permissions: number };
+  page: { rolesLimit: number; rolesOffset: number; permissionsLimit: number; permissionsOffset: number };
+}> {
+  const qs = new URLSearchParams();
+  if (params?.rolesLimit != null) qs.set('rolesLimit', String(params.rolesLimit));
+  if (params?.rolesOffset != null) qs.set('rolesOffset', String(params.rolesOffset));
+  if (params?.permissionsLimit != null) qs.set('permissionsLimit', String(params.permissionsLimit));
+  if (params?.permissionsOffset != null) qs.set('permissionsOffset', String(params.permissionsOffset));
+  const query = qs.toString();
+  return apiCall(`/admin/rbac/matrix${query ? `?${query}` : ''}`);
+}
+
+export async function downloadAdminRbacMatrix(format: 'csv' | 'json' = 'csv') {
+  const params = new URLSearchParams();
+  params.set('format', format);
+  const res = await apiCallRaw(`/admin/rbac/matrix/export?${params.toString()}`);
+  const blob = await res.blob();
+  triggerDownload(blob, `rbac_matrix.${format === 'json' ? 'json' : 'csv'}`);
 }
 
 export type AdminRoleHomeEntry = {
