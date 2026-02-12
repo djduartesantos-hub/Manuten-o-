@@ -1177,6 +1177,50 @@ export async function getAdminPermissions() {
   return apiCall('/admin/permissions');
 }
 
+export async function getAdminPasswordPolicy(): Promise<{
+  tenantId: string;
+  password_min_length: number;
+  password_expiration_days: number | null;
+  password_max_failed_attempts: number;
+  password_lockout_minutes: number;
+}> {
+  return apiCall('/admin/security/password-policy');
+}
+
+export async function updateAdminPasswordPolicy(data: {
+  password_min_length?: number;
+  password_expiration_days?: number | null;
+  password_max_failed_attempts?: number;
+  password_lockout_minutes?: number;
+}): Promise<any> {
+  return apiCall('/admin/security/password-policy', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getAdminRbacDrift(): Promise<any> {
+  return apiCall('/admin/diagnostics/rbac/drift');
+}
+
+export async function downloadAdminRbacDrift(format: 'csv' | 'json' = 'csv') {
+  const qs = new URLSearchParams({ format });
+  const res = await apiCallRaw(`/admin/diagnostics/rbac/drift/export?${qs.toString()}`);
+  const blob = await res.blob();
+  triggerDownload(blob, format === 'json' ? 'rbac_drift.json' : 'rbac_drift.csv');
+}
+
+export async function getAdminIntegrityChecks(): Promise<any> {
+  return apiCall('/admin/diagnostics/integrity');
+}
+
+export async function downloadAdminIntegrityChecks(format: 'csv' | 'json' = 'csv') {
+  const qs = new URLSearchParams({ format });
+  const res = await apiCallRaw(`/admin/diagnostics/integrity/export?${qs.toString()}`);
+  const blob = await res.blob();
+  triggerDownload(blob, format === 'json' ? 'integrity_checks.json' : 'integrity_checks.csv');
+}
+
 export async function getAdminRbacMatrix(params?: {
   rolesLimit?: number;
   rolesOffset?: number;

@@ -33,6 +33,12 @@ import {
   getAdminPlants,
   getAdminPermissions,
   getAdminRbacMatrix,
+  getAdminPasswordPolicy,
+  updateAdminPasswordPolicy,
+  getAdminRbacDrift,
+  downloadAdminRbacDrift,
+  getAdminIntegrityChecks,
+  downloadAdminIntegrityChecks,
   getAdminRolePermissions,
   getAdminRoleHomes,
   getAdminRoles,
@@ -5693,6 +5699,12 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [revokingUserId, setRevokingUserId] = React.useState<string | null>(null);
+
+  const [loadingSecurity, setLoadingSecurity] = React.useState(false);
+  const [savingSecurity, setSavingSecurity] = React.useState(false);
+  const [passwordPolicy, setPasswordPolicy] = React.useState<any | null>(null);
+  const [rbacDrift, setRbacDrift] = React.useState<any | null>(null);
+  const [integrityChecks, setIntegrityChecks] = React.useState<any | null>(null);
   const [activeDbTool, setActiveDbTool] = React.useState<
     'setup' | 'migrations' | 'bootstrap' | null
   >(null);
@@ -5767,6 +5779,28 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
     }
   };
 
+  const loadSecurity = async () => {
+    setLoadingSecurity(true);
+    setError(null);
+    try {
+      const [policy, drift, integrity] = await Promise.all([
+        getAdminPasswordPolicy(),
+        getAdminRbacDrift().catch(() => null),
+        getAdminIntegrityChecks().catch(() => null),
+      ]);
+      setPasswordPolicy(policy || null);
+      setRbacDrift(drift || null);
+      setIntegrityChecks(integrity || null);
+    } catch (err: any) {
+      setPasswordPolicy(null);
+      setRbacDrift(null);
+      setIntegrityChecks(null);
+      setError(err?.message || 'Falha ao carregar segurança/diagnósticos');
+    } finally {
+      setLoadingSecurity(false);
+    }
+  };
+
   const handleRevokeSessions = async (userId: string) => {
     setRevokingUserId(userId);
     setError(null);
@@ -5796,6 +5830,7 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
 
   React.useEffect(() => {
     loadAdminData();
+    void loadSecurity();
   }, []);
 
   React.useEffect(() => {
@@ -6151,6 +6186,246 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
           </div>
         </div>
       ) : null}
+
+      <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold theme-text">Segurança</h3>
+            <p className="text-sm theme-text-muted">Política de password e diagnósticos (tenant).</p>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary inline-flex items-center justify-center h-9 px-3"
+            onClick={() => void loadSecurity()}
+            disabled={loadingSecurity || savingSecurity}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Atualizar
+          </button>
+        </div>
+
+        {loadingSecurity && !passwordPolicy ? (
+          <div className="mt-4 text-sm theme-text-muted">A carregar…</div>
+        ) : (
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border theme-border bg-[color:var(--dash-panel)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] theme-text-muted">
+                Política de password
+              </p>
+
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="text-sm theme-text">
+                  Mínimo de caracteres
+                  <input
+                    type="number"
+                    className="input mt-2 h-10"
+                    value={passwordPolicy?.password_min_length ?? 10}
+                    min={6}
+                    max={64}
+                    onChange={(e) =>
+                      setPasswordPolicy((current: any) => ({
+                        ...(current || {}),
+                        password_min_length: Number(e.target.value || 0),
+                      }))
+                    }
+                    disabled={savingSecurity}
+                  />
+                </label>
+
+                <label className="text-sm theme-text">
+                  Expiração (dias)
+                  <input
+                    type="number"
+                    className="input mt-2 h-10"
+                    value={passwordPolicy?.password_expiration_days ?? ''}
+                    min={1}
+                    max={3650}
+                    placeholder="(desativado)"
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setPasswordPolicy((current: any) => ({
+                        ...(current || {}),
+                        password_expiration_days: raw === '' ? null : Number(raw),
+                      }));
+                    }}
+                    disabled={savingSecurity}
+                  />
+                  <p className="mt-1 text-xs theme-text-muted">Vazio = sem expiração.</p>
+                </label>
+
+                <label className="text-sm theme-text">
+                  Máx. tentativas falhadas
+                  <input
+                    type="number"
+                    className="input mt-2 h-10"
+                    value={passwordPolicy?.password_max_failed_attempts ?? 10}
+                    min={0}
+                    max={50}
+                    onChange={(e) =>
+                      setPasswordPolicy((current: any) => ({
+                        ...(current || {}),
+                        password_max_failed_attempts: Number(e.target.value || 0),
+                      }))
+                    }
+                    disabled={savingSecurity}
+                  />
+                  <p className="mt-1 text-xs theme-text-muted">0 = sem lockout.</p>
+                </label>
+
+                <label className="text-sm theme-text">
+                  Lockout (minutos)
+                  <input
+                    type="number"
+                    className="input mt-2 h-10"
+                    value={passwordPolicy?.password_lockout_minutes ?? 15}
+                    min={0}
+                    max={1440}
+                    onChange={(e) =>
+                      setPasswordPolicy((current: any) => ({
+                        ...(current || {}),
+                        password_lockout_minutes: Number(e.target.value || 0),
+                      }))
+                    }
+                    disabled={savingSecurity}
+                  />
+                </label>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="btn-primary inline-flex items-center justify-center h-9 px-4"
+                  onClick={async () => {
+                    setSavingSecurity(true);
+                    setError(null);
+                    try {
+                      await updateAdminPasswordPolicy({
+                        password_min_length: Number(passwordPolicy?.password_min_length ?? 10),
+                        password_expiration_days:
+                          passwordPolicy?.password_expiration_days == null || passwordPolicy?.password_expiration_days === ''
+                            ? null
+                            : Number(passwordPolicy?.password_expiration_days),
+                        password_max_failed_attempts: Number(passwordPolicy?.password_max_failed_attempts ?? 10),
+                        password_lockout_minutes: Number(passwordPolicy?.password_lockout_minutes ?? 15),
+                      });
+                      await loadSecurity();
+                    } catch (err: any) {
+                      setError(err?.message || 'Falha ao guardar política de password');
+                    } finally {
+                      setSavingSecurity(false);
+                    }
+                  }}
+                  disabled={!passwordPolicy || savingSecurity}
+                >
+                  {savingSecurity ? 'A guardar…' : 'Guardar'}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border theme-border bg-[color:var(--dash-panel)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] theme-text-muted">
+                Diagnósticos
+              </p>
+
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] theme-text-muted">
+                    RBAC drift
+                  </p>
+                  <p className="mt-2 text-sm theme-text-muted">
+                    roles sem permissões:{' '}
+                    <span className="font-semibold theme-text">
+                      {rbacDrift?.rolesWithNoPermissions ? String(rbacDrift.rolesWithNoPermissions.length) : '—'}
+                    </span>
+                  </p>
+                  <p className="mt-1 text-sm theme-text-muted">
+                    permissões não usadas:{' '}
+                    <span className="font-semibold theme-text">
+                      {rbacDrift?.permissionsUnused ? String(rbacDrift.permissionsUnused.length) : '—'}
+                    </span>
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="btn-secondary inline-flex items-center justify-center h-9 px-3"
+                      onClick={async () => {
+                        setError(null);
+                        try {
+                          await downloadAdminRbacDrift('csv');
+                        } catch (err: any) {
+                          setError(err?.message || 'Falha ao exportar CSV');
+                        }
+                      }}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      CSV
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary inline-flex items-center justify-center h-9 px-3"
+                      onClick={async () => {
+                        setError(null);
+                        try {
+                          await downloadAdminRbacDrift('json');
+                        } catch (err: any) {
+                          setError(err?.message || 'Falha ao exportar JSON');
+                        }
+                      }}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      JSON
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] theme-text-muted">
+                    Integridade
+                  </p>
+                  <p className="mt-2 text-sm theme-text-muted">
+                    checks:{' '}
+                    <span className="font-semibold theme-text">
+                      {Array.isArray(integrityChecks?.checks) ? String(integrityChecks.checks.length) : '—'}
+                    </span>
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="btn-secondary inline-flex items-center justify-center h-9 px-3"
+                      onClick={async () => {
+                        setError(null);
+                        try {
+                          await downloadAdminIntegrityChecks('csv');
+                        } catch (err: any) {
+                          setError(err?.message || 'Falha ao exportar CSV');
+                        }
+                      }}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      CSV
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary inline-flex items-center justify-center h-9 px-3"
+                      onClick={async () => {
+                        setError(null);
+                        try {
+                          await downloadAdminIntegrityChecks('json');
+                        } catch (err: any) {
+                          setError(err?.message || 'Falha ao exportar JSON');
+                        }
+                      }}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      JSON
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {!usersOnly ? (
         <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
