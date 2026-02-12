@@ -28,6 +28,47 @@ import { DEFAULT_TENANT_ID, DEFAULT_TENANT_SLUG } from '../config/constants.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export class SetupController {
+  private static async ensureSetupDbRunsTable(): Promise<void> {
+    await db.execute(sql.raw(`
+      CREATE TABLE IF NOT EXISTS setup_db_runs (
+        id UUID PRIMARY KEY,
+        tenant_id UUID NOT NULL,
+        run_type TEXT NOT NULL,
+        user_id UUID NULL,
+        migrations JSONB NULL,
+        patches JSONB NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS setup_db_runs_tenant_id_created_at_idx
+        ON setup_db_runs(tenant_id, created_at DESC);
+    `));
+  }
+
+  private static async logSetupDbRun(params: {
+    tenantId: string;
+    runType: 'migrate' | 'corrections';
+    userId?: string | null;
+    migrations?: string[];
+    patches?: string[];
+  }): Promise<void> {
+    try {
+      await SetupController.ensureSetupDbRunsTable();
+      await db.execute(sql`
+        INSERT INTO setup_db_runs (id, tenant_id, run_type, user_id, migrations, patches)
+        VALUES (
+          ${uuidv4()},
+          ${params.tenantId},
+          ${params.runType},
+          ${params.userId ?? null},
+          ${params.migrations ? JSON.stringify(params.migrations) : null},
+          ${params.patches ? JSON.stringify(params.patches) : null}
+        );
+      `);
+    } catch {
+      // Best-effort logging. Never block setup actions due to log write failures.
+    }
+  }
   private static rbacPermissionsSeed(): Array<{
     key: string;
     label: string;
@@ -1550,6 +1591,15 @@ END $$;`
       const available = await SetupController.listMigrationFiles();
       const executed = await SetupController.runMigrationsInternal();
 
+      const tenantId = String(req.tenantId || DEFAULT_TENANT_ID);
+      const userId = req.user ? String((req.user as any).id || '') : '';
+      await SetupController.logSetupDbRun({
+        tenantId,
+        runType: 'migrate',
+        userId: userId || null,
+        migrations: executed,
+      });
+
       if (available.files.length === 0) {
         res.json({
           success: true,
@@ -1711,6 +1761,17 @@ END $$;`
       // Garante RBAC base no tenant atual
       const tenantId = req.tenantId || DEFAULT_TENANT_ID;
       await SetupController.ensureRbacSeedForTenant(tenantId);
+
+      const userId = req.user ? String((req.user as any).id || '') : '';
+      const migrations = Array.isArray((result as any)?.migrations) ? ((result as any).migrations as string[]) : [];
+      const patches = Array.isArray((result as any)?.patches) ? ((result as any).patches as string[]) : [];
+      await SetupController.logSetupDbRun({
+        tenantId: String(tenantId),
+        runType: 'corrections',
+        userId: userId || null,
+        migrations,
+        patches,
+      });
 
       res.json({
         success: true,

@@ -135,6 +135,7 @@ export async function getSuperadminDbStatus(): Promise<{
   dbTime?: string;
   counts?: { users?: number | null; plants?: number | null };
   drizzleMigrations?: { table?: string | null; latest?: any | null };
+  lastSetupRun?: any | null;
 }> {
   return apiCall('/superadmin/db/status');
 }

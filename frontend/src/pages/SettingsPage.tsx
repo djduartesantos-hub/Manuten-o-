@@ -748,6 +748,25 @@ function SuperAdminSettings() {
                         Migrações: <span className="font-semibold">{String(dbStatus.drizzleMigrations.table)}</span>
                       </div>
                     ) : null}
+                    {dbStatus.lastSetupRun ? (
+                      <div className="mt-2 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3">
+                        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                          Última execução (setup)
+                        </div>
+                        <div className="mt-2">
+                          Tipo: <span className="font-semibold text-[color:var(--dash-ink)]">{String(dbStatus.lastSetupRun.run_type || '-')}</span>
+                        </div>
+                        <div>
+                          Data: <span className="font-semibold text-[color:var(--dash-ink)]">{String(dbStatus.lastSetupRun.created_at || '-')}</span>
+                        </div>
+                        {Array.isArray(dbStatus.lastSetupRun.migrations) && dbStatus.lastSetupRun.migrations.length > 0 ? (
+                          <div>Migrações: {dbStatus.lastSetupRun.migrations.join(', ')}</div>
+                        ) : null}
+                        {Array.isArray(dbStatus.lastSetupRun.patches) && dbStatus.lastSetupRun.patches.length > 0 ? (
+                          <div>Patches: {dbStatus.lastSetupRun.patches.join(', ')}</div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="mt-2 text-sm text-[color:var(--dash-muted)]">

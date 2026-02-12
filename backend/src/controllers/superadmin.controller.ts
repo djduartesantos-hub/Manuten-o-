@@ -183,6 +183,24 @@ export async function getDbStatus(req: AuthenticatedRequest, res: Response) {
       latestMigration = null;
     }
 
+    let lastSetupRun: any | null = null;
+    try {
+      const tableCheck = await db.execute(sql`SELECT to_regclass('public.setup_db_runs') AS name;`);
+      const tableName = String((tableCheck as any)?.rows?.[0]?.name ?? '') || null;
+      if (tableName) {
+        const latestRun = await db.execute(sql`
+          SELECT id, tenant_id, run_type, user_id, migrations, patches, created_at
+          FROM setup_db_runs
+          WHERE tenant_id = ${tenantId}
+          ORDER BY created_at DESC
+          LIMIT 1;
+        `);
+        lastSetupRun = (latestRun as any)?.rows?.[0] ?? null;
+      }
+    } catch {
+      lastSetupRun = null;
+    }
+
     return res.json({
       success: true,
       data: {
@@ -199,6 +217,7 @@ export async function getDbStatus(req: AuthenticatedRequest, res: Response) {
           table: migrationsTable,
           latest: latestMigration,
         },
+        lastSetupRun,
       },
     });
   } catch {
