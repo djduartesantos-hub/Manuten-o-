@@ -60,8 +60,14 @@ export async function apiCall<T = any>(
         endpoint.startsWith('/superadmin/metrics/plants/export?') ||
         endpoint === '/superadmin/metrics/users/anomalies' ||
         endpoint.startsWith('/superadmin/metrics/users/anomalies?') ||
+        endpoint === '/superadmin/metrics/users/security' ||
+        endpoint.startsWith('/superadmin/metrics/users/security?') ||
+        endpoint === '/superadmin/metrics/rbac/drift' ||
+        endpoint.startsWith('/superadmin/metrics/rbac/drift?') ||
         endpoint === '/superadmin/diagnostics/bundle/export' ||
-        endpoint.startsWith('/superadmin/diagnostics/bundle/export?');
+        endpoint.startsWith('/superadmin/diagnostics/bundle/export?') ||
+        endpoint === '/superadmin/diagnostics/integrity' ||
+        endpoint.startsWith('/superadmin/diagnostics/integrity?');
 
       if (tenantScopedSuperadmin) {
         const selectedTenantId = localStorage.getItem('superadminTenantId');
@@ -134,8 +140,14 @@ async function apiCallRaw(
         endpoint.startsWith('/superadmin/metrics/plants/export?') ||
         endpoint === '/superadmin/metrics/users/anomalies' ||
         endpoint.startsWith('/superadmin/metrics/users/anomalies?') ||
+        endpoint === '/superadmin/metrics/users/security' ||
+        endpoint.startsWith('/superadmin/metrics/users/security?') ||
+        endpoint === '/superadmin/metrics/rbac/drift' ||
+        endpoint.startsWith('/superadmin/metrics/rbac/drift?') ||
         endpoint === '/superadmin/diagnostics/bundle/export' ||
-        endpoint.startsWith('/superadmin/diagnostics/bundle/export?');
+        endpoint.startsWith('/superadmin/diagnostics/bundle/export?') ||
+        endpoint === '/superadmin/diagnostics/integrity' ||
+        endpoint.startsWith('/superadmin/diagnostics/integrity?');
 
       if (tenantScopedSuperadmin) {
         const selectedTenantId = localStorage.getItem('superadminTenantId');
@@ -268,6 +280,14 @@ export async function getSuperadminDashboardMetrics(): Promise<any> {
   return apiCall('/superadmin/metrics/dashboard');
 }
 
+export async function getSuperadminTenantsActivity(days?: number, limit?: number): Promise<any[]> {
+  const params = new URLSearchParams();
+  if (days && Number.isFinite(days)) params.set('days', String(days));
+  if (limit && Number.isFinite(limit)) params.set('limit', String(limit));
+  const qs = params.toString();
+  return apiCall(`/superadmin/metrics/activity/tenants${qs ? `?${qs}` : ''}`);
+}
+
 export async function getSuperadminTenantsMetrics(): Promise<any[]> {
   return apiCall('/superadmin/metrics/tenants');
 }
@@ -294,13 +314,38 @@ export async function getSuperadminUserAnomalies(): Promise<any> {
   return apiCall('/superadmin/metrics/users/anomalies');
 }
 
-export async function downloadSuperadminDiagnosticsBundle(auditLimit?: number) {
+export async function getSuperadminUserSecurityInsights(days?: number, limit?: number): Promise<any> {
   const params = new URLSearchParams();
-  if (auditLimit && Number.isFinite(auditLimit)) params.set('auditLimit', String(auditLimit));
+  if (days && Number.isFinite(days)) params.set('days', String(days));
+  if (limit && Number.isFinite(limit)) params.set('limit', String(limit));
+  const qs = params.toString();
+  return apiCall(`/superadmin/metrics/users/security${qs ? `?${qs}` : ''}`);
+}
+
+export async function getSuperadminRbacDrift(): Promise<any> {
+  return apiCall('/superadmin/metrics/rbac/drift');
+}
+
+export async function getSuperadminIntegrityChecks(): Promise<any> {
+  return apiCall('/superadmin/diagnostics/integrity');
+}
+
+export async function downloadSuperadminDiagnosticsBundle(options?: {
+  format?: 'json' | 'zip';
+  auditLimit?: number;
+  diagnosticsLimit?: number;
+  dbRunsLimit?: number;
+}) {
+  const params = new URLSearchParams();
+  if (options?.format) params.set('format', options.format);
+  if (options?.auditLimit && Number.isFinite(options.auditLimit)) params.set('auditLimit', String(options.auditLimit));
+  if (options?.diagnosticsLimit && Number.isFinite(options.diagnosticsLimit)) params.set('diagnosticsLimit', String(options.diagnosticsLimit));
+  if (options?.dbRunsLimit && Number.isFinite(options.dbRunsLimit)) params.set('dbRunsLimit', String(options.dbRunsLimit));
   const qs = params.toString();
   const res = await apiCallRaw(`/superadmin/diagnostics/bundle/export${qs ? `?${qs}` : ''}`);
   const blob = await res.blob();
-  triggerDownload(blob, 'superadmin_diagnostics_bundle.json');
+  const filename = options?.format === 'zip' ? 'superadmin_diagnostics_bundle.zip' : 'superadmin_diagnostics_bundle.json';
+  triggerDownload(blob, filename);
 }
 
 export async function downloadSuperadminDbStatusJson(limit?: number) {

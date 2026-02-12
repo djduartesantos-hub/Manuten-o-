@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { asc, eq, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import archiver from 'archiver';
 import { db } from '../config/database.js';
 import { AuthenticatedRequest } from '../types/index.js';
 import { tenants, users } from '../db/schema.js';
@@ -273,6 +274,7 @@ export async function listTenantMetrics(_req: AuthenticatedRequest, res: Respons
         t.id,
         t.name,
         t.slug,
+        t.subscription_plan,
         t.is_active,
         t.created_at,
         t.updated_at,
@@ -297,6 +299,7 @@ export async function listTenantMetrics(_req: AuthenticatedRequest, res: Respons
       id: String(r.id),
       name: String(r.name || ''),
       slug: String(r.slug || ''),
+      subscription_plan: r.subscription_plan === null || r.subscription_plan === undefined ? null : String(r.subscription_plan),
       is_active: Boolean(r.is_active),
       created_at: r.created_at,
       updated_at: r.updated_at,
@@ -319,6 +322,7 @@ export async function exportTenantMetrics(req: AuthenticatedRequest, res: Respon
         t.id,
         t.name,
         t.slug,
+        t.subscription_plan,
         t.is_active,
         t.created_at,
         t.updated_at,
@@ -343,6 +347,7 @@ export async function exportTenantMetrics(req: AuthenticatedRequest, res: Respon
       id: String(r.id),
       name: String(r.name || ''),
       slug: String(r.slug || ''),
+      subscription_plan: r.subscription_plan === null || r.subscription_plan === undefined ? null : String(r.subscription_plan),
       is_active: Boolean(r.is_active),
       created_at: r.created_at,
       updated_at: r.updated_at,
@@ -355,7 +360,7 @@ export async function exportTenantMetrics(req: AuthenticatedRequest, res: Respon
       return res.json({ success: true, data });
     }
 
-    const headers = ['id', 'name', 'slug', 'is_active', 'users', 'plants', 'last_login', 'created_at', 'updated_at'];
+    const headers = ['id', 'name', 'slug', 'subscription_plan', 'is_active', 'users', 'plants', 'last_login', 'created_at', 'updated_at'];
     const csv = [
       headers.join(','),
       ...data.map((r: any) =>
@@ -363,6 +368,7 @@ export async function exportTenantMetrics(req: AuthenticatedRequest, res: Respon
           r.id,
           r.name,
           r.slug,
+          r.subscription_plan,
           r.is_active,
           r.users,
           r.plants,
@@ -380,6 +386,69 @@ export async function exportTenantMetrics(req: AuthenticatedRequest, res: Respon
     return res.status(200).send(csv);
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to export tenant metrics' });
+  }
+}
+
+export async function getTenantsActivity(req: AuthenticatedRequest, res: Response) {
+  try {
+    const daysRaw = Number((req.query as any)?.days ?? 30);
+    const days = Number.isFinite(daysRaw) ? Math.min(Math.max(Math.trunc(daysRaw), 1), 365) : 30;
+    const limitRaw = Number((req.query as any)?.limit ?? 10);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 50) : 10;
+
+    const rows = await db.execute(sql`
+      SELECT
+        t.id,
+        t.name,
+        t.slug,
+        t.is_active,
+        t.subscription_plan,
+        COALESCE(u.logins_window, 0)::int AS logins_window,
+        COALESCE(s.completed_window, 0)::int AS completed_window,
+        COALESCE(o.overdue_open, 0)::int AS overdue_open
+      FROM tenants t
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS logins_window
+        FROM users
+        WHERE last_login IS NOT NULL
+          AND last_login >= NOW() - (${days}::int * interval '1 day')
+        GROUP BY tenant_id
+      ) u ON u.tenant_id = t.id
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS completed_window
+        FROM preventive_maintenance_schedules
+        WHERE completed_at IS NOT NULL
+          AND completed_at >= NOW() - (${days}::int * interval '1 day')
+        GROUP BY tenant_id
+      ) s ON s.tenant_id = t.id
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS overdue_open
+        FROM preventive_maintenance_schedules
+        WHERE scheduled_for < NOW()
+          AND status IN ('agendada','em_execucao','reagendada')
+        GROUP BY tenant_id
+      ) o ON o.tenant_id = t.id
+      ORDER BY (COALESCE(u.logins_window, 0) + COALESCE(s.completed_window, 0)) DESC, t.created_at ASC
+      LIMIT ${limit};
+    `);
+
+    const data = ((rows as any)?.rows ?? []).map((r: any) => ({
+      tenant: {
+        id: String(r.id),
+        name: String(r.name || ''),
+        slug: String(r.slug || ''),
+        is_active: Boolean(r.is_active),
+        subscription_plan: r.subscription_plan === null || r.subscription_plan === undefined ? null : String(r.subscription_plan),
+      },
+      days,
+      logins: Number(r.logins_window ?? 0),
+      preventiveCompleted: Number(r.completed_window ?? 0),
+      preventiveOverdueOpen: Number(r.overdue_open ?? 0),
+    }));
+
+    return res.json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to fetch tenants activity' });
   }
 }
 
@@ -429,10 +498,30 @@ export async function listPlantMetrics(req: AuthenticatedRequest, res: Response)
       ORDER BY p.created_at ASC;
     `);
 
+    const upcomingRows = await db.execute(sql`
+      SELECT
+        plant_id,
+        COUNT(*) FILTER (WHERE scheduled_for >= NOW() AND scheduled_for < NOW() + interval '7 days')::int AS next_7d,
+        COUNT(*) FILTER (WHERE scheduled_for >= NOW() AND scheduled_for < NOW() + interval '14 days')::int AS next_14d
+      FROM preventive_maintenance_schedules
+      WHERE tenant_id = ${tenantId}
+        AND status IN ('agendada','em_execucao','reagendada')
+      GROUP BY plant_id;
+    `);
+
+    const upcomingByPlant = new Map<string, { next_7d: number; next_14d: number }>();
+    for (const r of ((upcomingRows as any)?.rows ?? [])) {
+      upcomingByPlant.set(String(r.plant_id), {
+        next_7d: Number(r.next_7d ?? 0),
+        next_14d: Number(r.next_14d ?? 0),
+      });
+    }
+
     const data = ((rows as any)?.rows ?? []).map((r: any) => {
       const scheduled = Number(r.scheduled_30d ?? 0);
       const completed = Number(r.completed_30d ?? 0);
       const rate = scheduled > 0 ? completed / scheduled : null;
+      const upcoming = upcomingByPlant.get(String(r.id)) || { next_7d: 0, next_14d: 0 };
       return {
         id: String(r.id),
         name: String(r.name || ''),
@@ -444,10 +533,22 @@ export async function listPlantMetrics(req: AuthenticatedRequest, res: Response)
         scheduled_30d: scheduled,
         completed_30d: completed,
         completion_rate_30d: rate,
+        next_7d: upcoming.next_7d,
+        next_14d: upcoming.next_14d,
       };
     });
 
-    return res.json({ success: true, data });
+    const warnings = data
+      .filter((p: any) => !p.is_active && (Number(p.assets) > 0 || Number(p.overdue) > 0 || Number(p.next_7d) > 0))
+      .map((p: any) => ({
+        type: 'inactive_with_activity',
+        plant: { id: p.id, name: p.name, code: p.code, is_active: p.is_active },
+        assets: p.assets,
+        overdue: p.overdue,
+        next_7d: p.next_7d,
+      }));
+
+    return res.json({ success: true, data: { rows: data, warnings } });
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to fetch plant metrics' });
   }
@@ -501,10 +602,30 @@ export async function exportPlantMetrics(req: AuthenticatedRequest, res: Respons
       ORDER BY p.created_at ASC;
     `);
 
+    const upcomingRows = await db.execute(sql`
+      SELECT
+        plant_id,
+        COUNT(*) FILTER (WHERE scheduled_for >= NOW() AND scheduled_for < NOW() + interval '7 days')::int AS next_7d,
+        COUNT(*) FILTER (WHERE scheduled_for >= NOW() AND scheduled_for < NOW() + interval '14 days')::int AS next_14d
+      FROM preventive_maintenance_schedules
+      WHERE tenant_id = ${tenantId}
+        AND status IN ('agendada','em_execucao','reagendada')
+      GROUP BY plant_id;
+    `);
+
+    const upcomingByPlant = new Map<string, { next_7d: number; next_14d: number }>();
+    for (const r of ((upcomingRows as any)?.rows ?? [])) {
+      upcomingByPlant.set(String(r.plant_id), {
+        next_7d: Number(r.next_7d ?? 0),
+        next_14d: Number(r.next_14d ?? 0),
+      });
+    }
+
     const data = ((rows as any)?.rows ?? []).map((r: any) => {
       const scheduled = Number(r.scheduled_30d ?? 0);
       const completed = Number(r.completed_30d ?? 0);
       const rate = scheduled > 0 ? completed / scheduled : null;
+      const upcoming = upcomingByPlant.get(String(r.id)) || { next_7d: 0, next_14d: 0 };
       return {
         id: String(r.id),
         name: String(r.name || ''),
@@ -516,6 +637,8 @@ export async function exportPlantMetrics(req: AuthenticatedRequest, res: Respons
         scheduled_30d: scheduled,
         completed_30d: completed,
         completion_rate_30d: rate,
+        next_7d: upcoming.next_7d,
+        next_14d: upcoming.next_14d,
       };
     });
 
@@ -530,6 +653,8 @@ export async function exportPlantMetrics(req: AuthenticatedRequest, res: Respons
       'is_active',
       'assets',
       'overdue',
+      'next_7d',
+      'next_14d',
       'scheduled_30d',
       'completed_30d',
       'completion_rate_30d',
@@ -545,6 +670,8 @@ export async function exportPlantMetrics(req: AuthenticatedRequest, res: Respons
           r.is_active,
           r.assets,
           r.overdue,
+          r.next_7d,
+          r.next_14d,
           r.scheduled_30d,
           r.completed_30d,
           r.completion_rate_30d,
@@ -560,6 +687,206 @@ export async function exportPlantMetrics(req: AuthenticatedRequest, res: Respons
     return res.status(200).send(csv);
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to export plant metrics' });
+  }
+}
+
+export async function getRbacDrift(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!hasTenantOverrideHeader(req)) {
+      return res.status(400).json({ success: false, error: 'Select a tenant (Empresa) to view RBAC drift' });
+    }
+
+    const tenantId = String(req.tenantId || '');
+
+    const rolesZeroPerms = await db.execute(sql`
+      SELECT r.key, r.name
+      FROM rbac_roles r
+      LEFT JOIN rbac_role_permissions rp
+        ON rp.tenant_id = r.tenant_id AND rp.role_key = r.key
+      WHERE r.tenant_id = ${tenantId}
+      GROUP BY r.key, r.name
+      HAVING COUNT(rp.permission_key) = 0
+      ORDER BY r.key ASC;
+    `);
+
+    const permsUnused = await db.execute(sql`
+      SELECT p.key, p.label, p.group_name
+      FROM rbac_permissions p
+      LEFT JOIN rbac_role_permissions rp
+        ON rp.permission_key = p.key AND rp.tenant_id = ${tenantId}
+      GROUP BY p.key, p.label, p.group_name
+      HAVING COUNT(rp.role_key) = 0
+      ORDER BY p.group_name ASC, p.key ASC
+      LIMIT 200;
+    `);
+
+    const data = {
+      rolesWithNoPermissions: ((rolesZeroPerms as any)?.rows ?? []).map((r: any) => ({
+        key: String(r.key),
+        name: String(r.name || ''),
+      })),
+      permissionsUnused: ((permsUnused as any)?.rows ?? []).map((r: any) => ({
+        key: String(r.key),
+        label: String(r.label || ''),
+        group_name: String(r.group_name || ''),
+      })),
+    };
+
+    return res.json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to fetch RBAC drift' });
+  }
+}
+
+export async function getUserSecurityInsights(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!hasTenantOverrideHeader(req)) {
+      return res.status(400).json({ success: false, error: 'Select a tenant (Empresa) to view user security insights' });
+    }
+
+    const daysRaw = Number((req.query as any)?.days ?? 30);
+    const days = Number.isFinite(daysRaw) ? Math.min(Math.max(Math.trunc(daysRaw), 1), 365) : 30;
+    const limitRaw = Number((req.query as any)?.limit ?? 10);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 50) : 10;
+
+    const tenantId = String(req.tenantId || '');
+
+    const available = await SuperadminAuditService.isAvailable();
+    if (!available) {
+      return res.json({ success: true, data: { days, topPasswordResets: [] } });
+    }
+
+    const rows = await db.execute(sql`
+      SELECT
+        entity_id,
+        COUNT(*)::int AS reset_count,
+        MAX(created_at) AS last_reset_at
+      FROM superadmin_audit_logs
+      WHERE action = 'user.reset_password'
+        AND affected_tenant_id = ${tenantId}
+        AND created_at >= NOW() - (${days}::int * interval '1 day')
+      GROUP BY entity_id
+      ORDER BY COUNT(*) DESC, MAX(created_at) DESC
+      LIMIT ${limit};
+    `);
+
+    const ids = ((rows as any)?.rows ?? []).map((r: any) => String(r.entity_id));
+    let usersRows: any[] = [];
+    if (ids.length > 0) {
+      const usersResult = await db.execute(sql`
+        SELECT id, username, email, first_name, last_name, is_active, last_login
+        FROM users
+        WHERE tenant_id = ${tenantId}
+          AND id = ANY(${ids}::uuid[]);
+      `);
+      usersRows = (usersResult as any)?.rows ?? [];
+    }
+    const userById = new Map<string, any>();
+    for (const u of usersRows) userById.set(String(u.id), u);
+
+    const topPasswordResets = ((rows as any)?.rows ?? []).map((r: any) => {
+      const u = userById.get(String(r.entity_id));
+      return {
+        userId: String(r.entity_id),
+        resetCount: Number(r.reset_count ?? 0),
+        lastResetAt: r.last_reset_at ?? null,
+        user: u
+          ? {
+              id: String(u.id),
+              username: String(u.username || ''),
+              email: String(u.email || ''),
+              first_name: String(u.first_name || ''),
+              last_name: String(u.last_name || ''),
+              is_active: Boolean(u.is_active),
+              last_login: u.last_login ?? null,
+            }
+          : null,
+      };
+    });
+
+    return res.json({ success: true, data: { days, topPasswordResets } });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to fetch user security insights' });
+  }
+}
+
+export async function getIntegrityChecks(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!hasTenantOverrideHeader(req)) {
+      return res.status(400).json({ success: false, error: 'Select a tenant (Empresa) to run integrity checks' });
+    }
+
+    const tenantId = String(req.tenantId || '');
+
+    const assetsMissingPlant = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM assets a
+      WHERE a.tenant_id = ${tenantId}
+        AND NOT EXISTS (SELECT 1 FROM plants p WHERE p.id = a.plant_id);
+    `);
+
+    const schedulesMissingAsset = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM preventive_maintenance_schedules s
+      WHERE s.tenant_id = ${tenantId}
+        AND NOT EXISTS (SELECT 1 FROM assets a WHERE a.id = s.asset_id);
+    `);
+
+    const schedulesMissingPlan = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM preventive_maintenance_schedules s
+      WHERE s.tenant_id = ${tenantId}
+        AND NOT EXISTS (SELECT 1 FROM maintenance_plans p WHERE p.id = s.plan_id);
+    `);
+
+    const userPlantsMissingUser = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM user_plants up
+      WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = up.user_id);
+    `);
+
+    const userPlantsMissingPlant = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM user_plants up
+      WHERE NOT EXISTS (SELECT 1 FROM plants p WHERE p.id = up.plant_id);
+    `);
+
+    const checks = [
+      {
+        key: 'assets_missing_plant',
+        label: 'Assets sem fábrica válida',
+        count: Number((assetsMissingPlant as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+      {
+        key: 'schedules_missing_asset',
+        label: 'Preventivas sem asset válido',
+        count: Number((schedulesMissingAsset as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+      {
+        key: 'schedules_missing_plan',
+        label: 'Preventivas sem plano válido',
+        count: Number((schedulesMissingPlan as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+      {
+        key: 'user_plants_missing_user',
+        label: 'UserPlants com user inexistente',
+        count: Number((userPlantsMissingUser as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+      {
+        key: 'user_plants_missing_plant',
+        label: 'UserPlants com fábrica inexistente',
+        count: Number((userPlantsMissingPlant as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+    ];
+
+    return res.json({ success: true, data: { tenantId, checks } });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to run integrity checks' });
   }
 }
 
@@ -633,6 +960,7 @@ export async function getUserAnomalies(req: AuthenticatedRequest, res: Response)
 
 export async function exportDiagnosticsBundle(req: AuthenticatedRequest, res: Response) {
   try {
+    const format = String((req.query as any)?.format || 'json').toLowerCase();
     const auditLimitRaw = Number((req.query as any)?.auditLimit ?? 50);
     const auditLimit = Number.isFinite(auditLimitRaw) ? Math.min(Math.max(Math.trunc(auditLimitRaw), 1), 200) : 50;
     const diagLimitRaw = Number((req.query as any)?.diagnosticsLimit ?? 10);
@@ -843,13 +1171,79 @@ export async function exportDiagnosticsBundle(req: AuthenticatedRequest, res: Re
 
     const audit = await SuperadminAuditService.list({ limit: auditLimit, offset: 0, from: null, to: null });
 
+    let integrity: any = null;
+    let rbacDrift: any = null;
+    let userSecurity: any = null;
+    if (hasOverride) {
+      try {
+        const integrityRes = await getIntegrityChecks(req, {
+          json: (payload: any) => payload,
+          status: () => ({ json: (payload: any) => payload }),
+        } as any);
+        integrity = (integrityRes as any)?.data ?? null;
+      } catch {
+        integrity = null;
+      }
+
+      try {
+        const driftRes = await getRbacDrift(req, {
+          json: (payload: any) => payload,
+          status: () => ({ json: (payload: any) => payload }),
+        } as any);
+        rbacDrift = (driftRes as any)?.data ?? null;
+      } catch {
+        rbacDrift = null;
+      }
+
+      try {
+        const secRes = await getUserSecurityInsights(req, {
+          json: (payload: any) => payload,
+          status: () => ({ json: (payload: any) => payload }),
+        } as any);
+        userSecurity = (secRes as any)?.data ?? null;
+      } catch {
+        userSecurity = null;
+      }
+    }
+
     const bundle = {
       generatedAt: serverTime,
       health,
       tenantDiagnostics,
       dbStatus,
       audit,
+      integrity,
+      rbacDrift,
+      userSecurity,
     };
+
+    if (format === 'zip') {
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', 'attachment; filename="superadmin_diagnostics_bundle.zip"');
+
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      archive.on('error', () => {
+        try {
+          res.status(500).end();
+        } catch {
+          // ignore
+        }
+      });
+      archive.pipe(res);
+
+      const wrap = (obj: any) => JSON.stringify({ success: true, data: obj }, null, 2);
+      archive.append(wrap(health), { name: 'health.json' });
+      archive.append(wrap(tenantDiagnostics), { name: 'tenant_diagnostics.json' });
+      archive.append(wrap(dbStatus), { name: 'db_status.json' });
+      archive.append(wrap(audit), { name: 'audit.json' });
+      archive.append(wrap(integrity), { name: 'integrity.json' });
+      archive.append(wrap(rbacDrift), { name: 'rbac_drift.json' });
+      archive.append(wrap(userSecurity), { name: 'user_security.json' });
+      archive.append(wrap(bundle), { name: 'bundle.json' });
+
+      await archive.finalize();
+      return res;
+    }
 
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="superadmin_diagnostics_bundle.json"');

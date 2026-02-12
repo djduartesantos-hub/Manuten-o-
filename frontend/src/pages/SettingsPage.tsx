@@ -14,9 +14,11 @@ import {
   downloadSuperadminTenantsMetrics,
   getSuperadminAudit,
   getSuperadminDashboardMetrics,
+  getSuperadminTenantsActivity,
   getSuperadminHealth,
   getSuperadminDbStatus,
   getSuperadminPlantsMetrics,
+  getSuperadminIntegrityChecks,
   getSuperadminTenantDiagnostics,
   getSuperadminTenantsMetrics,
   updateSuperadminTenant,
@@ -34,6 +36,8 @@ import {
   getSuperadminTenants,
   getUserPlants,
   getSuperadminUserAnomalies,
+  getSuperadminRbacDrift,
+  getSuperadminUserSecurityInsights,
   resetSuperadminUserPassword,
   searchSuperadminUsers,
   setAdminRolePermissions,
@@ -403,6 +407,7 @@ export function SuperAdminSettings() {
 
   const [dashboardMetrics, setDashboardMetrics] = React.useState<any | null>(null);
   const [dashboardAudit, setDashboardAudit] = React.useState<any[]>([]);
+  const [dashboardActivity, setDashboardActivity] = React.useState<any[]>([]);
   const [loadingDashboard, setLoadingDashboard] = React.useState(false);
 
   const [plantMetrics, setPlantMetrics] = React.useState<any[]>([]);
@@ -410,6 +415,10 @@ export function SuperAdminSettings() {
 
   const [userAnomalies, setUserAnomalies] = React.useState<any | null>(null);
   const [loadingUserAnomalies, setLoadingUserAnomalies] = React.useState(false);
+
+  const [rbacDrift, setRbacDrift] = React.useState<any | null>(null);
+  const [integrityChecks, setIntegrityChecks] = React.useState<any | null>(null);
+  const [securityInsights, setSecurityInsights] = React.useState<any | null>(null);
 
   const [rbacMatrix, setRbacMatrix] = React.useState<{ roles: any[]; permissions: any[]; byRole: Record<string, Set<string>> } | null>(null);
   const [loadingRbacMatrix, setLoadingRbacMatrix] = React.useState(false);
@@ -481,15 +490,18 @@ export function SuperAdminSettings() {
     setLoadingDashboard(true);
     setError('');
     try {
-      const [metrics, audit] = await Promise.all([
+      const [metrics, audit, activity] = await Promise.all([
         getSuperadminDashboardMetrics(),
         getSuperadminAudit({ limit: 10, offset: 0 }),
+        getSuperadminTenantsActivity(30, 5),
       ]);
       setDashboardMetrics(metrics || null);
       setDashboardAudit(Array.isArray(audit) ? audit : []);
+      setDashboardActivity(Array.isArray(activity) ? activity : []);
     } catch (err: any) {
       setDashboardMetrics(null);
       setDashboardAudit([]);
+      setDashboardActivity([]);
       setError(err?.message || 'Falha ao carregar dashboard');
     } finally {
       setLoadingDashboard(false);
@@ -518,6 +530,9 @@ export function SuperAdminSettings() {
     if (!selectedTenantId) {
       setUserAnomalies(null);
       setRbacMatrix(null);
+      setRbacDrift(null);
+      setIntegrityChecks(null);
+      setSecurityInsights(null);
       return;
     }
 
@@ -526,10 +541,13 @@ export function SuperAdminSettings() {
     setError('');
 
     try {
-      const [anoms, rolesData, permsData] = await Promise.all([
+      const [anoms, rolesData, permsData, drift, integrity, security] = await Promise.all([
         getSuperadminUserAnomalies(),
         getAdminRoles(),
         getAdminPermissions(),
+        getSuperadminRbacDrift(),
+        getSuperadminIntegrityChecks(),
+        getSuperadminUserSecurityInsights(30, 5),
       ]);
 
       const roles = Array.isArray(rolesData) ? rolesData : [];
@@ -550,9 +568,15 @@ export function SuperAdminSettings() {
 
       setUserAnomalies(anoms || null);
       setRbacMatrix({ roles, permissions, byRole: permsByRole });
+      setRbacDrift(drift || null);
+      setIntegrityChecks(integrity || null);
+      setSecurityInsights(security || null);
     } catch (err: any) {
       setUserAnomalies(null);
       setRbacMatrix(null);
+      setRbacDrift(null);
+      setIntegrityChecks(null);
+      setSecurityInsights(null);
       setError(err?.message || 'Falha ao carregar diagnósticos de utilizadores/RBAC');
     } finally {
       setLoadingUserAnomalies(false);
@@ -1126,6 +1150,36 @@ export function SuperAdminSettings() {
                       ) : null}
                     </div>
                   </div>
+
+                  <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                      Top empresas por atividade (30d)
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {dashboardActivity.length === 0 ? (
+                        <div className="text-sm text-[color:var(--dash-muted)]">
+                          {loadingDashboard ? 'A carregar...' : 'Sem dados.'}
+                        </div>
+                      ) : (
+                        dashboardActivity.map((row: any) => (
+                          <div key={String(row?.tenant?.id || row?.tenantId || Math.random())} className="rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="text-sm font-semibold text-[color:var(--dash-ink)] truncate">{String(row?.tenant?.name || 'Empresa')}</div>
+                                <div className="text-xs text-[color:var(--dash-muted)] truncate">{String(row?.tenant?.slug || '')}</div>
+                              </div>
+                              <div className="text-xs text-[color:var(--dash-muted)] whitespace-nowrap">
+                                logins={String(row?.logins ?? 0)} • concl={String(row?.preventiveCompleted ?? 0)}
+                              </div>
+                            </div>
+                            <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                              atraso(abertas)={String(row?.preventiveOverdueOpen ?? 0)}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {selectedTenantId && dbStatus?.lastSetupRun ? (
@@ -1340,7 +1394,9 @@ export function SuperAdminSettings() {
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="min-w-0">
                             <div className="font-semibold text-[color:var(--dash-ink)] truncate">{String(p.name)}</div>
-                            <div className="text-xs text-[color:var(--dash-muted)]">{String(p.code)} • assets={String(p.assets)} • atraso={String(p.overdue)}</div>
+                            <div className="text-xs text-[color:var(--dash-muted)]">
+                              {String(p.code)} • assets={String(p.assets)} • atraso={String(p.overdue)} • próximos 7d={String(p.next_7d ?? 0)} • 14d={String(p.next_14d ?? 0)}
+                            </div>
                           </div>
                           <div className="text-xs text-[color:var(--dash-muted)]">
                             30d: {String(p.completed_30d)} / {String(p.scheduled_30d)} ({p.completion_rate_30d == null ? '—' : `${Math.round(Number(p.completion_rate_30d) * 100)}%`})
@@ -1463,6 +1519,59 @@ export function SuperAdminSettings() {
                         Mostra até 6 roles e 30 permissões (para manter leve).
                       </div>
                     ) : null}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                    RBAC drift
+                  </div>
+                  <div className="mt-3 text-sm text-[color:var(--dash-muted)]">
+                    Roles sem permissões:{' '}
+                    <span className="font-semibold text-[color:var(--dash-ink)]">
+                      {rbacDrift?.rolesWithNoPermissions ? String(rbacDrift.rolesWithNoPermissions.length) : '—'}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                    Permissões não usadas:{' '}
+                    <span className="font-semibold text-[color:var(--dash-ink)]">
+                      {rbacDrift?.permissionsUnused ? String(rbacDrift.permissionsUnused.length) : '—'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                    Integridade
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {(integrityChecks?.checks || []).slice(0, 5).map((c: any) => (
+                      <div key={String(c.key)} className="flex items-center justify-between gap-2 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-3 py-2">
+                        <div className="text-xs text-[color:var(--dash-muted)] truncate">{String(c.label)}</div>
+                        <div className="text-sm font-semibold text-[color:var(--dash-ink)]">{String(c.count ?? 0)}</div>
+                      </div>
+                    ))}
+                    {!integrityChecks ? <div className="text-sm text-[color:var(--dash-muted)]">—</div> : null}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                    Segurança (30d)
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {(securityInsights?.topPasswordResets || []).length === 0 ? (
+                      <div className="text-sm text-[color:var(--dash-muted)]">Sem resets.</div>
+                    ) : (
+                      (securityInsights?.topPasswordResets || []).slice(0, 5).map((r: any) => (
+                        <div key={String(r.userId)} className="rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
+                          <div className="text-sm font-semibold text-[color:var(--dash-ink)] truncate">{String(r.user?.username || r.userId)}</div>
+                          <div className="text-xs text-[color:var(--dash-muted)]">resets={String(r.resetCount)} • último={r.lastResetAt ? String(r.lastResetAt) : '—'}</div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -1695,7 +1804,7 @@ export function SuperAdminSettings() {
                       onClick={async () => {
                         setError('');
                         try {
-                          await downloadSuperadminDiagnosticsBundle(100);
+                          await downloadSuperadminDiagnosticsBundle({ format: 'json', auditLimit: 100 });
                         } catch (err: any) {
                           setError(err?.message || 'Falha ao gerar bundle');
                         }
@@ -1704,6 +1813,23 @@ export function SuperAdminSettings() {
                     >
                       <Download className="mr-2 h-4 w-4" />
                       Bundle diagnóstico
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-secondary h-9 px-3"
+                      onClick={async () => {
+                        setError('');
+                        try {
+                          await downloadSuperadminDiagnosticsBundle({ format: 'zip', auditLimit: 100 });
+                        } catch (err: any) {
+                          setError(err?.message || 'Falha ao gerar ZIP');
+                        }
+                      }}
+                      title="Download ZIP (vários ficheiros)"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      ZIP
                     </button>
                   </div>
                 </div>

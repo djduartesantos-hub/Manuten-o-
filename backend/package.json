@@ -25,6 +25,7 @@
   "author": "CMMS Enterprise",
   "license": "MIT",
   "dependencies": {
+    "archiver": "^7.0.1",
     "@elastic/elasticsearch": "^9.2.1",
     "@sendgrid/mail": "^8.1.6",
     "axios": "^1.13.5",
@@ -51,6 +52,7 @@
     "zod": "^3.21.4"
   },
   "devDependencies": {
+    "@types/archiver": "^6.0.3",
     "@types/bcrypt": "^5.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
