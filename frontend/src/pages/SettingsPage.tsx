@@ -396,7 +396,7 @@ export function SuperAdminSettings() {
 
     const fallback: SuperAdminStep = 'dashboard';
     const initial = (fromPath && allowed[fromPath] ? fromPath : null) || (fromUrl && allowed[fromUrl] ? fromUrl : null) || fallback;
-    if ((initial === 'plants' || initial === 'users' || initial === 'updates') && !selectedTenantId) {
+    if ((initial === 'plants' || initial === 'users') && !selectedTenantId) {
       return 'tenant';
     }
     return initial;
@@ -656,7 +656,7 @@ export function SuperAdminSettings() {
 
   React.useEffect(() => {
     // If tenant gets cleared, force tenant-scoped steps back to tenant.
-    if (!selectedTenantId && (step === 'plants' || step === 'users' || step === 'updates')) {
+    if (!selectedTenantId && (step === 'plants' || step === 'users')) {
       setStepAndUrl('tenant');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -708,7 +708,7 @@ export function SuperAdminSettings() {
     };
     if (!allowed[next]) return;
 
-    const locked = (next === 'plants' || next === 'users' || next === 'updates') && !selectedTenantId;
+    const locked = (next === 'plants' || next === 'users') && !selectedTenantId;
     const finalStep = locked ? 'tenant' : next;
     if (finalStep !== step) setStep(finalStep);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -721,7 +721,7 @@ export function SuperAdminSettings() {
       return;
     }
 
-    if (step === 'updates' && selectedTenantId) {
+    if (step === 'updates') {
       void loadDbStatus();
     }
 
@@ -763,8 +763,8 @@ export function SuperAdminSettings() {
     {
       id: 'updates',
       title: 'Atualizações',
-      description: 'Atualizações gerais e setup/admin DB.',
-      requiresTenant: true,
+      description: 'Estado da BD e setup. Ferramentas avançadas requerem empresa.',
+      requiresTenant: false,
     },
     {
       id: 'support',
@@ -774,7 +774,7 @@ export function SuperAdminSettings() {
     },
   ];
 
-  const requireTenantForStep = step === 'plants' || step === 'users' || step === 'updates';
+  const requireTenantForStep = step === 'plants' || step === 'users';
   const missingTenant = requireTenantForStep && !selectedTenantId;
 
   const visibleSteps = selectedTenantId ? steps : steps.filter((s) => !s.requiresTenant);
@@ -993,15 +993,15 @@ export function SuperAdminSettings() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    <button type="button" className="btn-secondary h-9 px-3" onClick={() => setStepAndUrl('tenant')}>
+                    <button type="button" className="btn-secondary inline-flex items-center justify-center h-9 px-3" onClick={() => setStepAndUrl('tenant')}>
                       Empresas
                     </button>
                     {selectedTenantId ? (
-                      <button type="button" className="btn-secondary h-9 px-3" onClick={() => setStepAndUrl('updates')}>
+                      <button type="button" className="btn-secondary inline-flex items-center justify-center h-9 px-3" onClick={() => setStepAndUrl('updates')}>
                         Atualizações
                       </button>
                     ) : (
-                      <button type="button" className="btn-secondary h-9 px-3" onClick={() => navigate('/settings')}>
+                      <button type="button" className="btn-secondary inline-flex items-center justify-center h-9 px-3" onClick={() => navigate('/settings')}>
                         Configurações genéricas
                       </button>
                     )}
@@ -1106,7 +1106,7 @@ export function SuperAdminSettings() {
                       </div>
                       <button
                         type="button"
-                        className="btn-secondary h-9 px-3"
+                        className="btn-secondary inline-flex items-center justify-center h-9 px-3"
                         onClick={() => void loadDashboard()}
                         disabled={loadingDashboard}
                       >
@@ -1150,19 +1150,19 @@ export function SuperAdminSettings() {
                       Ações rápidas
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <button type="button" className="btn-secondary h-9 px-3" onClick={() => setStepAndUrl('tenant')}>Empresas</button>
+                      <button type="button" className="btn-secondary inline-flex items-center justify-center h-9 px-3" onClick={() => setStepAndUrl('tenant')}>Empresas</button>
                       <button
                         type="button"
-                        className="btn-secondary h-9 px-3"
+                        className="btn-secondary inline-flex items-center justify-center h-9 px-3"
                         onClick={() => setStepAndUrl('support')}
                       >
                         Suporte
                       </button>
                       {selectedTenantId ? (
-                        <button type="button" className="btn-secondary h-9 px-3" onClick={() => setStepAndUrl('plants')}>Fábricas</button>
+                        <button type="button" className="btn-secondary inline-flex items-center justify-center h-9 px-3" onClick={() => setStepAndUrl('plants')}>Fábricas</button>
                       ) : null}
                       {selectedTenantId ? (
-                        <button type="button" className="btn-secondary h-9 px-3" onClick={() => setStepAndUrl('users')}>Utilizadores</button>
+                        <button type="button" className="btn-secondary inline-flex items-center justify-center h-9 px-3" onClick={() => setStepAndUrl('users')}>Utilizadores</button>
                       ) : null}
                     </div>
                   </div>
@@ -1766,11 +1766,13 @@ export function SuperAdminSettings() {
             </section>
           )}
 
-          {step === 'updates' && selectedTenantId && (
+          {step === 'updates' && (
             <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
               <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Atualizações & Base de dados</h4>
               <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
-                Estas ferramentas operam sobre a empresa selecionada.
+                {selectedTenantId
+                  ? 'Estas ferramentas operam sobre a empresa selecionada.'
+                  : 'Âmbito Global por defeito. Selecione uma empresa para ações avançadas.'}
               </p>
 
               <div className="mt-4 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
@@ -1786,7 +1788,7 @@ export function SuperAdminSettings() {
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      className="btn-secondary h-9 px-3"
+                      className="btn-secondary inline-flex items-center justify-center h-9 px-3"
                       onClick={async () => {
                         setError('');
                         try {
@@ -1803,12 +1805,16 @@ export function SuperAdminSettings() {
                 </div>
 
                 <div className="mt-3 grid gap-2 md:grid-cols-4">
-                  {[
-                    { label: 'DB OK', ok: Boolean(dbStatus?.dbOk) },
-                    { label: 'Migrações OK', ok: Boolean(dbStatus?.drizzleMigrations?.table) },
-                    { label: 'Última run', ok: Boolean(dbStatus?.lastSetupRun) },
-                    { label: 'Scope = Empresa', ok: String(dbStatus?.scope || '') === 'tenant' },
-                  ].map((c) => (
+                  {(() => {
+                    const expectedScope = selectedTenantId ? 'tenant' : 'global';
+                    const expectedScopeLabel = expectedScope === 'tenant' ? 'Empresa' : 'Global';
+                    return [
+                      { label: 'DB OK', ok: Boolean(dbStatus?.dbOk) },
+                      { label: 'Migrações OK', ok: Boolean(dbStatus?.drizzleMigrations?.table) },
+                      { label: 'Última run', ok: Boolean(dbStatus?.lastSetupRun) },
+                      { label: `Scope = ${expectedScopeLabel}`, ok: String(dbStatus?.scope || '') === expectedScope },
+                    ];
+                  })().map((c) => (
                     <div key={c.label} className="rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3">
                       <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">{c.label}</div>
                       <div className="mt-2 text-sm font-semibold text-[color:var(--dash-ink)]">{c.ok ? 'OK' : '—'}</div>
@@ -1825,7 +1831,7 @@ export function SuperAdminSettings() {
                     </div>
                     <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
                       Contexto:{' '}
-                      <span className="font-semibold text-[color:var(--dash-ink)]">{selectedTenant?.name || selectedTenantId}</span>
+                      <span className="font-semibold text-[color:var(--dash-ink)]">{selectedTenant?.name || (selectedTenantId ? selectedTenantId : 'Global')}</span>
                     </div>
                     {dbStatus ? (
                       <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
@@ -1847,7 +1853,7 @@ export function SuperAdminSettings() {
                         {dbStatus.serverTime ? <div>Hora servidor: {String(dbStatus.serverTime)}</div> : null}
                         {dbStatus.counts ? (
                           <div>
-                            Registos (tenant): users={String(dbStatus.counts.users ?? '-')}, plants={String(dbStatus.counts.plants ?? '-')}
+                            Registos: users={String(dbStatus.counts.users ?? '-')}, plants={String(dbStatus.counts.plants ?? '-')}
                           </div>
                         ) : null}
                         {dbStatus.drizzleMigrations?.table ? (
@@ -1936,7 +1942,7 @@ export function SuperAdminSettings() {
 
                     <button
                       type="button"
-                      className="btn-secondary h-9 px-3"
+                      className="btn-secondary inline-flex items-center justify-center h-9 px-3"
                       onClick={() => void loadDbStatus()}
                       disabled={loadingDbStatus}
                     >
@@ -1947,9 +1953,17 @@ export function SuperAdminSettings() {
               </div>
 
               <div className="mt-5 space-y-8">
-                <DatabaseUpdatePage embedded />
-                <AdminSetupPage embedded />
-                <SetupInitPage embedded />
+                {selectedTenantId ? (
+                  <>
+                    <DatabaseUpdatePage embedded />
+                    <AdminSetupPage embedded />
+                    <SetupInitPage embedded />
+                  </>
+                ) : (
+                  <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4 text-sm text-[color:var(--dash-muted)]">
+                    Selecione uma empresa para executar migrações/seed/ações de setup. O estado da BD acima funciona em Global.
+                  </div>
+                )}
               </div>
             </section>
           )}
@@ -1973,7 +1987,7 @@ export function SuperAdminSettings() {
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      className="btn-secondary h-9 px-3"
+                      className="btn-secondary inline-flex items-center justify-center h-9 px-3"
                       onClick={() => loadSupportData()}
                       disabled={loadingSupport}
                     >
@@ -1983,7 +1997,7 @@ export function SuperAdminSettings() {
 
                     <button
                       type="button"
-                      className="btn-secondary h-9 px-3"
+                      className="btn-secondary inline-flex items-center justify-center h-9 px-3"
                       onClick={async () => {
                         setError('');
                         try {
@@ -2000,7 +2014,7 @@ export function SuperAdminSettings() {
 
                     <button
                       type="button"
-                      className="btn-secondary h-9 px-3"
+                      className="btn-secondary inline-flex items-center justify-center h-9 px-3"
                       onClick={async () => {
                         setError('');
                         try {

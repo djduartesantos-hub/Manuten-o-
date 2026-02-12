@@ -122,7 +122,7 @@ export function Header() {
     return () => {
       cancelled = true;
     };
-  }, [isSuperAdmin, superadminTenantId, location.pathname]);
+  }, [isSuperAdmin, superadminTenantId]);
 
   const activeTenantName = React.useMemo(() => {
     if (!superadminTenantId) return 'Global';
