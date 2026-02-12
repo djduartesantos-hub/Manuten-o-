@@ -6,8 +6,14 @@ import { useAuth } from '../hooks/useAuth';
 import {
   apiCall,
   createSuperadminTenant,
+  downloadSetupRunsExport,
+  downloadSuperadminAudit,
+  getSuperadminAudit,
+  getSuperadminHealth,
   getSuperadminDbStatus,
+  getSuperadminTenantDiagnostics,
   updateSuperadminTenant,
+  purgeSuperadminAudit,
   createAdminRole,
   createAdminUser,
   deactivateAdminPlant,
@@ -20,6 +26,8 @@ import {
   getAssets,
   getSuperadminTenants,
   getUserPlants,
+  resetSuperadminUserPassword,
+  searchSuperadminUsers,
   setAdminRolePermissions,
   setAdminRoleHomes,
   createPreventiveSchedule,
@@ -49,6 +57,10 @@ import {
   Database,
   Server,
   Wrench,
+  LifeBuoy,
+  RefreshCw,
+  Download,
+  KeyRound,
 } from 'lucide-react';
 import { AdminSetupPage } from './AdminSetupPage';
 import { DatabaseUpdatePage } from './DatabaseUpdatePage';
@@ -321,7 +333,7 @@ export function SuperAdminSettings() {
     return () => window.removeEventListener('superadmin-tenant-changed', onTenantChanged);
   }, []);
 
-  type SuperAdminStep = 'dashboard' | 'tenant' | 'plants' | 'users' | 'updates';
+  type SuperAdminStep = 'dashboard' | 'tenant' | 'plants' | 'users' | 'updates' | 'support';
 
   const isSuperAdminRoute = location.pathname.startsWith('/superadmin');
 
@@ -334,6 +346,7 @@ export function SuperAdminSettings() {
       if (clean === '/superadmin/fabricas') return 'plants';
       if (clean === '/superadmin/utilizadores') return 'users';
       if (clean === '/superadmin/atualizacoes') return 'updates';
+      if (clean === '/superadmin/suporte') return 'support';
       return null;
     },
     [],
@@ -346,6 +359,7 @@ export function SuperAdminSettings() {
       plants: '/superadmin/fabricas',
       users: '/superadmin/utilizadores',
       updates: '/superadmin/atualizacoes',
+      support: '/superadmin/suporte',
     };
     return map[s];
   }, []);
@@ -360,6 +374,7 @@ export function SuperAdminSettings() {
       plants: true,
       users: true,
       updates: true,
+      support: true,
     };
 
     const fallback: SuperAdminStep = 'dashboard';
@@ -548,6 +563,7 @@ export function SuperAdminSettings() {
       plants: true,
       users: true,
       updates: true,
+      support: true,
     };
     if (!allowed[next]) return;
 
@@ -600,12 +616,61 @@ export function SuperAdminSettings() {
       description: 'Atualizações gerais e setup/admin DB.',
       requiresTenant: true,
     },
+    {
+      id: 'support',
+      title: 'Suporte',
+      description: 'Saúde do sistema, auditoria, export e ferramentas de suporte.',
+      requiresTenant: false,
+    },
   ];
 
   const requireTenantForStep = step === 'plants' || step === 'users' || step === 'updates';
   const missingTenant = requireTenantForStep && !selectedTenantId;
 
   const visibleSteps = selectedTenantId ? steps : steps.filter((s) => !s.requiresTenant);
+
+  const [supportHealth, setSupportHealth] = React.useState<any | null>(null);
+  const [supportDiagnostics, setSupportDiagnostics] = React.useState<any | null>(null);
+  const [supportAudit, setSupportAudit] = React.useState<any[]>([]);
+  const [loadingSupport, setLoadingSupport] = React.useState(false);
+  const [auditPurging, setAuditPurging] = React.useState(false);
+  const [auditExporting, setAuditExporting] = React.useState<'csv' | 'json' | null>(null);
+  const [runsExporting, setRunsExporting] = React.useState<'csv' | 'json' | null>(null);
+
+  const [userSearchQ, setUserSearchQ] = React.useState('');
+  const [userSearchResults, setUserSearchResults] = React.useState<any[]>([]);
+  const [userSearching, setUserSearching] = React.useState(false);
+  const [resettingUserId, setResettingUserId] = React.useState<string | null>(null);
+  const [oneTimePassword, setOneTimePassword] = React.useState<string>('');
+  const [runsExportLimit, setRunsExportLimit] = React.useState<number>(200);
+
+  const loadSupportData = React.useCallback(async () => {
+    setLoadingSupport(true);
+    setError('');
+    try {
+      const [health, diagnostics, audit] = await Promise.all([
+        getSuperadminHealth(),
+        getSuperadminTenantDiagnostics(5),
+        getSuperadminAudit({ limit: 20, offset: 0 }),
+      ]);
+      setSupportHealth(health || null);
+      setSupportDiagnostics(diagnostics || null);
+      setSupportAudit(Array.isArray(audit) ? audit : []);
+    } catch (err: any) {
+      setError(err?.message || 'Falha ao carregar dados de suporte');
+      setSupportHealth(null);
+      setSupportDiagnostics(null);
+      setSupportAudit([]);
+    } finally {
+      setLoadingSupport(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (step === 'support') {
+      void loadSupportData();
+    }
+  }, [step, loadSupportData]);
 
   const handleCreateTenant = async () => {
     const name = newTenant.name.trim();
@@ -1113,6 +1178,351 @@ export function SuperAdminSettings() {
                 <DatabaseUpdatePage embedded />
                 <AdminSetupPage embedded />
                 <SetupInitPage embedded />
+              </div>
+            </section>
+          )}
+
+          {step === 'support' && (
+            <section className="overflow-hidden rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
+              <div className="h-2 w-full bg-[linear-gradient(90deg,#0f766e,#38bdf8)]" />
+              <div className="p-5">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                      <LifeBuoy className="h-4 w-4" />
+                      Suporte
+                    </div>
+                    <h4 className="mt-2 text-lg font-semibold text-[color:var(--dash-ink)]">Ferramentas & Diagnóstico</h4>
+                    <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                      Saúde do sistema, auditoria e ações de suporte.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      className="btn-secondary h-9 px-3"
+                      onClick={() => loadSupportData()}
+                      disabled={loadingSupport}
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Atualizar
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-3 lg:grid-cols-3">
+                  <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                      Saúde do sistema
+                    </div>
+                    <div className="mt-3 space-y-2 text-sm text-[color:var(--dash-muted)]">
+                      <div>
+                        API:{' '}
+                        <span className="font-semibold text-[color:var(--dash-ink)]">
+                          {supportHealth?.apiOk ? 'Online' : 'Erro'}
+                        </span>
+                      </div>
+                      <div>
+                        BD:{' '}
+                        <span className="font-semibold text-[color:var(--dash-ink)]">
+                          {supportHealth?.dbOk ? 'Online' : 'Erro'}
+                        </span>
+                      </div>
+                      <div>
+                        Uptime:{' '}
+                        <span className="font-semibold text-[color:var(--dash-ink)]">
+                          {supportHealth?.uptimeSeconds != null ? `${String(supportHealth.uptimeSeconds)}s` : '—'}
+                        </span>
+                      </div>
+                      <div>
+                        Versão:{' '}
+                        <span className="font-semibold text-[color:var(--dash-ink)]">
+                          {supportHealth?.version ? String(supportHealth.version) : '—'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                      Diagnóstico multi-tenant
+                    </div>
+                    <div className="mt-3 space-y-2 text-sm text-[color:var(--dash-muted)]">
+                      {(supportDiagnostics?.warnings || []).length === 0 ? (
+                        <div className="text-[color:var(--dash-muted)]">Sem avisos.</div>
+                      ) : (
+                        (supportDiagnostics?.warnings || []).slice(0, 5).map((w: any, idx: number) => (
+                          <div key={idx} className="rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
+                            <div className="font-semibold text-[color:var(--dash-ink)] truncate">
+                              {String(w?.tenant?.name || 'Empresa')}
+                            </div>
+                            <div className="text-xs">
+                              {String(w.type)} • users={String(w.users)} • plants={String(w.plants)}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                      Auditoria (SuperAdmin)
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        disabled={auditExporting !== null}
+                        onClick={async () => {
+                          setAuditExporting('csv');
+                          setError('');
+                          try {
+                            await downloadSuperadminAudit('csv', 200);
+                          } catch (err: any) {
+                            setError(err?.message || 'Falha ao exportar CSV');
+                          } finally {
+                            setAuditExporting(null);
+                          }
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Export CSV
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        disabled={auditExporting !== null}
+                        onClick={async () => {
+                          setAuditExporting('json');
+                          setError('');
+                          try {
+                            await downloadSuperadminAudit('json', 200);
+                          } catch (err: any) {
+                            setError(err?.message || 'Falha ao exportar JSON');
+                          } finally {
+                            setAuditExporting(null);
+                          }
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Export JSON
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        disabled={auditPurging}
+                        onClick={async () => {
+                          setAuditPurging(true);
+                          setError('');
+                          try {
+                            const r = await purgeSuperadminAudit();
+                            setSuccess(`Auditoria: removidos ${String(r.deleted)} registos.`);
+                            await loadSupportData();
+                          } catch (err: any) {
+                            setError(err?.message || 'Falha ao limpar auditoria');
+                          } finally {
+                            setAuditPurging(false);
+                          }
+                        }}
+                        title="Remove registos antigos (retenção por env)"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Limpar
+                      </button>
+                    </div>
+
+                    <div className="mt-3 space-y-2 text-sm text-[color:var(--dash-muted)]">
+                      {supportAudit.length === 0 ? (
+                        <div className="text-[color:var(--dash-muted)]">Sem registos.</div>
+                      ) : (
+                        supportAudit.slice(0, 6).map((row: any) => (
+                          <div key={String(row.id)} className="rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="font-semibold text-[color:var(--dash-ink)] truncate">{String(row.action)}</div>
+                                <div className="text-xs truncate">{String(row.entity_type)} • {String(row.entity_id)}</div>
+                              </div>
+                              <div className="text-xs whitespace-nowrap">{row.created_at ? String(row.created_at) : '—'}</div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid gap-3 lg:grid-cols-2">
+                  <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                      Reset password (suporte)
+                    </div>
+                    <p className="mt-2 text-sm text-[color:var(--dash-muted)]">
+                      Pesquisa por username/email/nome. O sistema gera uma password temporária.
+                    </p>
+
+                    <div className="mt-3 flex gap-2">
+                      <input
+                        value={userSearchQ}
+                        onChange={(e) => setUserSearchQ(e.target.value)}
+                        placeholder="Pesquisar utilizador..."
+                        className="w-full rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-3 py-2 text-sm text-[color:var(--dash-ink)]"
+                      />
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        disabled={userSearching}
+                        onClick={async () => {
+                          const q = String(userSearchQ || '').trim();
+                          if (q.length < 2) {
+                            setError('Digite pelo menos 2 caracteres.');
+                            return;
+                          }
+                          setUserSearching(true);
+                          setError('');
+                          setOneTimePassword('');
+                          try {
+                            const rows = await searchSuperadminUsers(q);
+                            setUserSearchResults(Array.isArray(rows) ? rows : []);
+                          } catch (err: any) {
+                            setUserSearchResults([]);
+                            setError(err?.message || 'Falha na pesquisa');
+                          } finally {
+                            setUserSearching(false);
+                          }
+                        }}
+                      >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Buscar
+                      </button>
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      {userSearchResults.length === 0 ? (
+                        <div className="text-sm text-[color:var(--dash-muted)]">Sem resultados.</div>
+                      ) : (
+                        userSearchResults.map((u: any) => (
+                          <div key={String(u.id)} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
+                            <div className="min-w-0">
+                              <div className="text-sm font-semibold text-[color:var(--dash-ink)] truncate">
+                                {String(u.first_name || '')} {String(u.last_name || '')}
+                              </div>
+                              <div className="text-xs text-[color:var(--dash-muted)] truncate">
+                                {String(u.username)} • {String(u.email)}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className="btn-secondary h-9 px-3"
+                              disabled={resettingUserId === String(u.id)}
+                              onClick={async () => {
+                                setResettingUserId(String(u.id));
+                                setError('');
+                                setSuccess('');
+                                setOneTimePassword('');
+                                try {
+                                  const r = await resetSuperadminUserPassword(String(u.id));
+                                  setOneTimePassword(String(r.oneTimePassword || ''));
+                                  setSuccess(`Password temporária gerada para ${String(r.username)}.`);
+                                } catch (err: any) {
+                                  setError(err?.message || 'Falha ao resetar password');
+                                } finally {
+                                  setResettingUserId(null);
+                                }
+                              }}
+                            >
+                              <KeyRound className="mr-2 h-4 w-4" />
+                              Reset
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {oneTimePassword ? (
+                      <div className="mt-3 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] p-3">
+                        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                          Password temporária
+                        </div>
+                        <div className="mt-2 font-mono text-sm text-[color:var(--dash-ink)] break-all">
+                          {oneTimePassword}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                      Export (setup runs)
+                    </div>
+                    <p className="mt-2 text-sm text-[color:var(--dash-muted)]">
+                      Exporta o histórico de runs/migrações da empresa selecionada.
+                    </p>
+
+                    {!selectedTenantId ? (
+                      <div className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-800">
+                        Selecione uma empresa no topo para exportar.
+                      </div>
+                    ) : (
+                      <div className="mt-3 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm text-[color:var(--dash-muted)]">Limite</label>
+                          <input
+                            type="number"
+                            value={runsExportLimit}
+                            min={1}
+                            max={1000}
+                            onChange={(e) => setRunsExportLimit(Number(e.target.value || 200))}
+                            className="w-28 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-3 py-2 text-sm text-[color:var(--dash-ink)]"
+                          />
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className="btn-secondary h-9 px-3"
+                            disabled={runsExporting !== null}
+                            onClick={async () => {
+                              setRunsExporting('csv');
+                              setError('');
+                              try {
+                                await downloadSetupRunsExport('csv', runsExportLimit);
+                              } catch (err: any) {
+                                setError(err?.message || 'Falha ao exportar CSV');
+                              } finally {
+                                setRunsExporting(null);
+                              }
+                            }}
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Export CSV
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary h-9 px-3"
+                            disabled={runsExporting !== null}
+                            onClick={async () => {
+                              setRunsExporting('json');
+                              setError('');
+                              try {
+                                await downloadSetupRunsExport('json', runsExportLimit);
+                              } catch (err: any) {
+                                setError(err?.message || 'Falha ao exportar JSON');
+                              } finally {
+                                setRunsExporting(null);
+                              }
+                            }}
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Export JSON
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </section>
           )}

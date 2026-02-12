@@ -93,6 +93,77 @@ export async function apiCall<T = any>(
   return result.data as T;
 }
 
+async function apiCallRaw(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<Response> {
+  const token = localStorage.getItem('token');
+  const url = `${API_BASE_URL}${endpoint}`;
+  const controller = new AbortController();
+  const timeoutMs = 30000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  const headers: any = {
+    ...options.headers,
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+
+    const payload = parseJwtPayload(token);
+    const role = String(payload?.role || '').trim().toLowerCase();
+    if (role === 'superadmin') {
+      const isTenantManagement =
+        endpoint === '/superadmin/tenants' || endpoint.startsWith('/superadmin/tenants/');
+
+      if (!isTenantManagement) {
+        const selectedTenantId = localStorage.getItem('superadminTenantId');
+        if (selectedTenantId && selectedTenantId.trim().length > 0) {
+          headers['x-tenant-id'] = selectedTenantId.trim();
+        }
+      }
+    }
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+      signal: options.signal ?? controller.signal,
+    });
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      throw new Error('Tempo limite da requisicao. Verifique a ligacao e tente novamente.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    try {
+      const error = await response.json();
+      throw new Error(error.error || 'API request failed');
+    } catch {
+      throw new Error('API request failed');
+    }
+  }
+
+  return response;
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 // ============================================================================
 // SUPERADMIN (global)
 // ============================================================================
@@ -159,6 +230,110 @@ export async function getSuperadminDbStatus(limit?: number): Promise<{
     limit !== undefined && Number.isFinite(Number(limit)) ? Math.max(1, Math.min(50, Math.trunc(Number(limit)))) : null;
   const qs = safeLimit ? `?limit=${encodeURIComponent(String(safeLimit))}` : '';
   return apiCall(`/superadmin/db/status${qs}`);
+}
+
+export async function getSuperadminHealth(): Promise<{
+  apiOk: boolean;
+  serverTime: string;
+  uptimeSeconds: number;
+  version?: string | null;
+  dbOk: boolean;
+  dbTime?: string | null;
+}> {
+  return apiCall('/superadmin/health');
+}
+
+export async function getSuperadminTenantDiagnostics(limit?: number): Promise<{
+  topTenants: Array<{ id: string; name: string; slug: string; is_active: boolean; users: number; plants: number }>;
+  warnings: Array<{
+    type: string;
+    tenant: { id: string; name: string; slug: string; is_active: boolean };
+    users: number;
+    plants: number;
+  }>;
+}> {
+  const safeLimit =
+    limit !== undefined && Number.isFinite(Number(limit)) ? Math.max(1, Math.min(50, Math.trunc(Number(limit)))) : null;
+  const qs = safeLimit ? `?limit=${encodeURIComponent(String(safeLimit))}` : '';
+  return apiCall(`/superadmin/diagnostics/tenants${qs}`);
+}
+
+export async function getSuperadminAudit(params?: {
+  limit?: number;
+  offset?: number;
+  from?: string;
+  to?: string;
+}): Promise<
+  Array<{
+    id: string;
+    actor_user_id: string;
+    action: string;
+    entity_type: string;
+    entity_id: string;
+    affected_tenant_id: string | null;
+    metadata: any;
+    ip_address: string | null;
+    user_agent: string | null;
+    created_at: any;
+  }>
+> {
+  const qs = new URLSearchParams();
+  if (params?.limit !== undefined) qs.set('limit', String(params.limit));
+  if (params?.offset !== undefined) qs.set('offset', String(params.offset));
+  if (params?.from) qs.set('from', params.from);
+  if (params?.to) qs.set('to', params.to);
+
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return apiCall(`/superadmin/audit${suffix}`);
+}
+
+export async function purgeSuperadminAudit(): Promise<{ deleted: number; disabled?: boolean }> {
+  return apiCall('/superadmin/audit/purge', { method: 'POST' });
+}
+
+export async function downloadSuperadminAudit(format: 'csv' | 'json' = 'csv', limit = 200) {
+  const qs = new URLSearchParams({ format, limit: String(limit) });
+  const res = await apiCallRaw(`/superadmin/audit/export?${qs.toString()}`, {
+    method: 'GET',
+  });
+  const blob = await res.blob();
+  triggerDownload(blob, format === 'json' ? 'superadmin_audit_logs.json' : 'superadmin_audit_logs.csv');
+}
+
+export async function searchSuperadminUsers(q: string): Promise<
+  Array<{
+    id: string;
+    tenant_id: string;
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    is_active: boolean;
+  }>
+> {
+  const safe = String(q || '').trim();
+  if (!safe) return [];
+  return apiCall(`/superadmin/users/search?q=${encodeURIComponent(safe)}`);
+}
+
+export async function resetSuperadminUserPassword(userId: string): Promise<{
+  userId: string;
+  tenantId: string;
+  username: string;
+  oneTimePassword: string;
+}> {
+  return apiCall(`/superadmin/users/${encodeURIComponent(String(userId))}/reset-password`, {
+    method: 'POST',
+  });
+}
+
+export async function downloadSetupRunsExport(format: 'csv' | 'json' = 'csv', limit = 200) {
+  const qs = new URLSearchParams({ format, limit: String(limit) });
+  const res = await apiCallRaw(`/superadmin/db/runs/export?${qs.toString()}`, {
+    method: 'GET',
+  });
+  const blob = await res.blob();
+  triggerDownload(blob, format === 'json' ? 'setup_db_runs.json' : 'setup_db_runs.csv');
 }
 
 async function publicApiCall<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {

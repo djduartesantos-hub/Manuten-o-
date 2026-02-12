@@ -720,6 +720,31 @@ export const auditLogs = pgTable(
   }),
 );
 
+// SuperAdmin Audit Logs (global)
+export const superadminAuditLogs = pgTable(
+  'superadmin_audit_logs',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    actor_user_id: uuid('actor_user_id')
+      .notNull()
+      .references(() => users.id),
+    action: text('action').notNull(),
+    entity_type: text('entity_type').notNull(),
+    entity_id: text('entity_id').notNull(),
+    affected_tenant_id: uuid('affected_tenant_id'),
+    metadata: jsonb('metadata'),
+    ip_address: text('ip_address'),
+    user_agent: text('user_agent'),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    createdAtIdx: index('superadmin_audit_logs_created_at_idx').on(table.created_at),
+    actorUserIdx: index('superadmin_audit_logs_actor_user_id_idx').on(table.actor_user_id),
+    affectedTenantIdx: index('superadmin_audit_logs_affected_tenant_id_idx').on(table.affected_tenant_id),
+    actionIdx: index('superadmin_audit_logs_action_idx').on(table.action),
+  }),
+);
+
 // SLA Rules
 export const slaRules = pgTable(
   'sla_rules',

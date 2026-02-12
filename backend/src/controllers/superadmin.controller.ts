@@ -3,7 +3,9 @@ import { asc, eq, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../config/database.js';
 import { AuthenticatedRequest } from '../types/index.js';
-import { tenants } from '../db/schema.js';
+import { tenants, users } from '../db/schema.js';
+import { hashPassword } from '../auth/jwt.js';
+import { SuperadminAuditService } from '../services/superadminAudit.service.js';
 
 const normalizeSlug = (value: unknown) => {
   const raw = String(value || '').trim().toLowerCase();
@@ -80,6 +82,16 @@ export async function createTenant(req: AuthenticatedRequest, res: Response) {
       } as any)
       .returning();
 
+    if (created?.id) {
+      void SuperadminAuditService.log(req, {
+        action: 'tenant.create',
+        entity_type: 'tenant',
+        entity_id: String(created.id),
+        affected_tenant_id: String(created.id),
+        metadata: { name: safeName, slug: safeSlug, is_active: Boolean(created.is_active) },
+      });
+    }
+
     return res.status(201).json({ success: true, data: created });
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to create tenant' });
@@ -91,6 +103,14 @@ export async function updateTenant(req: AuthenticatedRequest, res: Response) {
     const { tenantId } = req.params as any;
     if (!tenantId) {
       return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    }
+
+    const before = await db.query.tenants.findFirst({
+      where: (fields: any, { eq }: any) => eq(fields.id, tenantId),
+    });
+
+    if (!before) {
+      return res.status(404).json({ success: false, error: 'Tenant not found' });
     }
 
     const { name, slug, description, is_active } = req.body || {};
@@ -134,13 +154,400 @@ export async function updateTenant(req: AuthenticatedRequest, res: Response) {
       .where(eq(tenants.id, tenantId))
       .returning();
 
-    if (!updated) {
-      return res.status(404).json({ success: false, error: 'Tenant not found' });
+    if (updated?.id) {
+      void SuperadminAuditService.log(req, {
+        action: 'tenant.update',
+        entity_type: 'tenant',
+        entity_id: String(updated.id),
+        affected_tenant_id: String(updated.id),
+        metadata: {
+          before: {
+            name: String((before as any)?.name ?? ''),
+            slug: String((before as any)?.slug ?? ''),
+            description: (before as any)?.description ?? null,
+            is_active: Boolean((before as any)?.is_active),
+          },
+          after: {
+            name: String((updated as any)?.name ?? ''),
+            slug: String((updated as any)?.slug ?? ''),
+            description: (updated as any)?.description ?? null,
+            is_active: Boolean((updated as any)?.is_active),
+          },
+        },
+      });
     }
 
     return res.json({ success: true, data: updated });
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to update tenant' });
+  }
+}
+
+export async function getHealth(_req: AuthenticatedRequest, res: Response) {
+  try {
+    const serverTime = new Date().toISOString();
+    const ping = await db.execute(sql`SELECT 1 AS ok;`);
+    const dbOk = Number((ping as any)?.rows?.[0]?.ok ?? 0) === 1;
+
+    let dbTime: string | null = null;
+    try {
+      const dbNowResult = await db.execute(sql`SELECT NOW() AS now;`);
+      dbTime = String((dbNowResult as any)?.rows?.[0]?.now ?? '') || null;
+    } catch {
+      dbTime = null;
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        apiOk: true,
+        serverTime,
+        uptimeSeconds: Math.floor(process.uptime()),
+        version: process.env.GIT_SHA || process.env.RENDER_GIT_COMMIT || null,
+        dbOk,
+        dbTime,
+      },
+    });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to fetch health status' });
+  }
+}
+
+export async function getTenantDiagnostics(req: AuthenticatedRequest, res: Response) {
+  try {
+    const limitRaw = Number((req.query as any)?.limit ?? 5);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 50) : 5;
+
+    const rows = await db.execute(sql`
+      SELECT
+        t.id,
+        t.name,
+        t.slug,
+        t.is_active,
+        COALESCE(u.user_count, 0)::int AS users,
+        COALESCE(p.plant_count, 0)::int AS plants
+      FROM tenants t
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS user_count
+        FROM users
+        GROUP BY tenant_id
+      ) u ON u.tenant_id = t.id
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS plant_count
+        FROM plants
+        GROUP BY tenant_id
+      ) p ON p.tenant_id = t.id
+      ORDER BY COALESCE(u.user_count, 0) DESC, COALESCE(p.plant_count, 0) DESC, t.created_at ASC
+      LIMIT ${limit};
+    `);
+
+    const tenantsSummary = ((rows as any)?.rows ?? []).map((r: any) => ({
+      id: String(r.id),
+      name: String(r.name || ''),
+      slug: String(r.slug || ''),
+      is_active: Boolean(r.is_active),
+      users: Number(r.users ?? 0),
+      plants: Number(r.plants ?? 0),
+    }));
+
+    const warningsRows = await db.execute(sql`
+      SELECT
+        t.id,
+        t.name,
+        t.slug,
+        t.is_active,
+        COALESCE(u.user_count, 0)::int AS users,
+        COALESCE(p.plant_count, 0)::int AS plants
+      FROM tenants t
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS user_count
+        FROM users
+        GROUP BY tenant_id
+      ) u ON u.tenant_id = t.id
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS plant_count
+        FROM plants
+        GROUP BY tenant_id
+      ) p ON p.tenant_id = t.id
+      WHERE (t.is_active = true AND COALESCE(p.plant_count, 0) = 0)
+         OR (t.is_active = true AND COALESCE(u.user_count, 0) = 0)
+         OR (t.is_active = false AND COALESCE(u.user_count, 0) > 0)
+      ORDER BY t.is_active DESC, COALESCE(u.user_count, 0) DESC;
+    `);
+
+    const warnings = ((warningsRows as any)?.rows ?? []).map((r: any) => {
+      const usersCount = Number(r.users ?? 0);
+      const plantsCount = Number(r.plants ?? 0);
+      const isActive = Boolean(r.is_active);
+
+      let type = 'warning';
+      if (isActive && plantsCount === 0) type = 'active_without_plants';
+      else if (isActive && usersCount === 0) type = 'active_without_users';
+      else if (!isActive && usersCount > 0) type = 'inactive_with_users';
+
+      return {
+        type,
+        tenant: {
+          id: String(r.id),
+          name: String(r.name || ''),
+          slug: String(r.slug || ''),
+          is_active: isActive,
+        },
+        users: usersCount,
+        plants: plantsCount,
+      };
+    });
+
+    return res.json({ success: true, data: { topTenants: tenantsSummary, warnings } });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to fetch tenant diagnostics' });
+  }
+}
+
+export async function listSuperadminAudit(req: AuthenticatedRequest, res: Response) {
+  try {
+    const limit = Number((req.query as any)?.limit ?? 20);
+    const offset = Number((req.query as any)?.offset ?? 0);
+    const from = (req.query as any)?.from ? String((req.query as any)?.from) : null;
+    const to = (req.query as any)?.to ? String((req.query as any)?.to) : null;
+
+    const rows = await SuperadminAuditService.list({ limit, offset, from, to });
+    return res.json({ success: true, data: rows });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to fetch audit logs' });
+  }
+}
+
+function toCsvValue(value: unknown): string {
+  const str = value === null || value === undefined ? '' : String(value);
+  const escaped = str.replace(/"/g, '""');
+  return `"${escaped}"`;
+}
+
+export async function exportSuperadminAudit(req: AuthenticatedRequest, res: Response) {
+  try {
+    const format = String((req.query as any)?.format || 'csv').toLowerCase();
+    const limit = Number((req.query as any)?.limit ?? 200);
+    const from = (req.query as any)?.from ? String((req.query as any)?.from) : null;
+    const to = (req.query as any)?.to ? String((req.query as any)?.to) : null;
+
+    const rows = await SuperadminAuditService.list({ limit, offset: 0, from, to });
+
+    if (format === 'json') {
+      return res.json({ success: true, data: rows });
+    }
+
+    const headers = [
+      'id',
+      'created_at',
+      'actor_user_id',
+      'action',
+      'entity_type',
+      'entity_id',
+      'affected_tenant_id',
+      'ip_address',
+      'user_agent',
+      'metadata',
+    ];
+
+    const csv = [
+      headers.join(','),
+      ...rows.map((r: any) =>
+        [
+          r.id,
+          r.created_at,
+          r.actor_user_id,
+          r.action,
+          r.entity_type,
+          r.entity_id,
+          r.affected_tenant_id,
+          r.ip_address,
+          r.user_agent,
+          r.metadata ? JSON.stringify(r.metadata) : '',
+        ]
+          .map(toCsvValue)
+          .join(','),
+      ),
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="superadmin_audit_logs.csv"');
+    return res.status(200).send(csv);
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to export audit logs' });
+  }
+}
+
+export async function purgeSuperadminAudit(req: AuthenticatedRequest, res: Response) {
+  try {
+    const retentionDaysRaw = Number(process.env.SUPERADMIN_AUDIT_RETENTION_DAYS || 90);
+    if (!Number.isFinite(retentionDaysRaw) || retentionDaysRaw <= 0) {
+      return res.json({ success: true, data: { deleted: 0, disabled: true } });
+    }
+
+    const result = await SuperadminAuditService.purgeOlderThan(retentionDaysRaw);
+    void SuperadminAuditService.log(req, {
+      action: 'audit.purge',
+      entity_type: 'superadmin_audit_logs',
+      entity_id: 'superadmin_audit_logs',
+      metadata: { retentionDays: retentionDaysRaw, deleted: result.deleted },
+    });
+
+    return res.json({ success: true, data: result });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to purge audit logs' });
+  }
+}
+
+export async function searchUsers(req: AuthenticatedRequest, res: Response) {
+  try {
+    const q = String((req.query as any)?.q || '').trim();
+    if (!q || q.length < 2) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const rows = await db.execute(sql`
+      SELECT id, tenant_id, username, email, first_name, last_name, is_active
+      FROM users
+      WHERE username ILIKE ${'%' + q + '%'}
+         OR email ILIKE ${'%' + q + '%'}
+         OR first_name ILIKE ${'%' + q + '%'}
+         OR last_name ILIKE ${'%' + q + '%'}
+      ORDER BY last_login DESC NULLS LAST, created_at DESC
+      LIMIT 10;
+    `);
+
+    const data = ((rows as any)?.rows ?? []).map((r: any) => ({
+      id: String(r.id),
+      tenant_id: String(r.tenant_id),
+      username: String(r.username || ''),
+      email: String(r.email || ''),
+      first_name: String(r.first_name || ''),
+      last_name: String(r.last_name || ''),
+      is_active: Boolean(r.is_active),
+    }));
+
+    return res.json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to search users' });
+  }
+}
+
+function generateTempPassword(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
+  const len = 16;
+  let out = '';
+  for (let i = 0; i < len; i++) {
+    out += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return out;
+}
+
+export async function resetUserPassword(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { userId } = req.params as any;
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'User ID is required' });
+    }
+
+    const found = await db.query.users.findFirst({
+      where: (fields: any, { eq }: any) => eq(fields.id, userId),
+    });
+
+    if (!found) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const password = generateTempPassword();
+    const passwordHash = await hashPassword(password);
+
+    await db
+      .update(users)
+      .set({ password_hash: passwordHash, updated_at: new Date() } as any)
+      .where(eq(users.id, userId));
+
+    void SuperadminAuditService.log(req, {
+      action: 'user.reset_password',
+      entity_type: 'user',
+      entity_id: String(userId),
+      affected_tenant_id: String((found as any).tenant_id),
+      metadata: { username: String((found as any).username || ''), email: String((found as any).email || '') },
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        userId: String(userId),
+        tenantId: String((found as any).tenant_id),
+        username: String((found as any).username || ''),
+        oneTimePassword: password,
+      },
+    });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to reset password' });
+  }
+}
+
+export async function exportSetupRuns(req: AuthenticatedRequest, res: Response) {
+  try {
+    const headerTenantId = (req as any)?.headers?.['x-tenant-id'];
+    const headerTenantSlug = (req as any)?.headers?.['x-tenant-slug'];
+    const hasTenantOverride = Boolean(
+      (typeof headerTenantId === 'string' && headerTenantId.trim().length > 0) ||
+        (typeof headerTenantSlug === 'string' && headerTenantSlug.trim().length > 0),
+    );
+
+    if (!hasTenantOverride) {
+      return res.status(400).json({ success: false, error: 'Select a tenant (Empresa) to export setup runs' });
+    }
+
+    const format = String((req.query as any)?.format || 'csv').toLowerCase();
+    const limitRaw = Number((req.query as any)?.limit ?? 200);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 1000) : 200;
+
+    const tenantId = String(req.tenantId || '');
+    const tableCheck = await db.execute(sql`SELECT to_regclass('public.setup_db_runs') AS name;`);
+    const tableName = String((tableCheck as any)?.rows?.[0]?.name ?? '') || null;
+    if (!tableName) {
+      return res.status(404).json({ success: false, error: 'setup_db_runs table not found' });
+    }
+
+    const runs = await db.execute(sql`
+      SELECT id, tenant_id, run_type, user_id, migrations, patches, created_at
+      FROM setup_db_runs
+      WHERE tenant_id = ${tenantId}
+      ORDER BY created_at DESC
+      LIMIT ${limit};
+    `);
+    const rows = (runs as any)?.rows ?? [];
+
+    if (format === 'json') {
+      return res.json({ success: true, data: rows });
+    }
+
+    const headers = ['id', 'tenant_id', 'run_type', 'user_id', 'migrations', 'patches', 'created_at'];
+    const csv = [
+      headers.join(','),
+      ...rows.map((r: any) =>
+        [
+          r.id,
+          r.tenant_id,
+          r.run_type,
+          r.user_id,
+          r.migrations ? JSON.stringify(r.migrations) : '',
+          r.patches ? JSON.stringify(r.patches) : '',
+          r.created_at,
+        ]
+          .map(toCsvValue)
+          .join(','),
+      ),
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="setup_db_runs.csv"');
+    return res.status(200).send(csv);
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to export setup runs' });
   }
 }
 

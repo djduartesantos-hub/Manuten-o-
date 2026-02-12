@@ -177,6 +177,14 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/superadmin/suporte"
+                element={
+                  <ProtectedRoute requiredRoles={['superadmin']}>
+                    <SuperAdminPage />
+                  </ProtectedRoute>
+                }
+              />
             <Route
               path="/dashboard"
               element={
