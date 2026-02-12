@@ -302,7 +302,7 @@ export function SettingsPage() {
 function SuperAdminSettings() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { selectedPlant, setPlants, setSelectedPlant } = useAppStore();
+  const { selectedPlant, plants, setPlants, setSelectedPlant } = useAppStore();
   const [tenants, setTenants] = React.useState<
     Array<{ id: string; name: string; slug: string; is_active: boolean }>
   >([]);
@@ -315,21 +315,24 @@ function SuperAdminSettings() {
     return stored && stored.trim().length > 0 ? stored.trim() : '';
   });
 
-  type SuperAdminStep = 'tenant' | 'plants' | 'users' | 'updates';
+  type SuperAdminStep = 'dashboard' | 'tenant' | 'plants' | 'users' | 'updates';
 
   const [step, setStep] = React.useState<SuperAdminStep>(() => {
     const params = new URLSearchParams(location.search);
     const fromUrl = params.get('step') as SuperAdminStep | null;
     const allowed: Record<SuperAdminStep, true> = {
+      dashboard: true,
       tenant: true,
       plants: true,
       users: true,
       updates: true,
     };
 
-    const fallback: SuperAdminStep = selectedTenantId ? 'plants' : 'tenant';
+    const fallback: SuperAdminStep = selectedTenantId ? 'dashboard' : 'tenant';
     const initial = fromUrl && allowed[fromUrl] ? fromUrl : fallback;
-    if (initial !== 'tenant' && !selectedTenantId) return 'tenant';
+    if ((initial === 'plants' || initial === 'users' || initial === 'updates') && !selectedTenantId) {
+      return 'tenant';
+    }
     return initial;
   });
 
@@ -338,6 +341,26 @@ function SuperAdminSettings() {
 
   const [dbStatus, setDbStatus] = React.useState<any | null>(null);
   const [loadingDbStatus, setLoadingDbStatus] = React.useState(false);
+  const [dbRunsLimit, setDbRunsLimit] = React.useState<number>(10);
+
+  const slugifyTenantSlug = (value: string) => {
+    const raw = String(value || '').trim().toLowerCase();
+    if (!raw) return '';
+    try {
+      const ascii = raw.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+      return ascii
+        .replace(/[^a-z0-9\s_-]/g, '')
+        .replace(/[\s_]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    } catch {
+      return raw
+        .replace(/[^a-z0-9\s_-]/g, '')
+        .replace(/[\s_]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    }
+  };
 
   const normalizeStringList = (value: any): string[] => {
     if (Array.isArray(value)) {
@@ -402,10 +425,10 @@ function SuperAdminSettings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadDbStatus = async () => {
+  const loadDbStatus = async (limitOverride?: number) => {
     setLoadingDbStatus(true);
     try {
-      const data = await getSuperadminDbStatus();
+      const data = await getSuperadminDbStatus(limitOverride ?? dbRunsLimit);
       setDbStatus(data || null);
     } catch (err: any) {
       setDbStatus(null);
@@ -441,9 +464,16 @@ function SuperAdminSettings() {
   );
 
   React.useEffect(() => {
-    // If tenant gets cleared, force the wizard back to tenant step.
-    if (!selectedTenantId && step !== 'tenant') {
+    // If tenant gets cleared, force tenant-scoped steps back to tenant.
+    if (!selectedTenantId && (step === 'plants' || step === 'users' || step === 'updates')) {
       setStepAndUrl('tenant');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTenantId]);
+
+  React.useEffect(() => {
+    if (selectedTenantId) {
+      void reloadPlantsForSelectedTenant();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTenantId]);
@@ -461,41 +491,51 @@ function SuperAdminSettings() {
   }, [step]);
 
   React.useEffect(() => {
-    if (step === 'updates' && selectedTenantId) {
+    if ((step === 'updates' || step === 'dashboard') && selectedTenantId) {
       void loadDbStatus();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, selectedTenantId]);
+  }, [step, selectedTenantId, dbRunsLimit]);
 
-  const steps: Array<{ id: SuperAdminStep; title: string; description: string }> = [
+  const steps: Array<{ id: SuperAdminStep; title: string; description: string; requiresTenant?: boolean }> = [
+    {
+      id: 'dashboard',
+      title: 'Dashboard',
+      description: 'Resumo global e por empresa (BD, fábricas, utilizadores).',
+      requiresTenant: false,
+    },
     {
       id: 'tenant',
       title: 'Empresas',
       description: 'Selecionar e gerir empresas (contexto global).',
+      requiresTenant: false,
     },
     {
       id: 'plants',
       title: 'Fábricas',
       description: 'Gerir fábricas da empresa selecionada.',
+      requiresTenant: true,
     },
     {
       id: 'users',
       title: 'Utilizadores & RBAC',
       description: 'Roles, permissões e gestão administrativa.',
+      requiresTenant: true,
     },
     {
       id: 'updates',
       title: 'Atualizações',
       description: 'Atualizações gerais e setup/admin DB.',
+      requiresTenant: true,
     },
   ];
 
-  const requireTenantForStep = step !== 'tenant';
+  const requireTenantForStep = step === 'plants' || step === 'users' || step === 'updates';
   const missingTenant = requireTenantForStep && !selectedTenantId;
 
   const handleCreateTenant = async () => {
     const name = newTenant.name.trim();
-    const slug = newTenant.slug.trim().toLowerCase();
+    const slug = slugifyTenantSlug(newTenant.slug);
     if (!name || !slug) {
       setError('Nome e slug são obrigatórios');
       return;
@@ -594,261 +634,362 @@ function SuperAdminSettings() {
             )}
           </div>
         )}
-
-        <div className="mt-5 grid gap-2 md:grid-cols-4">
-          {steps.map((s, idx) => {
-            const isActive = s.id === step;
-            const isLocked = s.id !== 'tenant' && !selectedTenantId;
-            return (
-              <button
-                key={s.id}
-                type="button"
-                className={
-                  isActive
-                    ? 'rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 text-left'
-                    : 'rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4 text-left hover:bg-[color:var(--dash-surface-2)]'
-                }
-                onClick={() => {
-                  if (isLocked) {
-                    setStepAndUrl('tenant');
-                    setError('Selecione uma empresa antes de avançar.');
-                    return;
-                  }
-                  setStepAndUrl(s.id);
-                }}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
-                      Passo {idx + 1}
-                    </div>
-                    <div className="mt-1 font-semibold text-[color:var(--dash-ink)] truncate">
-                      {s.title}
-                    </div>
-                    <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
-                      {s.description}
-                    </div>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-[color:var(--dash-muted)]" />
-                </div>
-              </button>
-            );
-          })}
-        </div>
       </section>
 
-      {missingTenant && (
-        <section className="rounded-[24px] border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-700">
-          Selecione uma empresa no Passo 1 para continuar.
-        </section>
-      )}
-
-      {step === 'tenant' && (
-        <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
-          <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Empresas</h4>
-          <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
-            Criar e ativar/desativar empresas.
-          </p>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            <input
-              className="h-10 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 text-sm"
-              placeholder="Nome da empresa"
-              value={newTenant.name}
-              onChange={(e) => setNewTenant((s) => ({ ...s, name: e.target.value }))}
-            />
-            <input
-              className="h-10 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 text-sm"
-              placeholder="slug (ex: acme-industria)"
-              value={newTenant.slug}
-              onChange={(e) => setNewTenant((s) => ({ ...s, slug: e.target.value }))}
-            />
-            <button
-              type="button"
-              className="btn-primary h-10"
-              onClick={() => void handleCreateTenant()}
-              disabled={creatingTenant}
-            >
-              Criar empresa
-            </button>
+      <div className="grid gap-6 md:grid-cols-[260px,1fr]">
+        <nav className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-3">
+          <div className="px-2 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+            Super Admin
           </div>
-
-          <div className="mt-5 space-y-2">
-            {tenants.map((t) => (
-              <div
-                key={t.id}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-4 py-3"
-              >
-                <div className="min-w-0">
-                  <div className="font-semibold text-[color:var(--dash-ink)] truncate">
-                    {t.name}
-                  </div>
-                  <div className="text-xs text-[color:var(--dash-muted)] truncate">{t.slug}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="btn-secondary h-9 px-3"
-                    onClick={() => {
-                      void handleSelectTenant(t.id);
-                      setStepAndUrl('plants');
-                    }}
-                  >
-                    Selecionar
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-secondary h-9 px-3"
-                    onClick={() => void toggleTenantActive(t.id, !t.is_active)}
-                  >
-                    {t.is_active ? 'Desativar' : 'Ativar'}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {step === 'plants' && selectedTenantId && (
-        <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
-          <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Fábricas</h4>
-          <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
-            Gestão de fábricas para a empresa selecionada.
-          </p>
-          <div className="mt-6">
-            <PlantsPage embedded key={`plants-${selectedTenantId}`} />
-          </div>
-        </section>
-      )}
-
-      {step === 'users' && selectedTenantId && (
-        <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
-          <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Utilizadores & RBAC</h4>
-          <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
-            Permissões, roles e utilizadores para a empresa selecionada.
-          </p>
-          <div className="mt-6 space-y-10">
-            <PermissionsSettings key={`perm-${selectedTenantId}`} />
-            <ManagementSettings mode="usersOnly" key={`mgmt-${selectedTenantId}`} />
-          </div>
-        </section>
-      )}
-
-      {step === 'updates' && selectedTenantId && (
-        <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
-          <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Atualizações & Base de dados</h4>
-          <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
-            Estas ferramentas operam sobre a empresa selecionada.
-          </p>
-
-          <div className="mt-5 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
-                  Estado da BD
-                </div>
-                <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
-                  Contexto: <span className="font-semibold text-[color:var(--dash-ink)]">{selectedTenant?.name || selectedTenantId}</span>
-                </div>
-                {dbStatus ? (
-                  <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
-                    <div>
-                      DB: <span className="font-semibold text-[color:var(--dash-ink)]">{dbStatus.dbOk ? 'OK' : 'Erro'}</span>
+          <div className="space-y-2">
+            {steps.map((s) => {
+              const isActive = s.id === step;
+              const isLocked = Boolean(s.requiresTenant) && !selectedTenantId;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={
+                    isActive
+                      ? 'w-full rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3 text-left'
+                      : 'w-full rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-3 text-left hover:bg-[color:var(--dash-surface-2)]'
+                  }
+                  onClick={() => {
+                    if (isLocked) {
+                      setStepAndUrl('tenant');
+                      setError('Selecione uma empresa antes de avançar.');
+                      return;
+                    }
+                    setStepAndUrl(s.id);
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-[color:var(--dash-ink)] truncate">
+                        {s.title}
+                      </div>
+                      <div className="mt-1 text-xs text-[color:var(--dash-muted)]">{s.description}</div>
                     </div>
-                    {dbStatus.dbTime ? <div>Hora BD: {String(dbStatus.dbTime)}</div> : null}
-                    {dbStatus.serverTime ? <div>Hora servidor: {String(dbStatus.serverTime)}</div> : null}
-                    {dbStatus.counts ? (
-                      <div>
-                        Registos (tenant): users={String(dbStatus.counts.users ?? '-')}, plants={String(dbStatus.counts.plants ?? '-')}
-                      </div>
-                    ) : null}
-                    {dbStatus.drizzleMigrations?.table ? (
-                      <div>
-                        Migrações: <span className="font-semibold">{String(dbStatus.drizzleMigrations.table)}</span>
-                      </div>
-                    ) : null}
-                    {dbStatus.lastSetupRun ? (
-                      <div className="mt-3 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3">
-                        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
-                          Última execução
-                        </div>
-                        <div className="mt-2">
-                          Tipo: <span className="font-semibold text-[color:var(--dash-ink)]">{String(dbStatus.lastSetupRun.run_type || '-')}</span>
-                        </div>
-                        {dbStatus.lastSetupRun.created_at ? (
-                          <div>Data: {String(dbStatus.lastSetupRun.created_at)}</div>
-                        ) : null}
-                        {(() => {
-                          const migrations = normalizeStringList(dbStatus.lastSetupRun.migrations);
-                          const patches = normalizeStringList(dbStatus.lastSetupRun.patches);
-                          if (migrations.length === 0 && patches.length === 0) return null;
-                          return (
-                            <div className="mt-2">
-                              {migrations.length > 0 ? <div>Migrações: {migrations.join(', ')}</div> : null}
-                              {patches.length > 0 ? <div>Patches: {patches.join(', ')}</div> : null}
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    ) : null}
+                    <ChevronRight className="mt-0.5 h-5 w-5 text-[color:var(--dash-muted)]" />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
 
-                    {Array.isArray((dbStatus as any).setupRuns) && (dbStatus as any).setupRuns.length > 0 ? (
-                      <div className="mt-3 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3">
-                        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
-                          Histórico (últimas {(dbStatus as any).setupRuns.length})
-                        </div>
-                        <div className="mt-2 space-y-2">
-                          {(dbStatus as any).setupRuns.map((run: any, idx: number) => {
-                            const migrations = normalizeStringList(run?.migrations);
-                            const patches = normalizeStringList(run?.patches);
-                            return (
-                              <div
-                                key={String(run?.id || `${run?.created_at || 'run'}-${idx}`)}
-                                className="rounded-lg border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-2"
-                              >
-                                <div>
-                                  <span className="font-semibold text-[color:var(--dash-ink)]">{String(run?.run_type || '-')}</span>
-                                  {run?.created_at ? <span> · {String(run.created_at)}</span> : null}
-                                </div>
-                                {migrations.length > 0 ? (
-                                  <div className="text-xs">Migrações: {migrations.join(', ')}</div>
-                                ) : null}
-                                {patches.length > 0 ? (
-                                  <div className="text-xs">Patches: {patches.join(', ')}</div>
-                                ) : null}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : null}
+        <div className="space-y-6">
+          {missingTenant && (
+            <section className="rounded-[24px] border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-700">
+              Selecione uma empresa para continuar.
+            </section>
+          )}
+
+          {step === 'dashboard' && (
+            <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
+              <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Dashboard</h4>
+              <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                Resumo global e do contexto selecionado.
+              </p>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-3">
+                <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                    Empresas
                   </div>
-                ) : (
                   <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
-                    {loadingDbStatus ? 'A carregar...' : 'Sem dados de estado.'}
+                    Total: <span className="font-semibold text-[color:var(--dash-ink)]">{String(tenants.length)}</span>
                   </div>
-                )}
+                  <div className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                    Ativas:{' '}
+                    <span className="font-semibold text-[color:var(--dash-ink)]">
+                      {String(tenants.filter((t) => t.is_active).length)}
+                    </span>
+                    {'  '}• Inativas:{' '}
+                    <span className="font-semibold text-[color:var(--dash-ink)]">
+                      {String(tenants.filter((t) => !t.is_active).length)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                    Fábricas
+                  </div>
+                  <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
+                    Contexto: <span className="font-semibold text-[color:var(--dash-ink)]">{selectedTenant?.name || '—'}</span>
+                  </div>
+                  <div className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                    Fábricas carregadas: <span className="font-semibold text-[color:var(--dash-ink)]">{String(plants.length)}</span>
+                  </div>
+                  <div className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                    Planta selecionada:{' '}
+                    <span className="font-semibold text-[color:var(--dash-ink)]">{selectedPlant || '—'}</span>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                    Base de dados
+                  </div>
+                  <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
+                    DB:{' '}
+                    <span className="font-semibold text-[color:var(--dash-ink)]">
+                      {selectedTenantId ? (dbStatus ? (dbStatus.dbOk ? 'OK' : 'Erro') : loadingDbStatus ? 'A carregar...' : '—') : 'Selecione uma empresa'}
+                    </span>
+                  </div>
+                  {selectedTenantId && dbStatus?.counts ? (
+                    <div className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                      Users: <span className="font-semibold text-[color:var(--dash-ink)]">{String(dbStatus.counts.users ?? '-')}</span>
+                      {'  '}• Plants:{' '}
+                      <span className="font-semibold text-[color:var(--dash-ink)]">{String(dbStatus.counts.plants ?? '-')}</span>
+                    </div>
+                  ) : null}
+                  {selectedTenantId && dbStatus?.lastSetupRun ? (
+                    <div className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                      Última execução:{' '}
+                      <span className="font-semibold text-[color:var(--dash-ink)]">
+                        {String(dbStatus.lastSetupRun.run_type || '-')}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {step === 'tenant' && (
+            <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
+              <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Empresas</h4>
+              <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                Criar e ativar/desativar empresas.
+              </p>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-3">
+                <input
+                  className="h-10 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 text-sm"
+                  placeholder="Nome da empresa"
+                  value={newTenant.name}
+                  onChange={(e) => setNewTenant((s) => ({ ...s, name: e.target.value }))}
+                />
+                <div>
+                  <input
+                    className="h-10 w-full rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 text-sm"
+                    placeholder="slug (ex: acme industria)"
+                    value={newTenant.slug}
+                    onChange={(e) => setNewTenant((s) => ({ ...s, slug: e.target.value }))}
+                  />
+                  <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                    Espaços e acentos serão normalizados (ex: “Minha Empresa” → “minha-empresa”).
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn-primary h-10"
+                  onClick={() => void handleCreateTenant()}
+                  disabled={creatingTenant}
+                >
+                  Criar empresa
+                </button>
               </div>
 
-              <button
-                type="button"
-                className="btn-secondary h-9 px-3"
-                onClick={() => void loadDbStatus()}
-                disabled={loadingDbStatus}
-              >
-                Recarregar
-              </button>
-            </div>
-          </div>
+              <div className="mt-5 space-y-2">
+                {tenants.map((t) => (
+                  <div
+                    key={t.id}
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-4 py-3"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-semibold text-[color:var(--dash-ink)] truncate">{t.name}</div>
+                      <div className="text-xs text-[color:var(--dash-muted)] truncate">{t.slug}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={() => {
+                          void handleSelectTenant(t.id);
+                          setStepAndUrl('plants');
+                        }}
+                      >
+                        Selecionar
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={() => void toggleTenantActive(t.id, !t.is_active)}
+                      >
+                        {t.is_active ? 'Desativar' : 'Ativar'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
-          <div className="mt-5 space-y-8">
-            <DatabaseUpdatePage embedded />
-            <AdminSetupPage embedded />
-            <SetupInitPage embedded />
-          </div>
-        </section>
-      )}
+          {step === 'plants' && selectedTenantId && (
+            <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
+              <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Fábricas</h4>
+              <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                Gestão de fábricas para a empresa selecionada.
+              </p>
+              <div className="mt-6">
+                <PlantsPage embedded key={`plants-${selectedTenantId}`} />
+              </div>
+            </section>
+          )}
+
+          {step === 'users' && selectedTenantId && (
+            <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
+              <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Utilizadores & RBAC</h4>
+              <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                Permissões, roles e utilizadores para a empresa selecionada.
+              </p>
+              <div className="mt-6 space-y-10">
+                <PermissionsSettings key={`perm-${selectedTenantId}`} />
+                <ManagementSettings mode="usersOnly" key={`mgmt-${selectedTenantId}`} />
+              </div>
+            </section>
+          )}
+
+          {step === 'updates' && selectedTenantId && (
+            <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
+              <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Atualizações & Base de dados</h4>
+              <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                Estas ferramentas operam sobre a empresa selecionada.
+              </p>
+
+              <div className="mt-5 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                      Estado da BD
+                    </div>
+                    <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
+                      Contexto:{' '}
+                      <span className="font-semibold text-[color:var(--dash-ink)]">{selectedTenant?.name || selectedTenantId}</span>
+                    </div>
+                    {dbStatus ? (
+                      <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
+                        <div>
+                          DB:{' '}
+                          <span className="font-semibold text-[color:var(--dash-ink)]">
+                            {dbStatus.dbOk ? 'OK' : 'Erro'}
+                          </span>
+                        </div>
+                        {dbStatus.dbTime ? <div>Hora BD: {String(dbStatus.dbTime)}</div> : null}
+                        {dbStatus.serverTime ? <div>Hora servidor: {String(dbStatus.serverTime)}</div> : null}
+                        {dbStatus.counts ? (
+                          <div>
+                            Registos (tenant): users={String(dbStatus.counts.users ?? '-')}, plants={String(dbStatus.counts.plants ?? '-')}
+                          </div>
+                        ) : null}
+                        {dbStatus.drizzleMigrations?.table ? (
+                          <div>
+                            Migrações:{' '}
+                            <span className="font-semibold">{String(dbStatus.drizzleMigrations.table)}</span>
+                          </div>
+                        ) : null}
+                        {dbStatus.lastSetupRun ? (
+                          <div className="mt-3 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3">
+                            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                              Última execução
+                            </div>
+                            <div className="mt-2">
+                              Tipo:{' '}
+                              <span className="font-semibold text-[color:var(--dash-ink)]">
+                                {String(dbStatus.lastSetupRun.run_type || '-')}
+                              </span>
+                            </div>
+                            {dbStatus.lastSetupRun.created_at ? (
+                              <div>Data: {String(dbStatus.lastSetupRun.created_at)}</div>
+                            ) : null}
+                            {(() => {
+                              const migrations = normalizeStringList(dbStatus.lastSetupRun.migrations);
+                              const patches = normalizeStringList(dbStatus.lastSetupRun.patches);
+                              if (migrations.length === 0 && patches.length === 0) return null;
+                              return (
+                                <div className="mt-2">
+                                  {migrations.length > 0 ? <div>Migrações: {migrations.join(', ')}</div> : null}
+                                  {patches.length > 0 ? <div>Patches: {patches.join(', ')}</div> : null}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        ) : null}
+
+                        {Array.isArray((dbStatus as any).setupRuns) && (dbStatus as any).setupRuns.length > 0 ? (
+                          <div className="mt-3 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3">
+                            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                              Histórico (últimas {(dbStatus as any).setupRuns.length} / {dbRunsLimit})
+                            </div>
+                            <div className="mt-2 space-y-2">
+                              {(dbStatus as any).setupRuns.map((run: any, idx: number) => {
+                                const migrations = normalizeStringList(run?.migrations);
+                                const patches = normalizeStringList(run?.patches);
+                                return (
+                                  <div
+                                    key={String(run?.id || `${run?.created_at || 'run'}-${idx}`)}
+                                    className="rounded-lg border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-2"
+                                  >
+                                    <div>
+                                      <span className="font-semibold text-[color:var(--dash-ink)]">{String(run?.run_type || '-')}</span>
+                                      {run?.created_at ? <span> · {String(run.created_at)}</span> : null}
+                                    </div>
+                                    {migrations.length > 0 ? <div className="text-xs">Migrações: {migrations.join(', ')}</div> : null}
+                                    {patches.length > 0 ? <div className="text-xs">Patches: {patches.join(', ')}</div> : null}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
+                        {loadingDbStatus ? 'A carregar...' : 'Sem dados de estado.'}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col items-stretch gap-2">
+                    <label className="text-xs font-semibold text-[color:var(--dash-muted)]">Histórico</label>
+                    <select
+                      className="h-9 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-3 text-sm text-[color:var(--dash-ink)]"
+                      value={String(dbRunsLimit)}
+                      onChange={(e) => {
+                        const next = Number(e.target.value);
+                        setDbRunsLimit(Number.isFinite(next) ? next : 10);
+                      }}
+                      disabled={loadingDbStatus}
+                    >
+                      <option value="10">Últimas 10</option>
+                      <option value="25">Últimas 25</option>
+                      <option value="50">Últimas 50</option>
+                    </select>
+
+                    <button
+                      type="button"
+                      className="btn-secondary h-9 px-3"
+                      onClick={() => void loadDbStatus()}
+                      disabled={loadingDbStatus}
+                    >
+                      Recarregar
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 space-y-8">
+                <DatabaseUpdatePage embedded />
+                <AdminSetupPage embedded />
+                <SetupInitPage embedded />
+              </div>
+            </section>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -5,7 +5,22 @@ import { db } from '../config/database.js';
 import { AuthenticatedRequest } from '../types/index.js';
 import { tenants } from '../db/schema.js';
 
-const normalizeSlug = (value: unknown) => String(value || '').trim().toLowerCase();
+const normalizeSlug = (value: unknown) => {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return '';
+
+  // Normalize accents/diacritics (e.g., "Fábrica" -> "fabrica")
+  const ascii = raw
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  // Convert spaces/underscores to hyphens, drop invalid chars, collapse repeats.
+  return ascii
+    .replace(/[^a-z0-9\s_-]/g, '')
+    .replace(/[\s_]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
 const isSafeSlug = (value: string) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
 
 export async function listTenants(_req: AuthenticatedRequest, res: Response) {

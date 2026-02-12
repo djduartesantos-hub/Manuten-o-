@@ -127,7 +127,7 @@ export async function updateSuperadminTenant(tenantId: string, data: {
   });
 }
 
-export async function getSuperadminDbStatus(): Promise<{
+export async function getSuperadminDbStatus(limit?: number): Promise<{
   tenantId: string;
   tenantSlug: string;
   serverTime: string;
@@ -154,7 +154,10 @@ export async function getSuperadminDbStatus(): Promise<{
     created_at?: any;
   }>;
 }> {
-  return apiCall('/superadmin/db/status');
+  const safeLimit =
+    limit !== undefined && Number.isFinite(Number(limit)) ? Math.max(1, Math.min(50, Math.trunc(Number(limit)))) : null;
+  const qs = safeLimit ? `?limit=${encodeURIComponent(String(safeLimit))}` : '';
+  return apiCall(`/superadmin/db/status${qs}`);
 }
 
 async function publicApiCall<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
