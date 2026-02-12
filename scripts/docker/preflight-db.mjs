@@ -29,6 +29,18 @@ const client = new Client({ connectionString, ...(ssl ? { ssl } : {}) });
 
 async function ensureExtension(name) {
   // name is trusted constant
+  const existing = await client.query(
+    `SELECT 1 FROM pg_extension WHERE extname = $1 LIMIT 1;`,
+    [name],
+  );
+
+  if (existing.rowCount && existing.rowCount > 0) {
+    console.log(`[preflight-db] extension already present: ${name}`);
+    return;
+  }
+
+  // Some managed Postgres providers restrict CREATE EXTENSION.
+  // Only attempt it when the extension is missing.
   await client.query(`CREATE EXTENSION IF NOT EXISTS ${name};`);
   console.log(`[preflight-db] ensured extension ${name}`);
 }
