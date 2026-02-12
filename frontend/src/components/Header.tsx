@@ -60,16 +60,17 @@ export function Header() {
     Array<{ id: string; name: string; slug: string; is_active: boolean }>
   >([]);
   const [loadingSuperadminTenants, setLoadingSuperadminTenants] = React.useState(false);
-  const [superadminTenantId, setSuperadminTenantId] = React.useState<string>(() => {
-    const stored = localStorage.getItem('superadminTenantId');
-    return stored && stored.trim().length > 0 ? stored.trim() : '';
-  });
+  const [superadminTenantId, setSuperadminTenantId] = React.useState<string>('');
 
   const [dbStatusLabel, setDbStatusLabel] = React.useState<string>('—');
   const [loadingDbStatus, setLoadingDbStatus] = React.useState(false);
 
   React.useEffect(() => {
     if (!isSuperAdmin) return;
+
+    // Always start in Global scope for SuperAdmin.
+    localStorage.removeItem('superadminTenantId');
+    setSuperadminTenantId('');
 
     let cancelled = false;
     setLoadingSuperadminTenants(true);
@@ -103,11 +104,6 @@ export function Header() {
 
   React.useEffect(() => {
     if (!isSuperAdmin) return;
-
-    if (!superadminTenantId) {
-      setDbStatusLabel('—');
-      return;
-    }
 
     let cancelled = false;
     setLoadingDbStatus(true);
@@ -396,22 +392,39 @@ export function Header() {
 
             {/* SuperAdmin: Global/Empresa selector + DB status */}
             {isSuperAdmin && (
-              <div className="hidden sm:flex items-center gap-3">
-                <div className="flex flex-col items-end leading-tight">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.25em] theme-text-muted">
-                    Empresa ativa
+              <div className="hidden sm:flex items-stretch gap-3">
+                <div className="flex items-center gap-2 rounded-2xl border theme-border theme-card px-3 py-2 shadow-sm">
+                  {isConnected ? (
+                    <Wifi className="w-4 h-4 text-emerald-600" />
+                  ) : (
+                    <WifiOff className="w-4 h-4 text-rose-600" />
+                  )}
+                  <div className="leading-tight">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.25em] theme-text-muted">Estado</div>
+                    <div className={"text-sm font-semibold " + (isConnected ? 'text-emerald-700' : 'text-rose-700')}>
+                      {isConnected ? 'Online' : 'Offline'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 rounded-2xl border theme-border theme-card px-3 py-2 shadow-sm">
+                  <div className="leading-tight">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.25em] theme-text-muted">
+                      Empresa ativa
+                    </div>
+                    <div className="text-xs theme-text-muted">
+                      {superadminTenantId ? activeTenantName : 'Global (predefinido)'}
+                    </div>
                   </div>
                   <select
-                    className="rounded-full border theme-border theme-card px-3 py-2 text-sm font-semibold text-[color:var(--dash-ink)] shadow-sm transition hover:bg-[color:var(--dash-panel)] focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    className="rounded-xl border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-sm font-semibold text-[color:var(--dash-ink)] focus:outline-none focus:ring-2 focus:ring-emerald-200"
                     value={superadminTenantId}
                     onChange={(e) => {
                       const next = String(e.target.value || '').trim();
                       setSuperadminTenantId(next);
                       if (next) localStorage.setItem('superadminTenantId', next);
                       else localStorage.removeItem('superadminTenantId');
-
                       window.dispatchEvent(new Event('superadmin-tenant-changed'));
-
                       if (!location.pathname.startsWith('/superadmin')) {
                         navigate(superAdminHome);
                       }
@@ -428,41 +441,46 @@ export function Header() {
                   </select>
                 </div>
 
-                <div className="flex flex-col items-end leading-tight">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.25em] theme-text-muted">
-                    Estado da BD
+                <div className="flex items-center gap-3 rounded-2xl border theme-border theme-card px-3 py-2 shadow-sm">
+                  <div className="leading-tight">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.25em] theme-text-muted">
+                      Estado da BD
+                    </div>
+                    <div className="text-xs theme-text-muted">Ping (global/tenant)</div>
                   </div>
                   <div
                     className={
-                      'rounded-full border theme-border theme-card px-3 py-2 text-sm font-semibold shadow-sm ' +
+                      'rounded-xl border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-sm font-semibold ' +
                       (dbStatusLabel === 'OK'
                         ? 'text-emerald-700'
                         : dbStatusLabel === 'Erro'
                           ? 'text-rose-700'
                           : 'text-[color:var(--dash-ink)]')
                     }
-                    title={superadminTenantId ? `Empresa: ${activeTenantName}` : 'Selecione uma empresa para ver estado da BD'}
+                    title={superadminTenantId ? `Empresa: ${activeTenantName}` : 'Global (ping)'}
                   >
-                    {loadingDbStatus ? 'A carregar...' : dbStatusLabel}
+                    {loadingDbStatus ? '…' : dbStatusLabel}
                   </div>
                 </div>
               </div>
             )}
 
             {/* Socket Connection Status */}
-            <div className="hidden sm:flex items-center">
-              {isConnected ? (
-                <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2">
-                  <Wifi className="w-4 h-4 text-emerald-600" />
-                  <span className="text-xs font-semibold text-emerald-700">Conectado</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-2">
-                  <WifiOff className="w-4 h-4 text-rose-600" />
-                  <span className="text-xs font-semibold text-rose-700">Desconectado</span>
-                </div>
-              )}
-            </div>
+            {!isSuperAdmin && (
+              <div className="hidden sm:flex items-center">
+                {isConnected ? (
+                  <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2">
+                    <Wifi className="w-4 h-4 text-emerald-600" />
+                    <span className="text-xs font-semibold text-emerald-700">Conectado</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-2">
+                    <WifiOff className="w-4 h-4 text-rose-600" />
+                    <span className="text-xs font-semibold text-rose-700">Desconectado</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Notifications */}
             <Link
@@ -660,12 +678,16 @@ export function Header() {
               {isConnected ? (
                 <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2">
                   <Wifi className="w-4 h-4 text-emerald-600" />
-                  <span className="text-xs font-semibold text-emerald-700">Conectado</span>
+                  <span className="text-xs font-semibold text-emerald-700">
+                    {isSuperAdmin ? 'Online' : 'Conectado'}
+                  </span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-2">
                   <WifiOff className="w-4 h-4 text-rose-600" />
-                  <span className="text-xs font-semibold text-rose-700">Desconectado</span>
+                  <span className="text-xs font-semibold text-rose-700">
+                    {isSuperAdmin ? 'Offline' : 'Desconectado'}
+                  </span>
                 </div>
               )}
             </div>

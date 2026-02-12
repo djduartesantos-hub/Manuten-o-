@@ -128,6 +128,7 @@ export async function updateSuperadminTenant(tenantId: string, data: {
 }
 
 export async function getSuperadminDbStatus(limit?: number): Promise<{
+  scope?: 'global' | 'tenant';
   tenantId: string;
   tenantSlug: string;
   serverTime: string;

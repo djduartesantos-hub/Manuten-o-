@@ -146,6 +146,13 @@ export async function updateTenant(req: AuthenticatedRequest, res: Response) {
 
 export async function getDbStatus(req: AuthenticatedRequest, res: Response) {
   try {
+    const headerTenantId = (req as any)?.headers?.['x-tenant-id'];
+    const headerTenantSlug = (req as any)?.headers?.['x-tenant-slug'];
+    const hasTenantOverride = Boolean(
+      (typeof headerTenantId === 'string' && headerTenantId.trim().length > 0) ||
+        (typeof headerTenantSlug === 'string' && headerTenantSlug.trim().length > 0),
+    );
+
     const tenantId = String(req.tenantId || '');
     const tenantSlug = String(req.tenantSlug || '');
 
@@ -165,22 +172,27 @@ export async function getDbStatus(req: AuthenticatedRequest, res: Response) {
     let userCount: number | null = null;
     let plantCount: number | null = null;
 
-    try {
-      const userCountResult = await db.execute(
-        sql`SELECT COUNT(*)::int AS count FROM users WHERE tenant_id = ${tenantId};`,
-      );
-      userCount = Number((userCountResult as any)?.rows?.[0]?.count ?? 0);
-    } catch {
-      userCount = null;
-    }
+    // Only compute tenant-scoped counts when a tenant override header is provided.
+    // When absent, we treat the request as "global scope" even though tenant middleware
+    // resolves a default tenant for single-tenant deployments.
+    if (hasTenantOverride) {
+      try {
+        const userCountResult = await db.execute(
+          sql`SELECT COUNT(*)::int AS count FROM users WHERE tenant_id = ${tenantId};`,
+        );
+        userCount = Number((userCountResult as any)?.rows?.[0]?.count ?? 0);
+      } catch {
+        userCount = null;
+      }
 
-    try {
-      const plantCountResult = await db.execute(
-        sql`SELECT COUNT(*)::int AS count FROM plants WHERE tenant_id = ${tenantId};`,
-      );
-      plantCount = Number((plantCountResult as any)?.rows?.[0]?.count ?? 0);
-    } catch {
-      plantCount = null;
+      try {
+        const plantCountResult = await db.execute(
+          sql`SELECT COUNT(*)::int AS count FROM plants WHERE tenant_id = ${tenantId};`,
+        );
+        plantCount = Number((plantCountResult as any)?.rows?.[0]?.count ?? 0);
+      } catch {
+        plantCount = null;
+      }
     }
 
     let migrationsTable: string | null = null;
@@ -205,28 +217,31 @@ export async function getDbStatus(req: AuthenticatedRequest, res: Response) {
 
     let lastSetupRun: any | null = null;
     let setupRuns: any[] = [];
-    try {
-      const tableCheck = await db.execute(sql`SELECT to_regclass('public.setup_db_runs') AS name;`);
-      const tableName = String((tableCheck as any)?.rows?.[0]?.name ?? '') || null;
-      if (tableName) {
-        const runs = await db.execute(sql`
-          SELECT id, tenant_id, run_type, user_id, migrations, patches, created_at
-          FROM setup_db_runs
-          WHERE tenant_id = ${tenantId}
-          ORDER BY created_at DESC
-          LIMIT ${setupRunsLimit};
-        `);
-        setupRuns = (runs as any)?.rows ?? [];
-        lastSetupRun = setupRuns[0] ?? null;
+    if (hasTenantOverride) {
+      try {
+        const tableCheck = await db.execute(sql`SELECT to_regclass('public.setup_db_runs') AS name;`);
+        const tableName = String((tableCheck as any)?.rows?.[0]?.name ?? '') || null;
+        if (tableName) {
+          const runs = await db.execute(sql`
+            SELECT id, tenant_id, run_type, user_id, migrations, patches, created_at
+            FROM setup_db_runs
+            WHERE tenant_id = ${tenantId}
+            ORDER BY created_at DESC
+            LIMIT ${setupRunsLimit};
+          `);
+          setupRuns = (runs as any)?.rows ?? [];
+          lastSetupRun = setupRuns[0] ?? null;
+        }
+      } catch {
+        lastSetupRun = null;
+        setupRuns = [];
       }
-    } catch {
-      lastSetupRun = null;
-      setupRuns = [];
     }
 
     return res.json({
       success: true,
       data: {
+        scope: hasTenantOverride ? 'tenant' : 'global',
         tenantId,
         tenantSlug,
         serverTime,

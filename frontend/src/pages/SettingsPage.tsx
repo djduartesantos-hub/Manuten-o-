@@ -310,10 +310,7 @@ export function SuperAdminSettings() {
   const [error, setError] = React.useState<string>('');
   const [success, setSuccess] = React.useState<string>('');
 
-  const [selectedTenantId, setSelectedTenantId] = React.useState<string>(() => {
-    const stored = localStorage.getItem('superadminTenantId');
-    return stored && stored.trim().length > 0 ? stored.trim() : '';
-  });
+  const [selectedTenantId, setSelectedTenantId] = React.useState<string>('');
 
   React.useEffect(() => {
     const onTenantChanged = () => {
@@ -561,7 +558,12 @@ export function SuperAdminSettings() {
   }, [location.pathname, location.search, isSuperAdminRoute, selectedTenantId]);
 
   React.useEffect(() => {
-    if ((step === 'updates' || step === 'dashboard') && selectedTenantId) {
+    if (step === 'dashboard') {
+      void loadDbStatus();
+      return;
+    }
+
+    if (step === 'updates' && selectedTenantId) {
       void loadDbStatus();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -817,10 +819,15 @@ export function SuperAdminSettings() {
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">Estado da BD</div>
                         <div className="mt-2 text-2xl font-semibold text-[color:var(--dash-ink)]">
-                          {selectedTenantId ? (loadingDbStatus ? '…' : dbStatus ? (dbStatus.dbOk ? 'OK' : 'Erro') : '—') : '—'}
+                          {loadingDbStatus ? '…' : dbStatus ? (dbStatus.dbOk ? 'OK' : 'Erro') : '—'}
                         </div>
                         <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
-                          {selectedTenantId ? (dbStatus?.dbTime ? `Hora BD: ${String(dbStatus.dbTime)}` : 'Sem dados') : 'Global não tem BD por tenant'}
+                          {(() => {
+                            const scope = String(dbStatus?.scope || (selectedTenantId ? 'tenant' : 'global'));
+                            const scopeLabel = scope === 'tenant' ? 'Empresa' : 'Global';
+                            if (dbStatus?.dbTime) return `Âmbito: ${scopeLabel} • Hora BD: ${String(dbStatus.dbTime)}`;
+                            return `Âmbito: ${scopeLabel}`;
+                          })()}
                         </div>
                       </div>
                       <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
@@ -834,11 +841,16 @@ export function SuperAdminSettings() {
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">Registos</div>
                         <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
-                          Users: <span className="font-semibold text-[color:var(--dash-ink)]">{selectedTenantId ? String(dbStatus?.counts?.users ?? '-') : '—'}</span>
+                          Users:{' '}
+                          <span className="font-semibold text-[color:var(--dash-ink)]">
+                            {dbStatus?.scope === 'tenant' ? String(dbStatus?.counts?.users ?? '-') : '—'}
+                          </span>
                         </div>
                         <div className="mt-1 text-sm text-[color:var(--dash-muted)]">
                           Fábricas:{' '}
-                          <span className="font-semibold text-[color:var(--dash-ink)]">{selectedTenantId ? String(dbStatus?.counts?.plants ?? '-') : '—'}</span>
+                          <span className="font-semibold text-[color:var(--dash-ink)]">
+                            {dbStatus?.scope === 'tenant' ? String(dbStatus?.counts?.plants ?? '-') : '—'}
+                          </span>
                         </div>
                       </div>
                       <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
@@ -983,6 +995,14 @@ export function SuperAdminSettings() {
                     </div>
                     {dbStatus ? (
                       <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
+                        {dbStatus.scope ? (
+                          <div>
+                            Âmbito:{' '}
+                            <span className="font-semibold text-[color:var(--dash-ink)]">
+                              {String(dbStatus.scope) === 'tenant' ? 'Empresa' : 'Global'}
+                            </span>
+                          </div>
+                        ) : null}
                         <div>
                           DB:{' '}
                           <span className="font-semibold text-[color:var(--dash-ink)]">
