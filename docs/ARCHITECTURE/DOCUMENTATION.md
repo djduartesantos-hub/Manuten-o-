@@ -109,8 +109,8 @@ POST /api/t/:tenantSlug/auth/login
 Content-Type: application/json
 
 {
-  "email": "admin@cmms.com",
-  "password": "Admin@123456"
+  "email": "superadmin@cmms.com",
+  "password": "SuperAdmin@123456"
 }
 
 # Resposta esperada (exemplo)
@@ -121,7 +121,7 @@ Content-Type: application/json
     "refreshToken": "<jwt>",
     "user": {
       "id": "<uuid>",
-      "email": "admin@cmms.com",
+      "email": "superadmin@cmms.com",
       "firstName": "Admin",
       "lastName": "CMMS",
       "role": "superadmin",

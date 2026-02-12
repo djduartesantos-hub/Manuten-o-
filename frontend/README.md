@@ -66,12 +66,12 @@ This project uses theme tokens (CSS variables) + utility classes to ensure every
 ## Demo Credentials
 
 - **Tenant (slug)**: demo
-- **Login (username or email)**: admin or admin@cmms.com
-- **Password**: Admin@123456
+- **Login (username or email)**: superadmin or superadmin@cmms.com
+- **Password**: SuperAdmin@123456
 
 Technician demo user:
-- **Login (username or email)**: tech or tech@cmms.com
-- **Password**: Tech@123456
+- **Login (username or email)**: tecnico or tecnico@cmms.com
+- **Password**: Tecnico@123456
 
 ## Development
 

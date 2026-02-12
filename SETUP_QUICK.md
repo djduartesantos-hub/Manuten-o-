@@ -44,8 +44,8 @@ Planos de Manutenção: 15
 ## 🔐 Credenciais de Teste
 
 ```
-Email: admin@cmms.com
-Senha: Admin@123456
+Email: superadmin@cmms.com
+Senha: SuperAdmin@123456
 ```
 
 ---
@@ -86,7 +86,7 @@ npm run dev
 ### 3. Navegador
 ```
 http://localhost:5173
-Login → admin@cmms.com / Admin@123456
+Login → superadmin@cmms.com / SuperAdmin@123456
 ```
 
 ### 4. Verificar Equipamentos
@@ -139,7 +139,7 @@ psql -U cmms_user -d cmms_enterprise -f scripts/database/demo-data.sql
 - [ ] Confirmar: 8 categorias, 12 equipamentos, 15 planos
 - [ ] Backend running em http://localhost:3000
 - [ ] Frontend running em http://localhost:5173
-- [ ] Login com admin@cmms.com
+- [ ] Login com superadmin@cmms.com
 - [ ] Ver equipamentos (devem ser 12)
 - [ ] Ver planos de manutenção (devem ser 15)
 - [ ] Criar novo plano de manutenção

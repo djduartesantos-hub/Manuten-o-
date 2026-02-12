@@ -106,10 +106,10 @@ npm run db:seed
 | Campo | Valor |
 |-------|-------|
 | Empresa | `demo` |
-| Login (username ou email) | `admin` ou `admin@cmms.com` |
-| Senha | `Admin@123456` |
-| Técnico (demo) | `tech` ou `tech@cmms.com` |
-| Senha (técnico) | `Tech@123456` |
+| Login (username ou email) | `superadmin` ou `superadmin@cmms.com` |
+| Senha | `SuperAdmin@123456` |
+| Técnico (demo) | `tecnico` ou `tecnico@cmms.com` |
+| Senha (técnico) | `Tecnico@123456` |
 
 ---
 

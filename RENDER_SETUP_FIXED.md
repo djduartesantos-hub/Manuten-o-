@@ -64,8 +64,8 @@ JWT_SECRET: (gerar: node -e "console.log(require('crypto').randomBytes(32).toStr
 JWT_REFRESH_SECRET: (gerar outro seguro)
 CORS_ORIGIN: https://seu-app-name.onrender.com
 NODE_ENV: production
-ADMIN_EMAIL: admin@cmms.com
-ADMIN_PASSWORD: Admin@123456
+ADMIN_EMAIL: superadmin@cmms.com
+ADMIN_PASSWORD: SuperAdmin@123456
 ```
 
 ### 3. Deploy
@@ -95,7 +95,7 @@ curl https://seu-app-name.onrender.com/health
 # Login
 curl -X POST https://seu-app-name.onrender.com/api/t/demo/auth/login \
   -H "Content-Type: application/json" \
-   -d '{"email":"admin@cmms.com","password":"Admin@123456"}'
+   -d '{"email":"superadmin@cmms.com","password":"SuperAdmin@123456"}'
 
 # Assets (com seu token JWT)
 curl https://seu-app-name.onrender.com/api/t/demo/assets \

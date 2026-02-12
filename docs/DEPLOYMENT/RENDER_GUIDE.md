@@ -134,7 +134,7 @@ Resposta esperada:
   "success": true,
   "message": "Database initialized successfully with admin user",
   "data": {
-    "adminEmail": "admin@cmms.com",
+      "adminEmail": "superadmin@cmms.com",
     "plantId": "xxx-xxx-xxx",
     "note": "You can now login with the admin credentials"
   }
@@ -142,8 +142,8 @@ Resposta esperada:
 ```
 
 **Credenciais padrão criadas:**
-- Email: `admin@cmms.com`
-- Senha: `Admin@123456` (ou valor definido em `ADMIN_PASSWORD`)
+- Email: `superadmin@cmms.com`
+- Senha: `SuperAdmin@123456` (ou valor definido em `ADMIN_PASSWORD`)
 
 📖 **Ver guia completo:** [Render Initialization Guide](./RENDER_INITIALIZATION.md)
 
@@ -153,8 +153,8 @@ Resposta esperada:
    - Open: `https://your-app.onrender.com`
 
 2. **Login as Superadmin**:
-   - Email: `admin@cmms.com`
-   - Password: `Admin@123456` (or value set in `ADMIN_PASSWORD` env variable)
+   - Email: `superadmin@cmms.com`
+   - Password: `SuperAdmin@123456` (or value set in `ADMIN_PASSWORD` env variable)
    - ⚠️ Change password after first login!
 
 3. **Optional: Seed Additional Demo Data**:
@@ -446,9 +446,9 @@ For Render platform issues:
 - **Health Check**: https://your-app.onrender.com/health
 
 ### Default Credentials
-- **Superadmin**: `admin@cmms.com` / `<ADMIN_PASSWORD>`
-- **Manager Demo**: `carlos.silva@example.com` / `Manager@123`
-- **Technician Demo**: `ana.santos@example.com` / `Tech@123`
+- **Superadmin**: `superadmin@cmms.com` / `<ADMIN_PASSWORD>`
+- **Gestor Fábrica (demo)**: `gestor@cmms.com` / `Gestor@123456`
+- **Técnico (demo)**: `tecnico@cmms.com` / `Tecnico@123456`
 
 ### Key Files
 - `Dockerfile` - Multi-stage build configuration

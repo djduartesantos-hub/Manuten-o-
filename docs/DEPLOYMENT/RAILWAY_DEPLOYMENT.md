@@ -61,7 +61,7 @@ curl -X POST https://<teu-dominio-railway>/api/setup/initialize
 
 Depois faz login com:
 
-- `admin@cmms.com` / `Admin@123456`
+- `superadmin@cmms.com` / `SuperAdmin@123456`
 
 (se não definires `ADMIN_*`)
 

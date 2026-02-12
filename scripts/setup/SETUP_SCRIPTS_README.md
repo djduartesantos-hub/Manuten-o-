@@ -30,8 +30,8 @@ Script para inicializar o banco de dados após deploy no Render.
 ✅ Banco de dados inicializado com sucesso!
 
 🎉 Pode agora fazer login com:
-   Email: admin@cmms.com
-   Senha: Admin@123456
+   Email: superadmin@cmms.com
+   Senha: SuperAdmin@123456
 ```
 
 📖 **Ver também:** [RENDER_INITIALIZATION.md](../../docs/DEPLOYMENT/RENDER_INITIALIZATION.md)

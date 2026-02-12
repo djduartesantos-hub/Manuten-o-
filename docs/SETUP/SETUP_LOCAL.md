@@ -50,10 +50,10 @@ Será iniciado em: **http://localhost:5173**
 | Campo | Valor |
 |-------|-------|
 | **Tenant** | `demo` |
-| **Login (username ou email)** | `admin` ou `admin@cmms.com` |
-| **Password** | `Admin@123456` |
-| **Técnico (demo)** | `tech` ou `tech@cmms.com` |
-| **Password (técnico)** | `Tech@123456` |
+| **Login (username ou email)** | `superadmin` ou `superadmin@cmms.com` |
+| **Password** | `SuperAdmin@123456` |
+| **Técnico (demo)** | `tecnico` ou `tecnico@cmms.com` |
+| **Password (técnico)** | `Tecnico@123456` |
 
 ## 💾 Base de Dados
 

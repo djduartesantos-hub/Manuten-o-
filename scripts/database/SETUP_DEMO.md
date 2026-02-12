@@ -58,7 +58,7 @@ Dados verificados:
 
 ### 3. **Dados de Demonstração** 🆕
 - ✓ 1 Planta: "Fábrica Principal"
-- ✓ 1 Admin User: admin@cmms.com / Admin@123456
+- ✓ 1 Superadmin User: superadmin@cmms.com / SuperAdmin@123456
 - ✓ 8 Categorias de equipamentos
 - ✓ 12 Equipamentos realistas (com fabricantes reais)
 - ✓ 15 Planos de Manutenção variados
@@ -149,8 +149,8 @@ VITE ...
 
 1. Aceda a http://localhost:5173/t/demo/login
 2. Insira:
-   - **Email:** admin@cmms.com
-   - **Senha:** Admin@123456
+   - **Email:** superadmin@cmms.com
+   - **Senha:** SuperAdmin@123456
 3. Clique em "Entrar"
 
 ### 4. Testar as Funcionalidades
@@ -325,13 +325,14 @@ Após o setup inicial, pode adicionar mais dados manualmente:
 ```
 Tenant ID: 550e8400-e29b-41d4-a716-446655440000
 Plant ID: 0fab0000-0000-0000-0000-000000000001
-Admin User ID: 00000001-0000-0000-0000-000000000001
+Admin Empresa User ID: 00000001-0000-0000-0000-000000000001
+Superadmin User ID: 00000001-0000-0000-0000-000000000006
 ```
 
 ### Credenciais
 ```
-Email: admin@cmms.com
-Senha: Admin@123456
+Email: superadmin@cmms.com
+Senha: SuperAdmin@123456
 Papel: superadmin
 ```
 
@@ -356,7 +357,7 @@ Porto: 5432 (padrão PostgreSQL)
 1. ✓ Executar `setup-demo.sh` ou `setup-demo.bat`
 2. ✓ Iniciar backend: `npm run dev` em `backend/`
 3. ✓ Iniciar frontend: `npm run dev` em `frontend/`
-4. ✓ Fazer login com admin@cmms.com
+4. ✓ Fazer login com superadmin@cmms.com
 5. ✓ Verificar dados carregados
 6. ✓ Testar criação de planos de manutenção
 7. ✓ Testar criação de ordens de trabalho

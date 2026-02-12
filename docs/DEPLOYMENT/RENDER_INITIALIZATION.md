@@ -23,7 +23,7 @@ curl -X POST https://SEU-APP.onrender.com/api/setup/initialize
   "success": true,
   "message": "Database initialized successfully with admin user",
   "data": {
-    "adminEmail": "admin@cmms.com",
+    "adminEmail": "superadmin@cmms.com",
     "plantId": "xxx-xxx-xxx",
     "note": "You can now login with the admin credentials"
   }
@@ -34,8 +34,8 @@ curl -X POST https://SEU-APP.onrender.com/api/setup/initialize
 
 Após a inicialização, você pode fazer login com:
 
-- **Email:** `admin@cmms.com`
-- **Senha:** `Admin@123456`
+- **Email:** `superadmin@cmms.com`
+- **Senha:** `SuperAdmin@123456`
 
 ⚠️ **Importante:** Mude a senha após o primeiro login!
 
@@ -108,8 +108,8 @@ curl -X POST https://SEU-APP.onrender.com/api/setup/initialize
 - [ ] DATABASE_URL configurado (automático pelo Render)
 - [ ] JWT_SECRET gerado
 - [ ] JWT_REFRESH_SECRET gerado
-- [ ] ADMIN_EMAIL definido (opcional - padrão: admin@cmms.com)
-- [ ] ADMIN_PASSWORD definido (opcional - padrão: Admin@123456)
+- [ ] ADMIN_EMAIL definido (opcional - padrão: superadmin@cmms.com)
+- [ ] ADMIN_PASSWORD definido (opcional - padrão: SuperAdmin@123456)
 
 ### Pós-Deploy
 

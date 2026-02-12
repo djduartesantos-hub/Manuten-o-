@@ -138,8 +138,8 @@ curl https://your-app.onrender.com/health
 curl -X POST https://your-app.onrender.com/api/t/demo/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-      "email": "admin@cmms.com",
-      "password": "Admin@123456"
+         "email": "superadmin@cmms.com",
+         "password": "SuperAdmin@123456"
   }'
 ```
 
@@ -148,8 +148,8 @@ curl -X POST https://your-app.onrender.com/api/t/demo/auth/login \
 ## 🔐 Dados de Teste Prod
 
 ```
-Email: admin@cmms.com
-Senha: Admin@123456
+Email: superadmin@cmms.com
+Senha: SuperAdmin@123456
 Equipamentos: 12
 Planos: 15
 ```

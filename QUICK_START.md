@@ -66,13 +66,13 @@ Após executar o script SQL, você deve ver:
 
 ```
 Empresa:  demo
-Login:    admin ou admin@cmms.com
-Password: Admin@123456
+Login:    superadmin ou superadmin@cmms.com
+Password: SuperAdmin@123456
 Role:     superadmin
 URL:      http://localhost:5173/t/demo/login
 
-Técnico:  tech ou tech@cmms.com
-Password: Tech@123456
+Técnico:  tecnico ou tecnico@cmms.com
+Password: Tecnico@123456
 ```
 
 ## 🚀 Passo 3: Iniciar Aplicação

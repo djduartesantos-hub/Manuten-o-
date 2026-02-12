@@ -139,7 +139,7 @@ start-menu.bat
 - [ ] 2 janelas de terminal abertas
 - [ ] Navegador abriu http://localhost:5173
 - [ ] Página de login aparece
-- [ ] Pode fazer login com demo@cmms.com / Admin@123456
+- [ ] Pode fazer login com superadmin@cmms.com / SuperAdmin@123456
 
 ---
 

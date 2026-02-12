@@ -336,8 +336,8 @@ App em: `http://localhost:5173`
 ### 3. Credenciais Demo
 
 - Empresa: `demo`
-- Email: `admin@cmms.com`
-- Senha: `Admin@123456`
+- Email: `superadmin@cmms.com`
+- Senha: `SuperAdmin@123456`
 
 ## 📊 Funcionalidades Implementadas
 

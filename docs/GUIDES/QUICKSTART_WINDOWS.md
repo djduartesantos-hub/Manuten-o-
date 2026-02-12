@@ -33,8 +33,8 @@ Duplo-clique em: **`start-all.bat`**
 
 - Abre 2 terminais automáticamente
 - Abre o navegador em http://localhost:5173/t/demo/login
-- Acesso (username ou email): **`admin`** ou **`admin@cmms.com`** / **`Admin@123456`** (URL: `/t/demo/login`)
-- Técnico (demo): **`tech`** ou **`tech@cmms.com`** / **`Tech@123456`**
+- Acesso (username ou email): **`superadmin`** ou **`superadmin@cmms.com`** / **`SuperAdmin@123456`** (URL: `/t/demo/login`)
+- Técnico (demo): **`tecnico`** ou **`tecnico@cmms.com`** / **`Tecnico@123456`**
 
 ### Opção B: Manual
 Abra **2 terminais** separados:

@@ -187,15 +187,15 @@ O script SQL insere automaticamente dados de demonstração:
 > Nota: o login aceita **username ou email** (no mesmo campo).
 
 ### **Admin Default**
-- **Username:** `admin`
-- **Email:** `admin@cmms.com`
-- **Password:** `Admin@123456`
+- **Username:** `superadmin`
+- **Email:** `superadmin@cmms.com`
+- **Password:** `SuperAdmin@123456`
 - **Role:** `superadmin`
 
 ### **Técnico Default**
-- **Username:** `tech`
-- **Email:** `tech@cmms.com`
-- **Password:** `Tech@123456`
+- **Username:** `tecnico`
+- **Email:** `tecnico@cmms.com`
+- **Password:** `Tecnico@123456`
 - **Role:** `tecnico`
 
 ### **Tenant Demo**
@@ -306,7 +306,7 @@ npm run dev
 
 ### **Segurança**
 - ❌ **NÃO** comitar `.env` para git
-- ❌ **NÃO** usar `admin@cmms.com` em produção
+- ❌ **NÃO** usar credenciais demo (ex: `superadmin@cmms.com`, `admin@cmms.com`) em produção
 - ✅ Mudar credenciais padrão em produção
 - ✅ Usar senhas fortes (>15 carateres)
 

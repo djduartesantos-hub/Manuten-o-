@@ -113,13 +113,13 @@ npm run db:seed
 ## 🧪 Testar após setup
 
 ### Credenciais padrão:
-- **Login (username ou email):** admin ou admin@cmms.com
-- **Senha:** Admin@123456
+- **Login (username ou email):** superadmin ou superadmin@cmms.com
+- **Senha:** SuperAdmin@123456
 - **Role:** superadmin
 
 ### Técnico (demo):
-- **Login (username ou email):** tech ou tech@cmms.com
-- **Senha:** Tech@123456
+- **Login (username ou email):** tecnico ou tecnico@cmms.com
+- **Senha:** Tecnico@123456
 
 ### Acesso com slug:
 - URL: /t/demo/login

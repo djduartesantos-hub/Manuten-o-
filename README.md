@@ -44,8 +44,8 @@ cd backend && npm install && npm run dev
 cd frontend && npm install && npm run dev
 ```
 
-✅ **Login (username ou email):** `admin` ou `admin@cmms.com` / `Admin@123456`  
-✅ **Técnico (demo):** `tech` ou `tech@cmms.com` / `Tech@123456`  
+✅ **Login (username ou email):** `superadmin` ou `superadmin@cmms.com` / `SuperAdmin@123456`  
+✅ **Técnico (demo):** `tecnico` ou `tecnico@cmms.com` / `Tecnico@123456`  
 ✅ **URL:** `http://localhost:5173/t/demo/login`
 📋 **Adicionar dados demo:** Menu `🔧 Setup BD` após login  
 📖 [**QUICK_START.md**](./QUICK_START.md) - Guia detalhado
@@ -336,8 +336,8 @@ CORS_ORIGIN=https://seu-app.up.railway.app
 NODE_ENV=production
 
 # Opcional (credenciais iniciais no primeiro boot)
-ADMIN_EMAIL=admin@cmms.com
-ADMIN_USERNAME=admin
+ADMIN_EMAIL=superadmin@cmms.com
+ADMIN_USERNAME=superadmin
 ADMIN_PASSWORD=uma-password-forte
 ```
 
@@ -353,8 +353,8 @@ POST /api/t/:tenantSlug/auth/login
 Content-Type: application/json
 
 {
-  "email": "admin@cmms.com",
-  "password": "Admin@123456"
+  "email": "superadmin@cmms.com",
+  "password": "SuperAdmin@123456"
 }
 
 Response:
@@ -365,10 +365,10 @@ Response:
     "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
     "user": {
       "id": "uuid",
-      "email": "admin@cmms.com",
+      "email": "superadmin@cmms.com",
       "firstName": "Admin",
       "lastName": "User",
-      "role": "SuperAdmin",
+      "role": "superadmin",
       "tenantId": "<tenant-uuid>"
     }
   }
@@ -1077,11 +1077,11 @@ MIT License - Veja [LICENSE](./LICENSE) para detalhes
 
 ```
 Empresa:  demo
-Login:    admin ou admin@cmms.com
-Senha:    Admin@123456
+Login:    superadmin ou superadmin@cmms.com
+Senha:    SuperAdmin@123456
 
-Técnico:  tech ou tech@cmms.com
-Senha:    Tech@123456
+Técnico:  tecnico ou tecnico@cmms.com
+Senha:    Tecnico@123456
 ```
 
 ---
