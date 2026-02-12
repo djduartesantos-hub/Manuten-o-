@@ -8,6 +8,7 @@ import { db } from '../config/database.js';
 import {
   assets,
   plants,
+  tenants,
   rbacPermissions,
   rbacRolePermissions,
   rbacRoles,
@@ -30,6 +31,128 @@ function toCsvValue(value: unknown): string {
     return `"${raw.replace(/"/g, '""')}"`;
   }
   return raw;
+}
+
+async function getTenantPasswordPolicy(tenantId: string): Promise<{
+  password_min_length: number;
+  password_expiration_days: number | null;
+  password_max_failed_attempts: number;
+  password_lockout_minutes: number;
+}> {
+  const row = await db.query.tenants.findFirst({
+    where: (fields: any, { eq }: any) => eq(fields.id, tenantId),
+    columns: {
+      password_min_length: true,
+      password_expiration_days: true,
+      password_max_failed_attempts: true,
+      password_lockout_minutes: true,
+    } as any,
+  });
+
+  return {
+    password_min_length: Math.max(6, Math.min(64, Number((row as any)?.password_min_length ?? 10) || 10)),
+    password_expiration_days:
+      (row as any)?.password_expiration_days == null
+        ? null
+        : Math.max(1, Math.min(3650, Number((row as any).password_expiration_days) || 0)) || null,
+    password_max_failed_attempts: Math.max(0, Math.min(50, Number((row as any)?.password_max_failed_attempts ?? 10) || 10)),
+    password_lockout_minutes: Math.max(0, Math.min(24 * 60, Number((row as any)?.password_lockout_minutes ?? 15) || 15)),
+  };
+}
+
+export async function getPasswordPolicy(req: AuthenticatedRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    }
+
+    const policy = await getTenantPasswordPolicy(tenantId);
+    return res.json({ success: true, data: { tenantId, ...policy } });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to fetch password policy' });
+  }
+}
+
+export async function updatePasswordPolicy(req: AuthenticatedRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    }
+
+    const actorUserId = req.user?.userId;
+    if (!actorUserId) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const before = await getTenantPasswordPolicy(tenantId);
+
+    const body: any = req.body || {};
+    const password_min_length =
+      body.password_min_length != null || body.passwordMinLength != null
+        ? clampInt(body.password_min_length ?? body.passwordMinLength, before.password_min_length, 6, 64)
+        : before.password_min_length;
+
+    const expirationRaw = body.password_expiration_days ?? body.passwordExpirationDays;
+    const password_expiration_days =
+      expirationRaw === null || expirationRaw === '' || expirationRaw === 0 || expirationRaw === '0'
+        ? null
+        : expirationRaw != null
+          ? clampInt(expirationRaw, before.password_expiration_days ?? 0, 1, 3650)
+          : before.password_expiration_days;
+
+    const password_max_failed_attempts =
+      body.password_max_failed_attempts != null || body.passwordMaxFailedAttempts != null
+        ? clampInt(body.password_max_failed_attempts ?? body.passwordMaxFailedAttempts, before.password_max_failed_attempts, 0, 50)
+        : before.password_max_failed_attempts;
+
+    const password_lockout_minutes =
+      body.password_lockout_minutes != null || body.passwordLockoutMinutes != null
+        ? clampInt(body.password_lockout_minutes ?? body.passwordLockoutMinutes, before.password_lockout_minutes, 0, 24 * 60)
+        : before.password_lockout_minutes;
+
+    await db
+      .update(tenants)
+      .set({
+        password_min_length,
+        password_expiration_days,
+        password_max_failed_attempts,
+        password_lockout_minutes,
+        updated_at: new Date(),
+      } as any)
+      .where(eq(tenants.id, tenantId));
+
+    await AuditService.createLog({
+      tenant_id: tenantId,
+      user_id: actorUserId,
+      action: 'tenant.password_policy.update',
+      entity_type: 'tenant',
+      entity_id: String(tenantId),
+      old_values: before,
+      new_values: {
+        password_min_length,
+        password_expiration_days,
+        password_max_failed_attempts,
+        password_lockout_minutes,
+      },
+      ip_address: req.ip || null,
+    });
+
+    return res.json({
+      success: true,
+      message: 'Política de password atualizada',
+      data: {
+        tenantId,
+        password_min_length,
+        password_expiration_days,
+        password_max_failed_attempts,
+        password_lockout_minutes,
+      },
+    });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to update password policy' });
+  }
 }
 
 function generateTempPassword(length = 14): string {
@@ -366,6 +489,14 @@ export async function createUser(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({ success: false, error: 'Password is required' });
     }
 
+    const policy = await getTenantPasswordPolicy(tenantId);
+    if (String(finalPassword).length < policy.password_min_length) {
+      return res.status(400).json({
+        success: false,
+        error: `Password deve ter pelo menos ${policy.password_min_length} caracteres`,
+      });
+    }
+
     const roleKey = normalizeRole(role);
     if (!roleKey) {
       return res.status(400).json({ success: false, error: 'Invalid role' });
@@ -422,6 +553,9 @@ export async function createUser(req: AuthenticatedRequest, res: Response) {
         username: normalizedUsername,
         email,
         password_hash: passwordHash,
+        password_changed_at: new Date(),
+        failed_login_attempts: 0,
+        locked_until: null,
         first_name,
         last_name,
         role: roleKey,
@@ -500,6 +634,14 @@ export async function updateUser(req: AuthenticatedRequest, res: Response) {
 
     let passwordHash: string | undefined;
     if (password) {
+      const policy = await getTenantPasswordPolicy(tenantId);
+      if (String(password).length < policy.password_min_length) {
+        return res.status(400).json({
+          success: false,
+          error: `Password deve ter pelo menos ${policy.password_min_length} caracteres`,
+        });
+      }
+
       passwordHash = await bcrypt.hash(password, 10);
     }
 
@@ -512,10 +654,17 @@ export async function updateUser(req: AuthenticatedRequest, res: Response) {
         role: incomingRoleKey ?? user.role,
         is_active: is_active ?? user.is_active,
         password_hash: passwordHash ?? user.password_hash,
+        password_changed_at: passwordHash ? new Date() : (user as any).password_changed_at,
+        failed_login_attempts: passwordHash ? 0 : (user as any).failed_login_attempts,
+        locked_until: passwordHash ? null : (user as any).locked_until,
         updated_at: new Date(),
       })
       .where(and(eq(users.tenant_id, tenantId), eq(users.id, userId)))
       .returning();
+
+    if (passwordHash) {
+      await AuthService.bumpUserSessionVersion({ tenantId, userId });
+    }
 
     if (plant_roles !== undefined || plant_ids !== undefined) {
       const incomingPlantRoles = normalizePlantRoles(plant_roles);
@@ -984,8 +1133,12 @@ export async function resetUserPassword(req: AuthenticatedRequest, res: Response
       return res.status(400).json({ success: false, error: 'User ID is required' });
     }
 
-    if (!password || String(password).length < 6) {
-      return res.status(400).json({ success: false, error: 'Password inválida' });
+    const policy = await getTenantPasswordPolicy(tenantId);
+    if (!password || String(password).length < policy.password_min_length) {
+      return res.status(400).json({
+        success: false,
+        error: `Password deve ter pelo menos ${policy.password_min_length} caracteres`,
+      });
     }
 
     const user = await db.query.users.findFirst({
@@ -1000,8 +1153,16 @@ export async function resetUserPassword(req: AuthenticatedRequest, res: Response
     const passwordHash = await bcrypt.hash(password, 10);
     await db
       .update(users)
-      .set({ password_hash: passwordHash, updated_at: new Date() })
+      .set({
+        password_hash: passwordHash,
+        password_changed_at: new Date(),
+        failed_login_attempts: 0,
+        locked_until: null,
+        updated_at: new Date(),
+      } as any)
       .where(and(eq(users.tenant_id, tenantId), eq(users.id, userId)));
+
+    await AuthService.bumpUserSessionVersion({ tenantId, userId });
 
     return res.json({ success: true, message: 'Password atualizada' });
   } catch {
@@ -1314,5 +1475,296 @@ export async function exportRbacMatrix(req: AuthenticatedRequest, res: Response)
     return res.status(200).send(csv);
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to export RBAC matrix' });
+  }
+}
+
+export async function getRbacDrift(req: AuthenticatedRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    }
+
+    const rolesZeroPerms = await db.execute(sql`
+      SELECT r.key, r.name
+      FROM rbac_roles r
+      LEFT JOIN rbac_role_permissions rp
+        ON rp.tenant_id = r.tenant_id AND rp.role_key = r.key
+      WHERE r.tenant_id = ${tenantId}
+      GROUP BY r.key, r.name
+      HAVING COUNT(rp.permission_key) = 0
+      ORDER BY r.key ASC;
+    `);
+
+    const permsUnused = await db.execute(sql`
+      SELECT p.key, p.label, p.group_name
+      FROM rbac_permissions p
+      LEFT JOIN rbac_role_permissions rp
+        ON rp.permission_key = p.key AND rp.tenant_id = ${tenantId}
+      GROUP BY p.key, p.label, p.group_name
+      HAVING COUNT(rp.role_key) = 0
+      ORDER BY p.group_name ASC, p.key ASC
+      LIMIT 200;
+    `);
+
+    const data = {
+      tenantId,
+      rolesWithNoPermissions: ((rolesZeroPerms as any)?.rows ?? []).map((r: any) => ({
+        key: String(r.key),
+        name: String(r.name || ''),
+      })),
+      permissionsUnused: ((permsUnused as any)?.rows ?? []).map((r: any) => ({
+        key: String(r.key),
+        label: String(r.label || ''),
+        group_name: String(r.group_name || ''),
+      })),
+    };
+
+    return res.json({ success: true, data });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to fetch RBAC drift' });
+  }
+}
+
+export async function exportRbacDrift(req: AuthenticatedRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    }
+
+    const format = String((req.query as any)?.format || 'csv').toLowerCase();
+
+    const rolesZeroPerms = await db.execute(sql`
+      SELECT r.key, r.name
+      FROM rbac_roles r
+      LEFT JOIN rbac_role_permissions rp
+        ON rp.tenant_id = r.tenant_id AND rp.role_key = r.key
+      WHERE r.tenant_id = ${tenantId}
+      GROUP BY r.key, r.name
+      HAVING COUNT(rp.permission_key) = 0
+      ORDER BY r.key ASC;
+    `);
+
+    const permsUnused = await db.execute(sql`
+      SELECT p.key, p.label, p.group_name
+      FROM rbac_permissions p
+      LEFT JOIN rbac_role_permissions rp
+        ON rp.permission_key = p.key AND rp.tenant_id = ${tenantId}
+      GROUP BY p.key, p.label, p.group_name
+      HAVING COUNT(rp.role_key) = 0
+      ORDER BY p.group_name ASC, p.key ASC
+      LIMIT 200;
+    `);
+
+    const data = {
+      tenantId,
+      rolesWithNoPermissions: ((rolesZeroPerms as any)?.rows ?? []).map((r: any) => ({
+        key: String(r.key),
+        name: String(r.name || ''),
+      })),
+      permissionsUnused: ((permsUnused as any)?.rows ?? []).map((r: any) => ({
+        key: String(r.key),
+        label: String(r.label || ''),
+        group_name: String(r.group_name || ''),
+      })),
+    };
+
+    if (format === 'json') {
+      return res.json({ success: true, data });
+    }
+
+    const headers = ['type', 'key', 'name', 'label', 'group_name'];
+    const rows: any[] = [];
+    for (const r of data.rolesWithNoPermissions) {
+      rows.push({ type: 'role_no_permissions', key: r.key, name: r.name, label: '', group_name: '' });
+    }
+    for (const p of data.permissionsUnused) {
+      rows.push({ type: 'permission_unused', key: p.key, name: '', label: p.label, group_name: p.group_name });
+    }
+
+    const csv = [
+      headers.join(','),
+      ...rows.map((r: any) => headers.map((h) => toCsvValue(r[h])).join(',')),
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="rbac_drift.csv"');
+    return res.status(200).send(csv);
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to export RBAC drift' });
+  }
+}
+
+export async function getIntegrityChecks(req: AuthenticatedRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    }
+
+    const assetsMissingPlant = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM assets a
+      WHERE a.tenant_id = ${tenantId}
+        AND NOT EXISTS (SELECT 1 FROM plants p WHERE p.id = a.plant_id);
+    `);
+
+    const schedulesMissingAsset = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM preventive_maintenance_schedules s
+      WHERE s.tenant_id = ${tenantId}
+        AND NOT EXISTS (SELECT 1 FROM assets a WHERE a.id = s.asset_id);
+    `);
+
+    const schedulesMissingPlan = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM preventive_maintenance_schedules s
+      WHERE s.tenant_id = ${tenantId}
+        AND NOT EXISTS (SELECT 1 FROM maintenance_plans p WHERE p.id = s.plan_id);
+    `);
+
+    const userPlantsMissingUser = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM user_plants up
+      WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = up.user_id);
+    `);
+
+    const userPlantsMissingPlant = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM user_plants up
+      WHERE NOT EXISTS (SELECT 1 FROM plants p WHERE p.id = up.plant_id);
+    `);
+
+    const checks = [
+      {
+        key: 'assets_missing_plant',
+        label: 'Assets sem fábrica válida',
+        count: Number((assetsMissingPlant as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+      {
+        key: 'schedules_missing_asset',
+        label: 'Preventivas sem asset válido',
+        count: Number((schedulesMissingAsset as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+      {
+        key: 'schedules_missing_plan',
+        label: 'Preventivas sem plano válido',
+        count: Number((schedulesMissingPlan as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+      {
+        key: 'user_plants_missing_user',
+        label: 'UserPlants com user inexistente',
+        count: Number((userPlantsMissingUser as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+      {
+        key: 'user_plants_missing_plant',
+        label: 'UserPlants com fábrica inexistente',
+        count: Number((userPlantsMissingPlant as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+    ];
+
+    return res.json({ success: true, data: { tenantId, checks } });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to run integrity checks' });
+  }
+}
+
+export async function exportIntegrityChecks(req: AuthenticatedRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    }
+
+    const format = String((req.query as any)?.format || 'csv').toLowerCase();
+
+    const assetsMissingPlant = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM assets a
+      WHERE a.tenant_id = ${tenantId}
+        AND NOT EXISTS (SELECT 1 FROM plants p WHERE p.id = a.plant_id);
+    `);
+
+    const schedulesMissingAsset = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM preventive_maintenance_schedules s
+      WHERE s.tenant_id = ${tenantId}
+        AND NOT EXISTS (SELECT 1 FROM assets a WHERE a.id = s.asset_id);
+    `);
+
+    const schedulesMissingPlan = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM preventive_maintenance_schedules s
+      WHERE s.tenant_id = ${tenantId}
+        AND NOT EXISTS (SELECT 1 FROM maintenance_plans p WHERE p.id = s.plan_id);
+    `);
+
+    const userPlantsMissingUser = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM user_plants up
+      WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = up.user_id);
+    `);
+
+    const userPlantsMissingPlant = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM user_plants up
+      WHERE NOT EXISTS (SELECT 1 FROM plants p WHERE p.id = up.plant_id);
+    `);
+
+    const checks = [
+      {
+        key: 'assets_missing_plant',
+        label: 'Assets sem fábrica válida',
+        count: Number((assetsMissingPlant as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+      {
+        key: 'schedules_missing_asset',
+        label: 'Preventivas sem asset válido',
+        count: Number((schedulesMissingAsset as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+      {
+        key: 'schedules_missing_plan',
+        label: 'Preventivas sem plano válido',
+        count: Number((schedulesMissingPlan as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+      {
+        key: 'user_plants_missing_user',
+        label: 'UserPlants com user inexistente',
+        count: Number((userPlantsMissingUser as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+      {
+        key: 'user_plants_missing_plant',
+        label: 'UserPlants com fábrica inexistente',
+        count: Number((userPlantsMissingPlant as any)?.rows?.[0]?.count ?? 0),
+        severity: 'warning',
+      },
+    ];
+
+    const data = { tenantId, checks };
+    if (format === 'json') {
+      return res.json({ success: true, data });
+    }
+
+    const headers = ['tenant_id', 'key', 'label', 'count', 'severity'];
+    const csv = [
+      headers.join(','),
+      ...checks.map((c: any) => [tenantId, c.key, c.label, c.count, c.severity].map(toCsvValue).join(',')),
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="integrity_checks.csv"');
+    return res.status(200).send(csv);
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to export integrity checks' });
   }
 }

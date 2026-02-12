@@ -43,6 +43,18 @@ router.post(
 	AdminController.resetUserPassword,
 );
 
+// Tenant security (password policy)
+router.get(
+	'/security/password-policy',
+	requirePermission('admin:users', 'tenant'),
+	AdminController.getPasswordPolicy,
+);
+router.put(
+	'/security/password-policy',
+	requirePermission('admin:users', 'tenant'),
+	AdminController.updatePasswordPolicy,
+);
+
 router.post(
 	'/users/:userId/revoke-sessions',
 	requirePermission('admin:users', 'tenant'),
@@ -60,6 +72,26 @@ router.get(
 	adminExportLimiter,
 	requirePermission('admin:rbac', 'tenant'),
 	AdminController.exportRbacMatrix,
+);
+
+// Drift + integridade (tenant)
+router.get('/diagnostics/rbac/drift', requirePermission('admin:rbac', 'tenant'), AdminController.getRbacDrift);
+router.get(
+	'/diagnostics/rbac/drift/export',
+	adminExportLimiter,
+	requirePermission('admin:rbac', 'tenant'),
+	AdminController.exportRbacDrift,
+);
+router.get(
+	'/diagnostics/integrity',
+	requirePermission('admin:users', 'tenant'),
+	AdminController.getIntegrityChecks,
+);
+router.get(
+	'/diagnostics/integrity/export',
+	adminExportLimiter,
+	requirePermission('admin:users', 'tenant'),
+	AdminController.exportIntegrityChecks,
 );
 router.get(
 	'/roles/:roleKey/permissions',
