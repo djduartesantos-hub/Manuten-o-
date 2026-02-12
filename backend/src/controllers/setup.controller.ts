@@ -1469,6 +1469,100 @@ END $$;`
     }
   }
 
+  private static async resetPublicSchemaInternal(): Promise<void> {
+    // Full rebuild: guarantees schema is recreated from current code.
+    // Prefer this over ALTER-based pushes on existing DBs (can require interactive confirmation).
+    await db.execute(sql.raw('DROP SCHEMA IF EXISTS public CASCADE;'));
+    await db.execute(sql.raw('CREATE SCHEMA public;'));
+  }
+
+  private static async seedMinimalAdminInternal(
+    tenantId: string,
+    tenantSlug: string,
+  ): Promise<{
+    added: {
+      users: number;
+      plants: number;
+      assets: number;
+      maintenancePlans: number;
+      workOrders: number;
+      spareParts: number;
+    };
+    note: string;
+  }> {
+    await SetupController.ensureTenantsTable();
+    await db
+      .insert(tenants)
+      .values({
+        id: tenantId,
+        name: 'Demo Company',
+        slug: tenantSlug,
+        is_active: true,
+      })
+      .onConflictDoNothing();
+
+    const demoPlantId = '0fab0000-0000-0000-0000-000000000001';
+    const demoSuperAdminId = '00000001-0000-0000-0000-000000000006';
+
+    let usersAdded = 0;
+    let plantsAdded = 0;
+
+    const existingPlant = await db.execute(sql`SELECT id FROM plants WHERE id = ${demoPlantId}`);
+    if (existingPlant.rows.length === 0) {
+      await db
+        .insert(plants)
+        .values({
+          id: demoPlantId,
+          tenant_id: tenantId,
+          name: 'Fábrica Principal',
+          code: 'PLANT-001',
+          address: 'Rua Industrial, 123',
+          city: 'Lisboa',
+          country: 'Portugal',
+          is_active: true,
+        })
+        .onConflictDoNothing();
+      plantsAdded++;
+    }
+
+    const existingSuperAdmin = await db.execute(sql`SELECT id FROM users WHERE id = ${demoSuperAdminId}`);
+    {
+      const passwordHash = await bcrypt.hash('SuperAdmin@123456', 10);
+      await db.execute(sql`
+        INSERT INTO users (id, tenant_id, username, email, password_hash, first_name, last_name, role, is_active)
+        VALUES (${demoSuperAdminId}, ${tenantId}, 'superadmin', 'superadmin@cmms.com', ${passwordHash}, 'Super', 'Administrador', 'superadmin', TRUE)
+        ON CONFLICT (id) DO UPDATE
+        SET tenant_id = EXCLUDED.tenant_id,
+            username = EXCLUDED.username,
+            email = EXCLUDED.email,
+            password_hash = EXCLUDED.password_hash,
+            first_name = EXCLUDED.first_name,
+            last_name = EXCLUDED.last_name,
+            role = EXCLUDED.role,
+            is_active = EXCLUDED.is_active,
+            updated_at = NOW();
+      `);
+      if (existingSuperAdmin.rows.length === 0) usersAdded++;
+    }
+
+    await db
+      .insert(userPlants)
+      .values([{ id: uuidv4(), user_id: demoSuperAdminId, plant_id: demoPlantId, role: 'superadmin' }])
+      .onConflictDoNothing();
+
+    return {
+      added: {
+        users: usersAdded,
+        plants: plantsAdded,
+        assets: 0,
+        maintenancePlans: 0,
+        workOrders: 0,
+        spareParts: 0,
+      },
+      note: 'Minimal seed applied (superadmin + 1 plant).',
+    };
+  }
+
   /**
    * Clear all data from database (dangerous!)
    */
@@ -1505,13 +1599,28 @@ END $$;`
       const tenantSlug = DEFAULT_TENANT_SLUG;
       const tenantId = DEFAULT_TENANT_ID;
 
+      const body: any = (req as any).body ?? {};
+      const seedDemo = body.seedDemo !== false;
+      const runSqlMigrations = body.runSqlMigrations !== false;
+      const resetMode = String(body.resetMode || 'schema').toLowerCase();
+
+      if (resetMode === 'schema') {
+        try {
+          await SetupController.resetPublicSchemaInternal();
+        } catch {
+          await SetupController.clearAllInternal(true);
+        }
+      } else {
+        await SetupController.clearAllInternal(true);
+      }
+
       await SetupController.ensureSchemaReady();
 
-      await SetupController.clearAllInternal(true);
-
-      const migrations = await SetupController.runMigrationsInternal();
+      const migrations = runSqlMigrations ? await SetupController.runMigrationsInternal() : [];
       await SetupController.ensureTenantsTable();
-      const seedResult = await SetupController.seedDemoDataInternal(tenantId, tenantSlug);
+      const seedResult = seedDemo
+        ? await SetupController.seedDemoDataInternal(tenantId, tenantSlug)
+        : await SetupController.seedMinimalAdminInternal(tenantId, tenantSlug);
 
       const demoUsers = [
         {
@@ -1561,6 +1670,11 @@ END $$;`
           loginUrl: '/login',
           migrations,
           seed: seedResult,
+          options: {
+            resetMode: resetMode === 'schema' ? 'schema' : 'truncate',
+            runSqlMigrations,
+            seedDemo,
+          },
           adminUsername: 'superadmin',
           adminEmail: 'superadmin@cmms.com',
           passwordHint: 'SuperAdmin@123456',

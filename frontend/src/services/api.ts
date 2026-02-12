@@ -1272,9 +1272,14 @@ export async function clearAllData() {
   });
 }
 
-export async function bootstrapDatabase() {
+export async function bootstrapDatabase(options?: {
+  resetMode?: 'schema' | 'truncate';
+  runSqlMigrations?: boolean;
+  seedDemo?: boolean;
+}) {
   return publicApiCall('/api/setup/bootstrap', {
     method: 'POST',
+    body: JSON.stringify(options ?? {}),
   });
 }
 

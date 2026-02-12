@@ -31,6 +31,8 @@ export function SetupInitPage({ embedded = false }: SetupInitPageProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<BootstrapResult | null>(null);
+  const [runSqlMigrations, setRunSqlMigrations] = useState(true);
+  const [seedDemo, setSeedDemo] = useState(true);
 
   const handleBootstrap = async () => {
     if (!confirm('Isto vai APAGAR TODOS os dados e recriar a base de dados. Continuar?')) {
@@ -46,7 +48,11 @@ export function SetupInitPage({ embedded = false }: SetupInitPageProps) {
     setResult(null);
 
     try {
-      const data = await bootstrapDatabase();
+      const data = await bootstrapDatabase({
+        resetMode: 'schema',
+        runSqlMigrations,
+        seedDemo,
+      });
       setResult(data as BootstrapResult);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao iniciar setup');
@@ -64,11 +70,40 @@ export function SetupInitPage({ embedded = false }: SetupInitPageProps) {
           </div>
           <h1 className="text-3xl font-bold theme-text">Setup Inicial da Base de Dados</h1>
           <p className="mt-2 text-sm theme-text-muted">
-            Esta pagina apaga todos os dados existentes, executa migracoes e carrega dados demo.
+            Esta pagina recria a base de dados do zero, executa as migracoes e pode carregar dados demonstrativos.
           </p>
         </div>
 
         <div className="rounded-3xl border theme-border theme-card p-6 shadow-sm">
+          <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+            <div className="text-sm font-semibold theme-text">Opcoes</div>
+            <div className="mt-3 grid gap-3 text-sm theme-text">
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={runSqlMigrations}
+                  onChange={(e) => setRunSqlMigrations(e.target.checked)}
+                  disabled={loading}
+                />
+                <span>Executar migracoes SQL (scripts/database/migrations)</span>
+              </label>
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={seedDemo}
+                  onChange={(e) => setSeedDemo(e.target.checked)}
+                  disabled={loading}
+                />
+                <span>Adicionar dados demonstrativos completos</span>
+              </label>
+              <div className="text-xs theme-text-muted">
+                O setup cria sempre um utilizador superadmin. Os dados demo sao opcionais.
+              </div>
+            </div>
+          </div>
+
           <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="button"
