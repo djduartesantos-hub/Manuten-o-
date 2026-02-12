@@ -289,7 +289,7 @@ export function ProfilePage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="rounded-full bg-[color:var(--dash-ink)] px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
+                  className="rounded-full bg-[color:var(--dash-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95 disabled:opacity-60"
                 >
                   Atualizar
                 </button>
