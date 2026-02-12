@@ -43,6 +43,13 @@ Opcional (apenas para bases de dados antigas/legadas):
 
 - `RUN_SQL_MIGRATIONS=true`
 
+Opcional (debug/controlo do bootstrap Drizzle no arranque):
+
+- `DRIZZLE_MIGRATE_VERBOSE=true` (mostra o output do `drizzle-kit push` em tempo real)
+- `DRIZZLE_MIGRATE_TIMEOUT_MS=300000` (timeout do `db:push` no arranque; default 5 min)
+- `DRIZZLE_AUTO_APPROVE=true` (confirma prompts automaticamente; default true em produção)
+- `DB_PREFLIGHT_STRICT=false` (se o `pgcrypto` falhar por permissões, não bloqueia o arranque)
+
 > Nota: o Railway injeta `PORT` automaticamente. O backend já lê `process.env.PORT`.
 
 ## 4) Healthcheck
@@ -82,3 +89,7 @@ Depois faz login com:
 O arranque aplica `drizzle-kit push` + migrações SQL automaticamente.
 - Funciona bem para 1 réplica.
 - Se no futuro escalares para múltiplas réplicas, o ideal é mover para um passo “run once” (release phase) ou migrações versionadas.
+
+Se o deploy ficar preso em `db:push`:
+- Ativa `DRIZZLE_MIGRATE_VERBOSE=true` para veres o passo exato.
+- Aumenta `DRIZZLE_MIGRATE_TIMEOUT_MS` temporariamente (ex: `600000`).

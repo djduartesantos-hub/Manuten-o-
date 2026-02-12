@@ -106,11 +106,16 @@ if (configured === undefined && env.NODE_ENV === 'production') {
   env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
-const verbose = env.DRIZZLE_MIGRATE_VERBOSE === 'true' || env.DRIZZLE_MIGRATE_VERBOSE === '1';
+const verbose =
+  env.DRIZZLE_MIGRATE_VERBOSE !== undefined
+    ? env.DRIZZLE_MIGRATE_VERBOSE === 'true' || env.DRIZZLE_MIGRATE_VERBOSE === '1'
+    : env.NODE_ENV === 'production';
 const autoApprove =
   env.DRIZZLE_AUTO_APPROVE !== undefined
     ? env.DRIZZLE_AUTO_APPROVE === 'true' || env.DRIZZLE_AUTO_APPROVE === '1'
     : env.NODE_ENV === 'production';
+
+const timeoutMs = Number(env.DRIZZLE_MIGRATE_TIMEOUT_MS ?? 300000);
 
 console.log(`[drizzle-migrate] running db:push${verbose ? ' (verbose)' : ''}...`);
 
@@ -121,12 +126,44 @@ const child = spawn('npm', ['run', 'db:push'], {
   env,
 });
 
-if (!verbose && autoApprove) {
-  // drizzle-kit may ask for confirmation before executing statements.
-  // Feeding a single "y" keeps production boots non-interactive.
+let timedOut = false;
+let approveInterval;
+
+const timeout = setTimeout(() => {
+  timedOut = true;
+
+  if (!verbose) {
+    const combined = `${stdoutTail}\n${stderrTail}`.trim();
+    if (combined) {
+      console.error('[drizzle-migrate] db:push output tail (truncated):');
+      console.error(combined);
+    }
+  }
+
+  console.error(`[drizzle-migrate] db:push timed out after ${timeoutMs}ms`);
   try {
-    child.stdin?.write('y\n');
-    child.stdin?.end();
+    child.kill('SIGTERM');
+  } catch {
+    // ignore
+  }
+}, timeoutMs);
+
+if (autoApprove) {
+  // drizzle-kit may ask for confirmation before executing statements.
+  // Some environments can trigger multiple prompts; keep stdin open and
+  // feed confirmations over time.
+  try {
+    let remaining = Number(env.DRIZZLE_AUTO_APPROVE_COUNT ?? 120);
+    const intervalMs = Number(env.DRIZZLE_AUTO_APPROVE_INTERVAL_MS ?? 250);
+    approveInterval = setInterval(() => {
+      if (remaining <= 0) return;
+      remaining--;
+      try {
+        child.stdin?.write('y\n');
+      } catch {
+        // ignore
+      }
+    }, intervalMs);
   } catch {
     // ignore
   }
@@ -142,6 +179,13 @@ if (!verbose) {
 }
 
 child.on('exit', (code, signal) => {
+  clearTimeout(timeout);
+  if (approveInterval) clearInterval(approveInterval);
+
+  if (timedOut) {
+    process.exit(1);
+  }
+
   if (typeof code === 'number') {
     if (code !== 0) {
       if (!verbose) {
