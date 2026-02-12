@@ -25,6 +25,67 @@ function resolveLoginStyle(search: string): LoginStyle {
   return fromQuery || fromEnv || 'full';
 }
 
+type DemoKey =
+  | 'admin_empresa'
+  | 'gestor_manutencao'
+  | 'supervisor'
+  | 'tecnico'
+  | 'operador'
+  | 'leitor'
+  | 'custom';
+
+const DEMO_ACCOUNTS: Array<{ key: Exclude<DemoKey, 'custom'>; label: string; username: string; password: string }> = [
+  { key: 'admin_empresa', label: 'Admin Empresa', username: 'admin', password: 'Admin@123456' },
+  { key: 'gestor_manutencao', label: 'Gestor Manutenção', username: 'gestor', password: 'Gestor@123456' },
+  { key: 'supervisor', label: 'Supervisor', username: 'supervisor', password: 'Supervisor@123456' },
+  { key: 'tecnico', label: 'Técnico', username: 'tech', password: 'Tech@123456' },
+  { key: 'operador', label: 'Operador', username: 'operador', password: 'Operador@123456' },
+  { key: 'leitor', label: 'Leitor', username: 'leitor', password: 'Leitor@123456' },
+];
+
+function DemoLoginSelector(props: {
+  demoKey: DemoKey;
+  setDemoKey: (k: DemoKey) => void;
+  loading: boolean;
+}) {
+  const selected = props.demoKey === 'custom' ? null : DEMO_ACCOUNTS.find((a) => a.key === props.demoKey) || null;
+
+  return (
+    <div className="mt-6 rounded-2xl border theme-border theme-card p-4 text-xs theme-text">
+      <p className="font-semibold">Demo rápido</p>
+      <p className="mt-1 theme-text-muted">Escolha uma role para preencher as credenciais.</p>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <label className="text-[10px] font-medium uppercase tracking-[0.2em] theme-text-muted" htmlFor="demoRole">
+          Role
+        </label>
+        <select
+          id="demoRole"
+          value={props.demoKey}
+          onChange={(e) => props.setDemoKey(e.target.value as DemoKey)}
+          disabled={props.loading}
+          className="min-w-[220px] rounded-full border theme-border bg-[color:var(--dash-panel-2)] px-3 py-2 text-xs theme-text focus:outline-none focus:ring-2 focus:ring-[color:var(--dash-accent)]/25 disabled:opacity-70"
+        >
+          {DEMO_ACCOUNTS.map((a) => (
+            <option key={a.key} value={a.key}>
+              {a.label}
+            </option>
+          ))}
+          <option value="custom">Manual</option>
+        </select>
+      </div>
+
+      {selected ? (
+        <div className="mt-3 grid gap-1">
+          <p>Username: {selected.username}</p>
+          <p>Senha: {selected.password}</p>
+        </div>
+      ) : (
+        <p className="mt-3 theme-text-muted">Modo manual ativo.</p>
+      )}
+    </div>
+  );
+}
+
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -32,6 +93,7 @@ export function LoginPage() {
   const { theme, setTheme } = useTheme();
   const [username, setUsername] = React.useState('admin');
   const [password, setPassword] = React.useState('Admin@123456');
+  const [demoKey, setDemoKey] = React.useState<DemoKey>('admin_empresa');
   const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
@@ -61,6 +123,15 @@ export function LoginPage() {
       setLoading(false);
     }
   };
+
+  React.useEffect(() => {
+    if (demoKey === 'custom') return;
+    const selected = DEMO_ACCOUNTS.find((a) => a.key === demoKey);
+    if (!selected) return;
+
+    setUsername(selected.username);
+    setPassword(selected.password);
+  }, [demoKey]);
 
   return (
     <div className="relative min-h-screen overflow-hidden theme-bg theme-text">
@@ -133,7 +204,10 @@ export function LoginPage() {
                       id="username"
                       type="text"
                       value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      onChange={(e) => {
+                        setDemoKey('custom');
+                        setUsername(e.target.value);
+                      }}
                       autoComplete="username"
                       spellCheck={false}
                       disabled={loading}
@@ -154,7 +228,10 @@ export function LoginPage() {
                         id="password"
                         type={showPassword ? 'text' : 'password'}
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => {
+                          setDemoKey('custom');
+                          setPassword(e.target.value);
+                        }}
                         autoComplete="current-password"
                         disabled={loading}
                         className="w-full rounded-2xl border theme-border bg-[color:var(--dash-panel-2)] px-4 py-3 pr-12 text-sm theme-text focus:outline-none focus:ring-2 focus:ring-[color:var(--dash-accent)]/25 disabled:opacity-70"
@@ -182,11 +259,7 @@ export function LoginPage() {
                   </button>
                 </form>
 
-                <div className="mt-6 rounded-2xl border theme-border theme-card p-4 text-xs theme-text">
-                  <p className="font-semibold">Demo rápido</p>
-                  <p>Username: admin</p>
-                  <p>Senha: Admin@123456</p>
-                </div>
+                <DemoLoginSelector demoKey={demoKey} setDemoKey={setDemoKey} loading={loading} />
               </div>
             </div>
           </div>
@@ -243,7 +316,10 @@ export function LoginPage() {
                       id="username"
                       type="text"
                       value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      onChange={(e) => {
+                        setDemoKey('custom');
+                        setUsername(e.target.value);
+                      }}
                       autoComplete="username"
                       spellCheck={false}
                       disabled={loading}
@@ -264,7 +340,10 @@ export function LoginPage() {
                         id="password"
                         type={showPassword ? 'text' : 'password'}
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => {
+                          setDemoKey('custom');
+                          setPassword(e.target.value);
+                        }}
                         autoComplete="current-password"
                         disabled={loading}
                         className="w-full rounded-2xl border theme-border bg-[color:var(--dash-panel-2)] px-4 py-3 pr-12 text-sm theme-text focus:outline-none focus:ring-2 focus:ring-[color:var(--dash-accent)]/25 disabled:opacity-70"
@@ -292,11 +371,7 @@ export function LoginPage() {
                   </button>
                 </form>
 
-                <div className="mt-6 rounded-2xl border theme-border theme-card p-4 text-xs theme-text">
-                  <p className="font-semibold">Demo rápido</p>
-                  <p>Username: admin</p>
-                  <p>Senha: Admin@123456</p>
-                </div>
+                <DemoLoginSelector demoKey={demoKey} setDemoKey={setDemoKey} loading={loading} />
               </div>
             </div>
           </div>
@@ -353,7 +428,10 @@ export function LoginPage() {
                       id="username"
                       type="text"
                       value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      onChange={(e) => {
+                        setDemoKey('custom');
+                        setUsername(e.target.value);
+                      }}
                       autoComplete="username"
                       spellCheck={false}
                       disabled={loading}
@@ -374,7 +452,10 @@ export function LoginPage() {
                         id="password"
                         type={showPassword ? 'text' : 'password'}
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => {
+                          setDemoKey('custom');
+                          setPassword(e.target.value);
+                        }}
                         autoComplete="current-password"
                         disabled={loading}
                         className="w-full rounded-2xl border theme-border bg-[color:var(--dash-panel-2)] px-4 py-3 pr-12 text-sm theme-text focus:outline-none focus:ring-2 focus:ring-[color:var(--dash-accent)]/25 disabled:opacity-70"
@@ -402,11 +483,7 @@ export function LoginPage() {
                   </button>
                 </form>
 
-                <div className="mt-6 rounded-2xl border theme-border theme-card p-4 text-xs theme-text">
-                  <p className="font-semibold">Demo rápido</p>
-                  <p>Username: admin</p>
-                  <p>Senha: Admin@123456</p>
-                </div>
+                <DemoLoginSelector demoKey={demoKey} setDemoKey={setDemoKey} loading={loading} />
               </div>
             </div>
           </div>
