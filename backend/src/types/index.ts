@@ -36,6 +36,7 @@ export interface AuthenticatedRequest extends Express.Request {
   tenantId?: string;
   tenantSlug?: string;
   tenantIsReadOnly?: boolean;
+  requestId?: string;
   plantId?: string;
   ip?: string;
   path?: string;

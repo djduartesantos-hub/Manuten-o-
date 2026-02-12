@@ -102,11 +102,41 @@ export async function apiCall<T = any>(
   }
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'API request failed');
+    const raw = await response.text();
+    let parsed: any = null;
+    if (raw) {
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        parsed = null;
+      }
+    }
+
+    const requestId =
+      response.headers.get('x-request-id') || (parsed?.requestId as string | undefined);
+    const message =
+      (typeof parsed?.error === 'string' && parsed.error.trim()) ||
+      (typeof parsed?.message === 'string' && parsed.message.trim()) ||
+      (raw?.trim() ? raw.trim() : '') ||
+      response.statusText ||
+      'API request failed';
+
+    throw new Error(requestId ? `${message} (requestId: ${requestId})` : message);
   }
 
-  const result: ApiResponse<T> = await response.json();
+  const raw = await response.text();
+  let result: ApiResponse<T> | null = null;
+  if (raw) {
+    try {
+      result = JSON.parse(raw) as ApiResponse<T>;
+    } catch {
+      result = null;
+    }
+  }
+
+  if (!result || typeof result !== 'object') {
+    throw new Error('Resposta invalida do servidor');
+  }
 
   if (!result.success) {
     throw new Error(result.error || 'API request failed');
@@ -533,11 +563,41 @@ async function publicApiCall<T = any>(endpoint: string, options: RequestInit = {
   }
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'API request failed');
+    const raw = await response.text();
+    let parsed: any = null;
+    if (raw) {
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        parsed = null;
+      }
+    }
+
+    const requestId =
+      response.headers.get('x-request-id') || (parsed?.requestId as string | undefined);
+    const message =
+      (typeof parsed?.error === 'string' && parsed.error.trim()) ||
+      (typeof parsed?.message === 'string' && parsed.message.trim()) ||
+      (raw?.trim() ? raw.trim() : '') ||
+      response.statusText ||
+      'API request failed';
+
+    throw new Error(requestId ? `${message} (requestId: ${requestId})` : message);
   }
 
-  const result: ApiResponse<T> = await response.json();
+  const raw = await response.text();
+  let result: ApiResponse<T> | null = null;
+  if (raw) {
+    try {
+      result = JSON.parse(raw) as ApiResponse<T>;
+    } catch {
+      result = null;
+    }
+  }
+
+  if (!result || typeof result !== 'object') {
+    throw new Error('Resposta invalida do servidor');
+  }
 
   if (!result.success) {
     throw new Error(result.error || 'API request failed');

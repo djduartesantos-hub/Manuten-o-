@@ -16,8 +16,8 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - Autenticação/Autorização consistente em todas as rotas (incl. tenant scope) e auditoria dos caminhos críticos.
 - ✅ Logs estruturados + request id (mínimo em produção).
 - ✅ Rate limit nos endpoints sensíveis (auth, reset password, exports grandes).
-- Erros padronizados (não vazar stack/segredos).
-- Backups e recuperação (runbook simples).
+- ✅ Erros padronizados (não vazar stack/segredos).
+- ✅ Backups e recuperação (runbook simples).
 
 **Should**
 - Healthchecks completos (db/redis/jobs) e página de status no SuperAdmin.

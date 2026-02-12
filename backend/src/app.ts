@@ -54,6 +54,14 @@ export function createApp(): Express {
     limit: 300,
     standardHeaders: true,
     legacyHeaders: false,
+    handler: (req, res) => {
+      return res.status(429).json({
+        success: false,
+        error: 'Too many requests. Please try again later.',
+        code: 'RATE_LIMITED',
+        requestId: (req as any).requestId,
+      });
+    },
   });
 
   const authLimiter = rateLimit({
@@ -61,6 +69,14 @@ export function createApp(): Express {
     limit: 60,
     standardHeaders: true,
     legacyHeaders: false,
+    handler: (req, res) => {
+      return res.status(429).json({
+        success: false,
+        error: 'Too many authentication requests. Please try again later.',
+        code: 'RATE_LIMITED',
+        requestId: (req as any).requestId,
+      });
+    },
   });
 
   app.use(express.json());

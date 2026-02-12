@@ -89,7 +89,12 @@ export async function tenantSlugMiddleware(
 
     if (overrideTenantId || overrideTenantSlug) {
       if (overrideTenantId && !isUuid(overrideTenantId)) {
-        res.status(400).json({ success: false, error: 'Invalid x-tenant-id' });
+        res.status(400).json({
+          success: false,
+          error: 'Invalid x-tenant-id',
+          code: 'INVALID_TENANT_ID',
+          requestId: req.requestId,
+        });
         return;
       }
 
@@ -102,7 +107,12 @@ export async function tenantSlugMiddleware(
           });
 
       if (!tenant) {
-        res.status(404).json({ success: false, error: 'Tenant not found' });
+        res.status(404).json({
+          success: false,
+          error: 'Tenant not found',
+          code: 'TENANT_NOT_FOUND',
+          requestId: req.requestId,
+        });
         return;
       }
 

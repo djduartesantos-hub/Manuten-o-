@@ -15,23 +15,27 @@ export function errorHandler(
 
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal server error';
+  const code = err.code || (statusCode >= 500 ? 'INTERNAL_ERROR' : 'REQUEST_FAILED');
 
   res.status(statusCode).json({
     success: false,
     error: message,
+    code,
     requestId: req.requestId,
     ...(process.env.NODE_ENV === 'development' && { details: err.stack }),
   });
 }
 
 export function notFoundHandler(
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction,
 ): void {
   res.status(404).json({
     success: false,
     error: 'Route not found',
+    code: 'ROUTE_NOT_FOUND',
+    requestId: req.requestId,
   });
 }
 
