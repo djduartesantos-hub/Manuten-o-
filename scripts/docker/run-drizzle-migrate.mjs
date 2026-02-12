@@ -112,6 +112,26 @@ const autoApprove =
     ? env.DRIZZLE_AUTO_APPROVE === 'true' || env.DRIZZLE_AUTO_APPROVE === '1'
     : env.NODE_ENV === 'production';
 
+const pushTimeoutMs = Number(env.DRIZZLE_PUSH_TIMEOUT_MS ?? 180000);
+
+function maybeAutoApproveFromOutput(chunkText) {
+  if (!autoApprove) return;
+  const text = String(chunkText);
+  // Common drizzle-kit prompt variants
+  if (
+    /do you want to/i.test(text) ||
+    /are you sure/i.test(text) ||
+    /proceed\?/i.test(text) ||
+    /apply/i.test(text) && /changes/i.test(text)
+  ) {
+    try {
+      child.stdin?.write('y\n');
+    } catch {
+      // ignore
+    }
+  }
+}
+
 console.log(`[drizzle-migrate] running db:push${verbose ? ' (verbose)' : ''}...`);
 
 const child = spawn('npm', ['run', 'db:push'], {
@@ -121,12 +141,36 @@ const child = spawn('npm', ['run', 'db:push'], {
   env,
 });
 
+const timeout = Number.isFinite(pushTimeoutMs) && pushTimeoutMs > 0
+  ? setTimeout(() => {
+      if (!verbose) {
+        const combined = `${stdoutTail}\n${stderrTail}`.trim();
+        if (combined) {
+          console.error('[drizzle-migrate] db:push timed out; last output chunk (truncated):');
+          console.error(combined);
+        }
+      }
+      console.error(`[drizzle-migrate] db:push timed out after ${pushTimeoutMs}ms`);
+      try {
+        child.kill('SIGTERM');
+      } catch {
+        // ignore
+      }
+      setTimeout(() => {
+        try {
+          child.kill('SIGKILL');
+        } catch {
+          // ignore
+        }
+      }, 5000).unref();
+    }, pushTimeoutMs)
+  : null;
+
 if (!verbose && autoApprove) {
   // drizzle-kit may ask for confirmation before executing statements.
-  // Feeding a single "y" keeps production boots non-interactive.
+  // We keep stdin open and send approval eagerly + when prompts appear.
   try {
     child.stdin?.write('y\n');
-    child.stdin?.end();
   } catch {
     // ignore
   }
@@ -134,14 +178,30 @@ if (!verbose && autoApprove) {
 
 if (!verbose) {
   child.stdout?.on('data', (d) => {
-    stdoutTail = appendTail(stdoutTail, d.toString('utf8'));
+    const text = d.toString('utf8');
+    stdoutTail = appendTail(stdoutTail, text);
+    maybeAutoApproveFromOutput(text);
   });
   child.stderr?.on('data', (d) => {
-    stderrTail = appendTail(stderrTail, d.toString('utf8'));
+    const text = d.toString('utf8');
+    stderrTail = appendTail(stderrTail, text);
+    maybeAutoApproveFromOutput(text);
   });
 }
 
+child.on('error', (error) => {
+  if (timeout) timeout.unref?.();
+  console.error('[drizzle-migrate] failed to spawn db:push:', error);
+  process.exit(1);
+});
+
 child.on('exit', (code, signal) => {
+  if (timeout) clearTimeout(timeout);
+  try {
+    child.stdin?.end();
+  } catch {
+    // ignore
+  }
   if (typeof code === 'number') {
     if (code !== 0) {
       if (!verbose) {
