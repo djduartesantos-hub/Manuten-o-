@@ -157,9 +157,20 @@ export function SettingsPage() {
       // SuperAdmin should land directly in the global management panel
       setActivePanel('superadmin');
       setPreventiveSub(null);
+      navigate('/settings?panel=superadmin', { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
+
+  const openPanel = (panel: SettingTab) => {
+    setActivePanel(panel);
+
+    const params = new URLSearchParams(location.search);
+    params.set('panel', panel);
+    if (panel !== 'preventive') params.delete('sub');
+
+    navigate(`/settings?${params.toString()}`, { replace: true });
+  };
 
   const closePanel = () => {
     setActivePanel(null);
@@ -195,96 +206,91 @@ export function SettingsPage() {
           </div>
         </section>
 
-        <section className="rounded-[32px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                Secoes
-              </p>
-              <h2 className="mt-2 text-xl font-semibold text-[color:var(--dash-ink)]">
-                Escolha o que quer configurar
-              </h2>
-              <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
-                Layout por cards para ficar mais limpo e objetivo.
-              </p>
+        {!activePanel && (
+          <section className="rounded-[32px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                  Secoes
+                </p>
+                <h2 className="mt-2 text-xl font-semibold text-[color:var(--dash-ink)]">
+                  Escolha o que quer configurar
+                </h2>
+                <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                  Layout por cards para ficar mais limpo e objetivo.
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActivePanel(tab.id)}
-                className="group rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-5 text-left shadow-[0_12px_28px_-22px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:bg-[color:var(--dash-surface-2)] hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[color:var(--dash-ink)] truncate">
-                      {tab.label}
-                    </p>
-                    <p className="mt-1 text-xs text-[color:var(--dash-muted)]">
-                      {tab.description}
-                    </p>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => openPanel(tab.id)}
+                  className="group rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-5 text-left shadow-[0_12px_28px_-22px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:bg-[color:var(--dash-surface-2)] hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-[color:var(--dash-ink)] truncate">
+                        {tab.label}
+                      </p>
+                      <p className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                        {tab.description}
+                      </p>
+                    </div>
+                    <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] text-[color:var(--dash-accent)] shadow-sm">
+                      {tab.icon}
+                    </span>
                   </div>
-                  <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] text-[color:var(--dash-accent)] shadow-sm">
-                    {tab.icon}
-                  </span>
-                </div>
-                <div className="mt-4 text-xs font-semibold text-[color:var(--dash-accent)]">
-                  Abrir
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
+                  <div className="mt-4 text-xs font-semibold text-[color:var(--dash-accent)]">
+                    Abrir
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {activePanel && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div
-              className="absolute inset-0 bg-black/40"
-              onClick={closePanel}
-              aria-hidden="true"
-            />
-            <div className="relative w-[1100px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] overflow-hidden rounded-[32px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] shadow-[0_30px_80px_-55px_rgba(15,23,42,0.65)]">
-              <div className="flex items-start justify-between gap-4 border-b border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-6">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[color:var(--dash-muted)]">
-                    Configuracoes
+          <section className="rounded-[32px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] shadow-sm">
+            <div className="flex flex-col gap-4 border-b border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-6 md:flex-row md:items-start md:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[color:var(--dash-muted)]">
+                  Painel de configuracao
+                </p>
+                <h3 className="mt-2 text-lg font-semibold text-[color:var(--dash-ink)] truncate">
+                  {activeMeta?.label}
+                </h3>
+                {activeMeta?.description && (
+                  <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                    {activeMeta.description}
                   </p>
-                  <h3 className="mt-2 text-lg font-semibold text-[color:var(--dash-ink)] truncate">
-                    {activeMeta?.label}
-                  </h3>
-                  {activeMeta?.description && (
-                    <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
-                      {activeMeta.description}
-                    </p>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  className="btn-secondary h-9 px-3"
-                  onClick={closePanel}
-                >
-                  Fechar
-                </button>
-              </div>
-
-              <div className="max-h-[calc(100vh-10rem)] overflow-y-auto p-6">
-                {activePanel === 'alerts' && <AlertsSettings />}
-                {activePanel === 'notifications' && <NotificationSettings />}
-                {activePanel === 'preventive' && (
-                  <PreventiveMaintenanceSettings initialSection={preventiveSub || undefined} />
                 )}
-                {activePanel === 'kits' && <MaintenanceKitsPage embedded />}
-                {activePanel === 'warnings' && <PredictiveWarningsSettings />}
-                {activePanel === 'documents' && <DocumentsLibrarySettings />}
-                {activePanel === 'permissions' && <PermissionsSettings />}
-                {activePanel === 'management' && <ManagementSettings />}
-                {activePanel === 'superadmin' && <SuperAdminSettings />}
               </div>
+              <button
+                type="button"
+                className="btn-secondary h-9 px-3"
+                onClick={closePanel}
+              >
+                Voltar
+              </button>
             </div>
-          </div>
+
+            <div className="p-6">
+              {activePanel === 'alerts' && <AlertsSettings />}
+              {activePanel === 'notifications' && <NotificationSettings />}
+              {activePanel === 'preventive' && (
+                <PreventiveMaintenanceSettings initialSection={preventiveSub || undefined} />
+              )}
+              {activePanel === 'kits' && <MaintenanceKitsPage embedded />}
+              {activePanel === 'warnings' && <PredictiveWarningsSettings />}
+              {activePanel === 'documents' && <DocumentsLibrarySettings />}
+              {activePanel === 'permissions' && <PermissionsSettings />}
+              {activePanel === 'management' && <ManagementSettings />}
+              {activePanel === 'superadmin' && <SuperAdminSettings />}
+            </div>
+          </section>
         )}
       </div>
     </MainLayout>
