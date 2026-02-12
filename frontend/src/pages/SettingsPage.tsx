@@ -804,9 +804,6 @@ export function SuperAdminSettings() {
                         <div className="mt-2 text-base font-semibold text-[color:var(--dash-ink)] truncate">
                           {selectedTenant ? selectedTenant.name : 'Global'}
                         </div>
-                        <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
-                          {selectedTenant ? String(selectedTenant.slug) : 'Selecione uma empresa no topo'}
-                        </div>
                       </div>
                       <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
                         <Users className="h-5 w-5 text-[color:var(--dash-muted)]" />
