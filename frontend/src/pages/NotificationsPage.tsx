@@ -84,29 +84,35 @@ export function NotificationsPage() {
                   {n.meta ? <p className="mt-1 text-xs theme-text-muted">{n.meta}</p> : null}
                 </div>
 
-				<div className="flex items-center gap-2">
-					<p className="text-xs theme-text-muted">{formatWhen(n.createdAt)}</p>
-          {!n.read ? (
-            <button
-              type="button"
-              onClick={() => markNotificationRead(n.id)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border theme-border theme-card theme-text-muted transition hover:bg-[color:var(--dash-surface)] hover:theme-text"
-              aria-label="Marcar como lida"
-              title="Marcar como lida"
-            >
-              <Check className="h-4 w-4" />
-            </button>
-          ) : null}
-					<button
-						type="button"
-						onClick={() => deleteNotification(n.id)}
-						className="inline-flex h-8 w-8 items-center justify-center rounded-xl border theme-border theme-card theme-text-muted transition hover:bg-[color:var(--dash-surface)] hover:text-rose-600"
-						aria-label="Apagar notificação"
-						title="Apagar"
-					>
-						<Trash2 className="h-4 w-4" />
-					</button>
-				</div>
+
+                <div className="flex w-full items-center gap-4 sm:w-auto sm:justify-end">
+                  <p className="text-xs theme-text-muted whitespace-nowrap">
+                    {formatWhen(n.createdAt)}
+                  </p>
+
+                  <div className="ml-auto flex items-center gap-3">
+                    {!n.read ? (
+                      <button
+                        type="button"
+                        onClick={() => markNotificationRead(n.id)}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl border theme-border theme-card theme-text-muted transition hover:bg-[color:var(--dash-surface)] hover:theme-text"
+                        aria-label="Marcar como lida"
+                        title="Marcar como lida"
+                      >
+                        <Check className="h-4 w-4" />
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => deleteNotification(n.id)}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-xl border theme-border theme-card theme-text-muted transition hover:bg-[color:var(--dash-surface)] hover:text-rose-600"
+                      aria-label="Apagar notificação"
+                      title="Apagar"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           ))}
