@@ -535,6 +535,7 @@ function SuperAdminSettings() {
           </p>
 
           <div className="mt-6 space-y-10">
+            <PlantsPage embedded key={`plants-${selectedTenantId}`} />
             <PermissionsSettings key={`perm-${selectedTenantId}`} />
             <ManagementSettings key={`mgmt-${selectedTenantId}`} />
           </div>
