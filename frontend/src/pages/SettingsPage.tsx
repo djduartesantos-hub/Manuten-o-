@@ -339,6 +339,26 @@ function SuperAdminSettings() {
   const [dbStatus, setDbStatus] = React.useState<any | null>(null);
   const [loadingDbStatus, setLoadingDbStatus] = React.useState(false);
 
+  const normalizeStringList = (value: any): string[] => {
+    if (Array.isArray(value)) {
+      return value.map((v) => String(v)).filter((v) => v.trim().length > 0);
+    }
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) return [];
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map((v) => String(v)).filter((v) => v.trim().length > 0);
+        }
+      } catch {
+        // ignore
+      }
+      return [trimmed];
+    }
+    return [];
+  };
+
   const loadTenants = async () => {
     setLoading(true);
     setError('');
@@ -755,6 +775,34 @@ function SuperAdminSettings() {
                         </div>
                         <div className="mt-2">
                           Tipo: <span className="font-semibold text-[color:var(--dash-ink)]">{String(dbStatus.lastSetupRun.run_type || '-')}</span>
+
+                        {dbStatus.lastSetupRun ? (
+                          <div className="mt-3 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3">
+                            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                              Última atualização aplicada
+                            </div>
+                            <div className="mt-2">
+                              Tipo: <span className="font-semibold text-[color:var(--dash-ink)]">{String(dbStatus.lastSetupRun.run_type || '-')}</span>
+                            </div>
+                            {dbStatus.lastSetupRun.created_at ? (
+                              <div>Data: {String(dbStatus.lastSetupRun.created_at)}</div>
+                            ) : null}
+
+                            {(() => {
+                              const migrations = normalizeStringList(dbStatus.lastSetupRun.migrations);
+                              const patches = normalizeStringList(dbStatus.lastSetupRun.patches);
+                              if (migrations.length === 0 && patches.length === 0) return null;
+                              return (
+                                <div className="mt-2">
+                                  {migrations.length > 0 ? (
+                                    <div>Migrações: {migrations.join(', ')}</div>
+                                  ) : null}
+                                  {patches.length > 0 ? <div>Patches: {patches.join(', ')}</div> : null}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        ) : null}
                         </div>
                         <div>
                           Data: <span className="font-semibold text-[color:var(--dash-ink)]">{String(dbStatus.lastSetupRun.created_at || '-')}</span>

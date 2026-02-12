@@ -135,7 +135,15 @@ export async function getSuperadminDbStatus(): Promise<{
   dbTime?: string;
   counts?: { users?: number | null; plants?: number | null };
   drizzleMigrations?: { table?: string | null; latest?: any | null };
-  lastSetupRun?: any | null;
+  lastSetupRun?: {
+    id?: string;
+    tenant_id?: string;
+    run_type?: string;
+    user_id?: string | null;
+    migrations?: any;
+    patches?: any;
+    created_at?: any;
+  } | null;
 }> {
   return apiCall('/superadmin/db/status');
 }
@@ -201,7 +209,6 @@ export async function getApiHealth(): Promise<{
   } finally {
     clearTimeout(timeoutId);
   }
-
   if (!response.ok) {
     return { ok: false, status: response.status, message: `HTTP ${response.status}` };
   }
