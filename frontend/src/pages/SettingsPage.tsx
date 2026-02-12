@@ -4,21 +4,25 @@ import { MainLayout } from '../layouts/MainLayout';
 import { useAppStore } from '../context/store';
 import {
   apiCall,
+  createAdminRole,
   createAdminUser,
   deactivateAdminPlant,
   getAdminPlants,
   getAdminPermissions,
   getAdminRolePermissions,
+  getAdminRoleHomes,
   getAdminRoles,
   getAdminUsers,
   getAssets,
   setAdminRolePermissions,
+  setAdminRoleHomes,
   createPreventiveSchedule,
   getPreventiveSchedules,
   skipPreventiveSchedule,
   updatePreventiveSchedule,
   getNotificationRules,
   updateAdminPlant,
+  updateAdminRole,
   updateAdminUser,
   updateNotificationRules,
 } from '../services/api';
@@ -3089,13 +3093,26 @@ function DocumentsLibrarySettings() {
 }
 
 function PermissionsSettings() {
-  const [roles, setRoles] = React.useState<Array<{ value: string; label: string }>>([]);
+  const [roles, setRoles] = React.useState<
+    Array<{ value: string; label: string; description?: string | null; is_system?: boolean }>
+  >([]);
   const [permissions, setPermissions] = React.useState<any[]>([]);
   const [activeRole, setActiveRole] = React.useState<string>('');
   const [rolePerms, setRolePerms] = React.useState<Set<string>>(new Set());
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [savingRole, setSavingRole] = React.useState(false);
+  const [creatingRole, setCreatingRole] = React.useState(false);
+  const [plants, setPlants] = React.useState<Array<{ id: string; name: string }>>([]);
+  const [homeScopePlantId, setHomeScopePlantId] = React.useState<string | null>(null);
+  const [homeByRole, setHomeByRole] = React.useState<Record<string, string>>({});
+  const [suggestedHomeByRole, setSuggestedHomeByRole] = React.useState<Record<string, string>>({});
+  const [loadingHomes, setLoadingHomes] = React.useState(false);
+  const [savingHomes, setSavingHomes] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  const [roleMeta, setRoleMeta] = React.useState({ name: '', description: '' });
+  const [newRole, setNewRole] = React.useState({ key: '', name: '', description: '' });
 
   const loadBase = async () => {
     setLoading(true);
@@ -3111,6 +3128,45 @@ function PermissionsSettings() {
       setError(err.message || 'Falha ao carregar RBAC');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPlants = async () => {
+    try {
+      const plantsData = await getAdminPlants();
+      const safe = Array.isArray(plantsData) ? plantsData : [];
+      setPlants(safe.map((p: any) => ({ id: String(p.id), name: String(p.name || p.code || p.id) })));
+    } catch {
+      setPlants([]);
+    }
+  };
+
+  const loadRoleHomes = async (plantId: string | null) => {
+    setLoadingHomes(true);
+    setError(null);
+    try {
+      const rows = await getAdminRoleHomes(plantId);
+      const map: Record<string, string> = {};
+      const suggested: Record<string, string> = {};
+
+      for (const r of Array.isArray(rows) ? rows : []) {
+        const key = String((r as any)?.role_key || '');
+        const home = String((r as any)?.home_path || '');
+        const sug = String((r as any)?.suggested_home || '');
+        if (key) {
+          if (home) map[key] = home;
+          if (sug) suggested[key] = sug;
+        }
+      }
+
+      setHomeByRole(map);
+      setSuggestedHomeByRole(suggested);
+    } catch (err: any) {
+      setError(err.message || 'Falha ao carregar home pages');
+      setHomeByRole({});
+      setSuggestedHomeByRole({});
+    } finally {
+      setLoadingHomes(false);
     }
   };
 
@@ -3130,13 +3186,28 @@ function PermissionsSettings() {
 
   React.useEffect(() => {
     loadBase();
+    loadPlants();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  React.useEffect(() => {
+    if (roles.length === 0) return;
+    loadRoleHomes(homeScopePlantId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [homeScopePlantId, roles.length]);
 
   React.useEffect(() => {
     if (activeRole) loadRolePerms(activeRole);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRole]);
+
+  React.useEffect(() => {
+    const selected = roles.find((r) => r.value === activeRole);
+    setRoleMeta({
+      name: String(selected?.label || ''),
+      description: String(selected?.description || ''),
+    });
+  }, [activeRole, roles]);
 
   const togglePerm = (key: string) => {
     setRolePerms((current) => {
@@ -3157,6 +3228,64 @@ function PermissionsSettings() {
       setError(err.message || 'Falha ao guardar permissões');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveRoleMeta = async () => {
+    if (!activeRole) return;
+    const name = String(roleMeta.name || '').trim();
+    const description = String(roleMeta.description || '').trim();
+
+    if (!name) {
+      setError('Nome do role é obrigatório');
+      return;
+    }
+
+    setSavingRole(true);
+    setError(null);
+    try {
+      await updateAdminRole(activeRole, {
+        name,
+        description: description ? description : null,
+      });
+      await loadBase();
+    } catch (err: any) {
+      setError(err.message || 'Falha ao guardar role');
+    } finally {
+      setSavingRole(false);
+    }
+  };
+
+  const handleCreateRole = async () => {
+    const key = String(newRole.key || '').trim().toLowerCase();
+    const name = String(newRole.name || '').trim();
+    const description = String(newRole.description || '').trim();
+
+    if (!key || !/^[a-z0-9_]+$/.test(key)) {
+      setError('Chave inválida. Use apenas a-z, 0-9 e _');
+      return;
+    }
+
+    if (!name) {
+      setError('Nome do role é obrigatório');
+      return;
+    }
+
+    setCreatingRole(true);
+    setError(null);
+    try {
+      await createAdminRole({
+        key,
+        name,
+        description: description ? description : null,
+      });
+      setNewRole({ key: '', name: '', description: '' });
+      await loadBase();
+      setActiveRole(key);
+    } catch (err: any) {
+      setError(err.message || 'Falha ao criar role');
+    } finally {
+      setCreatingRole(false);
     }
   };
 
@@ -3209,6 +3338,198 @@ function PermissionsSettings() {
         >
           Guardar permissões
         </button>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="rounded-[24px] border theme-border theme-card p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] theme-text-muted">
+            Editar role
+          </p>
+          <div className="mt-3 space-y-3">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+                Chave
+              </label>
+              <input className="input mt-2 h-10" value={activeRole || ''} disabled />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+                Nome
+              </label>
+              <input
+                className="input mt-2 h-10"
+                value={roleMeta.name}
+                onChange={(e) => setRoleMeta((p) => ({ ...p, name: e.target.value }))}
+                disabled={loading || savingRole || !activeRole}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+                Descrição
+              </label>
+              <textarea
+                className="input mt-2 min-h-[90px]"
+                value={roleMeta.description}
+                onChange={(e) => setRoleMeta((p) => ({ ...p, description: e.target.value }))}
+                disabled={loading || savingRole || !activeRole}
+              />
+            </div>
+
+            <button
+              className="btn-primary w-full"
+              onClick={handleSaveRoleMeta}
+              disabled={loading || savingRole || !activeRole}
+              type="button"
+            >
+              {savingRole ? 'A guardar…' : 'Guardar role'}
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-[24px] border theme-border theme-card p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] theme-text-muted">
+            Criar role
+          </p>
+          <div className="mt-3 space-y-3">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+                Chave (ex: operador_turno)
+              </label>
+              <input
+                className="input mt-2 h-10"
+                value={newRole.key}
+                onChange={(e) => setNewRole((p) => ({ ...p, key: e.target.value }))}
+                disabled={loading || creatingRole}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+                Nome
+              </label>
+              <input
+                className="input mt-2 h-10"
+                value={newRole.name}
+                onChange={(e) => setNewRole((p) => ({ ...p, name: e.target.value }))}
+                disabled={loading || creatingRole}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+                Descrição
+              </label>
+              <textarea
+                className="input mt-2 min-h-[90px]"
+                value={newRole.description}
+                onChange={(e) => setNewRole((p) => ({ ...p, description: e.target.value }))}
+                disabled={loading || creatingRole}
+              />
+            </div>
+
+            <button
+              className="btn-primary w-full"
+              onClick={handleCreateRole}
+              disabled={loading || creatingRole}
+              type="button"
+            >
+              {creatingRole ? 'A criar…' : 'Criar role'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-[24px] border theme-border theme-card p-4 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] theme-text-muted">
+              Página inicial por role
+            </p>
+            <p className="mt-1 text-sm theme-text-muted">
+              Global define a base; por fábrica (Plant) pode sobrescrever.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              className="input h-10"
+              value={homeScopePlantId || ''}
+              onChange={(e) => setHomeScopePlantId(e.target.value ? e.target.value : null)}
+              disabled={loadingHomes || savingHomes}
+            >
+              <option value="">Global (base)</option>
+              {plants.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={async () => {
+                setSavingHomes(true);
+                setError(null);
+                try {
+                  const entries = roles.map((r) => ({
+                    role_key: r.value,
+                    home_path:
+                      homeByRole[r.value] || suggestedHomeByRole[r.value] || '/dashboard',
+                  }));
+                  await setAdminRoleHomes(homeScopePlantId, entries);
+                  await loadRoleHomes(homeScopePlantId);
+                } catch (err: any) {
+                  setError(err.message || 'Falha ao guardar home pages');
+                } finally {
+                  setSavingHomes(false);
+                }
+              }}
+              disabled={loadingHomes || savingHomes || roles.length === 0}
+            >
+              {savingHomes ? 'A guardar…' : 'Guardar homes'}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+          {roles.map((r) => {
+            const current = homeByRole[r.value] || suggestedHomeByRole[r.value] || '/dashboard';
+            const suggested = suggestedHomeByRole[r.value] || '';
+            return (
+              <div key={r.value} className="rounded-2xl border theme-border theme-card p-4">
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold theme-text truncate">{r.label}</div>
+                  <div className="text-xs theme-text-muted truncate">{r.value}</div>
+                </div>
+
+                <div className="mt-3">
+                  <label className="block text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+                    Home
+                  </label>
+                  <select
+                    className="input mt-2 h-10"
+                    value={current}
+                    onChange={(e) =>
+                      setHomeByRole((prev) => ({ ...prev, [r.value]: e.target.value }))
+                    }
+                    disabled={loadingHomes || savingHomes}
+                  >
+                    <option value="/dashboard">Dashboard</option>
+                    <option value="/tecnico">Técnico</option>
+                    <option value="/operador">Operador</option>
+                    <option value="/settings">Definições</option>
+                  </select>
+                  {suggested ? (
+                    <p className="mt-2 text-xs theme-text-muted">Sugerido: {suggested}</p>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="mt-6 space-y-4">

@@ -194,6 +194,28 @@ export const rbacRolePermissions = pgTable(
   }),
 );
 
+// RBAC: Home pages per role (global + per plant override)
+export const rbacRoleHomePages = pgTable(
+  'rbac_role_home_pages',
+  {
+    tenant_id: uuid('tenant_id').notNull(),
+    plant_id: uuid('plant_id'),
+    role_key: text('role_key').notNull(),
+    home_path: text('home_path').notNull(),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantPlantRoleIdx: uniqueIndex('rbac_role_home_pages_tenant_plant_role_idx').on(
+      table.tenant_id,
+      table.plant_id,
+      table.role_key,
+    ),
+    tenantIdx: index('rbac_role_home_pages_tenant_id_idx').on(table.tenant_id),
+    tenantPlantIdx: index('rbac_role_home_pages_tenant_plant_idx').on(table.tenant_id, table.plant_id),
+  }),
+);
+
 // Asset Categories
 export const assetCategories = pgTable(
   'asset_categories',

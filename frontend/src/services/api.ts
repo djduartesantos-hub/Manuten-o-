@@ -159,7 +159,15 @@ export type UserProfile = {
   lastName: string;
   phone?: string | null;
   role: string;
+  roleLabel?: string | null;
   tenantId: string;
+};
+
+export type AdminRoleOption = {
+  value: string;
+  label: string;
+  description?: string | null;
+  is_system?: boolean;
 };
 
 export async function getProfile(): Promise<UserProfile> {
@@ -623,8 +631,63 @@ export async function getAdminRoles() {
   return apiCall('/admin/roles');
 }
 
+export async function createAdminRole(data: {
+  key: string;
+  name: string;
+  description?: string | null;
+}): Promise<AdminRoleOption> {
+  return apiCall('/admin/roles', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateAdminRole(
+  roleKey: string,
+  data: { name?: string; description?: string | null },
+): Promise<AdminRoleOption> {
+  return apiCall(`/admin/roles/${roleKey}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function getAdminPermissions() {
   return apiCall('/admin/permissions');
+}
+
+export type AdminRoleHomeEntry = {
+  role_key: string;
+  plant_id: string | null;
+  home_path: string;
+  plant_override: string | null;
+  global_base: string | null;
+  suggested_home: string;
+};
+
+export async function getAdminRoleHomes(plantId?: string | null): Promise<AdminRoleHomeEntry[]> {
+  const params = new URLSearchParams();
+  if (plantId) params.append('plant_id', plantId);
+  const qs = params.toString();
+  return apiCall(`/admin/role-homes${qs ? `?${qs}` : ''}`);
+}
+
+export async function setAdminRoleHomes(
+  plantId: string | null,
+  entries: Array<{ role_key: string; home_path: string }>,
+): Promise<{ message?: string } | void> {
+  return apiCall('/admin/role-homes', {
+    method: 'PUT',
+    body: JSON.stringify({ plant_id: plantId, entries }),
+  });
+}
+
+export async function getProfileHomeRoute(
+  plantId: string,
+): Promise<{ plantId: string; roleKey: string; roleLabel: string | null; homePath: string }> {
+  const params = new URLSearchParams();
+  params.append('plantId', plantId);
+  return apiCall(`/profile/home-route?${params.toString()}`);
 }
 
 export async function getAdminRolePermissions(roleKey: string) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from './hooks/useAuth';
@@ -31,13 +31,45 @@ import { OperatorWorkOrdersHomePage } from './pages/OperatorWorkOrdersHomePage';
 
 
 import { ThemeProvider } from './context/ThemeContext';
+import { getProfileHomeRoute } from './services/api';
 import { getHomeRouteForRole } from './utils/homeRoute';
 
 function App() {
   const { isAuthenticated, user } = useAuth();
   const { selectedPlant, setSelectedPlant, setPlants } = useAppStore();
 
-  const homeRoute = getHomeRouteForRole(user?.role);
+  function HomeRedirect() {
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
+
+    React.useEffect(() => {
+      if (!isAuthenticated) return;
+      if (!selectedPlant) return;
+
+      let cancelled = false;
+      setLoading(true);
+
+      (async () => {
+        try {
+          const data = await getProfileHomeRoute(selectedPlant);
+          const path = String((data as any)?.homePath || '').trim() || getHomeRouteForRole(user?.role);
+          if (!cancelled) navigate(path, { replace: true });
+        } catch {
+          if (!cancelled) navigate(getHomeRouteForRole(user?.role), { replace: true });
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      })();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [isAuthenticated, navigate, selectedPlant, user?.role]);
+
+    if (!selectedPlant) return null;
+    if (loading) return null;
+    return null;
+  }
 
   React.useEffect(() => {
     const loadPlants = async () => {
@@ -76,13 +108,13 @@ function App() {
             <Route
               path="/"
               element={
-                isAuthenticated ? <Navigate to={homeRoute} replace /> : <LoginPage />
+                isAuthenticated ? <HomeRedirect /> : <LoginPage />
               }
             />
             <Route
               path="/login"
               element={
-                isAuthenticated ? <Navigate to={homeRoute} replace /> : <LoginPage />
+                isAuthenticated ? <HomeRedirect /> : <LoginPage />
               }
             />
             <Route path="/setup" element={<SetupInitPage />} />
@@ -106,7 +138,7 @@ function App() {
             <Route
               path="/tecnico"
               element={
-                <ProtectedRoute requiredRoles={['tecnico', 'technician', 'tech']}>
+                <ProtectedRoute>
                   <TechnicianWorkOrdersHomePage />
                 </ProtectedRoute>
               }
@@ -115,7 +147,7 @@ function App() {
             <Route
               path="/operador"
               element={
-                <ProtectedRoute requiredRoles={['operador', 'operator']}>
+                <ProtectedRoute>
                   <OperatorWorkOrdersHomePage />
                 </ProtectedRoute>
               }
@@ -235,7 +267,7 @@ function App() {
             />
             <Route
               path="*"
-              element={<Navigate to={isAuthenticated ? homeRoute : '/login'} replace />}
+              element={<Navigate to={isAuthenticated ? '/' : '/login'} replace />}
             />
             </Routes>
           </BrowserRouter>

@@ -9,6 +9,7 @@ const router = Router();
 router.use(authMiddleware);
 
 router.get('/', ProfileController.getProfile);
+router.get('/home-route', ProfileController.getHomeRoute);
 router.patch('/', validateRequest(UpdateProfileSchema), ProfileController.updateProfile);
 router.patch(
   '/password',

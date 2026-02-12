@@ -95,6 +95,31 @@ export class SetupController {
         PRIMARY KEY (tenant_id, role_key, permission_key)
       );
 
+      CREATE TABLE IF NOT EXISTS rbac_role_home_pages (
+        tenant_id UUID NOT NULL,
+        plant_id UUID NULL,
+        role_key TEXT NOT NULL,
+        home_path TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      -- If a previous version created a PK including plant_id, it would force plant_id NOT NULL.
+      -- We need plant_id nullable to support the global (base) configuration.
+      ALTER TABLE rbac_role_home_pages
+        DROP CONSTRAINT IF EXISTS rbac_role_home_pages_pkey;
+      ALTER TABLE rbac_role_home_pages
+        ALTER COLUMN plant_id DROP NOT NULL;
+
+      CREATE INDEX IF NOT EXISTS rbac_role_home_pages_tenant_id_idx ON rbac_role_home_pages(tenant_id);
+      CREATE INDEX IF NOT EXISTS rbac_role_home_pages_tenant_plant_idx ON rbac_role_home_pages(tenant_id, plant_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS rbac_role_home_pages_global_uniq
+        ON rbac_role_home_pages(tenant_id, role_key)
+        WHERE plant_id IS NULL;
+      CREATE UNIQUE INDEX IF NOT EXISTS rbac_role_home_pages_plant_uniq
+        ON rbac_role_home_pages(tenant_id, plant_id, role_key)
+        WHERE plant_id IS NOT NULL;
+
       ALTER TABLE user_plants
         ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'tecnico';
 

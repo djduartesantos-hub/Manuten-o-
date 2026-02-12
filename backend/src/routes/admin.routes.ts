@@ -25,6 +25,8 @@ router.post(
 
 // Roles
 router.get('/roles', requirePermission('admin:users', 'tenant'), AdminController.listRoles);
+router.post('/roles', requirePermission('admin:rbac', 'tenant'), AdminController.createRole);
+router.patch('/roles/:roleKey', requirePermission('admin:rbac', 'tenant'), AdminController.updateRole);
 router.get('/permissions', requirePermission('admin:rbac', 'tenant'), AdminController.listPermissions);
 router.get(
 	'/roles/:roleKey/permissions',
@@ -36,5 +38,9 @@ router.put(
 	requirePermission('admin:rbac', 'tenant'),
 	AdminController.setRolePermissions,
 );
+
+// Role Home Pages (global + per-plant)
+router.get('/role-homes', requirePermission('admin:rbac', 'tenant'), AdminController.listRoleHomePages);
+router.put('/role-homes', requirePermission('admin:rbac', 'tenant'), AdminController.setRoleHomePages);
 
 export default router;

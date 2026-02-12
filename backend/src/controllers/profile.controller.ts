@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '../types/index.js';
 import { db } from '../config/database.js';
 import { users } from '../db/schema.js';
 import { comparePasswords, hashPassword } from '../auth/jwt.js';
+import { RbacService } from '../services/rbac.service.js';
 
 function toProfileDto(user: any) {
   return {
@@ -14,9 +15,48 @@ function toProfileDto(user: any) {
     lastName: user.last_name,
     phone: user.phone,
     role: user.role,
+    roleLabel: user.role_label,
     tenantId: user.tenant_id,
   };
 }
+
+const fallbackRoleLabels: Record<string, string> = {
+  superadmin: 'Super Admin',
+  admin_empresa: 'Admin Empresa',
+  gestor_manutencao: 'Gestor Manutencao',
+  supervisor: 'Supervisor',
+  tecnico: 'Tecnico',
+  operador: 'Operador',
+  leitor: 'Leitor',
+};
+
+const normalizeHomePath = (value: unknown) => {
+  const v = String(value || '').trim();
+  if (!v) return null;
+  if (!v.startsWith('/')) return null;
+  if (v.length > 128) return null;
+  return v;
+};
+
+const suggestHomeFromPermissions = (permissions: Set<string>): string => {
+  if (
+    permissions.has('admin:rbac') ||
+    permissions.has('admin:users') ||
+    permissions.has('admin:plants')
+  ) {
+    return '/settings';
+  }
+
+  if (permissions.has('workorders:write') && permissions.has('assets:write')) {
+    return '/tecnico';
+  }
+
+  if (permissions.has('workorders:write')) {
+    return '/operador';
+  }
+
+  return '/dashboard';
+};
 
 export class ProfileController {
   static async getProfile(req: AuthenticatedRequest, res: Response): Promise<Response> {
@@ -36,7 +76,29 @@ export class ProfileController {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
-    return res.json({ success: true, data: toProfileDto(user) });
+    let roleLabel: string | null = null;
+    try {
+      const roleKey = String(user.role || '').trim().toLowerCase();
+      const roleResult = await db.execute(sql`
+        SELECT name
+        FROM rbac_roles
+        WHERE tenant_id = ${tenantId} AND key = ${roleKey}
+        LIMIT 1;
+      `);
+
+      if ((roleResult.rows?.length || 0) > 0) {
+        roleLabel = String((roleResult.rows as any)[0]?.name || '') || null;
+      }
+
+      if (!roleLabel) {
+        roleLabel = fallbackRoleLabels[roleKey] || (roleKey ? roleKey.replace(/_/g, ' ') : null);
+      }
+    } catch {
+      const roleKey = String(user.role || '').trim().toLowerCase();
+      roleLabel = fallbackRoleLabels[roleKey] || (roleKey ? roleKey.replace(/_/g, ' ') : null);
+    }
+
+    return res.json({ success: true, data: toProfileDto({ ...user, role_label: roleLabel }) });
   }
 
   static async updateProfile(req: AuthenticatedRequest, res: Response): Promise<Response> {
@@ -90,7 +152,28 @@ export class ProfileController {
       .where(and(eq(users.tenant_id, tenantId), eq(users.id, userId)))
       .returning();
 
-    return res.json({ success: true, data: toProfileDto(updated) });
+    // Keep label consistent with getProfile
+    let roleLabel: string | null = null;
+    try {
+      const roleKey = String(updated.role || '').trim().toLowerCase();
+      const roleResult = await db.execute(sql`
+        SELECT name
+        FROM rbac_roles
+        WHERE tenant_id = ${tenantId} AND key = ${roleKey}
+        LIMIT 1;
+      `);
+      if ((roleResult.rows?.length || 0) > 0) {
+        roleLabel = String((roleResult.rows as any)[0]?.name || '') || null;
+      }
+      if (!roleLabel) {
+        roleLabel = fallbackRoleLabels[roleKey] || (roleKey ? roleKey.replace(/_/g, ' ') : null);
+      }
+    } catch {
+      const roleKey = String(updated.role || '').trim().toLowerCase();
+      roleLabel = fallbackRoleLabels[roleKey] || (roleKey ? roleKey.replace(/_/g, ' ') : null);
+    }
+
+    return res.json({ success: true, data: toProfileDto({ ...updated, role_label: roleLabel }) });
   }
 
   static async changePassword(req: AuthenticatedRequest, res: Response): Promise<Response> {
@@ -124,5 +207,92 @@ export class ProfileController {
       .where(and(eq(users.tenant_id, tenantId), eq(users.id, userId)));
 
     return res.json({ success: true, message: 'Password atualizada' });
+  }
+
+  static async getHomeRoute(req: AuthenticatedRequest, res: Response): Promise<Response> {
+    try {
+      const tenantId = req.tenantId;
+      const userId = req.user?.userId;
+      const plantId = String((req.query as any)?.plantId || '').trim();
+
+      if (!tenantId || !userId) {
+        return res.status(401).json({ success: false, error: 'Not authenticated' });
+      }
+
+      if (!plantId) {
+        return res.status(400).json({ success: false, error: 'plantId is required' });
+      }
+
+      const plantRole = await RbacService.getUserRoleForPlant({ userId, plantId });
+      const roleKey = RbacService.normalizeRole(plantRole || String(req.user?.role || ''));
+      if (!roleKey) {
+        return res.status(403).json({ success: false, error: 'Sem role atribuída' });
+      }
+
+      let roleLabel: string | null = null;
+      try {
+        const roleResult = await db.execute(sql`
+          SELECT name
+          FROM rbac_roles
+          WHERE tenant_id = ${tenantId} AND key = ${roleKey}
+          LIMIT 1;
+        `);
+
+        if ((roleResult.rows?.length || 0) > 0) {
+          roleLabel = String((roleResult.rows as any)[0]?.name || '') || null;
+        }
+
+        if (!roleLabel) {
+          roleLabel = fallbackRoleLabels[roleKey] || roleKey.replace(/_/g, ' ');
+        }
+      } catch {
+        roleLabel = fallbackRoleLabels[roleKey] || roleKey.replace(/_/g, ' ');
+      }
+
+      // Resolve: plant override > global base > suggested
+      let homePath: string | null = null;
+      try {
+        const plantOverride = await db.execute(sql`
+          SELECT home_path
+          FROM rbac_role_home_pages
+          WHERE tenant_id = ${tenantId} AND plant_id = ${plantId} AND role_key = ${roleKey}
+          LIMIT 1;
+        `);
+        homePath = normalizeHomePath((plantOverride.rows?.[0] as any)?.home_path);
+
+        if (!homePath) {
+          const globalBase = await db.execute(sql`
+            SELECT home_path
+            FROM rbac_role_home_pages
+            WHERE tenant_id = ${tenantId} AND plant_id IS NULL AND role_key = ${roleKey}
+            LIMIT 1;
+          `);
+          homePath = normalizeHomePath((globalBase.rows?.[0] as any)?.home_path);
+        }
+      } catch {
+        homePath = null;
+      }
+
+      if (!homePath) {
+        try {
+          const perms = await RbacService.getTenantPermissionsForRole({ tenantId, roleKey });
+          homePath = suggestHomeFromPermissions(perms);
+        } catch {
+          homePath = roleKey === 'tecnico' ? '/tecnico' : roleKey === 'operador' ? '/operador' : '/dashboard';
+        }
+      }
+
+      return res.json({
+        success: true,
+        data: {
+          plantId,
+          roleKey,
+          roleLabel,
+          homePath,
+        },
+      });
+    } catch {
+      return res.status(500).json({ success: false, error: 'Failed to resolve home route' });
+    }
   }
 }

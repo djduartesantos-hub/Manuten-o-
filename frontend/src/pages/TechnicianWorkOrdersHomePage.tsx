@@ -49,6 +49,15 @@ function badgeForStatus(value?: string | null) {
   return 'badge-success';
 }
 
+function labelPriority(value?: string | null) {
+  const v = String(value || '').toLowerCase();
+  if (v === 'baixa') return 'Baixa';
+  if (v === 'media') return 'Média';
+  if (v === 'alta') return 'Alta';
+  if (v === 'critica') return 'Crítica';
+  return value || '—';
+}
+
 export function TechnicianWorkOrdersHomePage() {
   const { selectedPlant } = useAppStore();
   const { user } = useAuth();
@@ -91,7 +100,11 @@ export function TechnicianWorkOrdersHomePage() {
   }, [currentUserId, workOrders]);
 
   const available = React.useMemo(() => {
-    return workOrders.filter((o) => !o.assigned_to && String(o.status || '').toLowerCase() === 'aberta');
+    return workOrders.filter((o) => {
+      if (o.assigned_to) return false;
+      const s = String(o.status || '').toLowerCase();
+      return s === 'aberta' || s === 'em_analise';
+    });
   }, [workOrders]);
 
   const assignToMe = async (workOrderId: string) => {
@@ -170,6 +183,9 @@ export function TechnicianWorkOrdersHomePage() {
                       {o.created_at ? (
                         <p className="mt-1 text-xs theme-text-muted">Criada: {formatWhen(o.created_at)}</p>
                       ) : null}
+                      {o.priority ? (
+                        <p className="mt-1 text-xs theme-text-muted">Prioridade: {labelPriority(o.priority)}</p>
+                      ) : null}
                     </div>
 
                     <span className={badgeForStatus(o.status) + ' text-xs'}>{labelStatus(o.status)}</span>
@@ -203,6 +219,9 @@ export function TechnicianWorkOrdersHomePage() {
                       ) : null}
                       {o.created_at ? (
                         <p className="mt-1 text-xs theme-text-muted">Criada: {formatWhen(o.created_at)}</p>
+                      ) : null}
+                      {o.priority ? (
+                        <p className="mt-1 text-xs theme-text-muted">Prioridade: {labelPriority(o.priority)}</p>
                       ) : null}
                     </div>
 

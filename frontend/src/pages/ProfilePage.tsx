@@ -157,7 +157,7 @@ export function ProfilePage() {
                       Função
                     </p>
                     <p className="truncate text-sm font-semibold theme-text">
-                      {(profile?.role || user?.role || '').replace(/_/g, ' ') || '—'}
+                      {profile?.roleLabel || (profile?.role || user?.role || '').replace(/_/g, ' ') || '—'}
                     </p>
                   </div>
                 </div>

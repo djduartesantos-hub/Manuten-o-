@@ -41,11 +41,35 @@ async function ensureRbacStructureAndSeed(tenantId: string): Promise<void> {
       PRIMARY KEY (tenant_id, role_key, permission_key)
     );
 
+    CREATE TABLE IF NOT EXISTS rbac_role_home_pages (
+      tenant_id UUID NOT NULL,
+      plant_id UUID NULL,
+      role_key TEXT NOT NULL,
+      home_path TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    -- If a previous version created a PK including plant_id, it would force plant_id NOT NULL.
+    -- We need plant_id nullable to support the global (base) configuration.
+    ALTER TABLE rbac_role_home_pages
+      DROP CONSTRAINT IF EXISTS rbac_role_home_pages_pkey;
+    ALTER TABLE rbac_role_home_pages
+      ALTER COLUMN plant_id DROP NOT NULL;
+
     ALTER TABLE user_plants
       ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'tecnico';
 
     CREATE INDEX IF NOT EXISTS rbac_roles_tenant_id_idx ON rbac_roles(tenant_id);
     CREATE INDEX IF NOT EXISTS rbac_role_permissions_tenant_role_idx ON rbac_role_permissions(tenant_id, role_key);
+    CREATE INDEX IF NOT EXISTS rbac_role_home_pages_tenant_id_idx ON rbac_role_home_pages(tenant_id);
+    CREATE INDEX IF NOT EXISTS rbac_role_home_pages_tenant_plant_idx ON rbac_role_home_pages(tenant_id, plant_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS rbac_role_home_pages_global_uniq
+      ON rbac_role_home_pages(tenant_id, role_key)
+      WHERE plant_id IS NULL;
+    CREATE UNIQUE INDEX IF NOT EXISTS rbac_role_home_pages_plant_uniq
+      ON rbac_role_home_pages(tenant_id, plant_id, role_key)
+      WHERE plant_id IS NOT NULL;
   `));
 
   // Permissões globais (idempotente)
@@ -95,6 +119,7 @@ async function ensureRbacStructureAndSeed(tenantId: string): Promise<void> {
     { key: 'gestor_manutencao', name: 'Gestor Manutenção' },
     { key: 'supervisor', name: 'Supervisor' },
     { key: 'tecnico', name: 'Técnico' },
+    { key: 'operador', name: 'Operador' },
     { key: 'leitor', name: 'Leitor' },
   ];
 
@@ -162,6 +187,15 @@ async function ensureRbacStructureAndSeed(tenantId: string): Promise<void> {
       'stock:write',
       'suppliers:read',
       'kits:read',
+    ],
+    operador: [
+      'dashboard:read',
+      'notifications:read',
+      'assets:read',
+      'categories:read',
+      'workorders:read',
+      'workorders:write',
+      'stock:read',
     ],
     leitor: [
       'dashboard:read',

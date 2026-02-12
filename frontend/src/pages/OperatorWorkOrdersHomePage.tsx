@@ -47,6 +47,23 @@ function labelStatus(value?: string | null) {
   return value || '—';
 }
 
+function badgeForStatus(value?: string | null) {
+  const v = String(value || '').toLowerCase();
+  if (v === 'aberta' || v === 'em_analise') return 'badge-warning';
+  if (v === 'em_execucao') return 'badge-success';
+  if (v === 'cancelada') return 'badge-danger';
+  return 'badge-success';
+}
+
+function labelPriority(value?: string | null) {
+  const v = String(value || '').toLowerCase();
+  if (v === 'baixa') return 'Baixa';
+  if (v === 'media') return 'Média';
+  if (v === 'alta') return 'Alta';
+  if (v === 'critica') return 'Crítica';
+  return value || '—';
+}
+
 export function OperatorWorkOrdersHomePage() {
   const { selectedPlant } = useAppStore();
   const { user } = useAuth();
@@ -273,9 +290,12 @@ export function OperatorWorkOrdersHomePage() {
                       {o.created_at ? (
                         <p className="mt-1 text-xs theme-text-muted">Criada: {formatWhen(o.created_at)}</p>
                       ) : null}
+                      {o.priority ? (
+                        <p className="mt-1 text-xs theme-text-muted">Prioridade: {labelPriority(o.priority)}</p>
+                      ) : null}
                     </div>
 
-                    <span className="badge-warning text-xs">{labelStatus(o.status)}</span>
+                    <span className={badgeForStatus(o.status) + ' text-xs'}>{labelStatus(o.status)}</span>
                   </div>
                 </div>
               ))}
