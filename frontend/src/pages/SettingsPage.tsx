@@ -299,7 +299,7 @@ export function SettingsPage() {
   );
 }
 
-function SuperAdminSettings() {
+export function SuperAdminSettings() {
   const location = useLocation();
   const navigate = useNavigate();
   const { selectedPlant, plants, setPlants, setSelectedPlant } = useAppStore();
@@ -317,7 +317,35 @@ function SuperAdminSettings() {
 
   type SuperAdminStep = 'dashboard' | 'tenant' | 'plants' | 'users' | 'updates';
 
+  const isSuperAdminRoute = location.pathname.startsWith('/superadmin');
+
+  const getStepFromPathname = React.useCallback(
+    (pathname: string): SuperAdminStep | null => {
+      if (!pathname.startsWith('/superadmin')) return null;
+      const clean = pathname.replace(/\/+$/, '');
+      if (clean === '/superadmin' || clean === '/superadmin/dashboard') return 'dashboard';
+      if (clean === '/superadmin/empresas') return 'tenant';
+      if (clean === '/superadmin/fabricas') return 'plants';
+      if (clean === '/superadmin/utilizadores') return 'users';
+      if (clean === '/superadmin/atualizacoes') return 'updates';
+      return null;
+    },
+    [],
+  );
+
+  const getPathForStep = React.useCallback((s: SuperAdminStep) => {
+    const map: Record<SuperAdminStep, string> = {
+      dashboard: '/superadmin/dashboard',
+      tenant: '/superadmin/empresas',
+      plants: '/superadmin/fabricas',
+      users: '/superadmin/utilizadores',
+      updates: '/superadmin/atualizacoes',
+    };
+    return map[s];
+  }, []);
+
   const [step, setStep] = React.useState<SuperAdminStep>(() => {
+    const fromPath = getStepFromPathname(location.pathname);
     const params = new URLSearchParams(location.search);
     const fromUrl = params.get('step') as SuperAdminStep | null;
     const allowed: Record<SuperAdminStep, true> = {
@@ -329,7 +357,7 @@ function SuperAdminSettings() {
     };
 
     const fallback: SuperAdminStep = selectedTenantId ? 'dashboard' : 'tenant';
-    const initial = fromUrl && allowed[fromUrl] ? fromUrl : fallback;
+    const initial = (fromPath && allowed[fromPath] ? fromPath : null) || (fromUrl && allowed[fromUrl] ? fromUrl : null) || fallback;
     if ((initial === 'plants' || initial === 'users' || initial === 'updates') && !selectedTenantId) {
       return 'tenant';
     }
@@ -455,12 +483,18 @@ function SuperAdminSettings() {
   const setStepAndUrl = React.useCallback(
     (nextStep: SuperAdminStep) => {
       setStep(nextStep);
+
+      if (isSuperAdminRoute) {
+        navigate(getPathForStep(nextStep), { replace: true });
+        return;
+      }
+
       const params = new URLSearchParams(location.search);
       params.set('panel', 'superadmin');
       params.set('step', nextStep);
       navigate(`/settings?${params.toString()}`, { replace: true });
     },
-    [location.search, navigate]
+    [getPathForStep, isSuperAdminRoute, location.search, navigate]
   );
 
   React.useEffect(() => {
@@ -480,6 +514,14 @@ function SuperAdminSettings() {
 
   React.useEffect(() => {
     // Keep URL in sync (use replace to avoid growing browser history)
+    if (isSuperAdminRoute) {
+      const desired = getPathForStep(step);
+      if (location.pathname !== desired) {
+        navigate(desired, { replace: true });
+      }
+      return;
+    }
+
     const params = new URLSearchParams(location.search);
     const current = params.get('step');
     if (current !== step) {
@@ -488,7 +530,31 @@ function SuperAdminSettings() {
       navigate(`/settings?${params.toString()}`, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+  }, [step, isSuperAdminRoute, getPathForStep, location.pathname, location.search]);
+
+  React.useEffect(() => {
+    // If URL/path changes externally (top nav), sync state.
+    const fromPath = getStepFromPathname(location.pathname);
+    const params = new URLSearchParams(location.search);
+    const fromUrl = params.get('step') as SuperAdminStep | null;
+
+    const next = (isSuperAdminRoute ? fromPath : null) || fromUrl;
+    if (!next) return;
+
+    const allowed: Record<SuperAdminStep, true> = {
+      dashboard: true,
+      tenant: true,
+      plants: true,
+      users: true,
+      updates: true,
+    };
+    if (!allowed[next]) return;
+
+    const locked = (next === 'plants' || next === 'users' || next === 'updates') && !selectedTenantId;
+    const finalStep = locked ? 'tenant' : next;
+    if (finalStep !== step) setStep(finalStep);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, location.search, isSuperAdminRoute, selectedTenantId]);
 
   React.useEffect(() => {
     if ((step === 'updates' || step === 'dashboard') && selectedTenantId) {

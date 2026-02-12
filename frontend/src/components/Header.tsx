@@ -51,7 +51,49 @@ export function Header() {
   const { theme, setTheme } = useTheme();
   const isDark = theme.name === 'dark';
 
-  const navSections: NavSection[] = [
+  const isSuperAdmin = String(user?.role || '') === 'superadmin';
+  const superAdminHome = '/superadmin/dashboard';
+
+  const navSections: NavSection[] = (isSuperAdmin
+    ? [
+        {
+          title: 'Super Admin',
+          icon: LayoutDashboard,
+          items: [
+            {
+              label: 'Dashboard',
+              href: '/superadmin/dashboard',
+              active: location.pathname === '/superadmin' || location.pathname === '/superadmin/dashboard',
+              icon: LayoutDashboard,
+            },
+            {
+              label: 'Empresas',
+              href: '/superadmin/empresas',
+              active: location.pathname === '/superadmin/empresas',
+              icon: Users,
+            },
+            {
+              label: 'Fábricas',
+              href: '/superadmin/fabricas',
+              active: location.pathname === '/superadmin/fabricas',
+              icon: Wrench,
+            },
+            {
+              label: 'Utilizadores & RBAC',
+              href: '/superadmin/utilizadores',
+              active: location.pathname === '/superadmin/utilizadores',
+              icon: Users,
+            },
+            {
+              label: 'Atualizações',
+              href: '/superadmin/atualizacoes',
+              active: location.pathname === '/superadmin/atualizacoes',
+              icon: Settings,
+            },
+          ],
+        },
+      ]
+    : [
     {
       title: 'Visão Geral',
       icon: LayoutDashboard,
@@ -125,7 +167,8 @@ export function Header() {
         ...(user?.role === 'superadmin' ? [] : []),
       ],
     },
-  ].filter((section) => section.items.length > 0);
+  ])
+  .filter((section) => section.items.length > 0);
 
   const handleLogout = () => {
     logout();
@@ -145,7 +188,7 @@ export function Header() {
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
             {/* Logo */}
-            <Link to="/dashboard" className="flex items-center gap-3 group">
+            <Link to={isSuperAdmin ? superAdminHome : '/dashboard'} className="flex items-center gap-3 group">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0f766e,#38bdf8)] text-white shadow-md transition-all group-hover:-translate-y-0.5 group-hover:shadow-lg">
                 <span className="text-base font-semibold tracking-tight">M</span>
               </div>

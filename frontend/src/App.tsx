@@ -29,6 +29,8 @@ import { NotificationsPage } from './pages/NotificationsPage';
 import { TechnicianWorkOrdersHomePage } from './pages/TechnicianWorkOrdersHomePage';
 import { OperatorWorkOrdersHomePage } from './pages/OperatorWorkOrdersHomePage';
 
+import { SuperAdminPage } from './pages/SuperAdminPage';
+
 
 import { ThemeProvider } from './context/ThemeContext';
 import { getProfileHomeRoute } from './services/api';
@@ -47,7 +49,7 @@ function App() {
 
       // SuperAdmin main page is Settings (global)
       if (String(user?.role || '') === 'superadmin') {
-        navigate('/settings?panel=superadmin', { replace: true });
+        navigate('/superadmin/dashboard', { replace: true });
         return;
       }
 
@@ -126,6 +128,55 @@ function App() {
               }
             />
             <Route path="/setup" element={<SetupInitPage />} />
+
+              <Route
+                path="/superadmin"
+                element={
+                  <ProtectedRoute requiredRoles={['superadmin']}>
+                    <Navigate to="/superadmin/dashboard" replace />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/superadmin/dashboard"
+                element={
+                  <ProtectedRoute requiredRoles={['superadmin']}>
+                    <SuperAdminPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/superadmin/empresas"
+                element={
+                  <ProtectedRoute requiredRoles={['superadmin']}>
+                    <SuperAdminPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/superadmin/fabricas"
+                element={
+                  <ProtectedRoute requiredRoles={['superadmin']}>
+                    <SuperAdminPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/superadmin/utilizadores"
+                element={
+                  <ProtectedRoute requiredRoles={['superadmin']}>
+                    <SuperAdminPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/superadmin/atualizacoes"
+                element={
+                  <ProtectedRoute requiredRoles={['superadmin']}>
+                    <SuperAdminPage />
+                  </ProtectedRoute>
+                }
+              />
             <Route
               path="/dashboard"
               element={
