@@ -26,6 +26,8 @@ import { SetupInitPage } from './pages/SetupInitPage';
 import { MaintenanceKitsListPage } from './pages/MaintenanceKitsListPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { NotificationsPage } from './pages/NotificationsPage';
+import { TechnicianWorkOrdersHomePage } from './pages/TechnicianWorkOrdersHomePage';
+import { OperatorWorkOrdersHomePage } from './pages/OperatorWorkOrdersHomePage';
 
 
 import { ThemeProvider } from './context/ThemeContext';
@@ -97,6 +99,24 @@ function App() {
               element={
                 <ProtectedRoute>
                   <WorkOrdersPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/tecnico"
+              element={
+                <ProtectedRoute requiredRoles={['tecnico', 'technician', 'tech']}>
+                  <TechnicianWorkOrdersHomePage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/operador"
+              element={
+                <ProtectedRoute requiredRoles={['operador', 'operator']}>
+                  <OperatorWorkOrdersHomePage />
                 </ProtectedRoute>
               }
             />

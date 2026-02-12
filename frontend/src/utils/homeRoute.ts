@@ -3,7 +3,12 @@ export function getHomeRouteForRole(role?: string): string {
 
   // Technician
   if (['tecnico', 'technician', 'tech'].includes(normalized)) {
-    return '/work-orders';
+    return '/tecnico';
+  }
+
+  // Operator
+  if (['operador', 'operator'].includes(normalized)) {
+    return '/operador';
   }
 
   // Default to dashboard for all other roles
