@@ -47,8 +47,8 @@ export async function apiCall<T = any>(
     const payload = parseJwtPayload(token);
     const role = String(payload?.role || '').trim().toLowerCase();
     if (role === 'superadmin') {
-      // SuperAdmin default scope is GLOBAL.
-      // Only send tenant override headers for endpoints that are explicitly tenant-scoped.
+      // In SuperAdmin mode, a selected tenant (Empresa) drives the tenant context.
+      // We send the tenant override header for tenant-scoped endpoints.
       const tenantScopedSuperadmin =
         endpoint === '/superadmin/db/status' ||
         endpoint.startsWith('/superadmin/db/status?') ||
@@ -73,7 +73,11 @@ export async function apiCall<T = any>(
         endpoint === '/superadmin/diagnostics/integrity' ||
         endpoint.startsWith('/superadmin/diagnostics/integrity?') ||
         endpoint === '/superadmin/diagnostics/integrity/export' ||
-        endpoint.startsWith('/superadmin/diagnostics/integrity/export?');
+        endpoint.startsWith('/superadmin/diagnostics/integrity/export?') ||
+        endpoint.startsWith('/admin/') ||
+        endpoint.startsWith('/setup/') ||
+        endpoint === '/plants' ||
+        endpoint.startsWith('/plants/');
 
       if (tenantScopedSuperadmin) {
         const selectedTenantId = localStorage.getItem('superadminTenantId');
@@ -1266,6 +1270,12 @@ export async function patchMaintenanceKits() {
 
 export async function applyDbCorrections() {
   return apiCall('/setup/patch/all', {
+    method: 'POST',
+  });
+}
+
+export async function applyRbacPatch() {
+  return apiCall('/setup/patch/rbac', {
     method: 'POST',
   });
 }

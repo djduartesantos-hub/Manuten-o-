@@ -47,7 +47,7 @@ export class SetupController {
 
   private static async logSetupDbRun(params: {
     tenantId: string;
-    runType: 'migrate' | 'corrections';
+    runType: 'migrate' | 'corrections' | 'rbac_patch';
     userId?: string | null;
     migrations?: string[];
     patches?: string[];
@@ -357,6 +357,119 @@ export class SetupController {
       DELETE FROM rbac_roles
       WHERE tenant_id = ${tenantId} AND key = 'leitor';
     `);
+
+    // Normalize/migrate legacy/alias role values to canonical keys (idempotent)
+    // Note: this helps avoid "Role desconhecida" and permission mismatches.
+    await db.execute(sql`
+      UPDATE users
+      SET role = 'admin_empresa', updated_at = NOW()
+      WHERE tenant_id = ${tenantId}
+        AND LOWER(TRIM(role)) IN ('admin', 'adminempresa', 'admin-empresa');
+    `);
+
+    await db.execute(sql`
+      UPDATE users
+      SET role = 'gestor_manutencao', updated_at = NOW()
+      WHERE tenant_id = ${tenantId}
+        AND LOWER(TRIM(role)) IN ('maintenance_manager', 'planner', 'gestor', 'gestor_fabrica', 'gestor-fabrica');
+    `);
+
+    await db.execute(sql`
+      UPDATE users
+      SET role = 'tecnico', updated_at = NOW()
+      WHERE tenant_id = ${tenantId}
+        AND (
+          LOWER(TRIM(role)) IN ('technician', 'tech')
+          OR role IN ('Técnico', 'técnico')
+        );
+    `);
+
+    await db.execute(sql`
+      UPDATE users
+      SET role = 'operador', updated_at = NOW()
+      WHERE tenant_id = ${tenantId}
+        AND LOWER(TRIM(role)) IN ('operator');
+    `);
+
+    await db.execute(sql`
+      UPDATE user_plants up
+      SET role = 'admin_empresa'
+      FROM plants p
+      WHERE up.plant_id = p.id
+        AND p.tenant_id = ${tenantId}
+        AND LOWER(TRIM(up.role)) IN ('admin', 'adminempresa', 'admin-empresa');
+    `);
+
+    await db.execute(sql`
+      UPDATE user_plants up
+      SET role = 'gestor_manutencao'
+      FROM plants p
+      WHERE up.plant_id = p.id
+        AND p.tenant_id = ${tenantId}
+        AND LOWER(TRIM(up.role)) IN ('maintenance_manager', 'planner', 'gestor', 'gestor_fabrica', 'gestor-fabrica');
+    `);
+
+    await db.execute(sql`
+      UPDATE user_plants up
+      SET role = 'tecnico'
+      FROM plants p
+      WHERE up.plant_id = p.id
+        AND p.tenant_id = ${tenantId}
+        AND (
+          LOWER(TRIM(up.role)) IN ('technician', 'tech')
+          OR up.role IN ('Técnico', 'técnico')
+        );
+    `);
+
+    await db.execute(sql`
+      UPDATE user_plants up
+      SET role = 'operador'
+      FROM plants p
+      WHERE up.plant_id = p.id
+        AND p.tenant_id = ${tenantId}
+        AND LOWER(TRIM(up.role)) IN ('operator');
+    `);
+  }
+
+  /**
+   * Apply only RBAC patch + seed (safe to run multiple times).
+   * Useful to repair tenants where RBAC exists but is not seeded.
+   */
+  static async patchRbac(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user || !['superadmin', 'admin_empresa'].includes(String(req.user.role))) {
+        res.status(403).json({
+          success: false,
+          error: 'Only superadmin/admin_empresa can run RBAC patch',
+        });
+        return;
+      }
+
+      const tenantId = req.tenantId || DEFAULT_TENANT_ID;
+
+      await SetupController.applyRbacPatchInternal();
+      await SetupController.ensureRbacSeedForTenant(String(tenantId));
+
+      const userId = req.user ? String((req.user as any).id || '') : '';
+      await SetupController.logSetupDbRun({
+        tenantId: String(tenantId),
+        runType: 'rbac_patch',
+        userId: userId || null,
+        migrations: [],
+        patches: ['rbac'],
+      });
+
+      res.json({
+        success: true,
+        message: 'RBAC patch aplicado com sucesso',
+        data: { patch: 'rbac' },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to apply RBAC patch',
+      });
+    }
   }
   private static async applyCorrectionsInternal(): Promise<{
     migrations: string[];

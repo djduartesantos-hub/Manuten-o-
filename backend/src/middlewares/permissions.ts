@@ -16,8 +16,10 @@ export function requirePermission(permissionKey: string, scope: PermissionScope 
         return res.status(400).json({ success: false, error: 'Tenant ID is required' });
       }
 
+      const normalizedUserRole = RbacService.normalizeRole(String(req.user.role || '').trim());
+
       // Superadmin bypass
-      if (String(req.user.role) === 'superadmin') {
+      if (normalizedUserRole === 'superadmin') {
         return next();
       }
 
@@ -55,6 +57,20 @@ export function requirePermission(permissionKey: string, scope: PermissionScope 
       });
 
       if (!ok) {
+        // Break-glass bootstrap:
+        // If RBAC tables exist but tenant has zero seeded permissions,
+        // allow admin_empresa to run setup/admin actions so it can repair RBAC.
+        if (
+          normalizedUserRole === 'admin_empresa' &&
+          scope === 'tenant' &&
+          (permissionKey === 'setup:run' || permissionKey === 'admin:rbac' || permissionKey === 'admin:users' || permissionKey === 'admin:plants')
+        ) {
+          const hasAny = await RbacService.tenantHasAnyRbacPermissions(tenantId);
+          if (!hasAny) {
+            return next();
+          }
+        }
+
         return res.status(403).json({
           success: false,
           error: 'Permissão insuficiente',
@@ -73,7 +89,7 @@ export function requirePermission(permissionKey: string, scope: PermissionScope 
           return res.status(401).json({ success: false, error: 'Not authenticated' });
         }
 
-        const role = String(req.user.role || '').trim().toLowerCase();
+        const role = RbacService.normalizeRole(String(req.user.role || '').trim());
         if (role === 'superadmin' || role === 'admin_empresa') {
           return next();
         }

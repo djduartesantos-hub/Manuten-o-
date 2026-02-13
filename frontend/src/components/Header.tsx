@@ -54,7 +54,7 @@ export function Header() {
   const isDark = theme.name === 'dark';
 
   const isSuperAdmin = String(user?.role || '') === 'superadmin';
-  const superAdminHome = '/superadmin/dashboard';
+  const superAdminHome = '/settings?panel=superadmin';
 
   const [superadminTenants, setSuperadminTenants] = React.useState<
     Array<{ id: string; name: string; slug: string; is_active: boolean }>
@@ -68,16 +68,31 @@ export function Header() {
   React.useEffect(() => {
     if (!isSuperAdmin) return;
 
-    // Always start in Global scope for SuperAdmin.
-    localStorage.removeItem('superadminTenantId');
-    setSuperadminTenantId('');
+    const stored = localStorage.getItem('superadminTenantId');
+    setSuperadminTenantId(stored && stored.trim().length > 0 ? stored.trim() : '');
 
     let cancelled = false;
     setLoadingSuperadminTenants(true);
     (async () => {
       try {
         const data = await getSuperadminTenants();
-        if (!cancelled) setSuperadminTenants(Array.isArray(data) ? data : []);
+        const safe = Array.isArray(data) ? data : [];
+        if (cancelled) return;
+        setSuperadminTenants(safe);
+
+        const stored = localStorage.getItem('superadminTenantId');
+        const storedId = stored && stored.trim().length > 0 ? stored.trim() : '';
+        const exists = storedId ? safe.some((t) => String((t as any)?.id) === storedId) : false;
+        const nextId = exists ? storedId : (safe[0]?.id ? String(safe[0].id) : '');
+        if (nextId) {
+          setSuperadminTenantId(nextId);
+          localStorage.setItem('superadminTenantId', nextId);
+          window.dispatchEvent(new Event('superadmin-tenant-changed'));
+        } else {
+          if (storedId) localStorage.removeItem('superadminTenantId');
+          setSuperadminTenantId('');
+          window.dispatchEvent(new Event('superadmin-tenant-changed'));
+        }
       } catch {
         if (!cancelled) setSuperadminTenants([]);
       } finally {
@@ -125,26 +140,13 @@ export function Header() {
   }, [isSuperAdmin, superadminTenantId, location.pathname]);
 
   const activeTenantName = React.useMemo(() => {
-    if (!superadminTenantId) return 'Global';
+    if (!superadminTenantId) return '—';
     const match = superadminTenants.find((t) => t.id === superadminTenantId);
     return match?.name || 'Empresa';
   }, [superadminTenantId, superadminTenants]);
 
   const navSections: NavSection[] = (isSuperAdmin
-    ? [
-        {
-          title: 'Super Admin',
-          icon: LayoutDashboard,
-          items: [
-            {
-              label: 'Configurações da BD',
-              href: '/superadmin/atualizacoes',
-              active: location.pathname === '/superadmin/atualizacoes',
-              icon: Settings,
-            },
-          ],
-        },
-      ]
+    ? []
     : [
     {
       title: 'Visão Geral',
@@ -366,7 +368,7 @@ export function Header() {
               </div>
             )}
 
-            {/* SuperAdmin: Global/Empresa selector + DB status */}
+            {/* SuperAdmin: Empresa selector + DB status */}
             {isSuperAdmin && (
               <div className="hidden sm:flex items-stretch gap-3">
                 <div className="flex items-center gap-2 rounded-2xl border theme-border theme-card px-3 py-2 shadow-sm">
@@ -394,9 +396,9 @@ export function Header() {
                     value={superadminTenantId}
                     onChange={(e) => {
                       const next = String(e.target.value || '').trim();
+                      if (!next) return;
                       setSuperadminTenantId(next);
-                      if (next) localStorage.setItem('superadminTenantId', next);
-                      else localStorage.removeItem('superadminTenantId');
+                      localStorage.setItem('superadminTenantId', next);
                       window.dispatchEvent(new Event('superadmin-tenant-changed'));
                       if (!location.pathname.startsWith('/superadmin')) {
                         navigate(superAdminHome);
@@ -405,7 +407,13 @@ export function Header() {
                     disabled={loadingSuperadminTenants}
                     title={loadingSuperadminTenants ? 'A carregar empresas...' : activeTenantName}
                   >
-                    <option value="">Global</option>
+                    <option value="" disabled>
+                      {loadingSuperadminTenants
+                        ? 'A carregar...'
+                        : superadminTenants.length === 0
+                          ? 'Sem empresas'
+                          : 'Selecionar empresa'}
+                    </option>
                     {superadminTenants.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.name} ({t.slug}){t.is_active ? '' : ' — inativa'}
@@ -429,7 +437,7 @@ export function Header() {
                           ? 'text-rose-700'
                           : 'text-[color:var(--dash-ink)]')
                     }
-                    title={superadminTenantId ? `Empresa: ${activeTenantName}` : 'Global'}
+                    title={superadminTenantId ? `Empresa: ${activeTenantName}` : 'Sem empresa selecionada'}
                   >
                     {loadingDbStatus ? '…' : dbStatusLabel}
                   </div>
@@ -606,9 +614,9 @@ export function Header() {
                     value={superadminTenantId}
                     onChange={(e) => {
                       const next = String(e.target.value || '').trim();
+                      if (!next) return;
                       setSuperadminTenantId(next);
-                      if (next) localStorage.setItem('superadminTenantId', next);
-                      else localStorage.removeItem('superadminTenantId');
+                      localStorage.setItem('superadminTenantId', next);
                       window.dispatchEvent(new Event('superadmin-tenant-changed'));
                       if (!location.pathname.startsWith('/superadmin')) {
                         navigate(superAdminHome);
@@ -616,7 +624,13 @@ export function Header() {
                     }}
                     disabled={loadingSuperadminTenants}
                   >
-                    <option value="">Global</option>
+                    <option value="" disabled>
+                      {loadingSuperadminTenants
+                        ? 'A carregar...'
+                        : superadminTenants.length === 0
+                          ? 'Sem empresas'
+                          : 'Selecionar empresa'}
+                    </option>
                     {superadminTenants.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.name} ({t.slug}){t.is_active ? '' : ' — inativa'}

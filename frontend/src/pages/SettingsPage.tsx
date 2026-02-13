@@ -55,6 +55,7 @@ import {
   updateAdminRole,
   updateAdminUser,
   updateNotificationRules,
+  applyRbacPatch,
 } from '../services/api';
 import {
   Bell,
@@ -168,7 +169,7 @@ export function SettingsPage() {
               id: 'superadmin' as const,
               label: 'SuperAdministrador',
               icon: <Shield className="w-5 h-5" />,
-              description: 'Gestão global do projeto (empresas, bases de dados e RBAC)',
+              description: 'Gestão do projeto (empresas, bases de dados e RBAC)',
             },
           ]
         : []),
@@ -189,7 +190,7 @@ export function SettingsPage() {
         setPreventiveSub(null);
       }
     } else if (String(user?.role || '') === 'superadmin') {
-      // SuperAdmin should land directly in the global management panel
+      // SuperAdmin should land directly in the management panel
       setActivePanel('superadmin');
       setPreventiveSub(null);
       navigate('/settings?panel=superadmin', { replace: true });
@@ -345,68 +346,20 @@ export function SuperAdminSettings() {
   const [error, setError] = React.useState<string>('');
   const [success, setSuccess] = React.useState<string>('');
 
-  const [selectedTenantId, setSelectedTenantId] = React.useState<string>('');
+  const [selectedTenantId, setSelectedTenantId] = React.useState<string>(() => {
+    const stored = localStorage.getItem('superadminTenantId');
+    return stored && stored.trim().length > 0 ? stored.trim() : '';
+  });
 
   React.useEffect(() => {
     const onTenantChanged = () => {
       const stored = localStorage.getItem('superadminTenantId');
       setSelectedTenantId(stored && stored.trim().length > 0 ? stored.trim() : '');
     };
+    onTenantChanged();
     window.addEventListener('superadmin-tenant-changed', onTenantChanged);
     return () => window.removeEventListener('superadmin-tenant-changed', onTenantChanged);
   }, []);
-
-  type SuperAdminStep = 'dashboard' | 'tenant' | 'plants' | 'users' | 'updates' | 'support';
-
-  const isSuperAdminRoute = location.pathname.startsWith('/superadmin');
-
-  const getStepFromPathname = React.useCallback(
-    (pathname: string): SuperAdminStep | null => {
-      if (!pathname.startsWith('/superadmin')) return null;
-      const clean = pathname.replace(/\/+$/, '');
-      if (clean === '/superadmin' || clean === '/superadmin/dashboard') return 'dashboard';
-      if (clean === '/superadmin/empresas') return 'tenant';
-      if (clean === '/superadmin/fabricas') return 'plants';
-      if (clean === '/superadmin/utilizadores') return 'users';
-      if (clean === '/superadmin/atualizacoes') return 'updates';
-      if (clean === '/superadmin/suporte') return 'support';
-      return null;
-    },
-    [],
-  );
-
-  const getPathForStep = React.useCallback((s: SuperAdminStep) => {
-    const map: Record<SuperAdminStep, string> = {
-      dashboard: '/superadmin/dashboard',
-      tenant: '/superadmin/empresas',
-      plants: '/superadmin/fabricas',
-      users: '/superadmin/utilizadores',
-      updates: '/superadmin/atualizacoes',
-      support: '/superadmin/suporte',
-    };
-    return map[s];
-  }, []);
-
-  const [step, setStep] = React.useState<SuperAdminStep>(() => {
-    const fromPath = getStepFromPathname(location.pathname);
-    const params = new URLSearchParams(location.search);
-    const fromUrl = params.get('step') as SuperAdminStep | null;
-    const allowed: Record<SuperAdminStep, true> = {
-      dashboard: true,
-      tenant: true,
-      plants: true,
-      users: true,
-      updates: true,
-      support: true,
-    };
-
-    const fallback: SuperAdminStep = 'dashboard';
-    const initial = (fromPath && allowed[fromPath] ? fromPath : null) || (fromUrl && allowed[fromUrl] ? fromUrl : null) || fallback;
-    if ((initial === 'plants' || initial === 'users' || initial === 'updates') && !selectedTenantId) {
-      return 'tenant';
-    }
-    return initial;
-  });
 
   const [newTenant, setNewTenant] = React.useState({ name: '', slug: '' });
   const [creatingTenant, setCreatingTenant] = React.useState(false);
@@ -427,7 +380,8 @@ export function SuperAdminSettings() {
   const [loadingUserAnomalies, setLoadingUserAnomalies] = React.useState(false);
 
   type SuperAdminUsersSection = 'diagnostics' | 'rolePermissions' | 'users';
-  const [usersSection, setUsersSection] = React.useState<SuperAdminUsersSection>('diagnostics');
+  const [usersSection, setUsersSection] = React.useState<SuperAdminUsersSection>('rolePermissions');
+  const [patchingRbac, setPatchingRbac] = React.useState(false);
 
   const [rbacDrift, setRbacDrift] = React.useState<any | null>(null);
   const [integrityChecks, setIntegrityChecks] = React.useState<any | null>(null);
@@ -483,6 +437,25 @@ export function SuperAdminSettings() {
       const data = await getSuperadminTenants();
       const safe = Array.isArray(data) ? data : [];
       setTenants(safe);
+
+      // Select tenant context:
+      // - prefer last chosen (localStorage)
+      // - otherwise first tenant in list
+      const stored = localStorage.getItem('superadminTenantId');
+      const storedId = stored && stored.trim().length > 0 ? stored.trim() : '';
+      const exists = storedId ? safe.some((t) => String((t as any)?.id) === storedId) : false;
+      const nextId = exists ? storedId : (safe[0]?.id ? String(safe[0].id) : '');
+      if (nextId && nextId !== selectedTenantId) {
+        setSelectedTenantId(nextId);
+        localStorage.setItem('superadminTenantId', nextId);
+        window.dispatchEvent(new Event('superadmin-tenant-changed'));
+      } else if (!nextId) {
+        if (storedId) localStorage.removeItem('superadminTenantId');
+        if (selectedTenantId) {
+          setSelectedTenantId('');
+          window.dispatchEvent(new Event('superadmin-tenant-changed'));
+        }
+      }
 
       try {
         const metrics = await getSuperadminTenantsMetrics();
@@ -597,6 +570,22 @@ export function SuperAdminSettings() {
     }
   }, [selectedTenantId]);
 
+  const handlePatchRbac = React.useCallback(async () => {
+    if (!selectedTenantId) return;
+    setPatchingRbac(true);
+    setError('');
+    setSuccess('');
+    try {
+      await applyRbacPatch();
+      setSuccess('RBAC reparado/seed aplicado com sucesso');
+      await loadUserDiagnostics();
+    } catch (err: any) {
+      setError(err?.message || 'Falha ao aplicar patch RBAC');
+    } finally {
+      setPatchingRbac(false);
+    }
+  }, [loadUserDiagnostics, selectedTenantId]);
+
   const reloadPlantsForSelectedTenant = async () => {
     try {
       const plants = await getUserPlants();
@@ -634,11 +623,13 @@ export function SuperAdminSettings() {
   const selectedTenant = tenants.find((t) => t.id === selectedTenantId) || null;
 
   const handleSelectTenant = async (id: string) => {
-    setSelectedTenantId(id);
+    const nextId = String(id || '').trim();
+    if (!nextId) return;
+
+    setSelectedTenantId(nextId);
     setError('');
     setSuccess('');
-    if (id) localStorage.setItem('superadminTenantId', id);
-    else localStorage.removeItem('superadminTenantId');
+    localStorage.setItem('superadminTenantId', nextId);
     window.dispatchEvent(new Event('superadmin-tenant-changed'));
 
     // Changing tenant means plant list must be reloaded.
@@ -646,147 +637,20 @@ export function SuperAdminSettings() {
     await reloadPlantsForSelectedTenant();
   };
 
-  const setStepAndUrl = React.useCallback(
-    (nextStep: SuperAdminStep) => {
-      setStep(nextStep);
-
-      if (isSuperAdminRoute) {
-        navigate(getPathForStep(nextStep), { replace: true });
-        return;
-      }
-
-      const params = new URLSearchParams(location.search);
-      params.set('panel', 'superadmin');
-      params.set('step', nextStep);
-      navigate(`/settings?${params.toString()}`, { replace: true });
-    },
-    [getPathForStep, isSuperAdminRoute, location.search, navigate]
-  );
+  React.useEffect(() => {
+    void loadDashboard();
+  }, [loadDashboard]);
 
   React.useEffect(() => {
-    // If tenant gets cleared, force tenant-scoped steps back to tenant.
-    if (!selectedTenantId && (step === 'plants' || step === 'users' || step === 'updates')) {
-      setStepAndUrl('tenant');
-    }
+    void loadDbStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTenantId]);
+  }, [selectedTenantId, dbRunsLimit]);
 
   React.useEffect(() => {
-    if (selectedTenantId) {
-      void reloadPlantsForSelectedTenant();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTenantId]);
-
-  React.useEffect(() => {
-    // Keep URL in sync (use replace to avoid growing browser history)
-    if (isSuperAdminRoute) {
-      const desired = getPathForStep(step);
-      if (location.pathname !== desired) {
-        navigate(desired, { replace: true });
-      }
-      return;
-    }
-
-    const params = new URLSearchParams(location.search);
-    const current = params.get('step');
-    if (current !== step) {
-      params.set('panel', 'superadmin');
-      params.set('step', step);
-      navigate(`/settings?${params.toString()}`, { replace: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, isSuperAdminRoute, getPathForStep, location.pathname, location.search]);
-
-  React.useEffect(() => {
-    // If URL/path changes externally (top nav), sync state.
-    const fromPath = getStepFromPathname(location.pathname);
-    const params = new URLSearchParams(location.search);
-    const fromUrl = params.get('step') as SuperAdminStep | null;
-
-    const next = (isSuperAdminRoute ? fromPath : null) || fromUrl;
-    if (!next) return;
-
-    const allowed: Record<SuperAdminStep, true> = {
-      dashboard: true,
-      tenant: true,
-      plants: true,
-      users: true,
-      updates: true,
-      support: true,
-    };
-    if (!allowed[next]) return;
-
-    const locked = (next === 'plants' || next === 'users' || next === 'updates') && !selectedTenantId;
-    const finalStep = locked ? 'tenant' : next;
-    if (finalStep !== step) setStep(finalStep);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, location.search, isSuperAdminRoute, selectedTenantId]);
-
-  React.useEffect(() => {
-    if (step === 'dashboard') {
-      void loadDbStatus();
-      void loadDashboard();
-      return;
-    }
-
-    if (step === 'updates' && selectedTenantId) {
-      void loadDbStatus();
-    }
-
-    if (step === 'plants' && selectedTenantId) {
-      void loadPlantMetrics();
-    }
-
-    if (step === 'users' && selectedTenantId) {
-      void loadUserDiagnostics();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, selectedTenantId, dbRunsLimit]);
-
-  const steps: Array<{ id: SuperAdminStep; title: string; description: string; requiresTenant?: boolean }> = [
-    {
-      id: 'dashboard',
-      title: 'Dashboard',
-      description: 'Resumo global e por empresa (BD, fábricas, utilizadores).',
-      requiresTenant: false,
-    },
-    {
-      id: 'tenant',
-      title: 'Empresas',
-      description: 'Selecionar e gerir empresas (contexto global).',
-      requiresTenant: false,
-    },
-    {
-      id: 'plants',
-      title: 'Fábricas',
-      description: 'Gerir fábricas da empresa selecionada.',
-      requiresTenant: true,
-    },
-    {
-      id: 'users',
-      title: 'Utilizadores & RBAC',
-      description: 'Roles, permissões e gestão administrativa.',
-      requiresTenant: true,
-    },
-    {
-      id: 'updates',
-      title: 'Atualizações',
-      description: 'Atualizações gerais e setup/admin DB.',
-      requiresTenant: true,
-    },
-    {
-      id: 'support',
-      title: 'Suporte',
-      description: 'Saúde do sistema, auditoria, export e ferramentas de suporte.',
-      requiresTenant: false,
-    },
-  ];
-
-  const requireTenantForStep = step === 'plants' || step === 'users' || step === 'updates';
-  const missingTenant = requireTenantForStep && !selectedTenantId;
-
-  const visibleSteps = selectedTenantId ? steps : steps.filter((s) => !s.requiresTenant);
+    if (!selectedTenantId) return;
+    void loadPlantMetrics();
+    void loadUserDiagnostics();
+  }, [loadPlantMetrics, loadUserDiagnostics, selectedTenantId]);
 
   const [supportHealth, setSupportHealth] = React.useState<any | null>(null);
   const [supportDiagnostics, setSupportDiagnostics] = React.useState<any | null>(null);
@@ -826,10 +690,8 @@ export function SuperAdminSettings() {
   }, []);
 
   React.useEffect(() => {
-    if (step === 'support') {
-      void loadSupportData();
-    }
-  }, [step, loadSupportData]);
+    void loadSupportData();
+  }, [loadSupportData]);
 
   const handleCreateTenant = async () => {
     const name = newTenant.name.trim();
@@ -872,7 +734,7 @@ export function SuperAdminSettings() {
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-              Assistente global
+              Assistente
             </p>
             <h4 className="mt-2 text-lg font-semibold text-[color:var(--dash-ink)]">
               Instalação & Configuração
@@ -889,7 +751,7 @@ export function SuperAdminSettings() {
             <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-4 py-3 text-sm text-[color:var(--dash-muted)]">
               Empresa ativa:{' '}
               <span className="font-semibold text-[color:var(--dash-ink)]">
-                {selectedTenant ? selectedTenant.name : 'Global'}
+                {selectedTenant ? selectedTenant.name : '—'}
               </span>
               {selectedTenant ? (
                 <span className="ml-2 text-xs">({selectedTenant.slug})</span>
@@ -914,67 +776,20 @@ export function SuperAdminSettings() {
         )}
       </section>
 
-      <div className="grid gap-6 md:grid-cols-[260px,1fr]">
-        <nav className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-3">
-          <div className="px-2 py-2">
-            <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-              Super Admin
-            </div>
-            <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
-              {selectedTenant ? (
-                <span>
-                  Empresa: <span className="font-semibold text-[color:var(--dash-ink)]">{selectedTenant.name}</span>
-                </span>
-              ) : (
-                <span className="font-semibold text-[color:var(--dash-ink)]">Global</span>
-              )}
-            </div>
-          </div>
-          <div className="space-y-2">
-            {visibleSteps.map((s) => {
-              const isActive = s.id === step;
-              const isLocked = Boolean(s.requiresTenant) && !selectedTenantId;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  className={
-                    isActive
-                      ? 'w-full rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3 text-left'
-                      : 'w-full rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-3 text-left hover:bg-[color:var(--dash-surface-2)]'
-                  }
-                  onClick={() => {
-                    if (isLocked) {
-                      setStepAndUrl('tenant');
-                      setError('Selecione uma empresa antes de avançar.');
-                      return;
-                    }
-                    setStepAndUrl(s.id);
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="font-semibold text-[color:var(--dash-ink)] truncate">
-                        {s.title}
-                      </div>
-                      <div className="mt-1 text-xs text-[color:var(--dash-muted)]">{s.description}</div>
-                    </div>
-                    <ChevronRight className="mt-0.5 h-5 w-5 text-[color:var(--dash-muted)]" />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
+      <div className="space-y-6">
+        {!selectedTenantId && tenants.length > 0 && (
+          <section className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-5 text-sm text-amber-800">
+            Selecione uma empresa para ver dados por contexto.
+          </section>
+        )}
 
-        <div className="space-y-6">
-          {missingTenant && (
-            <section className="rounded-[24px] border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-700">
-              Selecione uma empresa para continuar.
-            </section>
-          )}
+        {tenants.length === 0 && (
+          <section className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-5 text-sm text-amber-800">
+            Ainda não existem empresas. Crie uma para começar.
+          </section>
+        )}
 
-          {step === 'dashboard' && (
+          {true && (
             <section className="overflow-hidden rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
               <div className="h-2 w-full bg-[linear-gradient(90deg,#0f766e,#38bdf8)]" />
               <div className="p-5">
@@ -985,23 +800,8 @@ export function SuperAdminSettings() {
                     </div>
                     <h4 className="mt-2 text-lg font-semibold text-[color:var(--dash-ink)]">Dashboard</h4>
                     <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
-                      Resumo global e do contexto selecionado.
+                      Resumo do sistema e do contexto selecionado.
                     </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button type="button" className="btn-secondary h-9 px-3" onClick={() => setStepAndUrl('tenant')}>
-                      Empresas
-                    </button>
-                    {selectedTenantId ? (
-                      <button type="button" className="btn-secondary h-9 px-3" onClick={() => setStepAndUrl('updates')}>
-                        Atualizações
-                      </button>
-                    ) : (
-                      <button type="button" className="btn-secondary h-9 px-3" onClick={() => navigate('/settings')}>
-                        Configurações genéricas
-                      </button>
-                    )}
                   </div>
                 </div>
 
@@ -1032,7 +832,7 @@ export function SuperAdminSettings() {
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">Empresa ativa</div>
                         <div className="mt-2 text-base font-semibold text-[color:var(--dash-ink)] truncate">
-                          {selectedTenant ? selectedTenant.name : 'Global'}
+                          {selectedTenant ? selectedTenant.name : '—'}
                         </div>
                       </div>
                       <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
@@ -1051,7 +851,7 @@ export function SuperAdminSettings() {
                         <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
                           {(() => {
                             const scope = String(dbStatus?.scope || (selectedTenantId ? 'tenant' : 'global'));
-                            const scopeLabel = scope === 'tenant' ? 'Empresa' : 'Global';
+                            const scopeLabel = scope === 'tenant' ? 'Empresa' : 'Sistema';
                             if (dbStatus?.dbTime) return `Âmbito: ${scopeLabel} • Hora BD: ${String(dbStatus.dbTime)}`;
                             return `Âmbito: ${scopeLabel}`;
                           })()}
@@ -1143,34 +943,12 @@ export function SuperAdminSettings() {
                   </div>
 
                   <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
-                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
-                      Ações rápidas
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button type="button" className="btn-secondary h-9 px-3" onClick={() => setStepAndUrl('tenant')}>Empresas</button>
-                      <button
-                        type="button"
-                        className="btn-secondary h-9 px-3"
-                        onClick={() => setStepAndUrl('support')}
-                      >
-                        Suporte
-                      </button>
-                      {selectedTenantId ? (
-                        <button type="button" className="btn-secondary h-9 px-3" onClick={() => setStepAndUrl('plants')}>Fábricas</button>
-                      ) : null}
-                      {selectedTenantId ? (
-                        <button type="button" className="btn-secondary h-9 px-3" onClick={() => setStepAndUrl('users')}>Utilizadores</button>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
                           Top empresas por atividade (30d)
                         </div>
-                        <div className="mt-1 text-xs text-[color:var(--dash-muted)]">Export global</div>
+                        <div className="mt-1 text-xs text-[color:var(--dash-muted)]">Export do sistema</div>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <button
@@ -1253,7 +1031,7 @@ export function SuperAdminSettings() {
             </section>
           )}
 
-          {step === 'tenant' && (
+          {true && (
             <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
               <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Empresas</h4>
               <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
@@ -1325,7 +1103,7 @@ export function SuperAdminSettings() {
                 {(tenantMetrics.length > 0 ? tenantMetrics : tenants).map((t: any) => (
                   <div
                     key={t.id}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-4 py-3"
+                    className="flex flex-col gap-3 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-4 py-3 md:flex-row md:items-center md:justify-between"
                   >
                     <div className="min-w-0">
                       <div className="font-semibold text-[color:var(--dash-ink)] truncate">{t.name}</div>
@@ -1338,26 +1116,17 @@ export function SuperAdminSettings() {
                         </div>
                       ) : null}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
-                        className="btn-secondary h-9 px-3"
-                        onClick={() => {
-                          void handleSelectTenant(t.id);
-                          setStepAndUrl('plants');
-                        }}
+                        className={
+                          String(t.id) === String(selectedTenantId)
+                            ? 'btn-primary h-9 px-3'
+                            : 'btn-secondary h-9 px-3'
+                        }
+                        onClick={() => void handleSelectTenant(t.id)}
                       >
-                        Selecionar
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-secondary h-9 px-3"
-                        onClick={() => {
-                          void handleSelectTenant(t.id);
-                          setStepAndUrl('support');
-                        }}
-                      >
-                        Suporte
+                        {String(t.id) === String(selectedTenantId) ? 'Selecionada' : 'Selecionar'}
                       </button>
                       <button
                         type="button"
@@ -1373,7 +1142,7 @@ export function SuperAdminSettings() {
             </section>
           )}
 
-          {step === 'plants' && selectedTenantId && (
+          {selectedTenantId && (
             <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
               <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Fábricas</h4>
               <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
@@ -1464,7 +1233,7 @@ export function SuperAdminSettings() {
             </section>
           )}
 
-          {step === 'users' && selectedTenantId && (
+          {selectedTenantId && (
             <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
               <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Utilizadores & RBAC</h4>
               <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
@@ -1523,15 +1292,26 @@ export function SuperAdminSettings() {
                         utilizadores sem fábrica / role inválida
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      className="btn-secondary h-9 px-3"
-                      onClick={() => void loadUserDiagnostics()}
-                      disabled={loadingUserAnomalies || loadingRbacMatrix}
-                    >
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Atualizar
-                    </button>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={() => void loadUserDiagnostics()}
+                        disabled={loadingUserAnomalies || loadingRbacMatrix || patchingRbac}
+                      >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Atualizar
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={() => void handlePatchRbac()}
+                        disabled={!selectedTenantId || patchingRbac}
+                      >
+                        <Shield className="mr-2 h-4 w-4" />
+                        Reparar RBAC
+                      </button>
+                    </div>
                   </div>
 
                   {userAnomalies ? (
@@ -1795,7 +1575,7 @@ export function SuperAdminSettings() {
             </section>
           )}
 
-          {step === 'updates' && selectedTenantId && (
+          {selectedTenantId && (
             <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
               <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Atualizações & Base de dados</h4>
               <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
@@ -1862,7 +1642,7 @@ export function SuperAdminSettings() {
                           <div>
                             Âmbito:{' '}
                             <span className="font-semibold text-[color:var(--dash-ink)]">
-                              {String(dbStatus.scope) === 'tenant' ? 'Empresa' : 'Global'}
+                              {String(dbStatus.scope) === 'tenant' ? 'Empresa' : 'Sistema'}
                             </span>
                           </div>
                         ) : null}
@@ -1983,7 +1763,7 @@ export function SuperAdminSettings() {
             </section>
           )}
 
-          {step === 'support' && (
+          {true && (
             <section className="overflow-hidden rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
               <div className="h-2 w-full bg-[linear-gradient(90deg,#0f766e,#38bdf8)]" />
               <div className="p-5">
@@ -2375,7 +2155,6 @@ export function SuperAdminSettings() {
             </section>
           )}
         </div>
-      </div>
     </div>
   );
 }
@@ -5570,7 +5349,7 @@ function PermissionsSettings() {
               Página inicial por role
             </p>
             <p className="mt-1 text-sm theme-text-muted">
-              Global define a base; por fábrica (Plant) pode sobrescrever.
+              Empresa define a base; por fábrica (Plant) pode sobrescrever.
             </p>
           </div>
 
@@ -5581,7 +5360,7 @@ function PermissionsSettings() {
               onChange={(e) => setHomeScopePlantId(e.target.value ? e.target.value : null)}
               disabled={loadingHomes || savingHomes}
             >
-              <option value="">Global (base)</option>
+              <option value="">Empresa (base)</option>
               {plants.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}

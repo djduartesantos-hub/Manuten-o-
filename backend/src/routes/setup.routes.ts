@@ -74,6 +74,14 @@ router.post(
   SetupController.applyCorrections,
 );
 
+// POST /api/setup/patch/rbac - Apply RBAC structure + seed only
+router.post(
+  '/patch/rbac',
+  authMiddleware,
+  requirePermission('setup:run', 'tenant'),
+  SetupController.patchRbac,
+);
+
 // POST /api/setup/patch/maintenance-plans-tolerance-mode - Add tolerance_mode if missing
 router.post(
   '/patch/maintenance-plans-tolerance-mode',
