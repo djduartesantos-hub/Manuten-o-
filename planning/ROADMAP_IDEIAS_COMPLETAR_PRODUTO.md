@@ -1,5 +1,8 @@
 # Roadmap — Ideias para completar o produto (profissional / comercial)
 
+> Tracking visual (com checklist e estado):
+> - [planning/ROADMAP_FUNCOES_VISUAL.md](planning/ROADMAP_FUNCOES_VISUAL.md)
+
 Este documento é um “banco de ideias” orientado a tornar o produto mais completo (tipo CMMS profissional) sem perder a base multi-tenant e o SuperAdmin.
 
 ## 20 ideias novas (produto/mercado)

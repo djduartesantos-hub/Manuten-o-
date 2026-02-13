@@ -1,5 +1,8 @@
 # Roadmap por Fases — Finalização (não final)
 
+> Roadmap visual por funções (derivado das ideias, com checklist):
+> - [planning/ROADMAP_FUNCOES_VISUAL.md](planning/ROADMAP_FUNCOES_VISUAL.md)
+
 Objetivo: transformar o projeto num produto **vendável/profissional** com previsibilidade (hardening + features), sem perder o foco no que já existe.
 
 ## Como usar este roadmap
