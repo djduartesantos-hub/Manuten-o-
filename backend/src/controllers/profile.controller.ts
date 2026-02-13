@@ -294,4 +294,38 @@ export class ProfileController {
       return res.status(500).json({ success: false, error: 'Failed to resolve home route' });
     }
   }
+
+  static async getPermissions(req: AuthenticatedRequest, res: Response): Promise<Response> {
+    try {
+      const tenantId = req.tenantId;
+      const userId = req.user?.userId;
+      const plantId = String((req.query as any)?.plantId || '').trim();
+
+      if (!tenantId || !userId) {
+        return res.status(401).json({ success: false, error: 'Not authenticated' });
+      }
+
+      if (!plantId) {
+        return res.status(400).json({ success: false, error: 'plantId is required' });
+      }
+
+      const plantRole = await RbacService.getUserRoleForPlant({ userId, plantId });
+      const roleKey = RbacService.normalizeRole(plantRole || String(req.user?.role || ''));
+      if (!roleKey) {
+        return res.status(403).json({ success: false, error: 'Sem role atribuída' });
+      }
+
+      const perms = await RbacService.getTenantPermissionsForRole({ tenantId, roleKey });
+      return res.json({
+        success: true,
+        data: {
+          plantId,
+          roleKey,
+          permissions: Array.from(perms),
+        },
+      });
+    } catch {
+      return res.status(500).json({ success: false, error: 'Failed to resolve permissions' });
+    }
+  }
 }

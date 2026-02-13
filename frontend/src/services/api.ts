@@ -1131,6 +1131,14 @@ export async function getProfileHomeRoute(
   return apiCall(`/profile/home-route?${params.toString()}`);
 }
 
+export async function getProfilePermissions(
+  plantId: string,
+): Promise<{ plantId: string; roleKey: string; permissions: string[] }> {
+  const params = new URLSearchParams();
+  params.append('plantId', plantId);
+  return apiCall(`/profile/permissions?${params.toString()}`);
+}
+
 export async function getAdminRolePermissions(roleKey: string) {
   return apiCall(`/admin/roles/${roleKey}/permissions`);
 }

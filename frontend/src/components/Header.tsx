@@ -26,7 +26,8 @@ import { useAppStore } from '../context/store';
 import { useSocket } from '../context/SocketContext';
 import { useTheme } from '../context/ThemeContext';
 import { getSuperadminDbStatus, getSuperadminTenants } from '../services/api';
-import { canAccessPath } from '../utils/access';
+import { useProfileAccess } from '../hooks/useProfileAccess';
+import { canAccessPathByPermissions } from '../utils/routePermissions';
 
 interface NavItem {
   label: string;
@@ -54,7 +55,7 @@ export function Header() {
   const { theme, setTheme } = useTheme();
   const isDark = theme.name === 'dark';
 
-  const isSuperAdmin = String(user?.role || '') === 'superadmin';
+  const { permissions, loading: permissionsLoading, isSuperAdmin } = useProfileAccess();
   const superAdminHome = '/settings?panel=superadmin';
 
   const [superadminTenants, setSuperadminTenants] = React.useState<
@@ -225,7 +226,14 @@ export function Header() {
   ])
   .map((section) => ({
     ...section,
-    items: section.items.filter((item) => canAccessPath(user?.role, item.href)),
+    items: section.items.filter((item) =>
+      canAccessPathByPermissions({
+        path: item.href,
+        isSuperAdmin,
+        permissions,
+        loading: permissionsLoading,
+      }),
+    ),
   }))
   .filter((section) => section.items.length > 0);
 

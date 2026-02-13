@@ -75,6 +75,8 @@ async function ensureRbacStructureAndSeed(tenantId: string): Promise<void> {
   // Permissões globais (idempotente)
   const permissions: Array<{ key: string; label: string; group: string; description?: string }> = [
     { key: 'dashboard:read', label: 'Ver dashboard', group: 'dashboard' },
+    { key: 'search:read', label: 'Usar pesquisa', group: 'pesquisa' },
+    { key: 'reports:read', label: 'Ver relatórios', group: 'relatorios' },
     { key: 'jobs:read', label: 'Ver fila de jobs', group: 'jobs' },
     { key: 'jobs:write', label: 'Gerir fila de jobs', group: 'jobs' },
     { key: 'notifications:read', label: 'Ver notificações', group: 'notificacoes' },
@@ -95,6 +97,7 @@ async function ensureRbacStructureAndSeed(tenantId: string): Promise<void> {
     { key: 'suppliers:write', label: 'Gerir fornecedores', group: 'stock' },
     { key: 'kits:read', label: 'Ver kits', group: 'kits' },
     { key: 'kits:write', label: 'Gerir kits', group: 'kits' },
+    { key: 'settings:access', label: 'Aceder a configurações', group: 'admin' },
     { key: 'admin:plants', label: 'Gerir fábricas', group: 'admin' },
     { key: 'admin:users', label: 'Gerir utilizadores', group: 'admin' },
     { key: 'admin:rbac', label: 'Gerir roles/permissões', group: 'admin' },
@@ -139,6 +142,8 @@ async function ensureRbacStructureAndSeed(tenantId: string): Promise<void> {
     admin_empresa: permissions.map((p) => p.key),
     gestor_manutencao: [
       'dashboard:read',
+      'search:read',
+      'reports:read',
       'jobs:read',
       'jobs:write',
       'notifications:read',
@@ -156,9 +161,12 @@ async function ensureRbacStructureAndSeed(tenantId: string): Promise<void> {
       'suppliers:read',
       'kits:read',
       'kits:write',
+      'settings:access',
     ],
     supervisor: [
       'dashboard:read',
+      'search:read',
+      'reports:read',
       'jobs:read',
       'jobs:write',
       'notifications:read',
@@ -173,9 +181,11 @@ async function ensureRbacStructureAndSeed(tenantId: string): Promise<void> {
       'stock:write',
       'suppliers:read',
       'kits:read',
+      'settings:access',
     ],
     tecnico: [
       'dashboard:read',
+      'search:read',
       'notifications:read',
       'assets:read',
       'assets:write',
@@ -191,6 +201,7 @@ async function ensureRbacStructureAndSeed(tenantId: string): Promise<void> {
     ],
     operador: [
       'dashboard:read',
+      'search:read',
       'notifications:read',
       'assets:read',
       'categories:read',

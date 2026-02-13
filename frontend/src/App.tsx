@@ -198,7 +198,7 @@ function App() {
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredPermissions={['dashboard:read']}>
                   <DashboardPage />
                 </ProtectedRoute>
               }
@@ -206,7 +206,7 @@ function App() {
             <Route
               path="/work-orders"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredPermissions={['workorders:read', 'workorders:write']}>
                   <WorkOrdersPage />
                 </ProtectedRoute>
               }
@@ -232,7 +232,7 @@ function App() {
             <Route
               path="/assets"
               element={
-                <ProtectedRoute requiredRoles={['admin_empresa', 'gestor_manutencao', 'supervisor', 'viewer', 'superadmin']}>
+                <ProtectedRoute requiredPermissions={['assets:read', 'assets:write']}>
                   <AssetsPage />
                 </ProtectedRoute>
               }
@@ -240,7 +240,7 @@ function App() {
             <Route
               path="/maintenance-plans"
               element={
-                <ProtectedRoute requiredRoles={['admin_empresa', 'gestor_manutencao', 'supervisor', 'superadmin']}>
+                <ProtectedRoute requiredAllPermissions={['settings:access', 'plans:read']}>
                   <Navigate to="/settings?panel=preventive&sub=plans" replace />
                 </ProtectedRoute>
               }
@@ -248,7 +248,7 @@ function App() {
             <Route
               path="/preventive-schedules"
               element={
-                <ProtectedRoute requiredRoles={['admin_empresa', 'gestor_manutencao', 'supervisor', 'superadmin']}>
+                <ProtectedRoute requiredAllPermissions={['settings:access', 'schedules:read']}>
                   <Navigate to="/settings?panel=preventive&sub=schedules" replace />
                 </ProtectedRoute>
               }
@@ -256,7 +256,7 @@ function App() {
             <Route
               path="/spare-parts"
               element={
-                <ProtectedRoute requiredRoles={['admin_empresa', 'gestor_manutencao', 'supervisor', 'superadmin']}>
+                <ProtectedRoute requiredPermissions={['stock:read', 'stock:write']}>
                   <SparePartsPage />
                 </ProtectedRoute>
               }
@@ -264,7 +264,7 @@ function App() {
             <Route
               path="/maintenance-kits"
               element={
-                <ProtectedRoute requiredRoles={['admin_empresa', 'gestor_manutencao', 'supervisor', 'superadmin']}>
+                <ProtectedRoute requiredPermissions={['kits:read', 'kits:write']}>
                   <MaintenanceKitsListPage />
                 </ProtectedRoute>
               }
@@ -272,7 +272,7 @@ function App() {
             <Route
               path="/suppliers"
               element={
-                <ProtectedRoute requiredRoles={['admin_empresa', 'gestor_manutencao', 'supervisor', 'superadmin']}>
+                <ProtectedRoute requiredPermissions={['suppliers:read', 'suppliers:write']}>
                   <SuppliersPage />
                 </ProtectedRoute>
               }
@@ -280,7 +280,7 @@ function App() {
             <Route
               path="/reports"
               element={
-                <ProtectedRoute requiredRoles={['admin_empresa', 'gestor_manutencao', 'supervisor', 'viewer', 'superadmin']}>
+                <ProtectedRoute requiredPermissions={['reports:read']}>
                   <ReportsPage />
                 </ProtectedRoute>
               }
@@ -288,7 +288,9 @@ function App() {
             <Route
               path="/settings"
               element={
-                <ProtectedRoute requiredRoles={['admin_empresa', 'gestor_manutencao', 'supervisor', 'superadmin']}>
+                <ProtectedRoute
+                  requiredPermissions={['settings:access', 'admin:plants', 'admin:users', 'admin:rbac', 'setup:run']}
+                >
                   <SettingsPage />
                 </ProtectedRoute>
               }
@@ -296,7 +298,7 @@ function App() {
             <Route
               path="/search"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredPermissions={['search:read']}>
                   <SearchPage />
                 </ProtectedRoute>
               }
@@ -320,7 +322,7 @@ function App() {
             <Route
               path="/plants"
               element={
-                <ProtectedRoute requiredRoles={['admin_empresa', 'superadmin']}>
+                <ProtectedRoute requiredPermissions={['admin:plants']}>
                   <PlantsPage />
                 </ProtectedRoute>
               }
@@ -337,7 +339,7 @@ function App() {
             <Route
               path="/notifications"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredPermissions={['notifications:read', 'notifications:write']}>
                   <NotificationsPage />
                 </ProtectedRoute>
               }

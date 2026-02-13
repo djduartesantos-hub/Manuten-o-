@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import { useAppStore } from '../context/store';
 import { useAuth } from '../hooks/useAuth';
+import { useProfileAccess } from '../hooks/useProfileAccess';
 import {
   apiCall,
   createSuperadminTenant,
@@ -104,66 +105,84 @@ export function SettingsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { permissions, isSuperAdmin } = useProfileAccess();
   const [activePanel, setActivePanel] = useState<SettingTab | null>(null);
   const [preventiveSub, setPreventiveSub] = useState<'plans' | 'schedules' | null>(null);
 
-  const isTenantAdmin = ['admin_empresa', 'superadmin'].includes(String(user?.role || ''));
+  const hasAny = (keys: string[]) => keys.some((k) => isSuperAdmin || permissions.has(k));
+  const canSeePermissionsTab = hasAny(['admin:rbac']);
+  const canSeeManagementTab = hasAny([
+    'admin:plants',
+    'admin:users',
+    'setup:run',
+    'assets:write',
+    'stock:write',
+    'suppliers:write',
+  ]);
 
   const tabs: { id: SettingTab; label: string; icon: React.ReactNode; description: string }[] =
     [
       {
-        id: 'alerts',
+        id: 'alerts' as const,
         label: 'Alertas & Notificações',
         icon: <Bell className="w-5 h-5" />,
         description: 'Configure thresholds e notificações de alertas',
       },
       {
-        id: 'notifications',
+        id: 'notifications' as const,
         label: 'Notificações do sistema',
         icon: <Server className="w-5 h-5" />,
         description: 'Regras para eventos e destinatários',
       },
       {
-        id: 'preventive',
+        id: 'preventive' as const,
         label: 'Manutenção Preventiva',
         icon: <Cog className="w-5 h-5" />,
         description: 'Planos e agendamentos preventivos',
       },
       {
-        id: 'kits',
+        id: 'kits' as const,
         label: 'Kits',
         icon: <Boxes className="w-5 h-5" />,
         description: 'Configurar kits de manutencao (pecas e quantidades)',
       },
       {
-        id: 'warnings',
+        id: 'warnings' as const,
         label: 'Alertas Preditivos',
         icon: <AlertTriangle className="w-5 h-5" />,
         description: 'Análise histórica e avisos de risco',
       },
       {
-        id: 'documents',
+        id: 'documents' as const,
         label: 'Biblioteca de Documentos',
         icon: <FileText className="w-5 h-5" />,
         description: 'Manuais, esquemas e certificados',
       },
-      ...(isTenantAdmin
+      ...(canSeePermissionsTab || canSeeManagementTab
         ? [
-            {
-              id: 'permissions' as const,
-              label: 'Permissões & Roles',
-              icon: <Shield className="w-5 h-5" />,
-              description: 'Gerir acesso por role',
-            },
-            {
-              id: 'management' as const,
-              label: 'Gestão administrativa',
-              icon: <Users className="w-5 h-5" />,
-              description: 'Plantas, utilizadores, roles e equipamentos',
-            },
+            ...(canSeePermissionsTab
+              ? [
+                  {
+                    id: 'permissions' as const,
+                    label: 'Permissões & Roles',
+                    icon: <Shield className="w-5 h-5" />,
+                    description: 'Gerir acesso por role',
+                  },
+                ]
+              : []),
+            ...(canSeeManagementTab
+              ? [
+                  {
+                    id: 'management' as const,
+                    label: 'Gestão administrativa',
+                    icon: <Users className="w-5 h-5" />,
+                    description: 'Plantas, utilizadores, roles e equipamentos',
+                  },
+                ]
+              : []),
           ]
         : []),
-      ...(String(user?.role || '') === 'superadmin'
+      ...(isSuperAdmin
         ? [
             {
               id: 'superadmin' as const,
@@ -173,7 +192,42 @@ export function SettingsPage() {
             },
           ]
         : []),
-    ];
+    ]
+      .filter((tab) => {
+        if (isSuperAdmin) return true;
+
+        if (tab.id === 'superadmin') return false;
+
+        if (tab.id === 'alerts' || tab.id === 'notifications') {
+          return hasAny(['notifications:read', 'notifications:write']);
+        }
+
+        if (tab.id === 'preventive') {
+          return hasAny(['plans:read', 'plans:write', 'schedules:read', 'schedules:write']);
+        }
+
+        if (tab.id === 'kits') {
+          return hasAny(['kits:read', 'kits:write']);
+        }
+
+        if (tab.id === 'warnings') {
+          return hasAny(['dashboard:read']);
+        }
+
+        if (tab.id === 'documents') {
+          return hasAny(['assets:read', 'assets:write']);
+        }
+
+        if (tab.id === 'permissions') {
+          return canSeePermissionsTab;
+        }
+
+        if (tab.id === 'management') {
+          return canSeeManagementTab;
+        }
+
+        return true;
+      });
 
   const activeMeta = tabs.find((tab) => tab.id === activePanel) || null;
 
@@ -182,18 +236,45 @@ export function SettingsPage() {
     const panel = params.get('panel') as SettingTab | null;
     const sub = params.get('sub');
 
+    if (panel === 'superadmin' && !isSuperAdmin) {
+      setActivePanel(null);
+      setPreventiveSub(null);
+      navigate('/settings', { replace: true });
+      return;
+    }
+
     if (panel && tabs.some((t) => t.id === panel)) {
       setActivePanel(panel);
       if (panel === 'preventive') {
-        if (sub === 'schedules' || sub === 'plans') setPreventiveSub(sub);
+        const canPlans = hasAny(['plans:read', 'plans:write']);
+        const canSchedules = hasAny(['schedules:read', 'schedules:write']);
+
+        const requested = sub === 'schedules' || sub === 'plans' ? sub : null;
+        const nextSub =
+          requested === 'plans' && canPlans
+            ? 'plans'
+            : requested === 'schedules' && canSchedules
+              ? 'schedules'
+              : canPlans
+                ? 'plans'
+                : canSchedules
+                  ? 'schedules'
+                  : null;
+
+        setPreventiveSub(nextSub);
       } else {
         setPreventiveSub(null);
       }
-    } else if (String(user?.role || '') === 'superadmin') {
+    } else if (isSuperAdmin) {
       // SuperAdmin should land directly in the management panel
       setActivePanel('superadmin');
       setPreventiveSub(null);
       navigate('/settings?panel=superadmin', { replace: true });
+    } else if (panel) {
+      // Painel inválido/não permitido -> volta para a lista de secções permitidas.
+      setActivePanel(null);
+      setPreventiveSub(null);
+      navigate('/settings', { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
@@ -5171,6 +5252,9 @@ function DocumentsLibrarySettings() {
 }
 
 function PermissionsSettings() {
+  const { permissions: profilePerms, isSuperAdmin, loading: permsLoading } = useProfileAccess();
+  const canManageRbac = isSuperAdmin || profilePerms.has('admin:rbac');
+
   const [roles, setRoles] = React.useState<
     Array<{ value: string; label: string; description?: string | null; is_system?: boolean }>
   >([]);
@@ -5195,6 +5279,12 @@ function PermissionsSettings() {
   const isProtectedRole = String(activeRole || '').trim().toLowerCase() === 'superadmin';
 
   const loadBase = async () => {
+    if (!canManageRbac) {
+      setRoles([]);
+      setPermissions([]);
+      setRolePerms(new Set());
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -5212,6 +5302,10 @@ function PermissionsSettings() {
   };
 
   const loadPlants = async () => {
+    if (!canManageRbac) {
+      setPlants([]);
+      return;
+    }
     try {
       const plantsData = await getAdminPlants();
       const safe = Array.isArray(plantsData) ? plantsData : [];
@@ -5222,6 +5316,11 @@ function PermissionsSettings() {
   };
 
   const loadRoleHomes = async (plantId: string | null) => {
+    if (!canManageRbac) {
+      setHomeByRole({});
+      setSuggestedHomeByRole({});
+      return;
+    }
     setLoadingHomes(true);
     setError(null);
     try {
@@ -5252,6 +5351,10 @@ function PermissionsSettings() {
 
   const loadRolePerms = async (roleKey: string) => {
     if (!roleKey) return;
+    if (!canManageRbac) {
+      setRolePerms(new Set());
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -5265,18 +5368,21 @@ function PermissionsSettings() {
   };
 
   React.useEffect(() => {
+    if (!canManageRbac) return;
     loadBase();
     loadPlants();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [canManageRbac]);
 
   React.useEffect(() => {
     if (roles.length === 0) return;
+    if (!canManageRbac) return;
     loadRoleHomes(homeScopePlantId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [homeScopePlantId, roles.length]);
 
   React.useEffect(() => {
+    if (!canManageRbac) return;
     if (activeRole) loadRolePerms(activeRole);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRole]);
@@ -5290,6 +5396,7 @@ function PermissionsSettings() {
   }, [activeRole, roles]);
 
   const togglePerm = (key: string) => {
+    if (!canManageRbac) return;
     if (isProtectedRole) return;
     setRolePerms((current) => {
       const next = new Set(current);
@@ -5300,6 +5407,7 @@ function PermissionsSettings() {
   };
 
   const handleSave = async () => {
+    if (!canManageRbac) return;
     if (!activeRole) return;
     if (isProtectedRole) {
       setError('SuperAdministrador é protegido: permissões não podem ser alteradas.');
@@ -5317,6 +5425,7 @@ function PermissionsSettings() {
   };
 
   const handleSaveRoleMeta = async () => {
+    if (!canManageRbac) return;
     if (!activeRole) return;
     if (isProtectedRole) {
       setError('SuperAdministrador é protegido: este role não pode ser alterado.');
@@ -5346,6 +5455,7 @@ function PermissionsSettings() {
   };
 
   const handleCreateRole = async () => {
+    if (!canManageRbac) return;
     const key = String(newRole.key || '').trim().toLowerCase();
     const name = String(newRole.name || '').trim();
     const description = String(newRole.description || '').trim();
@@ -5385,6 +5495,18 @@ function PermissionsSettings() {
     return acc;
   }, {});
 
+  if (!isSuperAdmin && permsLoading) {
+    return <p className="text-sm theme-text-muted">A carregar permissões...</p>;
+  }
+
+  if (!canManageRbac) {
+    return (
+      <div className="rounded-[24px] border theme-border theme-card p-4 shadow-sm">
+        <p className="text-sm theme-text">Sem permissões para gerir roles/permissões.</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-6">
@@ -5410,7 +5532,7 @@ function PermissionsSettings() {
             className="input h-10"
             value={activeRole}
             onChange={(e) => setActiveRole(e.target.value)}
-            disabled={loading}
+            disabled={loading || !canManageRbac}
           >
             {roles.map((r) => (
               <option key={r.value} value={r.value}>
@@ -5423,7 +5545,7 @@ function PermissionsSettings() {
         <button
           className="btn-primary"
           onClick={handleSave}
-          disabled={saving || loading || !activeRole || isProtectedRole}
+          disabled={saving || loading || !activeRole || isProtectedRole || !canManageRbac}
         >
           Guardar permissões
         </button>
@@ -5666,7 +5788,18 @@ type ManagementSettingsMode = 'full' | 'usersOnly';
 
 function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }) {
   const { selectedPlant } = useAppStore();
+  const { permissions, isSuperAdmin } = useProfileAccess();
   const usersOnly = mode === 'usersOnly';
+
+  const can = (key: string) => isSuperAdmin || permissions.has(key);
+  const canManagePlants = can('admin:plants');
+  const canManageUsers = can('admin:users');
+  const canRunSetup = can('setup:run');
+  const canStockRead = can('stock:read') || can('stock:write');
+  const canStockWrite = can('stock:write');
+  const canSuppliersRead = can('suppliers:read') || can('suppliers:write');
+  const canSuppliersWrite = can('suppliers:write');
+  const canAssetsRead = can('assets:read') || can('assets:write');
   const [plants, setPlants] = React.useState<any[]>([]);
   const [users, setUsers] = React.useState<any[]>([]);
   const [roles, setRoles] = React.useState<Array<{ value: string; label: string }>>([]);
@@ -5729,10 +5862,14 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
     setLoading(true);
     setError(null);
     try {
+      const shouldLoadPlants = !usersOnly && canManagePlants;
+      const shouldLoadUsers = canManageUsers;
+      const shouldLoadRoles = canManageUsers || canManagePlants || isSuperAdmin;
+
       const [plantsData, usersData, rolesData] = await Promise.all([
-        getAdminPlants(),
-        getAdminUsers(),
-        getAdminRoles(),
+        shouldLoadPlants ? getAdminPlants() : Promise.resolve([]),
+        shouldLoadUsers ? getAdminUsers() : Promise.resolve([]),
+        shouldLoadRoles ? getAdminRoles() : Promise.resolve([]),
       ]);
       setPlants(plantsData || []);
       setUsers(usersData || []);
@@ -5750,6 +5887,11 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
       return;
     }
 
+    if (!canAssetsRead) {
+      setAssets([]);
+      return;
+    }
+
     try {
       const data = await getAssets(selectedPlant);
       setAssets(data || []);
@@ -5759,12 +5901,20 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
   };
 
   React.useEffect(() => {
-    loadAdminData();
+    // Evita chamadas a endpoints admin quando não há permissões.
+    if (usersOnly) {
+      if (canManageUsers) loadAdminData();
+      return;
+    }
+
+    if (canManagePlants || canManageUsers || canRunSetup || canStockRead || canSuppliersRead) {
+      loadAdminData();
+    }
   }, []);
 
   React.useEffect(() => {
     loadAssets();
-  }, [selectedPlant]);
+  }, [selectedPlant, canAssetsRead]);
 
   React.useEffect(() => {
     if (
@@ -6032,7 +6182,7 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
       description: 'Recriar a base do zero (ação destrutiva).',
       icon: Server,
     },
-  ];
+  ].filter(() => canRunSetup);
 
   const adminPanels = [
     {
@@ -6059,7 +6209,13 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
       description: 'Registar entradas e reposições de inventário.',
       icon: Boxes,
     },
-  ];
+  ].filter((panel) => {
+    if (panel.id === 'plants') return canManagePlants;
+    if (panel.id === 'suppliers') return canSuppliersRead;
+    if (panel.id === 'spareparts') return canStockWrite;
+    if (panel.id === 'stock') return canStockRead;
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -6082,7 +6238,7 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
         </div>
       )}
 
-      {!usersOnly ? (
+      {!usersOnly && dbTools.length > 0 ? (
         <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -6116,7 +6272,7 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
         </div>
       ) : null}
 
-      {!usersOnly ? (
+      {!usersOnly && adminPanels.length > 0 ? (
         <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -6150,7 +6306,7 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
         </div>
       ) : null}
 
-      {!usersOnly ? (
+      {!usersOnly && (canManagePlants || canManageUsers) ? (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="relative overflow-hidden rounded-[28px] border theme-border theme-card p-5 shadow-sm space-y-6">
           <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
