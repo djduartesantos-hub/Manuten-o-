@@ -1128,7 +1128,7 @@ export function SuperAdminSettings() {
                           }}
                         >
                           <Download className="mr-2 h-4 w-4" />
-                          CSV
+                          Exportar CSV
                         </button>
                         <button
                           type="button"
@@ -1143,7 +1143,7 @@ export function SuperAdminSettings() {
                           }}
                         >
                           <Download className="mr-2 h-4 w-4" />
-                          JSON
+                          Exportar JSON
                         </button>
                       </div>
                     </div>
@@ -1216,7 +1216,7 @@ export function SuperAdminSettings() {
                   }}
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  Export CSV
+                  Exportar CSV
                 </button>
                 <button
                   type="button"
@@ -1231,7 +1231,7 @@ export function SuperAdminSettings() {
                   }}
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  Export JSON
+                  Exportar JSON
                 </button>
               </div>
 
@@ -1346,7 +1346,7 @@ export function SuperAdminSettings() {
                       }}
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      Export CSV
+                      Exportar CSV
                     </button>
                     <button
                       type="button"
@@ -1361,7 +1361,7 @@ export function SuperAdminSettings() {
                       }}
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      Export JSON
+                      Exportar JSON
                     </button>
                   </div>
                 </div>
@@ -1604,7 +1604,7 @@ export function SuperAdminSettings() {
                         }}
                       >
                         <Download className="mr-2 h-4 w-4" />
-                        CSV
+                        Exportar CSV
                       </button>
                       <button
                         type="button"
@@ -1619,7 +1619,7 @@ export function SuperAdminSettings() {
                         }}
                       >
                         <Download className="mr-2 h-4 w-4" />
-                        JSON
+                        Exportar JSON
                       </button>
                     </div>
                   </div>
@@ -1659,7 +1659,7 @@ export function SuperAdminSettings() {
                         }}
                       >
                         <Download className="mr-2 h-4 w-4" />
-                        CSV
+                        Exportar CSV
                       </button>
                       <button
                         type="button"
@@ -1674,7 +1674,7 @@ export function SuperAdminSettings() {
                         }}
                       >
                         <Download className="mr-2 h-4 w-4" />
-                        JSON
+                        Exportar JSON
                       </button>
                     </div>
                   </div>
@@ -1711,7 +1711,7 @@ export function SuperAdminSettings() {
                         }}
                       >
                         <Download className="mr-2 h-4 w-4" />
-                        CSV
+                        Exportar CSV
                       </button>
                       <button
                         type="button"
@@ -1726,7 +1726,7 @@ export function SuperAdminSettings() {
                         }}
                       >
                         <Download className="mr-2 h-4 w-4" />
-                        JSON
+                        Exportar JSON
                       </button>
                     </div>
                   </div>
@@ -1793,7 +1793,7 @@ export function SuperAdminSettings() {
                       }}
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      Export status (JSON)
+                      Exportar status (JSON)
                     </button>
                   </div>
                 </div>
@@ -2104,7 +2104,7 @@ export function SuperAdminSettings() {
                         }}
                       >
                         <Download className="mr-2 h-4 w-4" />
-                        Export CSV
+                        Exportar CSV
                       </button>
                       <button
                         type="button"
@@ -2123,7 +2123,7 @@ export function SuperAdminSettings() {
                         }}
                       >
                         <Download className="mr-2 h-4 w-4" />
-                        Export JSON
+                        Exportar JSON
                       </button>
                       <button
                         type="button"
@@ -2312,7 +2312,7 @@ export function SuperAdminSettings() {
                             }}
                           >
                             <Download className="mr-2 h-4 w-4" />
-                            Export CSV
+                            Exportar CSV
                           </button>
                           <button
                             type="button"
@@ -2331,7 +2331,7 @@ export function SuperAdminSettings() {
                             }}
                           >
                             <Download className="mr-2 h-4 w-4" />
-                            Export JSON
+                            Exportar JSON
                           </button>
                         </div>
                       </div>
