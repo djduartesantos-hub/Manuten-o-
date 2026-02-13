@@ -106,6 +106,8 @@ export function SettingsPage() {
   const [activePanel, setActivePanel] = useState<SettingTab | null>(null);
   const [preventiveSub, setPreventiveSub] = useState<'plans' | 'schedules' | null>(null);
 
+  const isTenantAdmin = ['admin_empresa', 'superadmin'].includes(String(user?.role || ''));
+
   const tabs: { id: SettingTab; label: string; icon: React.ReactNode; description: string }[] =
     [
       {
@@ -144,18 +146,22 @@ export function SettingsPage() {
         icon: <FileText className="w-5 h-5" />,
         description: 'Manuais, esquemas e certificados',
       },
-      {
-        id: 'permissions',
-        label: 'Permissões & Roles',
-        icon: <Shield className="w-5 h-5" />,
-        description: 'Gerir acesso por role',
-      },
-      {
-        id: 'management',
-        label: 'Gestão administrativa',
-        icon: <Users className="w-5 h-5" />,
-        description: 'Plantas, utilizadores, roles e equipamentos',
-      },
+      ...(isTenantAdmin
+        ? [
+            {
+              id: 'permissions' as const,
+              label: 'Permissões & Roles',
+              icon: <Shield className="w-5 h-5" />,
+              description: 'Gerir acesso por role',
+            },
+            {
+              id: 'management' as const,
+              label: 'Gestão administrativa',
+              icon: <Users className="w-5 h-5" />,
+              description: 'Plantas, utilizadores, roles e equipamentos',
+            },
+          ]
+        : []),
       ...(String(user?.role || '') === 'superadmin'
         ? [
             {
@@ -419,6 +425,9 @@ export function SuperAdminSettings() {
 
   const [userAnomalies, setUserAnomalies] = React.useState<any | null>(null);
   const [loadingUserAnomalies, setLoadingUserAnomalies] = React.useState(false);
+
+  type SuperAdminUsersSection = 'diagnostics' | 'rolePermissions' | 'users';
+  const [usersSection, setUsersSection] = React.useState<SuperAdminUsersSection>('diagnostics');
 
   const [rbacDrift, setRbacDrift] = React.useState<any | null>(null);
   const [integrityChecks, setIntegrityChecks] = React.useState<any | null>(null);
@@ -1462,6 +1471,47 @@ export function SuperAdminSettings() {
                 Permissões, roles e utilizadores para a empresa selecionada.
               </p>
 
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setUsersSection('diagnostics')}
+                  className={
+                    usersSection === 'diagnostics'
+                      ? 'btn-primary inline-flex items-center gap-2'
+                      : 'btn-secondary inline-flex items-center gap-2'
+                  }
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Diagnósticos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUsersSection('rolePermissions')}
+                  className={
+                    usersSection === 'rolePermissions'
+                      ? 'btn-primary inline-flex items-center gap-2'
+                      : 'btn-secondary inline-flex items-center gap-2'
+                  }
+                >
+                  <Shield className="h-4 w-4" />
+                  Permissões dos roles
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUsersSection('users')}
+                  className={
+                    usersSection === 'users'
+                      ? 'btn-primary inline-flex items-center gap-2'
+                      : 'btn-secondary inline-flex items-center gap-2'
+                  }
+                >
+                  <Users className="h-4 w-4" />
+                  Utilizadores
+                </button>
+              </div>
+
+              {usersSection === 'diagnostics' && (
+              <>
               <div className="mt-4 grid gap-3 lg:grid-cols-2">
                 <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
                   <div className="flex items-center justify-between gap-3">
@@ -1728,10 +1778,20 @@ export function SuperAdminSettings() {
                 </div>
               </div>
 
-              <div className="mt-6 space-y-10">
-                <PermissionsSettings key={`perm-${selectedTenantId}`} />
-                <ManagementSettings mode="usersOnly" key={`mgmt-${selectedTenantId}`} />
-              </div>
+              </>
+              )}
+
+              {usersSection === 'rolePermissions' && (
+                <div className="mt-6">
+                  <PermissionsSettings key={`perm-${selectedTenantId}`} />
+                </div>
+              )}
+
+              {usersSection === 'users' && (
+                <div className="mt-6">
+                  <ManagementSettings mode="usersOnly" key={`mgmt-${selectedTenantId}`} />
+                </div>
+              )}
             </section>
           )}
 
