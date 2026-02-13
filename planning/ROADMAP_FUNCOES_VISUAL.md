@@ -63,7 +63,7 @@ flowchart TD
 - [x] Consola SuperAdmin simplificada (sem navegação no topo; layout mais mobile) — ver frontend/src/pages/SettingsPage.tsx
 - [x] Diagnósticos + exportações (bundle, integridade, drift, audit, exports) — ver backend/src/routes/superadmin.routes.ts, backend/src/controllers/superadmin.controller.ts
 - [x] Ferramenta “Reparar RBAC” (patch/seed) — ver backend/src/controllers/setup.controller.ts, backend/src/routes/setup.routes.ts, frontend/src/pages/SettingsPage.tsx
-- [ ] Health score por tenant + alertas
+- [x] Health score por tenant + alertas (UI + export + bundle) — ver backend/src/controllers/superadmin.controller.ts, backend/src/routes/superadmin.routes.ts, frontend/src/pages/SettingsPage.tsx (2026-02-13, commit 0c65f83)
 - [ ] Quarantine/read-only por tenant
 - [ ] Sistema de Tickets (MVP) → ver [planning/ROADMAP_SUPERADMIN_TICKETS.md](planning/ROADMAP_SUPERADMIN_TICKETS.md)
 
