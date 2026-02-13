@@ -215,7 +215,7 @@ function App() {
             <Route
               path="/tecnico"
               element={
-                <ProtectedRoute requiredRoles={['tecnico']}>
+                <ProtectedRoute requiredAllPermissions={['workorders:write', 'assets:write']}>
                   <TechnicianWorkOrdersHomePage />
                 </ProtectedRoute>
               }
@@ -224,7 +224,7 @@ function App() {
             <Route
               path="/operador"
               element={
-                <ProtectedRoute requiredRoles={['operador']}>
+                <ProtectedRoute requiredPermissions={['workorders:write']}>
                   <OperatorWorkOrdersHomePage />
                 </ProtectedRoute>
               }
