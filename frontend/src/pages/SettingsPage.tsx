@@ -804,7 +804,7 @@ export function SuperAdminSettings() {
       <aside className="hidden lg:block">
         <div className="sticky top-20 space-y-4">
           <div className="overflow-hidden rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
-            <div className="h-2 w-full bg-[linear-gradient(90deg,#0f766e,#38bdf8)]" />
+            <div className="h-2 w-full bg-[color:var(--dash-accent)]" />
             <div className="p-4">
               <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
                 Super Admin
@@ -836,8 +836,8 @@ export function SuperAdminSettings() {
                         : 'w-full rounded-2xl border border-transparent px-3 py-3 text-left transition hover:border-[color:var(--dash-border)] hover:bg-[color:var(--dash-panel)]'
                     }
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-2 text-[color:var(--dash-muted)]">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] text-[color:var(--dash-muted)]">
                         {item.icon}
                       </div>
                       <div className="min-w-0">
@@ -864,14 +864,10 @@ export function SuperAdminSettings() {
         <div className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                Instalação & Configuração
-              </p>
-              <h4 className="mt-2 text-lg font-semibold text-[color:var(--dash-ink)]">
-                SuperAdministrador
-              </h4>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">Super Admin</p>
+              <h4 className="mt-2 text-lg font-semibold text-[color:var(--dash-ink)]">Navegação</h4>
               <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
-                Navegue por categorias, execute diagnósticos e aplique reparações por empresa.
+                Escolha uma categoria para gerir a instalação, dados e suporte.
               </p>
             </div>
 
@@ -889,35 +885,7 @@ export function SuperAdminSettings() {
             </div>
           </div>
 
-          <div className="mt-4 lg:hidden">
-            <div className="-mx-1 overflow-x-auto pb-1">
-              <div className="flex gap-2 px-1">
-                {navItems.map((item) => {
-                  const disabled = Boolean(item.requiresTenant && !selectedTenantId);
-                  const active = item.id === activeSub;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => openSub(item.id)}
-                      className={
-                        active
-                          ? 'inline-flex items-center gap-2 whitespace-nowrap rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-3 py-2 text-sm font-semibold text-[color:var(--dash-ink)]'
-                          : 'inline-flex items-center gap-2 whitespace-nowrap rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 py-2 text-sm font-semibold text-[color:var(--dash-ink)] opacity-90'
-                      }
-                      title={disabled ? 'Selecione uma empresa' : item.description}
-                    >
-                      {item.icon}
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 lg:hidden">
             {navItems.map((item) => {
               const disabled = Boolean(item.requiresTenant && !selectedTenantId);
               const active = item.id === activeSub;
@@ -936,7 +904,7 @@ export function SuperAdminSettings() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-2 text-[color:var(--dash-muted)]">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] text-[color:var(--dash-muted)]">
                           {item.icon}
                         </div>
                         <div className="font-semibold text-[color:var(--dash-ink)] truncate">{item.label}</div>
@@ -973,21 +941,21 @@ export function SuperAdminSettings() {
         </div>
 
         <div className="space-y-6">
-        {!selectedTenantId && tenants.length > 0 && (
-          <section className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-5 text-sm text-amber-800">
-            Selecione uma empresa para ver dados por contexto.
-          </section>
-        )}
+          {!selectedTenantId && tenants.length > 0 && (
+            <section className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-5 text-sm text-amber-800">
+              Selecione uma empresa para ver dados por contexto.
+            </section>
+          )}
 
-        {tenants.length === 0 && (
-          <section className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-5 text-sm text-amber-800">
-            Ainda não existem empresas. Crie uma para começar.
-          </section>
-        )}
+          {tenants.length === 0 && (
+            <section className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-5 text-sm text-amber-800">
+              Ainda não existem empresas. Crie uma para começar.
+            </section>
+          )}
 
           {activeSub === 'dashboard' && (
             <section className="overflow-hidden rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
-              <div className="h-2 w-full bg-[linear-gradient(90deg,#0f766e,#38bdf8)]" />
+              <div className="h-2 w-full bg-[color:var(--dash-accent)]" />
               <div className="p-5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div>
@@ -1984,7 +1952,7 @@ export function SuperAdminSettings() {
 
           {activeSub === 'support' && (
             <section className="overflow-hidden rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
-              <div className="h-2 w-full bg-[linear-gradient(90deg,#0f766e,#38bdf8)]" />
+              <div className="h-2 w-full bg-[color:var(--dash-accent)]" />
               <div className="p-5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div>
