@@ -137,7 +137,7 @@ export function Header() {
           icon: LayoutDashboard,
           items: [
             {
-              label: 'Base de dados',
+              label: 'Configurações da BD',
               href: '/superadmin/atualizacoes',
               active: location.pathname === '/superadmin/atualizacoes',
               icon: Settings,
@@ -253,7 +253,7 @@ export function Header() {
             </Link>
 
             {/* Theme Selector (Desktop) */}
-            <div className="hidden md:flex items-center">
+            <div className="hidden lg:flex items-center">
               <button
                 type="button"
                 role="switch"
@@ -282,7 +282,7 @@ export function Header() {
             </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden lg:flex items-center gap-1">
               {navSections.map((section) => {
                 const SectionIcon = section.icon;
                 const hasActiveItem = section.items.some((item) => item.active);
@@ -351,7 +351,7 @@ export function Header() {
           <div className="flex items-center gap-3">
             {/* Plant Selector (non-superadmin) */}
             {!isSuperAdmin && plants.length > 0 && (
-              <div className="hidden sm:flex items-center">
+              <div className="hidden lg:flex items-center">
                 <select
                   className="rounded-full border theme-border theme-card px-3 py-2 text-sm font-semibold text-[color:var(--dash-ink)] shadow-sm transition hover:bg-[color:var(--dash-panel)] focus:outline-none focus:ring-2 focus:ring-emerald-200"
                   value={selectedPlant || ''}
@@ -439,7 +439,7 @@ export function Header() {
 
             {/* Socket Connection Status */}
             {!isSuperAdmin && (
-              <div className="hidden sm:flex items-center">
+              <div className="hidden lg:flex items-center">
                 {isConnected ? (
                   <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2">
                     <Wifi className="w-4 h-4 text-emerald-600" />
@@ -471,7 +471,7 @@ export function Header() {
 
             {/* User Menu */}
             <div className="flex items-center gap-3 border-l theme-border pl-3">
-              <div className="relative hidden md:block">
+              <div className="relative hidden lg:block">
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen((v) => !v)}
@@ -528,7 +528,7 @@ export function Header() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden rounded-full p-2 transition-colors hover:bg-[color:var(--dash-surface)]"
+              className="lg:hidden rounded-full p-2 transition-colors hover:bg-[color:var(--dash-surface)]"
             >
               {mobileMenuOpen ? (
                 <X className="w-5 h-5 theme-text" />
@@ -541,7 +541,7 @@ export function Header() {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <nav className="md:hidden border-t theme-border theme-card py-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
+          <nav className="lg:hidden border-t theme-border theme-card py-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
             {/* Mobile Theme Selector */}
             <div className="mb-4 px-4 flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider theme-text-muted">

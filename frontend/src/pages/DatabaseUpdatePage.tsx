@@ -9,6 +9,7 @@ import {
   applyDbCorrections,
   runMigrations,
   seedDemoData,
+  bootstrapDatabase,
 } from '../services/api';
 
 interface DatabaseStatus {
@@ -62,6 +63,15 @@ interface CorrectionsResult {
   patches?: string[];
 }
 
+interface BootstrapResult {
+  tenantId?: string;
+  loginUrl?: string;
+  migrations?: string[];
+  adminUsername?: string;
+  adminEmail?: string;
+  passwordHint?: string;
+}
+
 interface DatabaseUpdatePageProps {
   embedded?: boolean;
 }
@@ -77,6 +87,8 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
   const [success, setSuccess] = useState('');
   const [migrations, setMigrations] = useState<string[]>([]);
   const [patches, setPatches] = useState<string[]>([]);
+  const [bootstrapRunSqlMigrations, setBootstrapRunSqlMigrations] = useState(true);
+  const [bootstrapSeedDemo, setBootstrapSeedDemo] = useState(true);
 
   const sectionButtonClass = (key: DbUpdatesSection) =>
     key === section
@@ -237,19 +249,63 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
     }
   };
 
+  const handleBootstrap = async () => {
+    if (!confirm('Isto vai APAGAR TODOS os dados e recriar a base de dados. Continuar?')) {
+      return;
+    }
+
+    if (!confirm('Confirmação final: deseja mesmo apagar tudo e executar o setup completo?')) {
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const result: BootstrapResult = await bootstrapDatabase({
+        resetMode: 'schema',
+        runSqlMigrations: bootstrapRunSqlMigrations,
+        seedDemo: bootstrapSeedDemo,
+      });
+
+      setMigrations(Array.isArray(result?.migrations) ? result.migrations : []);
+      setPatches([]);
+      setSuccess(
+        [
+          'Setup completo concluído.',
+          result?.migrations?.length
+            ? `Migrações executadas: ${result.migrations.join(', ')}`
+            : 'Migrações executadas: nenhuma',
+          result?.adminUsername ? `Admin: ${result.adminUsername}` : null,
+          result?.adminEmail ? `Email: ${result.adminEmail}` : null,
+          result?.passwordHint ? `Senha: ${result.passwordHint}` : null,
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      );
+
+      await fetchStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao executar setup completo');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchStatus();
   }, []);
 
   const content = (
-    <div className={embedded ? 'space-y-6 font-display' : 'p-6 max-w-5xl mx-auto'}>
+    <div className={'space-y-6 font-display'}>
       <div className="mb-6">
         <h1 className="text-3xl font-bold theme-text flex items-center gap-3">
           <Wrench className="w-8 h-8 text-[color:var(--dash-accent)]" />
-          Atualizar Base de Dados
+          Configurações da Base de Dados
         </h1>
         <p className="theme-text-muted mt-2">
-          Aplicar migracoes e gerir o estado da base de dados
+          Migrações, patches e operações de configuração da base de dados
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -259,7 +315,7 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
             className={sectionButtonClass('updates')}
           >
             <Wrench className="w-4 h-4" />
-            Atualizacoes
+            Configurações
           </button>
           <button
             type="button"
@@ -513,6 +569,49 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
             </p>
           </div>
           <div className="mt-4 grid grid-cols-1 gap-3">
+            <div className="rounded-2xl border border-rose-500/20 bg-[color:var(--dash-surface)] p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold theme-text">Setup completo (recriar do zero)</div>
+                  <div className="mt-1 text-xs theme-text-muted">
+                    Apaga tudo, recria o schema e (opcionalmente) executa migracoes SQL e dados demo.
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleBootstrap}
+                  disabled={loading}
+                  className="btn-secondary inline-flex items-center gap-2 border-rose-500/30 bg-rose-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <Server className="w-4 h-4" />
+                  Executar Setup Completo
+                </button>
+              </div>
+
+              <div className="mt-4 grid gap-3 text-sm theme-text">
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={bootstrapRunSqlMigrations}
+                    onChange={(e) => setBootstrapRunSqlMigrations(e.target.checked)}
+                    disabled={loading}
+                  />
+                  <span>Executar migracoes SQL (scripts/database/migrations)</span>
+                </label>
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={bootstrapSeedDemo}
+                    onChange={(e) => setBootstrapSeedDemo(e.target.checked)}
+                    disabled={loading}
+                  />
+                  <span>Adicionar dados demonstrativos completos</span>
+                </label>
+              </div>
+            </div>
+
             <button
               onClick={handleInitialize}
               disabled={loading}
