@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { MainLayout } from '../layouts/MainLayout';
 import { useAppStore } from '../context/store';
-import { useAuth } from '../hooks/useAuth';
+import { useProfileAccess } from '../hooks/useProfileAccess';
 import { createSparePart, getSuppliers } from '../services/api';
 
 interface SupplierOption {
@@ -21,7 +21,7 @@ interface SupplierOption {
 
 export function SparePartRegisterPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { selectedPlant } = useAppStore();
-  const { user } = useAuth();
+  const access = useProfileAccess();
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -39,11 +39,10 @@ export function SparePartRegisterPage({ embedded = false }: { embedded?: boolean
     supplier_id: '',
   });
 
-  const userRole = user?.role || '';
-  const canViewCosts = useMemo(
-    () => ['gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'].includes(userRole),
-    [userRole],
-  );
+  const canViewCosts = useMemo(() => {
+    if (access.isSuperAdmin) return true;
+    return access.permissions.has('stock:costs:read');
+  }, [access.isSuperAdmin, access.permissions]);
 
   const loadSuppliers = useCallback(async () => {
     if (!selectedPlant || !selectedPlant.trim()) {

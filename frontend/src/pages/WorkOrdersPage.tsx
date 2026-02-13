@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../context/store';
 import { useAuth } from '../hooks/useAuth';
+import { useProfileAccess } from '../hooks/useProfileAccess';
 import {
   createWorkOrder,
   createStockMovement,
@@ -248,6 +249,7 @@ export function WorkOrdersPage() {
 
   const { selectedPlant } = useAppStore();
   const { user } = useAuth();
+  const access = useProfileAccess();
   const diagnosticsEnabled = useMemo(() => {
     if (typeof window === 'undefined') return false;
     const params = new URLSearchParams(window.location.search);
@@ -377,7 +379,31 @@ export function WorkOrdersPage() {
   const userRole = user?.role || '';
   const isAdmin = userRole === 'admin_empresa' || userRole === 'superadmin';
   const isManager = userRole === 'gestor_manutencao';
-  const canManagePreventive = ['superadmin', 'admin_empresa', 'gestor_manutencao', 'supervisor'].includes(userRole);
+
+  const canReadPreventive = useMemo(() => {
+    if (access.isSuperAdmin) return true;
+    return access.permissions.has('schedules:read') || access.permissions.has('schedules:write');
+  }, [access.isSuperAdmin, access.permissions]);
+
+  const canManagePreventive = useMemo(() => {
+    if (access.isSuperAdmin) return true;
+    return access.permissions.has('schedules:write');
+  }, [access.isSuperAdmin, access.permissions]);
+
+  const canStockRead = useMemo(() => {
+    if (access.isSuperAdmin) return true;
+    return access.permissions.has('stock:read') || access.permissions.has('stock:write');
+  }, [access.isSuperAdmin, access.permissions]);
+
+  const canStockWrite = useMemo(() => {
+    if (access.isSuperAdmin) return true;
+    return access.permissions.has('stock:write');
+  }, [access.isSuperAdmin, access.permissions]);
+
+  const canViewStockCosts = useMemo(() => {
+    if (access.isSuperAdmin) return true;
+    return access.permissions.has('stock:costs:read');
+  }, [access.isSuperAdmin, access.permissions]);
 
   useEffect(() => {
     const saved = localStorage.getItem('workOrdersFilters');
@@ -595,6 +621,11 @@ export function WorkOrdersPage() {
   };
 
   const loadPreventiveSchedules = async () => {
+    if (!canReadPreventive) {
+      setPreventiveSchedules([]);
+      setPreventiveError(null);
+      return;
+    }
     if (!selectedPlant || !selectedPlant.trim()) {
       setPreventiveSchedules([]);
       setPreventiveError(null);
@@ -693,6 +724,11 @@ export function WorkOrdersPage() {
   };
 
   const loadSpareParts = async () => {
+    if (!canStockRead) {
+      setSpareParts([]);
+      setPartsError(null);
+      return;
+    }
     if (!selectedPlant || !selectedPlant.trim()) {
       setSpareParts([]);
       setPartsError(null);
@@ -713,6 +749,12 @@ export function WorkOrdersPage() {
 
   const loadOrderMovements = async (workOrderId: string) => {
     if (!selectedPlant) return;
+
+    if (!canStockRead) {
+      setOrderMovements([]);
+      setOrderMovementsError(null);
+      return;
+    }
 
     setOrderMovementsLoading(true);
     setOrderMovementsError(null);
@@ -783,14 +825,22 @@ export function WorkOrdersPage() {
 
   useEffect(() => {
     if (activeSection !== 'preventive') return;
+    if (!canReadPreventive) return;
     loadPreventiveSchedules();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPlant, activeSection, preventiveStatusFilter]);
+  }, [selectedPlant, activeSection, preventiveStatusFilter, canReadPreventive]);
 
   useEffect(() => {
     loadSpareParts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlant]);
+
+  useEffect(() => {
+    if (activeSection !== 'preventive') return;
+    if (canReadPreventive) return;
+    setActiveSection('orders');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSection, canReadPreventive]);
 
   useEffect(() => {
     if (!editingOrder) return;
@@ -1523,6 +1573,10 @@ export function WorkOrdersPage() {
       setUsageMessage('Apenas ordens em execução/pausa podem registar peças usadas.');
       return;
     }
+    if (!canStockWrite) {
+      setUsageMessage('Sem permissão de stock para registar saídas.');
+      return;
+    }
     if (!usageForm.spare_part_id) {
       setUsageMessage('Selecione a peça utilizada.');
       return;
@@ -1549,7 +1603,7 @@ export function WorkOrdersPage() {
         work_order_id: editingOrder.id,
         type: 'saida',
         quantity: Number(usageForm.quantity),
-        unit_cost: usageForm.unit_cost || undefined,
+        unit_cost: canViewStockCosts ? usageForm.unit_cost || undefined : undefined,
         notes,
       });
 
@@ -2159,6 +2213,7 @@ export function WorkOrdersPage() {
   const canShowPartsSection = Boolean(
     editingOrder &&
       editingPermissions?.canOperateOrder &&
+      canStockRead &&
       (editingOrder.status === 'em_execucao' ||
         editingOrder.status === 'em_pausa' ||
         editingOrder.status === 'concluida' ||
@@ -3245,19 +3300,22 @@ export function WorkOrdersPage() {
                             disabled={!editingPermissions?.canOperateOrder}
                           />
                         </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-medium theme-text">
-                            Custo unitario (opcional)
-                          </label>
-                          <input
-                            className="input"
-                            value={usageForm.unit_cost}
-                            onChange={(event) =>
-                              setUsageForm({ ...usageForm, unit_cost: event.target.value })
-                            }
-                            disabled={!editingPermissions?.canOperateOrder}
-                          />
-                        </div>
+
+                        {canViewStockCosts && (
+                          <div>
+                            <label className="mb-1 block text-sm font-medium theme-text">
+                              Custo unitario (opcional)
+                            </label>
+                            <input
+                              className="input"
+                              value={usageForm.unit_cost}
+                              onChange={(event) =>
+                                setUsageForm({ ...usageForm, unit_cost: event.target.value })
+                              }
+                              disabled={!editingPermissions?.canOperateOrder}
+                            />
+                          </div>
+                        )}
                         <div className="md:col-span-2">
                           <label className="mb-1 block text-sm font-medium theme-text">
                             Notas (opcional)
@@ -3325,9 +3383,11 @@ export function WorkOrdersPage() {
                               <th className="px-3 py-2 text-left font-semibold text-[color:var(--dash-muted)]">
                                 Quantidade
                               </th>
-                              <th className="px-3 py-2 text-left font-semibold text-[color:var(--dash-muted)]">
-                                Custo
-                              </th>
+                              {canViewStockCosts && (
+                                <th className="px-3 py-2 text-left font-semibold text-[color:var(--dash-muted)]">
+                                  Custo
+                                </th>
+                              )}
                               <th className="px-3 py-2 text-left font-semibold text-[color:var(--dash-muted)]">
                                 Data
                               </th>
@@ -3344,9 +3404,11 @@ export function WorkOrdersPage() {
                                 <td className="px-3 py-2 theme-text">
                                   {movement.quantity}
                                 </td>
-                                <td className="px-3 py-2 theme-text">
-                                  {movement.unit_cost ? `€ ${movement.unit_cost}` : '-'}
-                                </td>
+                                {canViewStockCosts && (
+                                  <td className="px-3 py-2 theme-text">
+                                    {movement.unit_cost ? `€ ${movement.unit_cost}` : '-'}
+                                  </td>
+                                )}
                                 <td className="px-3 py-2 theme-text-muted">
                                   {formatShortDateTime(movement.created_at)}
                                 </td>
@@ -3853,20 +3915,22 @@ export function WorkOrdersPage() {
                       >
                         Ordens
                       </button>
-                      <button
-                        className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                          activeSection === 'preventive'
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'text-[color:var(--dash-muted)] hover:text-[color:var(--dash-text)]'
-                        }`}
-                        onClick={() => {
-                          setActiveSection('preventive');
-                          setViewMode('kanban');
-                          setPreventiveViewMode('cards');
-                        }}
-                      >
-                        Preventiva
-                      </button>
+                      {canReadPreventive && (
+                        <button
+                          className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                            activeSection === 'preventive'
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'text-[color:var(--dash-muted)] hover:text-[color:var(--dash-text)]'
+                          }`}
+                          onClick={() => {
+                            setActiveSection('preventive');
+                            setViewMode('kanban');
+                            setPreventiveViewMode('cards');
+                          }}
+                        >
+                          Preventiva
+                        </button>
+                      )}
                     </div>
 
                     {activeSection === 'orders' ? (

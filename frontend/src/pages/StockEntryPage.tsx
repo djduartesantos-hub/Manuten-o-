@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowUpCircle, Boxes, CheckCircle2, Loader2, Plus, RefreshCcw, Search, XCircle } from 'lucide-react';
 import { MainLayout } from '../layouts/MainLayout';
 import { useAppStore } from '../context/store';
-import { useAuth } from '../hooks/useAuth';
+import { useProfileAccess } from '../hooks/useProfileAccess';
 import { createStockMovement, getSpareParts } from '../services/api';
 
 interface SparePartOption {
@@ -14,7 +14,7 @@ interface SparePartOption {
 
 export function StockEntryPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { selectedPlant } = useAppStore();
-  const { user } = useAuth();
+  const access = useProfileAccess();
   const [parts, setParts] = useState<SparePartOption[]>([]);
   const [loadingParts, setLoadingParts] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -29,11 +29,10 @@ export function StockEntryPage({ embedded = false }: { embedded?: boolean } = {}
     notes: '',
   });
 
-  const userRole = user?.role || '';
-  const canViewCosts = useMemo(
-    () => ['gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'].includes(userRole),
-    [userRole],
-  );
+  const canViewCosts = useMemo(() => {
+    if (access.isSuperAdmin) return true;
+    return access.permissions.has('stock:costs:read');
+  }, [access.isSuperAdmin, access.permissions]);
 
   const loadParts = useCallback(async () => {
     if (!selectedPlant || !selectedPlant.trim()) {

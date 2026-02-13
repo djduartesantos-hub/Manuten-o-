@@ -10,7 +10,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { useAppStore } from '../context/store';
-import { useAuth } from '../hooks/useAuth';
+import { useProfileAccess } from '../hooks/useProfileAccess';
 import {
   getSpareParts,
   getSparePartsForecast,
@@ -45,7 +45,7 @@ interface StockMovement {
 
 export function SparePartsPage() {
   const { selectedPlant } = useAppStore();
-  const { user } = useAuth();
+  const access = useProfileAccess();
   const [activeView, setActiveView] = useState<'parts' | 'movements' | 'forecast'>('parts');
   const [quickAction, setQuickAction] = useState<'spareparts' | 'stock' | null>(null);
   const [parts, setParts] = useState<SparePart[]>([]);
@@ -93,22 +93,20 @@ export function SparePartsPage() {
   const [partsVisibleCount, setPartsVisibleCount] = useState(20);
   const [movementsVisibleCount, setMovementsVisibleCount] = useState(20);
 
-  const userRole = user?.role || '';
-  const canRegisterParts = useMemo(
-    () => ['gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'].includes(userRole),
-    [userRole],
-  );
-  const canRegisterStock = useMemo(
-    () =>
-      ['tecnico', 'gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'].includes(
-        userRole,
-      ),
-    [userRole],
-  );
-  const canViewCosts = useMemo(
-    () => ['gestor_manutencao', 'supervisor', 'admin_empresa', 'superadmin'].includes(userRole),
-    [userRole],
-  );
+  const canRegisterParts = useMemo(() => {
+    if (access.isSuperAdmin) return true;
+    return access.permissions.has('stock:write');
+  }, [access.isSuperAdmin, access.permissions]);
+
+  const canRegisterStock = useMemo(() => {
+    if (access.isSuperAdmin) return true;
+    return access.permissions.has('stock:write');
+  }, [access.isSuperAdmin, access.permissions]);
+
+  const canViewCosts = useMemo(() => {
+    if (access.isSuperAdmin) return true;
+    return access.permissions.has('stock:costs:read');
+  }, [access.isSuperAdmin, access.permissions]);
 
   const movementSummary = useMemo(() => {
     return movements.reduce(
