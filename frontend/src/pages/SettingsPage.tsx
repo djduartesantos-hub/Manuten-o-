@@ -1067,7 +1067,7 @@ export function SuperAdminSettings() {
                       </div>
                       <button
                         type="button"
-                        className="btn-secondary h-9 px-3"
+                        className="btn-secondary h-9 px-3 inline-flex items-center"
                         onClick={() => void loadDashboard()}
                         disabled={loadingDashboard}
                       >
@@ -1117,7 +1117,7 @@ export function SuperAdminSettings() {
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
-                          className="btn-secondary h-9 px-3"
+                          className="btn-secondary h-9 px-3 inline-flex items-center"
                           onClick={async () => {
                             setError('');
                             try {
@@ -1132,7 +1132,7 @@ export function SuperAdminSettings() {
                         </button>
                         <button
                           type="button"
-                          className="btn-secondary h-9 px-3"
+                          className="btn-secondary h-9 px-3 inline-flex items-center"
                           onClick={async () => {
                             setError('');
                             try {
@@ -1205,7 +1205,7 @@ export function SuperAdminSettings() {
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="btn-secondary h-9 px-3"
+                  className="btn-secondary h-9 px-3 inline-flex items-center"
                   onClick={async () => {
                     setError('');
                     try {
@@ -1220,7 +1220,7 @@ export function SuperAdminSettings() {
                 </button>
                 <button
                   type="button"
-                  className="btn-secondary h-9 px-3"
+                  className="btn-secondary h-9 px-3 inline-flex items-center"
                   onClick={async () => {
                     setError('');
                     try {
@@ -1326,7 +1326,7 @@ export function SuperAdminSettings() {
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      className="btn-secondary h-9 px-3"
+                      className="btn-secondary h-9 px-3 inline-flex items-center"
                       onClick={() => void loadPlantMetrics()}
                       disabled={loadingPlantMetrics}
                     >
@@ -1335,7 +1335,7 @@ export function SuperAdminSettings() {
                     </button>
                     <button
                       type="button"
-                      className="btn-secondary h-9 px-3"
+                      className="btn-secondary h-9 px-3 inline-flex items-center"
                       onClick={async () => {
                         setError('');
                         try {
@@ -1350,7 +1350,7 @@ export function SuperAdminSettings() {
                     </button>
                     <button
                       type="button"
-                      className="btn-secondary h-9 px-3"
+                      className="btn-secondary h-9 px-3 inline-flex items-center"
                       onClick={async () => {
                         setError('');
                         try {
@@ -1700,7 +1700,7 @@ export function SuperAdminSettings() {
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
-                        className="btn-secondary h-9 px-3"
+                        className="btn-secondary h-9 px-3 inline-flex items-center"
                         onClick={async () => {
                           setError('');
                           try {
@@ -1715,7 +1715,7 @@ export function SuperAdminSettings() {
                       </button>
                       <button
                         type="button"
-                        className="btn-secondary h-9 px-3"
+                        className="btn-secondary h-9 px-3 inline-flex items-center"
                         onClick={async () => {
                           setError('');
                           try {
@@ -1782,7 +1782,7 @@ export function SuperAdminSettings() {
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      className="btn-secondary h-9 px-3"
+                      className="btn-secondary h-9 px-3 inline-flex items-center"
                       onClick={async () => {
                         setError('');
                         try {
@@ -1969,7 +1969,7 @@ export function SuperAdminSettings() {
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      className="btn-secondary h-9 px-3"
+                      className="btn-secondary h-9 px-3 inline-flex items-center"
                       onClick={() => loadSupportData()}
                       disabled={loadingSupport}
                     >
@@ -1979,7 +1979,7 @@ export function SuperAdminSettings() {
 
                     <button
                       type="button"
-                      className="btn-secondary h-9 px-3"
+                      className="btn-secondary h-9 px-3 inline-flex items-center"
                       onClick={async () => {
                         setError('');
                         try {
@@ -1996,7 +1996,7 @@ export function SuperAdminSettings() {
 
                     <button
                       type="button"
-                      className="btn-secondary h-9 px-3"
+                      className="btn-secondary h-9 px-3 inline-flex items-center"
                       onClick={async () => {
                         setError('');
                         try {
@@ -2089,7 +2089,7 @@ export function SuperAdminSettings() {
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button
                         type="button"
-                        className="btn-secondary h-9 px-3"
+                        className="btn-secondary h-9 px-3 inline-flex items-center"
                         disabled={auditExporting !== null}
                         onClick={async () => {
                           setAuditExporting('csv');
@@ -2108,7 +2108,7 @@ export function SuperAdminSettings() {
                       </button>
                       <button
                         type="button"
-                        className="btn-secondary h-9 px-3"
+                        className="btn-secondary h-9 px-3 inline-flex items-center"
                         disabled={auditExporting !== null}
                         onClick={async () => {
                           setAuditExporting('json');
@@ -2127,7 +2127,7 @@ export function SuperAdminSettings() {
                       </button>
                       <button
                         type="button"
-                        className="btn-secondary h-9 px-3"
+                        className="btn-secondary h-9 px-3 inline-flex items-center"
                         disabled={auditPurging}
                         onClick={async () => {
                           setAuditPurging(true);
@@ -2187,7 +2187,7 @@ export function SuperAdminSettings() {
                       />
                       <button
                         type="button"
-                        className="btn-secondary h-9 px-3"
+                        className="btn-secondary h-9 px-3 inline-flex items-center"
                         disabled={userSearching}
                         onClick={async () => {
                           const q = String(userSearchQ || '').trim();
@@ -2230,7 +2230,7 @@ export function SuperAdminSettings() {
                             </div>
                             <button
                               type="button"
-                              className="btn-secondary h-9 px-3"
+                              className="btn-secondary h-9 px-3 inline-flex items-center"
                               disabled={resettingUserId === String(u.id)}
                               onClick={async () => {
                                 setResettingUserId(String(u.id));
@@ -2297,7 +2297,7 @@ export function SuperAdminSettings() {
                         <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
-                            className="btn-secondary h-9 px-3"
+                            className="btn-secondary h-9 px-3 inline-flex items-center"
                             disabled={runsExporting !== null}
                             onClick={async () => {
                               setRunsExporting('csv');
@@ -2316,7 +2316,7 @@ export function SuperAdminSettings() {
                           </button>
                           <button
                             type="button"
-                            className="btn-secondary h-9 px-3"
+                            className="btn-secondary h-9 px-3 inline-flex items-center"
                             disabled={runsExporting !== null}
                             onClick={async () => {
                               setRunsExporting('json');
