@@ -1,9 +1,14 @@
 import { db } from '../config/database.js';
-import { users, userPlants, plants } from '../db/schema.js';
-import { and, eq, sql } from 'drizzle-orm';
+import { authLoginEvents, authSessions, users, userPlants, plants } from '../db/schema.js';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { comparePasswords, hashPassword } from '../auth/jwt.js';
+import crypto from 'node:crypto';
 
 export class AuthService {
+  private static hashToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
   private static normalizeRole(role: string) {
     const roleAliases: Record<string, string> = {
       admin: 'admin_empresa',
@@ -52,6 +57,157 @@ export class AuthService {
       where: (fields: any) => eq(fields.id, userId),
     });
     return user;
+  }
+
+  static async recordLoginEvent(input: {
+    tenantId: string;
+    username: string;
+    success: boolean;
+    userId?: string | null;
+    ipAddress?: string | null;
+    userAgent?: string | null;
+    error?: string | null;
+  }): Promise<void> {
+    try {
+      await db.insert(authLoginEvents).values({
+        tenant_id: input.tenantId,
+        user_id: input.userId ?? null,
+        username: input.username,
+        success: input.success,
+        ip_address: input.ipAddress ?? null,
+        user_agent: input.userAgent ?? null,
+        error: input.error ?? null,
+      });
+    } catch {
+      // Fail-open for older DBs during bootstrap (e.g. before Drizzle push)
+    }
+  }
+
+  static async createSession(input: {
+    sessionId: string;
+    tenantId: string;
+    userId: string;
+    refreshToken?: string | null;
+    ipAddress?: string | null;
+    userAgent?: string | null;
+  }): Promise<void> {
+    try {
+      await db.insert(authSessions).values({
+        id: input.sessionId,
+        tenant_id: input.tenantId,
+        user_id: input.userId,
+        refresh_token_hash: input.refreshToken ? this.hashToken(input.refreshToken) : null,
+        ip_address: input.ipAddress ?? null,
+        user_agent: input.userAgent ?? null,
+        last_seen_at: new Date(),
+      });
+    } catch {
+      // Fail-open for older DBs during bootstrap (e.g. before Drizzle push)
+    }
+  }
+
+  static async rotateSessionRefreshToken(sessionId: string, refreshToken: string): Promise<void> {
+    try {
+      await db
+        .update(authSessions)
+        .set({
+          refresh_token_hash: this.hashToken(refreshToken),
+          last_seen_at: new Date(),
+        })
+        .where(eq(authSessions.id, sessionId));
+    } catch {
+      // ignore (bootstrap)
+    }
+  }
+
+  static async isSessionActive(sessionId: string, userId?: string): Promise<boolean> {
+    if (!sessionId || sessionId.trim() === '') return false;
+
+    const conditions: any[] = [eq(authSessions.id, sessionId), isNull(authSessions.revoked_at)];
+    if (userId) {
+      conditions.push(eq(authSessions.user_id, userId));
+    }
+
+    try {
+      const rows = await db
+        .select({ id: authSessions.id })
+        .from(authSessions)
+        .where(and(...conditions))
+        .limit(1);
+
+      return rows.length > 0;
+    } catch {
+      // Fail-open to avoid locking out traffic during bootstrap.
+      return true;
+    }
+  }
+
+  static async isRefreshTokenValidForSession(sessionId: string, refreshToken: string): Promise<boolean> {
+    if (!sessionId || sessionId.trim() === '') return false;
+    if (!refreshToken || refreshToken.trim() === '') return false;
+
+    const tokenHash = this.hashToken(refreshToken);
+
+    try {
+      const rows = await db
+        .select({ id: authSessions.id })
+        .from(authSessions)
+        .where(
+          and(
+            eq(authSessions.id, sessionId),
+            isNull(authSessions.revoked_at),
+            eq(authSessions.refresh_token_hash, tokenHash),
+          ),
+        )
+        .limit(1);
+
+      return rows.length > 0;
+    } catch {
+      // Fail-open during bootstrap.
+      return true;
+    }
+  }
+
+  static async revokeSession(sessionId: string, revokedByUserId?: string | null): Promise<boolean> {
+    if (!sessionId || sessionId.trim() === '') return false;
+
+    try {
+      const updated = await db
+        .update(authSessions)
+        .set({
+          revoked_at: new Date(),
+          revoked_by: revokedByUserId ?? null,
+        })
+        .where(and(eq(authSessions.id, sessionId), isNull(authSessions.revoked_at)))
+        .returning({ id: authSessions.id });
+
+      return updated.length > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  static async revokeAllSessionsForUser(tenantId: string, userId: string, revokedByUserId?: string | null): Promise<number> {
+    try {
+      const updated = await db
+        .update(authSessions)
+        .set({
+          revoked_at: new Date(),
+          revoked_by: revokedByUserId ?? null,
+        })
+        .where(
+          and(
+            eq(authSessions.tenant_id, tenantId),
+            eq(authSessions.user_id, userId),
+            isNull(authSessions.revoked_at),
+          ),
+        )
+        .returning({ id: authSessions.id });
+
+      return updated.length;
+    } catch {
+      return 0;
+    }
   }
 
 

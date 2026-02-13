@@ -29,6 +29,7 @@ export interface JWTPayload {
   email?: string;
   role: UserRole;
   plantIds?: string[];
+  sessionId?: string;
 }
 
 export interface AuthenticatedRequest extends Express.Request {
@@ -36,6 +37,7 @@ export interface AuthenticatedRequest extends Express.Request {
   tenantId?: string;
   tenantSlug?: string;
   plantId?: string;
+  headers?: any;
   ip?: string;
   path?: string;
   body?: any;

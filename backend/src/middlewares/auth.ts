@@ -20,11 +20,11 @@ const normalizeRole = (role?: string | UserRole): UserRole | undefined => {
   return allowedRoles.includes(mapped as UserRole) ? (mapped as UserRole) : undefined;
 };
 
-export function authMiddleware(
+export async function authMiddleware(
   req: AuthenticatedRequest & { headers?: any },
   res: Response,
   next: NextFunction,
-): void {
+): Promise<void> {
   try {
     const token = extractTokenFromHeader(req.headers?.authorization);
 
@@ -72,6 +72,19 @@ export function authMiddleware(
         res.status(403).json({
           success: false,
           error: 'Access denied to this tenant',
+        });
+        return;
+      }
+    }
+
+    // Session enforcement (best-effort for backward compatibility)
+    // New tokens include sessionId; if present and revoked, block immediately.
+    if (payloadAny?.sessionId) {
+      const active = await AuthService.isSessionActive(String(payloadAny.sessionId), String(payloadAny.userId));
+      if (!active) {
+        res.status(401).json({
+          success: false,
+          error: 'Session revoked',
         });
         return;
       }

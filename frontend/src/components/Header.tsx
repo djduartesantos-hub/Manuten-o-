@@ -25,7 +25,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../context/store';
 import { useSocket } from '../context/SocketContext';
 import { useTheme } from '../context/ThemeContext';
-import { getSuperadminDbStatus, getSuperadminTenants } from '../services/api';
+import { getSuperadminDbStatus, getSuperadminTenants, logout as apiLogout } from '../services/api';
 import { useProfileAccess } from '../hooks/useProfileAccess';
 import { canAccessPathByPermissions } from '../utils/routePermissions';
 
@@ -237,9 +237,15 @@ export function Header() {
   }))
   .filter((section) => section.items.length > 0);
 
-  const handleLogout = () => {
-    logout();
-    window.location.href = '/login';
+  const handleLogout = async () => {
+    try {
+      await apiLogout();
+    } catch {
+      // ignore - local logout still clears session client-side
+    } finally {
+      logout();
+      window.location.href = '/login';
+    }
   };
 
   React.useEffect(() => {

@@ -123,6 +123,49 @@ export const users = pgTable(
   }),
 );
 
+// Auth Sessions (DB-backed) + Login Events
+export const authSessions = pgTable(
+  'auth_sessions',
+  {
+    id: uuid('id').primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    user_id: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    refresh_token_hash: text('refresh_token_hash'),
+    ip_address: text('ip_address'),
+    user_agent: text('user_agent'),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    last_seen_at: timestamp('last_seen_at', { withTimezone: true }).defaultNow().notNull(),
+    revoked_at: timestamp('revoked_at', { withTimezone: true }),
+    revoked_by: uuid('revoked_by'),
+  },
+  (table) => ({
+    userIdx: index('auth_sessions_user_id_idx').on(table.user_id),
+    tenantUserIdx: index('auth_sessions_tenant_user_id_idx').on(table.tenant_id, table.user_id),
+    revokedIdx: index('auth_sessions_revoked_at_idx').on(table.revoked_at),
+  }),
+);
+
+export const authLoginEvents = pgTable(
+  'auth_login_events',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    user_id: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    username: text('username').notNull(),
+    success: boolean('success').notNull().default(false),
+    ip_address: text('ip_address'),
+    user_agent: text('user_agent'),
+    error: text('error'),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantCreatedIdx: index('auth_login_events_tenant_created_at_idx').on(table.tenant_id, table.created_at),
+    userIdx: index('auth_login_events_user_id_idx').on(table.user_id),
+  }),
+);
+
 // User Plants (N:N relationship)
 export const userPlants = pgTable(
   'user_plants',

@@ -53,7 +53,7 @@ flowchart TD
 - [x] RBAC base (roles/permissões) + normalização/repair — ver backend/src/services/rbac.service.ts, backend/src/controllers/setup.controller.ts, backend/src/routes/setup.routes.ts, frontend/src/pages/SettingsPage.tsx
 - [x] Hardening básico (helmet/rate limit) + OpenAPI básico — ver backend/src/app.ts, backend/src/routes/docs.routes.ts
 - [ ] Auditoria completa com diff por alteração (quem/antes/depois)
-- [ ] Gestão de sessões (revogar sessões ativas, logs de login falhado)
+- [x] Gestão de sessões (revogar sessões ativas, logs de login falhado) — ver backend/src/controllers/auth.controller.ts, backend/src/middlewares/auth.ts (2026-02-13)
 - [ ] Políticas de segurança (password policy/lockout) → depende de “gestão de sessões”
 - [ ] MFA (TOTP) por tenant
 
@@ -93,6 +93,7 @@ flowchart TD
 ### 6) Stock & Compras
 
 - [x] Stock/movimentos base — ver backend/src/routes/sparepart.routes.ts, backend/src/services/sparepart.service.ts, frontend/src/pages/SparePartsPage.tsx
+- [x] Custos de stock ocultos por permissão (`stock:costs:read`) — ver frontend/src/pages/SparePartsPage.tsx, frontend/src/pages/StockEntryPage.tsx, frontend/src/pages/SparePartRegisterPage.tsx, frontend/src/pages/WorkOrdersPage.tsx (2026-02-13, commit ef083ef)
 - [x] Reservas por ordem + kits — ver backend/src/routes/maintenancekit.routes.ts, frontend/src/pages/WorkOrdersPage.tsx, frontend/src/pages/MaintenanceKitsPage.tsx
 - [ ] Inventário avançado (lotes/localização/mínimos/reposição automática)
 - [ ] Compras & requisições (pedido interno → fornecedor → receção)

@@ -770,6 +770,12 @@ export async function login(
   );
 }
 
+export async function logout(): Promise<{ message?: string } | void> {
+  return apiCall('/auth/logout', {
+    method: 'POST',
+  });
+}
+
 export type UserProfile = {
   id: string;
   username: string;
