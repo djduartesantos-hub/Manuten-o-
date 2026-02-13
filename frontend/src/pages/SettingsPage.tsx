@@ -423,7 +423,16 @@ export function SuperAdminSettings() {
   const navigate = useNavigate();
   const { selectedPlant, plants, setPlants, setSelectedPlant } = useAppStore();
   const [tenants, setTenants] = React.useState<
-    Array<{ id: string; name: string; slug: string; is_active: boolean }>
+    Array<{
+      id: string;
+      name: string;
+      slug: string;
+      is_active: boolean;
+      is_read_only?: boolean;
+      read_only_reason?: string | null;
+      read_only_at?: any;
+      read_only_by?: string | null;
+    }>
   >([]);
   const [tenantMetrics, setTenantMetrics] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -886,6 +895,18 @@ export function SuperAdminSettings() {
       await loadTenants();
     } catch (err: any) {
       setError(err?.message || 'Falha ao atualizar empresa');
+    }
+  };
+
+  const toggleTenantReadOnly = async (tenantId: string, nextReadOnly: boolean) => {
+    setError('');
+    setSuccess('');
+    try {
+      await updateSuperadminTenant(tenantId, { is_read_only: nextReadOnly });
+      setSuccess(nextReadOnly ? 'Empresa em modo read-only.' : 'Modo read-only removido.');
+      await loadTenants();
+    } catch (err: any) {
+      setError(err?.message || 'Falha ao atualizar modo read-only');
     }
   };
 
@@ -1390,7 +1411,14 @@ export function SuperAdminSettings() {
                     className="flex flex-col gap-3 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-4 py-3 md:flex-row md:items-center md:justify-between"
                   >
                     <div className="min-w-0">
-                      <div className="font-semibold text-[color:var(--dash-ink)] truncate">{t.name}</div>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="font-semibold text-[color:var(--dash-ink)] truncate">{t.name}</div>
+                        {t.is_read_only ? (
+                          <div className="shrink-0 rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-800">
+                            Read-only
+                          </div>
+                        ) : null}
+                      </div>
                       <div className="text-xs text-[color:var(--dash-muted)] truncate">{t.slug}</div>
                       {'users' in t || 'plants' in t || 'last_login' in t ? (
                         <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
@@ -1418,6 +1446,14 @@ export function SuperAdminSettings() {
                         onClick={() => void toggleTenantActive(t.id, !t.is_active)}
                       >
                         {t.is_active ? 'Desativar' : 'Ativar'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={() => void toggleTenantReadOnly(t.id, !t.is_read_only)}
+                        title="Bloqueia operações de escrita (POST/PUT/PATCH/DELETE) para utilizadores não-superadmin"
+                      >
+                        {t.is_read_only ? 'Read-only: ON' : 'Read-only: OFF'}
                       </button>
                     </div>
                   </div>

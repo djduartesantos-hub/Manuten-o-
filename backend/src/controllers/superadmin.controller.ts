@@ -37,6 +37,10 @@ export async function listTenants(_req: AuthenticatedRequest, res: Response) {
       name: String(t.name || ''),
       slug: String(t.slug || ''),
       is_active: Boolean(t.is_active),
+      is_read_only: Boolean((t as any).is_read_only),
+      read_only_reason: (t as any).read_only_reason ?? null,
+      read_only_at: (t as any).read_only_at ?? null,
+      read_only_by: (t as any).read_only_by ? String((t as any).read_only_by) : null,
       created_at: t.created_at,
       updated_at: t.updated_at,
     }));
@@ -114,7 +118,7 @@ export async function updateTenant(req: AuthenticatedRequest, res: Response) {
       return res.status(404).json({ success: false, error: 'Tenant not found' });
     }
 
-    const { name, slug, description, is_active } = req.body || {};
+    const { name, slug, description, is_active, is_read_only, read_only_reason } = req.body || {};
 
     const patch: any = { updated_at: new Date() };
 
@@ -149,6 +153,20 @@ export async function updateTenant(req: AuthenticatedRequest, res: Response) {
       patch.is_active = Boolean(is_active);
     }
 
+    if (is_read_only !== undefined) {
+      const next = Boolean(is_read_only);
+      patch.is_read_only = next;
+      if (next) {
+        patch.read_only_at = new Date();
+        patch.read_only_by = req.user?.userId ? String(req.user.userId) : null;
+        patch.read_only_reason = read_only_reason === undefined ? (before as any)?.read_only_reason ?? null : (read_only_reason === null ? null : String(read_only_reason));
+      } else {
+        patch.read_only_at = null;
+        patch.read_only_by = null;
+        patch.read_only_reason = null;
+      }
+    }
+
     const [updated] = await db
       .update(tenants)
       .set(patch)
@@ -167,12 +185,16 @@ export async function updateTenant(req: AuthenticatedRequest, res: Response) {
             slug: String((before as any)?.slug ?? ''),
             description: (before as any)?.description ?? null,
             is_active: Boolean((before as any)?.is_active),
+            is_read_only: Boolean((before as any)?.is_read_only),
+            read_only_reason: (before as any)?.read_only_reason ?? null,
           },
           after: {
             name: String((updated as any)?.name ?? ''),
             slug: String((updated as any)?.slug ?? ''),
             description: (updated as any)?.description ?? null,
             is_active: Boolean((updated as any)?.is_active),
+            is_read_only: Boolean((updated as any)?.is_read_only),
+            read_only_reason: (updated as any)?.read_only_reason ?? null,
           },
         },
       });
@@ -276,6 +298,9 @@ export async function listTenantMetrics(_req: AuthenticatedRequest, res: Respons
         t.slug,
         t.subscription_plan,
         t.is_active,
+        COALESCE(t.is_read_only, false) AS is_read_only,
+        t.read_only_reason,
+        t.read_only_at,
         t.created_at,
         t.updated_at,
         COALESCE(u.user_count, 0)::int AS users,
@@ -301,6 +326,9 @@ export async function listTenantMetrics(_req: AuthenticatedRequest, res: Respons
       slug: String(r.slug || ''),
       subscription_plan: r.subscription_plan === null || r.subscription_plan === undefined ? null : String(r.subscription_plan),
       is_active: Boolean(r.is_active),
+      is_read_only: Boolean(r.is_read_only),
+      read_only_reason: r.read_only_reason ?? null,
+      read_only_at: r.read_only_at ?? null,
       created_at: r.created_at,
       updated_at: r.updated_at,
       users: Number(r.users ?? 0),
@@ -324,6 +352,9 @@ export async function exportTenantMetrics(req: AuthenticatedRequest, res: Respon
         t.slug,
         t.subscription_plan,
         t.is_active,
+        COALESCE(t.is_read_only, false) AS is_read_only,
+        t.read_only_reason,
+        t.read_only_at,
         t.created_at,
         t.updated_at,
         COALESCE(u.user_count, 0)::int AS users,
@@ -349,6 +380,9 @@ export async function exportTenantMetrics(req: AuthenticatedRequest, res: Respon
       slug: String(r.slug || ''),
       subscription_plan: r.subscription_plan === null || r.subscription_plan === undefined ? null : String(r.subscription_plan),
       is_active: Boolean(r.is_active),
+      is_read_only: Boolean(r.is_read_only),
+      read_only_reason: r.read_only_reason ?? null,
+      read_only_at: r.read_only_at ?? null,
       created_at: r.created_at,
       updated_at: r.updated_at,
       users: Number(r.users ?? 0),
@@ -360,7 +394,21 @@ export async function exportTenantMetrics(req: AuthenticatedRequest, res: Respon
       return res.json({ success: true, data });
     }
 
-    const headers = ['id', 'name', 'slug', 'subscription_plan', 'is_active', 'users', 'plants', 'last_login', 'created_at', 'updated_at'];
+    const headers = [
+      'id',
+      'name',
+      'slug',
+      'subscription_plan',
+      'is_active',
+      'is_read_only',
+      'read_only_reason',
+      'read_only_at',
+      'users',
+      'plants',
+      'last_login',
+      'created_at',
+      'updated_at',
+    ];
     const csv = [
       headers.join(','),
       ...data.map((r: any) =>
@@ -370,6 +418,9 @@ export async function exportTenantMetrics(req: AuthenticatedRequest, res: Respon
           r.slug,
           r.subscription_plan,
           r.is_active,
+          r.is_read_only,
+          r.read_only_reason,
+          r.read_only_at,
           r.users,
           r.plants,
           r.last_login,

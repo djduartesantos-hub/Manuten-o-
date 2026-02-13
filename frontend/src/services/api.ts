@@ -305,7 +305,18 @@ async function triggerDownloadPdf(data: any, filename: string, title = 'Export')
 // ============================================================================
 
 export async function getSuperadminTenants(): Promise<
-  Array<{ id: string; name: string; slug: string; is_active: boolean; created_at?: any; updated_at?: any }>
+  Array<{
+    id: string;
+    name: string;
+    slug: string;
+    is_active: boolean;
+    is_read_only?: boolean;
+    read_only_reason?: string | null;
+    read_only_at?: any;
+    read_only_by?: string | null;
+    created_at?: any;
+    updated_at?: any;
+  }>
 > {
   return apiCall('/superadmin/tenants');
 }
@@ -327,6 +338,8 @@ export async function updateSuperadminTenant(tenantId: string, data: {
   slug?: string;
   description?: string | null;
   is_active?: boolean;
+  is_read_only?: boolean;
+  read_only_reason?: string | null;
 }) {
   return apiCall(`/superadmin/tenants/${tenantId}`, {
     method: 'PATCH',

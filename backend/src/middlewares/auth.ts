@@ -3,6 +3,7 @@ import { extractTokenFromHeader, verifyToken } from '../auth/jwt.js';
 import { AuthService } from '../services/auth.service.js';
 import { AuthenticatedRequest, UserRole } from '../types/index.js';
 import { logger } from '../config/logger.js';
+import { db } from '../config/database.js';
 
 const roleAliases: Record<string, UserRole> = {
   admin: UserRole.AdminEmpresa,
@@ -91,6 +92,31 @@ export async function authMiddleware(
     }
 
     req.user = payloadAny;
+
+    // Tenant read-only (quarantine) enforcement for write requests.
+    // - Applies only to non-superadmin tokens
+    // - Best-effort: if DB/schema isn't ready, fail-open to avoid lockouts
+    const tenantIdToCheck = String(req.tenantId || payloadAny.tenantId || '');
+    const method = String((req as any)?.method || '').toUpperCase();
+    const isWrite = method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS';
+    if (isWrite && tenantIdToCheck && String(payloadAny.role) !== UserRole.SuperAdmin) {
+      try {
+        const t = await db.query.tenants.findFirst({
+          where: (fields: any, ops: any) => ops.eq(fields.id, tenantIdToCheck),
+        });
+        if (t && Boolean((t as any).is_read_only)) {
+          res.status(423).json({
+            success: false,
+            error: 'Tenant is in read-only mode',
+            code: 'TENANT_READ_ONLY',
+          });
+          return;
+        }
+      } catch {
+        // ignore (fail-open)
+      }
+    }
+
     req.tenantId = req.tenantId || payloadAny.tenantId;
     next();
   } catch (error) {
