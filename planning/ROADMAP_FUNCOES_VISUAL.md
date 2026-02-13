@@ -64,7 +64,7 @@ flowchart TD
 - [x] Diagnósticos + exportações (bundle, integridade, drift, audit, exports) — ver backend/src/routes/superadmin.routes.ts, backend/src/controllers/superadmin.controller.ts
 - [x] Ferramenta “Reparar RBAC” (patch/seed) — ver backend/src/controllers/setup.controller.ts, backend/src/routes/setup.routes.ts, frontend/src/pages/SettingsPage.tsx
 - [x] Health score por tenant + alertas (UI + export + bundle) — ver backend/src/controllers/superadmin.controller.ts, backend/src/routes/superadmin.routes.ts, frontend/src/pages/SettingsPage.tsx (2026-02-13, commit 0c65f83)
-- [ ] Quarantine/read-only por tenant
+- [x] Quarantine/read-only por tenant (bloqueio de writes + toggle SuperAdmin) (2026-02-13, commit 3b9a844)
 - [ ] Sistema de Tickets (MVP) → ver [planning/ROADMAP_SUPERADMIN_TICKETS.md](planning/ROADMAP_SUPERADMIN_TICKETS.md)
 
 ### 3) Work Orders (OT) — “profissional”
