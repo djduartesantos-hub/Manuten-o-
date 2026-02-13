@@ -390,6 +390,77 @@ export function SuperAdminSettings() {
   const [rbacMatrix, setRbacMatrix] = React.useState<{ roles: any[]; permissions: any[]; byRole: Record<string, Set<string>> } | null>(null);
   const [loadingRbacMatrix, setLoadingRbacMatrix] = React.useState(false);
 
+  type SuperAdminNav = 'dashboard' | 'tenants' | 'plants' | 'users' | 'db' | 'support';
+
+  const superadminSub = React.useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const raw = String(params.get('sub') || '').trim().toLowerCase();
+    const allowed: SuperAdminNav[] = ['dashboard', 'tenants', 'plants', 'users', 'db', 'support'];
+    return (allowed as string[]).includes(raw) ? (raw as SuperAdminNav) : 'dashboard';
+  }, [location.search]);
+
+  const [activeSub, setActiveSub] = React.useState<SuperAdminNav>(superadminSub);
+
+  React.useEffect(() => {
+    setActiveSub(superadminSub);
+  }, [superadminSub]);
+
+  const openSub = (next: SuperAdminNav) => {
+    setActiveSub(next);
+    const params = new URLSearchParams(location.search);
+    if (location.pathname === '/settings') params.set('panel', 'superadmin');
+    params.set('sub', next);
+    navigate(`${location.pathname}?${params.toString()}`, { replace: true });
+  };
+
+  const navItems: Array<{
+    id: SuperAdminNav;
+    label: string;
+    icon: React.ReactNode;
+    requiresTenant?: boolean;
+    description: string;
+  }> = [
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: <Shield className="h-4 w-4" />,
+      description: 'Visão geral e exports do sistema',
+    },
+    {
+      id: 'tenants',
+      label: 'Empresas',
+      icon: <Building2 className="h-4 w-4" />,
+      description: 'Criar e gerir empresas',
+    },
+    {
+      id: 'plants',
+      label: 'Fábricas',
+      icon: <Wrench className="h-4 w-4" />,
+      requiresTenant: true,
+      description: 'Gestão e métricas por fábrica',
+    },
+    {
+      id: 'users',
+      label: 'Utilizadores & RBAC',
+      icon: <Users className="h-4 w-4" />,
+      requiresTenant: true,
+      description: 'Permissões, roles e utilizadores',
+    },
+    {
+      id: 'db',
+      label: 'Base de Dados',
+      icon: <Database className="h-4 w-4" />,
+      requiresTenant: true,
+      description: 'Setup/atualizações e reparação',
+    },
+    {
+      id: 'support',
+      label: 'Suporte',
+      icon: <LifeBuoy className="h-4 w-4" />,
+      description: 'Diagnósticos e auditoria',
+    },
+  ];
+
   const slugifyTenantSlug = (value: string) => {
     const raw = String(value || '').trim().toLowerCase();
     if (!raw) return '';
@@ -729,54 +800,179 @@ export function SuperAdminSettings() {
   };
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-5">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-              Assistente
-            </p>
-            <h4 className="mt-2 text-lg font-semibold text-[color:var(--dash-ink)]">
-              Instalação & Configuração
-            </h4>
-            <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
-              Siga os passos para configurar e gerir o projeto por empresa.
-            </p>
+    <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+      <aside className="hidden lg:block">
+        <div className="sticky top-20 space-y-4">
+          <div className="overflow-hidden rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
+            <div className="h-2 w-full bg-[linear-gradient(90deg,#0f766e,#38bdf8)]" />
+            <div className="p-4">
+              <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                Super Admin
+              </div>
+              <div className="mt-2 text-base font-semibold text-[color:var(--dash-ink)]">
+                Centro de controlo
+              </div>
+              <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                Empresa ativa: <span className="font-semibold text-[color:var(--dash-ink)]">{selectedTenant ? selectedTenant.name : '—'}</span>
+                {selectedTenant ? <span className="ml-1">({selectedTenant.slug})</span> : null}
+              </div>
+            </div>
           </div>
 
-          <div className="flex flex-col items-start gap-2">
-            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
-              Contexto
+          <nav className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-2">
+            <div className="space-y-1">
+              {navItems.map((item) => {
+                const disabled = Boolean(item.requiresTenant && !selectedTenantId);
+                const active = item.id === activeSub;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => openSub(item.id)}
+                    className={
+                      active
+                        ? 'w-full rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-3 py-3 text-left transition'
+                        : 'w-full rounded-2xl border border-transparent px-3 py-3 text-left transition hover:border-[color:var(--dash-border)] hover:bg-[color:var(--dash-panel)]'
+                    }
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-2 text-[color:var(--dash-muted)]">
+                        {item.icon}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className="font-semibold text-[color:var(--dash-ink)] truncate">{item.label}</div>
+                          {disabled ? (
+                            <div className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-800">
+                              Precisa empresa
+                            </div>
+                          ) : null}
+                        </div>
+                        <div className="mt-0.5 text-xs text-[color:var(--dash-muted)] truncate">{item.description}</div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-            <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-4 py-3 text-sm text-[color:var(--dash-muted)]">
-              Empresa ativa:{' '}
-              <span className="font-semibold text-[color:var(--dash-ink)]">
-                {selectedTenant ? selectedTenant.name : '—'}
-              </span>
-              {selectedTenant ? (
-                <span className="ml-2 text-xs">({selectedTenant.slug})</span>
-              ) : null}
-            </div>
-          </div>
+          </nav>
         </div>
-
-        {(error || success) && (
-          <div className="mt-4 space-y-2">
-            {error && (
-              <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
-            {success && (
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-800">
-                {success}
-              </div>
-            )}
-          </div>
-        )}
-      </section>
+      </aside>
 
       <div className="space-y-6">
+        <div className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                Instalação & Configuração
+              </p>
+              <h4 className="mt-2 text-lg font-semibold text-[color:var(--dash-ink)]">
+                SuperAdministrador
+              </h4>
+              <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                Navegue por categorias, execute diagnósticos e aplique reparações por empresa.
+              </p>
+            </div>
+
+            <div className="flex flex-col items-start gap-2">
+              <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                Contexto
+              </div>
+              <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-4 py-3 text-sm text-[color:var(--dash-muted)]">
+                Empresa ativa:{' '}
+                <span className="font-semibold text-[color:var(--dash-ink)]">
+                  {selectedTenant ? selectedTenant.name : '—'}
+                </span>
+                {selectedTenant ? <span className="ml-2 text-xs">({selectedTenant.slug})</span> : null}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 lg:hidden">
+            <div className="-mx-1 overflow-x-auto pb-1">
+              <div className="flex gap-2 px-1">
+                {navItems.map((item) => {
+                  const disabled = Boolean(item.requiresTenant && !selectedTenantId);
+                  const active = item.id === activeSub;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => openSub(item.id)}
+                      className={
+                        active
+                          ? 'inline-flex items-center gap-2 whitespace-nowrap rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-3 py-2 text-sm font-semibold text-[color:var(--dash-ink)]'
+                          : 'inline-flex items-center gap-2 whitespace-nowrap rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 py-2 text-sm font-semibold text-[color:var(--dash-ink)] opacity-90'
+                      }
+                      title={disabled ? 'Selecione uma empresa' : item.description}
+                    >
+                      {item.icon}
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {navItems.map((item) => {
+              const disabled = Boolean(item.requiresTenant && !selectedTenantId);
+              const active = item.id === activeSub;
+              return (
+                <button
+                  key={`card-${item.id}`}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => openSub(item.id)}
+                  className={
+                    active
+                      ? 'rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 text-left transition'
+                      : 'rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4 text-left transition hover:bg-[color:var(--dash-panel)]'
+                  }
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-2 text-[color:var(--dash-muted)]">
+                          {item.icon}
+                        </div>
+                        <div className="font-semibold text-[color:var(--dash-ink)] truncate">{item.label}</div>
+                      </div>
+                      <div className="mt-2 text-sm text-[color:var(--dash-muted)]">
+                        {item.description}
+                      </div>
+                    </div>
+                    {disabled ? (
+                      <div className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-800">
+                        Selecionar empresa
+                      </div>
+                    ) : null}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {(error || success) && (
+            <div className="mt-4 space-y-2">
+              {error && (
+                <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+              {success && (
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-800">
+                  {success}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-6">
         {!selectedTenantId && tenants.length > 0 && (
           <section className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-5 text-sm text-amber-800">
             Selecione uma empresa para ver dados por contexto.
@@ -789,7 +985,7 @@ export function SuperAdminSettings() {
           </section>
         )}
 
-          {true && (
+          {activeSub === 'dashboard' && (
             <section className="overflow-hidden rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
               <div className="h-2 w-full bg-[linear-gradient(90deg,#0f766e,#38bdf8)]" />
               <div className="p-5">
@@ -1031,7 +1227,7 @@ export function SuperAdminSettings() {
             </section>
           )}
 
-          {true && (
+          {activeSub === 'tenants' && (
             <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
               <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Empresas</h4>
               <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
@@ -1142,7 +1338,7 @@ export function SuperAdminSettings() {
             </section>
           )}
 
-          {selectedTenantId && (
+          {activeSub === 'plants' && selectedTenantId && (
             <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
               <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Fábricas</h4>
               <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
@@ -1233,49 +1429,72 @@ export function SuperAdminSettings() {
             </section>
           )}
 
-          {selectedTenantId && (
+          {activeSub === 'users' && selectedTenantId && (
             <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
               <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Utilizadores & RBAC</h4>
               <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
                 Permissões, roles e utilizadores para a empresa selecionada.
               </p>
 
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <button
                   type="button"
                   onClick={() => setUsersSection('diagnostics')}
                   className={
                     usersSection === 'diagnostics'
-                      ? 'btn-primary inline-flex items-center gap-2'
-                      : 'btn-secondary inline-flex items-center gap-2'
+                      ? 'rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4 text-left transition'
+                      : 'rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 text-left transition hover:bg-[color:var(--dash-surface)]'
                   }
                 >
-                  <RefreshCw className="h-4 w-4" />
-                  Diagnósticos
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-[color:var(--dash-ink)]">Diagnósticos</div>
+                      <div className="mt-1 text-xs text-[color:var(--dash-muted)]">Anomalias e matriz (read-only)</div>
+                    </div>
+                    <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-2 text-[color:var(--dash-muted)]">
+                      <RefreshCw className="h-4 w-4" />
+                    </div>
+                  </div>
                 </button>
+
                 <button
                   type="button"
                   onClick={() => setUsersSection('rolePermissions')}
                   className={
                     usersSection === 'rolePermissions'
-                      ? 'btn-primary inline-flex items-center gap-2'
-                      : 'btn-secondary inline-flex items-center gap-2'
+                      ? 'rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4 text-left transition'
+                      : 'rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 text-left transition hover:bg-[color:var(--dash-surface)]'
                   }
                 >
-                  <Shield className="h-4 w-4" />
-                  Permissões dos roles
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-[color:var(--dash-ink)]">Permissões dos roles</div>
+                      <div className="mt-1 text-xs text-[color:var(--dash-muted)]">Configurar acesso por role</div>
+                    </div>
+                    <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-2 text-[color:var(--dash-muted)]">
+                      <Shield className="h-4 w-4" />
+                    </div>
+                  </div>
                 </button>
+
                 <button
                   type="button"
                   onClick={() => setUsersSection('users')}
                   className={
                     usersSection === 'users'
-                      ? 'btn-primary inline-flex items-center gap-2'
-                      : 'btn-secondary inline-flex items-center gap-2'
+                      ? 'rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4 text-left transition'
+                      : 'rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 text-left transition hover:bg-[color:var(--dash-surface)]'
                   }
                 >
-                  <Users className="h-4 w-4" />
-                  Utilizadores
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-[color:var(--dash-ink)]">Utilizadores</div>
+                      <div className="mt-1 text-xs text-[color:var(--dash-muted)]">Criar, editar e gerir acessos</div>
+                    </div>
+                    <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-2 text-[color:var(--dash-muted)]">
+                      <Users className="h-4 w-4" />
+                    </div>
+                  </div>
                 </button>
               </div>
 
@@ -1575,7 +1794,7 @@ export function SuperAdminSettings() {
             </section>
           )}
 
-          {selectedTenantId && (
+          {activeSub === 'db' && selectedTenantId && (
             <section className="rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-5">
               <h4 className="text-lg font-semibold text-[color:var(--dash-ink)]">Atualizações & Base de dados</h4>
               <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
@@ -1763,7 +1982,7 @@ export function SuperAdminSettings() {
             </section>
           )}
 
-          {true && (
+          {activeSub === 'support' && (
             <section className="overflow-hidden rounded-[24px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)]">
               <div className="h-2 w-full bg-[linear-gradient(90deg,#0f766e,#38bdf8)]" />
               <div className="p-5">
@@ -2155,6 +2374,7 @@ export function SuperAdminSettings() {
             </section>
           )}
         </div>
+      </div>
     </div>
   );
 }
@@ -5486,12 +5706,8 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
-  const [activeDbTool, setActiveDbTool] = React.useState<
-    'setup' | 'migrations' | 'bootstrap' | null
-  >(null);
-  const [activeAdminPanel, setActiveAdminPanel] = React.useState<
-    'plants' | 'suppliers' | 'spareparts' | 'stock' | null
-  >(null);
+  const [activeDbTool, setActiveDbTool] = React.useState<'setup' | 'migrations' | 'bootstrap' | null>(null);
+  const [activeAdminPanel, setActiveAdminPanel] = React.useState<'plants' | 'suppliers' | 'spareparts' | 'stock' | null>(null);
   const [plantModalOpen, setPlantModalOpen] = React.useState(false);
   const [userModalOpen, setUserModalOpen] = React.useState(false);
   const [userModalMode, setUserModalMode] = React.useState<'create' | 'edit'>('create');
