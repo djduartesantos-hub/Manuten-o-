@@ -66,7 +66,10 @@ interface DatabaseUpdatePageProps {
   embedded?: boolean;
 }
 
+type DbUpdatesSection = 'updates' | 'credentials' | 'danger';
+
 export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps) {
+  const [section, setSection] = useState<DbUpdatesSection>('updates');
   const [status, setStatus] = useState<DatabaseStatus | null>(null);
   const [sqlStatus, setSqlStatus] = useState<SqlMigrationsStatus | null>(null);
   const [loading, setLoading] = useState(false);
@@ -74,6 +77,11 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
   const [success, setSuccess] = useState('');
   const [migrations, setMigrations] = useState<string[]>([]);
   const [patches, setPatches] = useState<string[]>([]);
+
+  const sectionButtonClass = (key: DbUpdatesSection) =>
+    key === section
+      ? 'btn-primary inline-flex items-center gap-2'
+      : 'btn-secondary inline-flex items-center gap-2';
 
   const fetchStatus = async () => {
     setLoading(true);
@@ -243,6 +251,33 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
         <p className="theme-text-muted mt-2">
           Aplicar migracoes e gerir o estado da base de dados
         </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setSection('updates')}
+            className={sectionButtonClass('updates')}
+          >
+            <Wrench className="w-4 h-4" />
+            Atualizacoes
+          </button>
+          <button
+            type="button"
+            onClick={() => setSection('credentials')}
+            className={sectionButtonClass('credentials')}
+          >
+            <Database className="w-4 h-4" />
+            Credenciais
+          </button>
+          <button
+            type="button"
+            onClick={() => setSection('danger')}
+            className={sectionButtonClass('danger')}
+          >
+            <AlertCircle className="w-4 h-4" />
+            Zona Perigosa
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -259,8 +294,8 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      {section === 'updates' && (
+        <div className="space-y-6">
           <div className="rounded-3xl border theme-border theme-card p-6 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <h2 className="text-xl font-semibold theme-text flex items-center gap-2">
@@ -414,97 +449,99 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
             )}
           </div>
         </div>
+      )}
 
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-rose-500/20 bg-rose-500/10 p-6 shadow-sm">
-            <div>
-              <p className="text-sm font-semibold theme-text">Zona Perigosa</p>
-              <p className="text-xs theme-text-muted mt-1">
-                Acoes destrutivas ou que alteram dados de forma significativa. Use com cuidado.
-              </p>
+      {section === 'credentials' && (
+        <div className="rounded-3xl border theme-border theme-card p-6 shadow-sm">
+          <div className="text-sm font-semibold theme-text">Credenciais demo</div>
+          <p className="mt-1 text-xs theme-text-muted">
+            Após “Carregar Dados Demo”, pode entrar com qualquer perfil.
+          </p>
+          <div className="mt-3 grid gap-2 text-xs theme-text">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="font-semibold theme-text">Super Administrador</span>
+                <span className="theme-text-muted"> — superadmin (superadmin@cmms.com)</span>
+              </div>
+              <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">SuperAdmin@123456</div>
             </div>
-            <div className="mt-4 grid grid-cols-1 gap-3">
-              <button
-                onClick={handleInitialize}
-                disabled={loading}
-                className="btn-secondary inline-flex w-full items-center justify-center gap-2 py-3 border-rose-500/30 bg-rose-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <Server className="w-4 h-4" />
-                Inicializar Tenant
-              </button>
-
-              <button
-                onClick={handleSeedData}
-                disabled={loading}
-                className="btn-secondary inline-flex w-full items-center justify-center gap-2 py-3 border-rose-500/30 bg-rose-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <Database className="w-4 h-4" />
-                Carregar Dados Demo
-              </button>
-
-              <button
-                onClick={handleClearData}
-                disabled={loading}
-                className="btn-secondary inline-flex w-full items-center justify-center gap-2 py-3 border-rose-500/30 bg-rose-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <AlertCircle className="w-4 h-4" />
-                Apagar Todos os Dados
-              </button>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="font-semibold theme-text">Admin Empresa</span>
+                <span className="theme-text-muted"> — admin (admin@cmms.com)</span>
+              </div>
+              <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Admin@123456</div>
             </div>
-          </div>
-
-          <div className="rounded-3xl border theme-border theme-card p-6 shadow-sm">
-            <div className="text-sm font-semibold theme-text">Credenciais demo</div>
-            <p className="mt-1 text-xs theme-text-muted">
-              Após “Carregar Dados Demo”, pode entrar com qualquer role.
-            </p>
-            <div className="mt-3 grid gap-2 text-xs theme-text">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <span className="font-semibold theme-text">superadmin</span>
-                  <span className="theme-text-muted"> — superadmin (superadmin@cmms.com)</span>
-                </div>
-                <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">SuperAdmin@123456</div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="font-semibold theme-text">Gestor de Manutencao</span>
+                <span className="theme-text-muted"> — gestor (gestor@cmms.com)</span>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <span className="font-semibold theme-text">admin_empresa</span>
-                  <span className="theme-text-muted"> — admin (admin@cmms.com)</span>
-                </div>
-                <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Admin@123456</div>
+              <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Gestor@123456</div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="font-semibold theme-text">Supervisor</span>
+                <span className="theme-text-muted"> — supervisor (supervisor@cmms.com)</span>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <span className="font-semibold theme-text">gestor_manutencao</span>
-                  <span className="theme-text-muted"> — gestor (gestor@cmms.com)</span>
-                </div>
-                <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Gestor@123456</div>
+              <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Supervisor@123456</div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="font-semibold theme-text">Tecnico</span>
+                <span className="theme-text-muted"> — tecnico (tecnico@cmms.com)</span>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <span className="font-semibold theme-text">supervisor</span>
-                  <span className="theme-text-muted"> — supervisor (supervisor@cmms.com)</span>
-                </div>
-                <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Supervisor@123456</div>
+              <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Tecnico@123456</div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="font-semibold theme-text">Operador</span>
+                <span className="theme-text-muted"> — operador (operador@cmms.com)</span>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <span className="font-semibold theme-text">tecnico</span>
-                  <span className="theme-text-muted"> — tecnico (tecnico@cmms.com)</span>
-                </div>
-                <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Tecnico@123456</div>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <span className="font-semibold theme-text">operador</span>
-                  <span className="theme-text-muted"> — operador (operador@cmms.com)</span>
-                </div>
-                <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Operador@123456</div>
-              </div>
+              <div className="shrink-0 rounded-full border theme-border theme-card px-3 py-1 font-semibold">Operador@123456</div>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {section === 'danger' && (
+        <div className="rounded-3xl border border-rose-500/20 bg-rose-500/10 p-6 shadow-sm">
+          <div>
+            <p className="text-sm font-semibold theme-text">Zona Perigosa</p>
+            <p className="text-xs theme-text-muted mt-1">
+              Acoes destrutivas ou que alteram dados de forma significativa. Use com cuidado.
+            </p>
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-3">
+            <button
+              onClick={handleInitialize}
+              disabled={loading}
+              className="btn-secondary inline-flex w-full items-center justify-center gap-2 py-3 border-rose-500/30 bg-rose-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Server className="w-4 h-4" />
+              Inicializar Tenant
+            </button>
+
+            <button
+              onClick={handleSeedData}
+              disabled={loading}
+              className="btn-secondary inline-flex w-full items-center justify-center gap-2 py-3 border-rose-500/30 bg-rose-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Database className="w-4 h-4" />
+              Carregar Dados Demo
+            </button>
+
+            <button
+              onClick={handleClearData}
+              disabled={loading}
+              className="btn-secondary inline-flex w-full items-center justify-center gap-2 py-3 border-rose-500/30 bg-rose-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <AlertCircle className="w-4 h-4" />
+              Apagar Todos os Dados
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 
