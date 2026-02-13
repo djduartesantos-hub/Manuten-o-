@@ -25,6 +25,7 @@ import {
   getSuperadminPlantsMetrics,
   getSuperadminIntegrityChecks,
   getSuperadminTenantDiagnostics,
+  getSuperadminTenantsHealthScore,
   getSuperadminTenantsMetrics,
   updateSuperadminTenant,
   purgeSuperadminAudit,
@@ -807,6 +808,7 @@ export function SuperAdminSettings() {
 
   const [supportHealth, setSupportHealth] = React.useState<any | null>(null);
   const [supportDiagnostics, setSupportDiagnostics] = React.useState<any | null>(null);
+  const [supportTenantsHealthScore, setSupportTenantsHealthScore] = React.useState<any | null>(null);
   const [supportAudit, setSupportAudit] = React.useState<any[]>([]);
   const [loadingSupport, setLoadingSupport] = React.useState(false);
   const [auditPurging, setAuditPurging] = React.useState(false);
@@ -824,18 +826,21 @@ export function SuperAdminSettings() {
     setLoadingSupport(true);
     setError('');
     try {
-      const [health, diagnostics, audit] = await Promise.all([
+      const [health, diagnostics, healthScore, audit] = await Promise.all([
         getSuperadminHealth(),
         getSuperadminTenantDiagnostics(5),
+        getSuperadminTenantsHealthScore(50),
         getSuperadminAudit({ limit: 20, offset: 0 }),
       ]);
       setSupportHealth(health || null);
       setSupportDiagnostics(diagnostics || null);
+      setSupportTenantsHealthScore(healthScore || null);
       setSupportAudit(Array.isArray(audit) ? audit : []);
     } catch (err: any) {
       setError(err?.message || 'Falha ao carregar dados de suporte');
       setSupportHealth(null);
       setSupportDiagnostics(null);
+      setSupportTenantsHealthScore(null);
       setSupportAudit([]);
     } finally {
       setLoadingSupport(false);
@@ -2406,6 +2411,88 @@ export function SuperAdminSettings() {
                         ))
                       )}
                     </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                        Health score por empresa
+                      </div>
+                      <p className="mt-2 text-sm text-[color:var(--dash-muted)]">
+                        Score 0–100 e alertas automáticos por tenant.
+                      </p>
+                    </div>
+                    <div className="text-xs text-[color:var(--dash-muted)]">
+                      {supportTenantsHealthScore?.generatedAt ? `Atualizado: ${String(supportTenantsHealthScore.generatedAt)}` : null}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 space-y-2">
+                    {Array.isArray(supportTenantsHealthScore?.items) && supportTenantsHealthScore.items.length > 0 ? (
+                      supportTenantsHealthScore.items.slice(0, 20).map((row: any) => {
+                        const status = String(row?.status || '').toLowerCase();
+                        const badgeClass =
+                          status === 'critical'
+                            ? 'border-red-500/20 bg-red-500/10 text-red-700'
+                            : status === 'warning'
+                              ? 'border-amber-500/20 bg-amber-500/10 text-amber-800'
+                              : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-800';
+                        const badgeLabel = status === 'critical' ? 'Crítico' : status === 'warning' ? 'Aviso' : 'OK';
+                        const alerts = Array.isArray(row?.alerts) ? row.alerts : [];
+                        const tenant = row?.tenant || {};
+                        const counts = row?.counts || {};
+                        return (
+                          <div key={String(tenant.id || row?.tenantId || '')} className="rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3">
+                            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <div className="font-semibold text-[color:var(--dash-ink)] truncate">
+                                    {String(tenant.name || 'Empresa')}
+                                  </div>
+                                  {tenant.slug ? <div className="text-xs text-[color:var(--dash-muted)] truncate">({String(tenant.slug)})</div> : null}
+                                  <div className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] ${badgeClass}`}>
+                                    {badgeLabel}
+                                  </div>
+                                </div>
+                                <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                                  score={String(row?.score ?? '—')} • users={String(counts.users ?? '—')} (ativos={String(counts.activeUsers ?? '—')}) • plants={String(counts.plants ?? '—')}
+                                </div>
+                              </div>
+                              <div className="text-xs text-[color:var(--dash-muted)] whitespace-nowrap">
+                                last_login: {row?.lastLogin ? String(row.lastLogin) : '—'}
+                              </div>
+                            </div>
+
+                            {alerts.length === 0 ? (
+                              <div className="mt-2 text-xs text-[color:var(--dash-muted)]">Sem alertas.</div>
+                            ) : (
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {alerts.slice(0, 6).map((a: any, idx: number) => {
+                                  const sev = String(a?.severity || '').toLowerCase();
+                                  const pillClass =
+                                    sev === 'critical'
+                                      ? 'border-red-500/20 bg-red-500/10 text-red-700'
+                                      : sev === 'warning'
+                                        ? 'border-amber-500/20 bg-amber-500/10 text-amber-800'
+                                        : 'border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] text-[color:var(--dash-muted)]';
+                                  return (
+                                    <div key={idx} className={`rounded-full border px-2 py-1 text-xs ${pillClass}`}>
+                                      {String(a?.message || a?.type || 'alert')}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="text-sm text-[color:var(--dash-muted)]">
+                        {loadingSupport ? 'A carregar...' : 'Sem dados de health score.'}
+                      </div>
+                    )}
                   </div>
                 </div>
 

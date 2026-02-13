@@ -1701,6 +1701,148 @@ export async function getTenantDiagnostics(req: AuthenticatedRequest, res: Respo
   }
 }
 
+export async function getTenantsHealthScore(req: AuthenticatedRequest, res: Response) {
+  try {
+    const limitRaw = Number((req.query as any)?.limit ?? 50);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 200) : 50;
+
+    const rows = await db.execute(sql`
+      SELECT
+        t.id,
+        t.name,
+        t.slug,
+        t.is_active,
+        COALESCE(u.user_count, 0)::int AS users,
+        COALESCE(u.active_user_count, 0)::int AS active_users,
+        u.last_login AS last_login,
+        COALESCE(p.plant_count, 0)::int AS plants
+      FROM tenants t
+      LEFT JOIN (
+        SELECT
+          tenant_id,
+          COUNT(*)::int AS user_count,
+          COUNT(*) FILTER (WHERE is_active = true)::int AS active_user_count,
+          MAX(last_login) AS last_login
+        FROM users
+        GROUP BY tenant_id
+      ) u ON u.tenant_id = t.id
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*)::int AS plant_count
+        FROM plants
+        GROUP BY tenant_id
+      ) p ON p.tenant_id = t.id
+      ORDER BY t.created_at ASC
+      LIMIT ${limit};
+    `);
+
+    const now = Date.now();
+    const daysBetween = (a: number, b: number) => Math.floor(Math.abs(a - b) / (1000 * 60 * 60 * 24));
+    const parseDate = (value: any): Date | null => {
+      if (!value) return null;
+      const d = new Date(value);
+      return Number.isFinite(d.getTime()) ? d : null;
+    };
+
+    const data = (((rows as any)?.rows ?? []) as any[]).map((r: any) => {
+      const usersCount = Number(r.users ?? 0);
+      const activeUsersCount = Number(r.active_users ?? 0);
+      const plantsCount = Number(r.plants ?? 0);
+      const isActive = Boolean(r.is_active);
+      const lastLoginDate = parseDate(r.last_login);
+      const lastLoginIso = lastLoginDate ? lastLoginDate.toISOString() : null;
+
+      const alerts: Array<{ type: string; severity: 'info' | 'warning' | 'critical'; message: string }> = [];
+      let penalty = 0;
+
+      if (isActive && plantsCount === 0) {
+        alerts.push({
+          type: 'active_without_plants',
+          severity: 'critical',
+          message: 'Empresa ativa sem fábricas registadas',
+        });
+        penalty += 40;
+      }
+      if (isActive && usersCount === 0) {
+        alerts.push({
+          type: 'active_without_users',
+          severity: 'critical',
+          message: 'Empresa ativa sem utilizadores',
+        });
+        penalty += 40;
+      }
+      if (!isActive && usersCount > 0) {
+        alerts.push({
+          type: 'inactive_with_users',
+          severity: 'warning',
+          message: 'Empresa inativa com utilizadores associados',
+        });
+        penalty += 20;
+      }
+
+      if (usersCount > 0 && !lastLoginDate) {
+        alerts.push({
+          type: 'no_login_activity',
+          severity: 'warning',
+          message: 'Sem registos de login (last_login vazio)',
+        });
+        penalty += 10;
+      }
+
+      if (lastLoginDate) {
+        const ageDays = daysBetween(now, lastLoginDate.getTime());
+        if (ageDays >= 60) {
+          alerts.push({
+            type: 'stale_login_activity',
+            severity: 'warning',
+            message: `Sem login há ${ageDays} dias`,
+          });
+          penalty += 15;
+        }
+      }
+
+      const score = Math.max(0, 100 - penalty);
+      const hasCritical = alerts.some((a) => a.severity === 'critical');
+      const status: 'ok' | 'warning' | 'critical' = hasCritical ? 'critical' : score >= 90 ? 'ok' : score >= 70 ? 'warning' : 'critical';
+
+      return {
+        tenant: {
+          id: String(r.id),
+          name: String(r.name || ''),
+          slug: String(r.slug || ''),
+          is_active: isActive,
+        },
+        counts: {
+          users: usersCount,
+          activeUsers: activeUsersCount,
+          plants: plantsCount,
+        },
+        lastLogin: lastLoginIso,
+        score,
+        status,
+        alerts,
+      };
+    });
+
+    const severityRank = (s: 'ok' | 'warning' | 'critical') => (s === 'critical' ? 0 : s === 'warning' ? 1 : 2);
+    data.sort((a: any, b: any) => {
+      const sa = severityRank(a.status);
+      const sb = severityRank(b.status);
+      if (sa !== sb) return sa - sb;
+      return Number(a.score) - Number(b.score);
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        generatedAt: new Date().toISOString(),
+        items: data,
+      },
+    });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to fetch tenants health score' });
+  }
+}
+
 export async function listSuperadminAudit(req: AuthenticatedRequest, res: Response) {
   try {
     const limit = Number((req.query as any)?.limit ?? 20);

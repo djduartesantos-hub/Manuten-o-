@@ -582,6 +582,23 @@ export async function getSuperadminTenantDiagnostics(limit?: number): Promise<{
   return apiCall(`/superadmin/diagnostics/tenants${qs}`);
 }
 
+export async function getSuperadminTenantsHealthScore(limit?: number): Promise<{
+  generatedAt: string;
+  items: Array<{
+    tenant: { id: string; name: string; slug: string; is_active: boolean };
+    counts: { users: number; activeUsers: number; plants: number };
+    lastLogin: string | null;
+    score: number;
+    status: 'ok' | 'warning' | 'critical';
+    alerts: Array<{ type: string; severity: 'info' | 'warning' | 'critical'; message: string }>;
+  }>;
+}> {
+  const safeLimit =
+    limit !== undefined && Number.isFinite(Number(limit)) ? Math.max(1, Math.min(200, Math.trunc(Number(limit)))) : null;
+  const qs = safeLimit ? `?limit=${encodeURIComponent(String(safeLimit))}` : '';
+  return apiCall(`/superadmin/diagnostics/tenants/healthscore${qs}`);
+}
+
 export async function getSuperadminAudit(params?: {
   limit?: number;
   offset?: number;
