@@ -12,6 +12,22 @@ Este projeto está preparado para **deploy no Railway** usando o **Dockerfile na
   - aplica Drizzle (`npm run db:push`)
   - (opcional) migrações SQL legadas em `scripts/database/migrations/*.sql` só se `RUN_SQL_MIGRATIONS=true`
 
+> Nota: no container, este passo é executado no arranque via `scripts/docker/run-drizzle-migrate.mjs`.
+
+---
+
+## 🧪 Reproduzir localmente (smoke)
+
+Para testar rapidamente o mesmo “bootstrap” de BD (Drizzle) em desenvolvimento, podes usar:
+
+```bash
+# Aplica schema via Drizzle (usa DATABASE_URL do ambiente ou backend/.env)
+node scripts/dev/smoke.mjs
+
+# Aplica schema + seed
+SMOKE_SEED=1 node scripts/dev/smoke.mjs
+```
+
 ## 1) Criar o projeto
 
 1. Railway → **New Project** → **Deploy from GitHub Repo**
