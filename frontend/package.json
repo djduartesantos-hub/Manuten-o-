@@ -25,6 +25,7 @@
     "react-query": "^3.39.3",
     "react-router-dom": "^6.20.1",
     "socket.io-client": "^4.8.3",
+    "xlsx": "^0.18.5",
     "zustand": "^4.5.7"
   },
   "devDependencies": {

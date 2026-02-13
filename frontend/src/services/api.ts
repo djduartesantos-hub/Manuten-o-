@@ -213,6 +213,93 @@ function triggerDownload(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+function toPlainValue(value: any): any {
+  if (
+    value === null ||
+    value === undefined ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
+    return value;
+  }
+
+  if (value instanceof Date) return value.toISOString();
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function normalizeRows(data: any): Array<Record<string, any>> {
+  const raw =
+    Array.isArray(data) ? data : Array.isArray(data?.rows) ? data.rows : Array.isArray(data?.data) ? data.data : null;
+
+  const rows = raw ?? (data && typeof data === 'object' ? [data] : [data]);
+  return rows.map((row: any) => {
+    if (row && typeof row === 'object' && !Array.isArray(row)) {
+      const out: Record<string, any> = {};
+      for (const [k, v] of Object.entries(row)) out[k] = toPlainValue(v);
+      return out;
+    }
+    return { value: toPlainValue(row) };
+  });
+}
+
+function getColumns(rows: Array<Record<string, any>>): string[] {
+  const set = new Set<string>();
+  for (const r of rows) {
+    for (const k of Object.keys(r || {})) set.add(k);
+  }
+  return Array.from(set);
+}
+
+async function triggerDownloadXlsx(data: any, filename: string, sheetName = 'Export') {
+  const rows = normalizeRows(data);
+  const columns = getColumns(rows);
+
+  const XLSX = await import('xlsx');
+  const worksheet = XLSX.utils.json_to_sheet(rows, { header: columns });
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+  const arrayBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([arrayBuffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  triggerDownload(blob, filename);
+}
+
+async function triggerDownloadPdf(data: any, filename: string, title = 'Export') {
+  const rows = normalizeRows(data);
+  const columns = getColumns(rows);
+
+  const [{ jsPDF }, autoTableMod] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ]);
+  const autoTable = (autoTableMod as any).default || (autoTableMod as any);
+
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  doc.setFontSize(14);
+  doc.text(String(title || 'Export'), 40, 40);
+
+  const body = rows.map((r) => columns.map((c) => String(r?.[c] ?? '')));
+
+  autoTable(doc, {
+    head: [columns],
+    body,
+    startY: 60,
+    styles: { fontSize: 8, cellPadding: 3 },
+    headStyles: { fontStyle: 'bold' },
+  });
+
+  const blob = doc.output('blob');
+  triggerDownload(blob, filename);
+}
+
 // ============================================================================
 // SUPERADMIN (global)
 // ============================================================================
@@ -304,13 +391,24 @@ export async function getSuperadminTenantsActivity(days?: number, limit?: number
   return apiCall(`/superadmin/metrics/activity/tenants${qs ? `?${qs}` : ''}`);
 }
 
-export async function downloadSuperadminTenantsActivity(format: 'csv' | 'json' = 'csv', days = 30, limit = 200) {
+export async function downloadSuperadminTenantsActivity(format: 'csv' | 'json' | 'xlsx' | 'pdf' = 'csv', days = 30, limit = 200) {
   const qs = new URLSearchParams({
-    format,
+    format: format === 'xlsx' || format === 'pdf' ? 'json' : format,
     days: String(days),
     limit: String(limit),
   });
   const res = await apiCallRaw(`/superadmin/metrics/activity/tenants/export?${qs.toString()}`);
+
+  if (format === 'xlsx' || format === 'pdf') {
+    const data = await res.json();
+    if (format === 'xlsx') {
+      await triggerDownloadXlsx(data, 'superadmin_tenants_activity.xlsx', 'TenantsActivity');
+    } else {
+      await triggerDownloadPdf(data, 'superadmin_tenants_activity.pdf', 'Top empresas por atividade (30d)');
+    }
+    return;
+  }
+
   const blob = await res.blob();
   triggerDownload(blob, format === 'json' ? 'superadmin_tenants_activity.json' : 'superadmin_tenants_activity.csv');
 }
@@ -319,8 +417,20 @@ export async function getSuperadminTenantsMetrics(): Promise<any[]> {
   return apiCall('/superadmin/metrics/tenants');
 }
 
-export async function downloadSuperadminTenantsMetrics(format: 'csv' | 'json') {
-  const res = await apiCallRaw(`/superadmin/metrics/tenants/export?format=${encodeURIComponent(format)}`);
+export async function downloadSuperadminTenantsMetrics(format: 'csv' | 'json' | 'xlsx' | 'pdf') {
+  const rawFormat = format === 'xlsx' || format === 'pdf' ? 'json' : format;
+  const res = await apiCallRaw(`/superadmin/metrics/tenants/export?format=${encodeURIComponent(rawFormat)}`);
+
+  if (format === 'xlsx' || format === 'pdf') {
+    const data = await res.json();
+    if (format === 'xlsx') {
+      await triggerDownloadXlsx(data, 'superadmin_tenants_metrics.xlsx', 'Tenants');
+    } else {
+      await triggerDownloadPdf(data, 'superadmin_tenants_metrics.pdf', 'Métricas de empresas');
+    }
+    return;
+  }
+
   const blob = await res.blob();
   const ext = format === 'json' ? 'json' : 'csv';
   triggerDownload(blob, `superadmin_tenants_metrics.${ext}`);
@@ -330,8 +440,20 @@ export async function getSuperadminPlantsMetrics(): Promise<any[]> {
   return apiCall('/superadmin/metrics/plants');
 }
 
-export async function downloadSuperadminPlantsMetrics(format: 'csv' | 'json') {
-  const res = await apiCallRaw(`/superadmin/metrics/plants/export?format=${encodeURIComponent(format)}`);
+export async function downloadSuperadminPlantsMetrics(format: 'csv' | 'json' | 'xlsx' | 'pdf') {
+  const rawFormat = format === 'xlsx' || format === 'pdf' ? 'json' : format;
+  const res = await apiCallRaw(`/superadmin/metrics/plants/export?format=${encodeURIComponent(rawFormat)}`);
+
+  if (format === 'xlsx' || format === 'pdf') {
+    const data = await res.json();
+    if (format === 'xlsx') {
+      await triggerDownloadXlsx(data, 'superadmin_plants_metrics.xlsx', 'Plants');
+    } else {
+      await triggerDownloadPdf(data, 'superadmin_plants_metrics.pdf', 'Saúde por fábrica');
+    }
+    return;
+  }
+
   const blob = await res.blob();
   const ext = format === 'json' ? 'json' : 'csv';
   triggerDownload(blob, `superadmin_plants_metrics.${ext}`);
@@ -349,13 +471,24 @@ export async function getSuperadminUserSecurityInsights(days?: number, limit?: n
   return apiCall(`/superadmin/metrics/users/security${qs ? `?${qs}` : ''}`);
 }
 
-export async function downloadSuperadminUserSecurity(format: 'csv' | 'json' = 'csv', days = 30, limit = 200) {
+export async function downloadSuperadminUserSecurity(format: 'csv' | 'json' | 'xlsx' | 'pdf' = 'csv', days = 30, limit = 200) {
   const qs = new URLSearchParams({
-    format,
+    format: format === 'xlsx' || format === 'pdf' ? 'json' : format,
     days: String(days),
     limit: String(limit),
   });
   const res = await apiCallRaw(`/superadmin/metrics/users/security/export?${qs.toString()}`);
+
+  if (format === 'xlsx' || format === 'pdf') {
+    const data = await res.json();
+    if (format === 'xlsx') {
+      await triggerDownloadXlsx(data, 'superadmin_user_security.xlsx', 'UserSecurity');
+    } else {
+      await triggerDownloadPdf(data, 'superadmin_user_security.pdf', 'Segurança (30d)');
+    }
+    return;
+  }
+
   const blob = await res.blob();
   triggerDownload(blob, format === 'json' ? 'superadmin_user_security.json' : 'superadmin_user_security.csv');
 }
@@ -364,9 +497,22 @@ export async function getSuperadminRbacDrift(): Promise<any> {
   return apiCall('/superadmin/metrics/rbac/drift');
 }
 
-export async function downloadSuperadminRbacDrift(format: 'csv' | 'json' = 'csv') {
+export async function downloadSuperadminRbacDrift(format: 'csv' | 'json' | 'xlsx' | 'pdf' = 'csv') {
   const qs = new URLSearchParams({ format });
+  const rawFormat = format === 'xlsx' || format === 'pdf' ? 'json' : format;
+  qs.set('format', rawFormat);
   const res = await apiCallRaw(`/superadmin/metrics/rbac/drift/export?${qs.toString()}`);
+
+  if (format === 'xlsx' || format === 'pdf') {
+    const data = await res.json();
+    if (format === 'xlsx') {
+      await triggerDownloadXlsx(data, 'superadmin_rbac_drift.xlsx', 'RBACDrift');
+    } else {
+      await triggerDownloadPdf(data, 'superadmin_rbac_drift.pdf', 'RBAC Drift');
+    }
+    return;
+  }
+
   const blob = await res.blob();
   triggerDownload(blob, format === 'json' ? 'superadmin_rbac_drift.json' : 'superadmin_rbac_drift.csv');
 }
@@ -375,9 +521,21 @@ export async function getSuperadminIntegrityChecks(): Promise<any> {
   return apiCall('/superadmin/diagnostics/integrity');
 }
 
-export async function downloadSuperadminIntegrityChecks(format: 'csv' | 'json' = 'csv') {
-  const qs = new URLSearchParams({ format });
+export async function downloadSuperadminIntegrityChecks(format: 'csv' | 'json' | 'xlsx' | 'pdf' = 'csv') {
+  const rawFormat = format === 'xlsx' || format === 'pdf' ? 'json' : format;
+  const qs = new URLSearchParams({ format: rawFormat });
   const res = await apiCallRaw(`/superadmin/diagnostics/integrity/export?${qs.toString()}`);
+
+  if (format === 'xlsx' || format === 'pdf') {
+    const data = await res.json();
+    if (format === 'xlsx') {
+      await triggerDownloadXlsx(data, 'superadmin_integrity_checks.xlsx', 'Integrity');
+    } else {
+      await triggerDownloadPdf(data, 'superadmin_integrity_checks.pdf', 'Integridade');
+    }
+    return;
+  }
+
   const blob = await res.blob();
   triggerDownload(blob, format === 'json' ? 'superadmin_integrity_checks.json' : 'superadmin_integrity_checks.csv');
 }
@@ -457,11 +615,21 @@ export async function purgeSuperadminAudit(): Promise<{ deleted: number; disable
   return apiCall('/superadmin/audit/purge', { method: 'POST' });
 }
 
-export async function downloadSuperadminAudit(format: 'csv' | 'json' = 'csv', limit = 200) {
-  const qs = new URLSearchParams({ format, limit: String(limit) });
-  const res = await apiCallRaw(`/superadmin/audit/export?${qs.toString()}`, {
-    method: 'GET',
-  });
+export async function downloadSuperadminAudit(format: 'csv' | 'json' | 'xlsx' | 'pdf' = 'csv', limit = 200) {
+  const rawFormat = format === 'xlsx' || format === 'pdf' ? 'json' : format;
+  const qs = new URLSearchParams({ format: rawFormat, limit: String(limit) });
+  const res = await apiCallRaw(`/superadmin/audit/export?${qs.toString()}`, { method: 'GET' });
+
+  if (format === 'xlsx' || format === 'pdf') {
+    const data = await res.json();
+    if (format === 'xlsx') {
+      await triggerDownloadXlsx(data, 'superadmin_audit_logs.xlsx', 'Audit');
+    } else {
+      await triggerDownloadPdf(data, 'superadmin_audit_logs.pdf', 'Auditoria (SuperAdmin)');
+    }
+    return;
+  }
+
   const blob = await res.blob();
   triggerDownload(blob, format === 'json' ? 'superadmin_audit_logs.json' : 'superadmin_audit_logs.csv');
 }
@@ -493,11 +661,21 @@ export async function resetSuperadminUserPassword(userId: string): Promise<{
   });
 }
 
-export async function downloadSetupRunsExport(format: 'csv' | 'json' = 'csv', limit = 200) {
-  const qs = new URLSearchParams({ format, limit: String(limit) });
-  const res = await apiCallRaw(`/superadmin/db/runs/export?${qs.toString()}`, {
-    method: 'GET',
-  });
+export async function downloadSetupRunsExport(format: 'csv' | 'json' | 'xlsx' | 'pdf' = 'csv', limit = 200) {
+  const rawFormat = format === 'xlsx' || format === 'pdf' ? 'json' : format;
+  const qs = new URLSearchParams({ format: rawFormat, limit: String(limit) });
+  const res = await apiCallRaw(`/superadmin/db/runs/export?${qs.toString()}`, { method: 'GET' });
+
+  if (format === 'xlsx' || format === 'pdf') {
+    const data = await res.json();
+    if (format === 'xlsx') {
+      await triggerDownloadXlsx(data, 'setup_db_runs.xlsx', 'SetupRuns');
+    } else {
+      await triggerDownloadPdf(data, 'setup_db_runs.pdf', 'Setup DB Runs');
+    }
+    return;
+  }
+
   const blob = await res.blob();
   triggerDownload(blob, format === 'json' ? 'setup_db_runs.json' : 'setup_db_runs.csv');
 }

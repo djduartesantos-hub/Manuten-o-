@@ -106,6 +106,7 @@ export function SettingsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { permissions, isSuperAdmin } = useProfileAccess();
+
   const [activePanel, setActivePanel] = useState<SettingTab | null>(null);
   const [preventiveSub, setPreventiveSub] = useState<'plans' | 'schedules' | null>(null);
 
@@ -809,8 +810,8 @@ export function SuperAdminSettings() {
   const [supportAudit, setSupportAudit] = React.useState<any[]>([]);
   const [loadingSupport, setLoadingSupport] = React.useState(false);
   const [auditPurging, setAuditPurging] = React.useState(false);
-  const [auditExporting, setAuditExporting] = React.useState<'csv' | 'json' | null>(null);
-  const [runsExporting, setRunsExporting] = React.useState<'csv' | 'json' | null>(null);
+  const [auditExporting, setAuditExporting] = React.useState<'csv' | 'json' | 'xlsx' | 'pdf' | null>(null);
+  const [runsExporting, setRunsExporting] = React.useState<'csv' | 'json' | 'xlsx' | 'pdf' | null>(null);
 
   const [userSearchQ, setUserSearchQ] = React.useState('');
   const [userSearchResults, setUserSearchResults] = React.useState<any[]>([]);
@@ -1225,6 +1226,36 @@ export function SuperAdminSettings() {
                         >
                           <Download className="mr-2 h-4 w-4" />
                           Exportar JSON
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary h-9 px-3 inline-flex items-center"
+                          onClick={async () => {
+                            setError('');
+                            try {
+                              await downloadSuperadminTenantsActivity('xlsx', 30, 200);
+                            } catch (err: any) {
+                              setError(err?.message || 'Falha ao exportar XLSX');
+                            }
+                          }}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Exportar XLSX
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary h-9 px-3 inline-flex items-center"
+                          onClick={async () => {
+                            setError('');
+                            try {
+                              await downloadSuperadminTenantsActivity('pdf', 30, 200);
+                            } catch (err: any) {
+                              setError(err?.message || 'Falha ao exportar PDF');
+                            }
+                          }}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Exportar PDF
                         </button>
                       </div>
                     </div>
@@ -1702,6 +1733,36 @@ export function SuperAdminSettings() {
                         <Download className="mr-2 h-4 w-4" />
                         Exportar JSON
                       </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={async () => {
+                          setError('');
+                          try {
+                            await downloadSuperadminRbacDrift('xlsx');
+                          } catch (err: any) {
+                            setError(err?.message || 'Falha ao exportar XLSX');
+                          }
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Exportar XLSX
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={async () => {
+                          setError('');
+                          try {
+                            await downloadSuperadminRbacDrift('pdf');
+                          } catch (err: any) {
+                            setError(err?.message || 'Falha ao exportar PDF');
+                          }
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Exportar PDF
+                      </button>
                     </div>
                   </div>
                   <div className="mt-3 text-sm text-[color:var(--dash-muted)]">
@@ -1757,6 +1818,36 @@ export function SuperAdminSettings() {
                         <Download className="mr-2 h-4 w-4" />
                         Exportar JSON
                       </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={async () => {
+                          setError('');
+                          try {
+                            await downloadSuperadminIntegrityChecks('xlsx');
+                          } catch (err: any) {
+                            setError(err?.message || 'Falha ao exportar XLSX');
+                          }
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Exportar XLSX
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3"
+                        onClick={async () => {
+                          setError('');
+                          try {
+                            await downloadSuperadminIntegrityChecks('pdf');
+                          } catch (err: any) {
+                            setError(err?.message || 'Falha ao exportar PDF');
+                          }
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Exportar PDF
+                      </button>
                     </div>
                   </div>
                   <div className="mt-3 space-y-2">
@@ -1808,6 +1899,36 @@ export function SuperAdminSettings() {
                       >
                         <Download className="mr-2 h-4 w-4" />
                         Exportar JSON
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3 inline-flex items-center"
+                        onClick={async () => {
+                          setError('');
+                          try {
+                            await downloadSuperadminUserSecurity('xlsx', 30, 200);
+                          } catch (err: any) {
+                            setError(err?.message || 'Falha ao exportar XLSX');
+                          }
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Exportar XLSX
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3 inline-flex items-center"
+                        onClick={async () => {
+                          setError('');
+                          try {
+                            await downloadSuperadminUserSecurity('pdf', 30, 200);
+                          } catch (err: any) {
+                            setError(err?.message || 'Falha ao exportar PDF');
+                          }
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Exportar PDF
                       </button>
                     </div>
                   </div>
@@ -2209,6 +2330,44 @@ export function SuperAdminSettings() {
                       <button
                         type="button"
                         className="btn-secondary h-9 px-3 inline-flex items-center"
+                        disabled={auditExporting !== null}
+                        onClick={async () => {
+                          setAuditExporting('xlsx');
+                          setError('');
+                          try {
+                            await downloadSuperadminAudit('xlsx', 200);
+                          } catch (err: any) {
+                            setError(err?.message || 'Falha ao exportar XLSX');
+                          } finally {
+                            setAuditExporting(null);
+                          }
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Exportar XLSX
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3 inline-flex items-center"
+                        disabled={auditExporting !== null}
+                        onClick={async () => {
+                          setAuditExporting('pdf');
+                          setError('');
+                          try {
+                            await downloadSuperadminAudit('pdf', 200);
+                          } catch (err: any) {
+                            setError(err?.message || 'Falha ao exportar PDF');
+                          } finally {
+                            setAuditExporting(null);
+                          }
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Exportar PDF
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3 inline-flex items-center"
                         disabled={auditPurging}
                         onClick={async () => {
                           setAuditPurging(true);
@@ -2413,6 +2572,44 @@ export function SuperAdminSettings() {
                           >
                             <Download className="mr-2 h-4 w-4" />
                             Exportar JSON
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary h-9 px-3 inline-flex items-center"
+                            disabled={runsExporting !== null}
+                            onClick={async () => {
+                              setRunsExporting('xlsx');
+                              setError('');
+                              try {
+                                await downloadSetupRunsExport('xlsx', runsExportLimit);
+                              } catch (err: any) {
+                                setError(err?.message || 'Falha ao exportar XLSX');
+                              } finally {
+                                setRunsExporting(null);
+                              }
+                            }}
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Exportar XLSX
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary h-9 px-3 inline-flex items-center"
+                            disabled={runsExporting !== null}
+                            onClick={async () => {
+                              setRunsExporting('pdf');
+                              setError('');
+                              try {
+                                await downloadSetupRunsExport('pdf', runsExportLimit);
+                              } catch (err: any) {
+                                setError(err?.message || 'Falha ao exportar PDF');
+                              } finally {
+                                setRunsExporting(null);
+                              }
+                            }}
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Exportar PDF
                           </button>
                         </div>
                       </div>
