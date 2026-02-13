@@ -1,4 +1,7 @@
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 
 const { Client } = pg;
@@ -129,6 +132,42 @@ async function verifyUsersTable() {
 
 const env = { ...process.env };
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+function detectBackendDir() {
+  const candidates = [
+    // Monorepo layout
+    path.resolve(__dirname, '../../backend'),
+    // Docker runtime layout (backend package.json is copied to /app)
+    path.resolve(__dirname, '../..'),
+    // Fallback for when the script is invoked from backend already
+    process.cwd(),
+  ];
+
+  for (const dir of candidates) {
+    try {
+      const pkg = path.join(dir, 'package.json');
+      const drizzleConfigMjs = path.join(dir, 'drizzle.config.mjs');
+      const drizzleConfigTs = path.join(dir, 'drizzle.config.ts');
+      if (fs.existsSync(pkg) && (fs.existsSync(drizzleConfigMjs) || fs.existsSync(drizzleConfigTs))) {
+        return dir;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return null;
+}
+
+const backendDir = detectBackendDir();
+if (!backendDir) {
+  console.error('[drizzle-migrate] Could not locate backend directory (package.json + drizzle.config.*).');
+  console.error('[drizzle-migrate] Expected either <repo>/backend or Docker runtime /app layout.');
+  process.exit(1);
+}
+
 // Railway Postgres can present a self-signed cert chain.
 // Limit the TLS bypass to the migration subprocess only.
 const configured = env.PG_TLS_REJECT_UNAUTHORIZED ?? env.NODE_TLS_REJECT_UNAUTHORIZED;
@@ -186,6 +225,7 @@ const child = spawn('npm', ['run', 'db:push'], {
   // Keep stdin available so drizzle-kit can prompt if it needs to.
   // We still capture stdout/stderr to avoid log-rate limits.
   stdio: verbose ? 'inherit' : ['pipe', 'pipe', 'pipe'],
+  cwd: backendDir,
   env,
 });
 

@@ -98,6 +98,20 @@ npm run dev
 O frontend estará em: http://localhost:5173
 Login via slug: http://localhost:5173/t/demo/login
 
+---
+
+## 🧪 Smoke test (desenvolvimento)
+
+Para um ciclo rápido e repetível (aplicar schema via Drizzle e opcionalmente seed):
+
+```bash
+# Aplica schema (usa DATABASE_URL do ambiente ou backend/.env)
+node scripts/dev/smoke.mjs
+
+# Aplica schema + seed
+SMOKE_SEED=1 node scripts/dev/smoke.mjs
+```
+
 ## 📊 Passo 4: Adicionar Dados Demonstrativos (Opcional)
 
 1. Acesse http://localhost:5173/t/demo/login

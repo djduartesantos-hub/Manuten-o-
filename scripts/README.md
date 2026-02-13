@@ -50,6 +50,20 @@ Files de database (SQL, migrations).
 
 ---
 
+### Dev / Smoke
+
+Script simples e **idempotente** para garantir que a BD tem schema aplicado (Drizzle) e, opcionalmente, correr seed.
+
+```bash
+# Aplica schema (não destrutivo por omissão)
+node scripts/dev/smoke.mjs
+
+# Aplica schema + seed
+SMOKE_SEED=1 node scripts/dev/smoke.mjs
+```
+
+---
+
 ## ⚡ Quick Start
 
 ### Windows (Recomendado)
