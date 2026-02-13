@@ -157,7 +157,7 @@ Este documento é um “banco de ideias” orientado a tornar o produto mais com
 13. Tool de RBAC drift com sugestões.
 14. Tool de segurança com recomendações.
 15. “Quarantine tenant” (read-only mode).
-16. Export multi-format (zip com múltiplos CSV).
+16. Export multi-formato (CSV/JSON/XLSX/PDF; opcional ZIP com múltiplos ficheiros).
 17. Captura de ambiente (versões).
 18. SLA interno por ticket.
 19. Automação de incidentes.
