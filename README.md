@@ -693,7 +693,19 @@ No arranque do container:
 
 1. espera a BD (`DATABASE_URL`) ficar pronta
 2. aplica schema via Drizzle (`npm run db:push`)
-3. aplica migrações SQL em `scripts/database/migrations/*.sql`
+3. (opcional) aplica migrações SQL em `scripts/database/migrations/*.sql` (apenas se `RUN_SQL_MIGRATIONS=true`)
+
+### ⚙️ Variáveis úteis (migrações)
+
+- `RUN_SQL_MIGRATIONS=true` — ativa migrações SQL legadas no arranque (por omissão está desligado)
+- `DRIZZLE_PUSH_MODE=auto|never|always` — controla quando corre o `db:push` (por omissão: `auto`)
+  - `auto`: só corre se detetar BD “fresca” (ex.: sem tabela `users`)
+  - `never`: nunca corre
+  - `always`: força correr sempre (pode pedir confirmação em cenários de alterações destrutivas)
+- `DRIZZLE_AUTO_APPROVE=1` — tenta confirmar automaticamente prompts do drizzle-kit (útil em produção)
+- `DRIZZLE_MIGRATE_VERBOSE=1` — logs completos (sem truncar stdout/stderr)
+- `DRIZZLE_PUSH_TIMEOUT_MS=180000` — timeout do `db:push` (ms)
+- `PG_SSL=1` ou `DATABASE_SSL=1` — força SSL para Postgres quando o provider exige
 
 ### Primeira inicialização (criar admin)
 
