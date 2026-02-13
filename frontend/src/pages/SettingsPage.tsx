@@ -16,6 +16,7 @@ import {
   downloadSuperadminAudit,
   downloadSuperadminTenantsActivity,
   downloadSuperadminTenantsMetrics,
+  downloadSuperadminTenantsHealthScore,
   downloadSuperadminUserSecurity,
   getSuperadminAudit,
   getSuperadminDashboardMetrics,
@@ -814,6 +815,8 @@ export function SuperAdminSettings() {
   const [auditPurging, setAuditPurging] = React.useState(false);
   const [auditExporting, setAuditExporting] = React.useState<'csv' | 'json' | 'xlsx' | 'pdf' | null>(null);
   const [runsExporting, setRunsExporting] = React.useState<'csv' | 'json' | 'xlsx' | 'pdf' | null>(null);
+  const [healthScoreExporting, setHealthScoreExporting] = React.useState<'csv' | 'json' | 'xlsx' | 'pdf' | null>(null);
+  const [healthScoreExportLimit, setHealthScoreExportLimit] = React.useState<number>(200);
 
   const [userSearchQ, setUserSearchQ] = React.useState('');
   const [userSearchResults, setUserSearchResults] = React.useState<any[]>([]);
@@ -2423,6 +2426,102 @@ export function SuperAdminSettings() {
                       <p className="mt-2 text-sm text-[color:var(--dash-muted)]">
                         Score 0–100 e alertas automáticos por tenant.
                       </p>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <label className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                          Export
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-[color:var(--dash-muted)]">Limite</span>
+                          <input
+                            type="number"
+                            value={healthScoreExportLimit}
+                            min={1}
+                            max={500}
+                            onChange={(e) => setHealthScoreExportLimit(Number(e.target.value || 200))}
+                            className="w-28 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-3 py-2 text-sm text-[color:var(--dash-ink)]"
+                          />
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className="btn-secondary h-9 px-3 inline-flex items-center"
+                            disabled={healthScoreExporting !== null}
+                            onClick={async () => {
+                              setHealthScoreExporting('csv');
+                              setError('');
+                              try {
+                                await downloadSuperadminTenantsHealthScore('csv', healthScoreExportLimit);
+                              } catch (err: any) {
+                                setError(err?.message || 'Falha ao exportar CSV');
+                              } finally {
+                                setHealthScoreExporting(null);
+                              }
+                            }}
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Exportar CSV
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary h-9 px-3 inline-flex items-center"
+                            disabled={healthScoreExporting !== null}
+                            onClick={async () => {
+                              setHealthScoreExporting('json');
+                              setError('');
+                              try {
+                                await downloadSuperadminTenantsHealthScore('json', healthScoreExportLimit);
+                              } catch (err: any) {
+                                setError(err?.message || 'Falha ao exportar JSON');
+                              } finally {
+                                setHealthScoreExporting(null);
+                              }
+                            }}
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Exportar JSON
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary h-9 px-3 inline-flex items-center"
+                            disabled={healthScoreExporting !== null}
+                            onClick={async () => {
+                              setHealthScoreExporting('xlsx');
+                              setError('');
+                              try {
+                                await downloadSuperadminTenantsHealthScore('xlsx', healthScoreExportLimit);
+                              } catch (err: any) {
+                                setError(err?.message || 'Falha ao exportar XLSX');
+                              } finally {
+                                setHealthScoreExporting(null);
+                              }
+                            }}
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Exportar XLSX
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary h-9 px-3 inline-flex items-center"
+                            disabled={healthScoreExporting !== null}
+                            onClick={async () => {
+                              setHealthScoreExporting('pdf');
+                              setError('');
+                              try {
+                                await downloadSuperadminTenantsHealthScore('pdf', healthScoreExportLimit);
+                              } catch (err: any) {
+                                setError(err?.message || 'Falha ao exportar PDF');
+                              } finally {
+                                setHealthScoreExporting(null);
+                              }
+                            }}
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Exportar PDF
+                          </button>
+                        </div>
+                      </div>
                     </div>
                     <div className="text-xs text-[color:var(--dash-muted)]">
                       {supportTenantsHealthScore?.generatedAt ? `Atualizado: ${String(supportTenantsHealthScore.generatedAt)}` : null}

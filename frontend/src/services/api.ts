@@ -599,6 +599,29 @@ export async function getSuperadminTenantsHealthScore(limit?: number): Promise<{
   return apiCall(`/superadmin/diagnostics/tenants/healthscore${qs}`);
 }
 
+export async function downloadSuperadminTenantsHealthScore(
+  format: 'csv' | 'json' | 'xlsx' | 'pdf' = 'csv',
+  limit = 200,
+) {
+  const safeLimit = Number.isFinite(Number(limit)) ? Math.max(1, Math.min(500, Math.trunc(Number(limit)))) : 200;
+  const rawFormat = format === 'xlsx' || format === 'pdf' ? 'json' : format;
+  const qs = new URLSearchParams({ format: rawFormat, limit: String(safeLimit) });
+  const res = await apiCallRaw(`/superadmin/diagnostics/tenants/healthscore/export?${qs.toString()}`, { method: 'GET' });
+
+  if (format === 'xlsx' || format === 'pdf') {
+    const payload = await res.json();
+    if (format === 'xlsx') {
+      await triggerDownloadXlsx(payload, 'superadmin_tenants_healthscore.xlsx', 'HealthScore');
+    } else {
+      await triggerDownloadPdf(payload, 'superadmin_tenants_healthscore.pdf', 'Health score (Tenants)');
+    }
+    return;
+  }
+
+  const blob = await res.blob();
+  triggerDownload(blob, format === 'json' ? 'superadmin_tenants_healthscore.json' : 'superadmin_tenants_healthscore.csv');
+}
+
 export async function getSuperadminAudit(params?: {
   limit?: number;
   offset?: number;

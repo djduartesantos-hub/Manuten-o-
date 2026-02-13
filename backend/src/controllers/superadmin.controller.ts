@@ -1438,6 +1438,13 @@ export async function exportDiagnosticsBundle(req: AuthenticatedRequest, res: Re
 
     const tenantDiagnostics = { topTenants, warnings };
 
+    let tenantsHealthScore: any = null;
+    try {
+      tenantsHealthScore = await computeTenantsHealthScore(diagnosticsLimit);
+    } catch {
+      tenantsHealthScore = null;
+    }
+
     // db status (global or tenant depending on override)
     const hasOverride = hasTenantOverrideHeader(req);
     const tenantId = String(req.tenantId || '');
@@ -1567,6 +1574,7 @@ export async function exportDiagnosticsBundle(req: AuthenticatedRequest, res: Re
       generatedAt: serverTime,
       health,
       tenantDiagnostics,
+      tenantsHealthScore,
       dbStatus,
       audit,
       integrity,
@@ -1591,6 +1599,7 @@ export async function exportDiagnosticsBundle(req: AuthenticatedRequest, res: Re
       const wrap = (obj: any) => JSON.stringify({ success: true, data: obj }, null, 2);
       archive.append(wrap(health), { name: 'health.json' });
       archive.append(wrap(tenantDiagnostics), { name: 'tenant_diagnostics.json' });
+      archive.append(wrap(tenantsHealthScore), { name: 'tenants_healthscore.json' });
       archive.append(wrap(dbStatus), { name: 'db_status.json' });
       archive.append(wrap(audit), { name: 'audit.json' });
       archive.append(wrap(integrity), { name: 'integrity.json' });
@@ -1701,145 +1710,210 @@ export async function getTenantDiagnostics(req: AuthenticatedRequest, res: Respo
   }
 }
 
+async function computeTenantsHealthScore(limit: number): Promise<{ generatedAt: string; items: any[] }> {
+  const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(Math.trunc(limit), 1), 200) : 50;
+
+  const rows = await db.execute(sql`
+    SELECT
+      t.id,
+      t.name,
+      t.slug,
+      t.is_active,
+      COALESCE(u.user_count, 0)::int AS users,
+      COALESCE(u.active_user_count, 0)::int AS active_users,
+      u.last_login AS last_login,
+      COALESCE(p.plant_count, 0)::int AS plants
+    FROM tenants t
+    LEFT JOIN (
+      SELECT
+        tenant_id,
+        COUNT(*)::int AS user_count,
+        COUNT(*) FILTER (WHERE is_active = true)::int AS active_user_count,
+        MAX(last_login) AS last_login
+      FROM users
+      GROUP BY tenant_id
+    ) u ON u.tenant_id = t.id
+    LEFT JOIN (
+      SELECT tenant_id, COUNT(*)::int AS plant_count
+      FROM plants
+      GROUP BY tenant_id
+    ) p ON p.tenant_id = t.id
+    ORDER BY t.created_at ASC
+    LIMIT ${safeLimit};
+  `);
+
+  const now = Date.now();
+  const daysBetween = (a: number, b: number) => Math.floor(Math.abs(a - b) / (1000 * 60 * 60 * 24));
+  const parseDate = (value: any): Date | null => {
+    if (!value) return null;
+    const d = new Date(value);
+    return Number.isFinite(d.getTime()) ? d : null;
+  };
+
+  const items = (((rows as any)?.rows ?? []) as any[]).map((r: any) => {
+    const usersCount = Number(r.users ?? 0);
+    const activeUsersCount = Number(r.active_users ?? 0);
+    const plantsCount = Number(r.plants ?? 0);
+    const isActive = Boolean(r.is_active);
+    const lastLoginDate = parseDate(r.last_login);
+    const lastLoginIso = lastLoginDate ? lastLoginDate.toISOString() : null;
+
+    const alerts: Array<{ type: string; severity: 'info' | 'warning' | 'critical'; message: string }> = [];
+    let penalty = 0;
+
+    if (isActive && plantsCount === 0) {
+      alerts.push({
+        type: 'active_without_plants',
+        severity: 'critical',
+        message: 'Empresa ativa sem fábricas registadas',
+      });
+      penalty += 40;
+    }
+    if (isActive && usersCount === 0) {
+      alerts.push({
+        type: 'active_without_users',
+        severity: 'critical',
+        message: 'Empresa ativa sem utilizadores',
+      });
+      penalty += 40;
+    }
+    if (!isActive && usersCount > 0) {
+      alerts.push({
+        type: 'inactive_with_users',
+        severity: 'warning',
+        message: 'Empresa inativa com utilizadores associados',
+      });
+      penalty += 20;
+    }
+
+    if (usersCount > 0 && !lastLoginDate) {
+      alerts.push({
+        type: 'no_login_activity',
+        severity: 'warning',
+        message: 'Sem registos de login (last_login vazio)',
+      });
+      penalty += 10;
+    }
+
+    if (lastLoginDate) {
+      const ageDays = daysBetween(now, lastLoginDate.getTime());
+      if (ageDays >= 60) {
+        alerts.push({
+          type: 'stale_login_activity',
+          severity: 'warning',
+          message: `Sem login há ${ageDays} dias`,
+        });
+        penalty += 15;
+      }
+    }
+
+    const score = Math.max(0, 100 - penalty);
+    const hasCritical = alerts.some((a) => a.severity === 'critical');
+    const status: 'ok' | 'warning' | 'critical' =
+      hasCritical ? 'critical' : score >= 90 ? 'ok' : score >= 70 ? 'warning' : 'critical';
+
+    return {
+      tenant: {
+        id: String(r.id),
+        name: String(r.name || ''),
+        slug: String(r.slug || ''),
+        is_active: isActive,
+      },
+      counts: {
+        users: usersCount,
+        activeUsers: activeUsersCount,
+        plants: plantsCount,
+      },
+      lastLogin: lastLoginIso,
+      score,
+      status,
+      alerts,
+    };
+  });
+
+  const severityRank = (s: 'ok' | 'warning' | 'critical') => (s === 'critical' ? 0 : s === 'warning' ? 1 : 2);
+  items.sort((a: any, b: any) => {
+    const sa = severityRank(a.status);
+    const sb = severityRank(b.status);
+    if (sa !== sb) return sa - sb;
+    return Number(a.score) - Number(b.score);
+  });
+
+  return { generatedAt: new Date().toISOString(), items };
+}
+
 export async function getTenantsHealthScore(req: AuthenticatedRequest, res: Response) {
   try {
     const limitRaw = Number((req.query as any)?.limit ?? 50);
     const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 200) : 50;
-
-    const rows = await db.execute(sql`
-      SELECT
-        t.id,
-        t.name,
-        t.slug,
-        t.is_active,
-        COALESCE(u.user_count, 0)::int AS users,
-        COALESCE(u.active_user_count, 0)::int AS active_users,
-        u.last_login AS last_login,
-        COALESCE(p.plant_count, 0)::int AS plants
-      FROM tenants t
-      LEFT JOIN (
-        SELECT
-          tenant_id,
-          COUNT(*)::int AS user_count,
-          COUNT(*) FILTER (WHERE is_active = true)::int AS active_user_count,
-          MAX(last_login) AS last_login
-        FROM users
-        GROUP BY tenant_id
-      ) u ON u.tenant_id = t.id
-      LEFT JOIN (
-        SELECT tenant_id, COUNT(*)::int AS plant_count
-        FROM plants
-        GROUP BY tenant_id
-      ) p ON p.tenant_id = t.id
-      ORDER BY t.created_at ASC
-      LIMIT ${limit};
-    `);
-
-    const now = Date.now();
-    const daysBetween = (a: number, b: number) => Math.floor(Math.abs(a - b) / (1000 * 60 * 60 * 24));
-    const parseDate = (value: any): Date | null => {
-      if (!value) return null;
-      const d = new Date(value);
-      return Number.isFinite(d.getTime()) ? d : null;
-    };
-
-    const data = (((rows as any)?.rows ?? []) as any[]).map((r: any) => {
-      const usersCount = Number(r.users ?? 0);
-      const activeUsersCount = Number(r.active_users ?? 0);
-      const plantsCount = Number(r.plants ?? 0);
-      const isActive = Boolean(r.is_active);
-      const lastLoginDate = parseDate(r.last_login);
-      const lastLoginIso = lastLoginDate ? lastLoginDate.toISOString() : null;
-
-      const alerts: Array<{ type: string; severity: 'info' | 'warning' | 'critical'; message: string }> = [];
-      let penalty = 0;
-
-      if (isActive && plantsCount === 0) {
-        alerts.push({
-          type: 'active_without_plants',
-          severity: 'critical',
-          message: 'Empresa ativa sem fábricas registadas',
-        });
-        penalty += 40;
-      }
-      if (isActive && usersCount === 0) {
-        alerts.push({
-          type: 'active_without_users',
-          severity: 'critical',
-          message: 'Empresa ativa sem utilizadores',
-        });
-        penalty += 40;
-      }
-      if (!isActive && usersCount > 0) {
-        alerts.push({
-          type: 'inactive_with_users',
-          severity: 'warning',
-          message: 'Empresa inativa com utilizadores associados',
-        });
-        penalty += 20;
-      }
-
-      if (usersCount > 0 && !lastLoginDate) {
-        alerts.push({
-          type: 'no_login_activity',
-          severity: 'warning',
-          message: 'Sem registos de login (last_login vazio)',
-        });
-        penalty += 10;
-      }
-
-      if (lastLoginDate) {
-        const ageDays = daysBetween(now, lastLoginDate.getTime());
-        if (ageDays >= 60) {
-          alerts.push({
-            type: 'stale_login_activity',
-            severity: 'warning',
-            message: `Sem login há ${ageDays} dias`,
-          });
-          penalty += 15;
-        }
-      }
-
-      const score = Math.max(0, 100 - penalty);
-      const hasCritical = alerts.some((a) => a.severity === 'critical');
-      const status: 'ok' | 'warning' | 'critical' = hasCritical ? 'critical' : score >= 90 ? 'ok' : score >= 70 ? 'warning' : 'critical';
-
-      return {
-        tenant: {
-          id: String(r.id),
-          name: String(r.name || ''),
-          slug: String(r.slug || ''),
-          is_active: isActive,
-        },
-        counts: {
-          users: usersCount,
-          activeUsers: activeUsersCount,
-          plants: plantsCount,
-        },
-        lastLogin: lastLoginIso,
-        score,
-        status,
-        alerts,
-      };
-    });
-
-    const severityRank = (s: 'ok' | 'warning' | 'critical') => (s === 'critical' ? 0 : s === 'warning' ? 1 : 2);
-    data.sort((a: any, b: any) => {
-      const sa = severityRank(a.status);
-      const sb = severityRank(b.status);
-      if (sa !== sb) return sa - sb;
-      return Number(a.score) - Number(b.score);
-    });
-
+    const payload = await computeTenantsHealthScore(limit);
     return res.json({
       success: true,
-      data: {
-        generatedAt: new Date().toISOString(),
-        items: data,
-      },
+      data: payload,
     });
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to fetch tenants health score' });
+  }
+}
+
+export async function exportTenantsHealthScore(req: AuthenticatedRequest, res: Response) {
+  try {
+    const format = String((req.query as any)?.format || 'csv').toLowerCase();
+    const limitRaw = Number((req.query as any)?.limit ?? 200);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 500) : 200;
+
+    const payload = await computeTenantsHealthScore(limit);
+
+    if (format === 'json') {
+      return res.json({ success: true, data: payload });
+    }
+
+    const headers = [
+      'tenant_id',
+      'tenant_name',
+      'tenant_slug',
+      'tenant_is_active',
+      'score',
+      'status',
+      'users',
+      'active_users',
+      'plants',
+      'last_login',
+      'alerts',
+    ];
+
+    const csv = [
+      headers.join(','),
+      ...payload.items.map((row: any) => {
+        const tenant = row?.tenant || {};
+        const counts = row?.counts || {};
+        const alerts = Array.isArray(row?.alerts) ? row.alerts : [];
+        const alertsText = alerts
+          .map((a: any) => `${String(a?.severity || 'info')}:${String(a?.type || '')}:${String(a?.message || '')}`)
+          .join(' | ');
+        return [
+          tenant.id,
+          tenant.name,
+          tenant.slug,
+          tenant.is_active,
+          row?.score,
+          row?.status,
+          counts.users,
+          counts.activeUsers,
+          counts.plants,
+          row?.lastLogin,
+          alertsText,
+        ]
+          .map(toCsvValue)
+          .join(',');
+      }),
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="superadmin_tenants_healthscore.csv"');
+    return res.status(200).send(csv);
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to export tenants health score' });
   }
 }
 

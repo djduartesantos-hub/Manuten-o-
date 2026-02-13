@@ -35,6 +35,7 @@ router.get('/db/status', SuperAdminController.getDbStatus);
 router.get('/health', SuperAdminController.getHealth);
 router.get('/diagnostics/tenants', SuperAdminController.getTenantDiagnostics);
 router.get('/diagnostics/tenants/healthscore', SuperAdminController.getTenantsHealthScore);
+router.get('/diagnostics/tenants/healthscore/export', SuperAdminController.exportTenantsHealthScore);
 router.get('/diagnostics/bundle/export', SuperAdminController.exportDiagnosticsBundle);
 router.get('/diagnostics/integrity', SuperAdminController.getIntegrityChecks);
 router.get('/diagnostics/integrity/export', SuperAdminController.exportIntegrityChecks);
