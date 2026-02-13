@@ -12,6 +12,12 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 
 ## Fase 0 — “Release readiness” (Hardening mínimo)
 
+**O que é**
+- Hardening e estabilização para produção: segurança básica, observabilidade, erros consistentes e capacidade de recuperar.
+
+**Para que serve**
+- Garantir que o produto é **operável** (suporte consegue diagnosticar) e **seguro** (não vaza segredos, não cai com abuso), antes de adicionar mais features.
+
 **Must**
 - Autenticação/Autorização consistente em todas as rotas (incl. tenant scope) e auditoria dos caminhos críticos.
 - Logs estruturados + request id (mínimo em produção).
@@ -40,6 +46,12 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 
 ## Fase 1 — RBAC e Segurança “comercial”
 
+**O que é**
+- Formalizar o modelo de permissões (RBAC) e reforçar segurança/gestão de sessão para um uso “de empresa”.
+
+**Para que serve**
+- Evitar “Permissões insuficientes” inesperadas, permitir auditoria/controlo e suportar equipas com roles diferentes sem risco de acesso indevido.
+
 **Must**
 - RBAC completo por tenant e fábrica (consistência entre backend e UI).
 - Auditoria de mudanças RBAC (quem alterou o quê).
@@ -64,6 +76,12 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 ---
 
 ## Fase 2 — Work Orders “profissional” (fluxos + evidências)
+
+**O que é**
+- Evoluir as Ordens de Trabalho (OT) para um ciclo de vida completo: workflow, evidências e histórico.
+
+**Para que serve**
+- Transformar OTs em registos confiáveis (para equipa e cliente), com rastreabilidade, prova de execução e medição de SLA.
 
 **Must**
 - Workflow de OT consistente: estados, transições e permissões.
@@ -90,6 +108,12 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 
 ## Fase 3 — Preventivas e Planeamento (calendário)
 
+**O que é**
+- Planeamento robusto de manutenção preventiva (recorrência) com calendário unificado e alertas.
+
+**Para que serve**
+- Reduzir falhas por falta de planeamento e dar visibilidade (semanal/mensal) do que vem a seguir, do que está atrasado e do impacto operacional.
+
 **Must**
 - Calendário unificado (preventivas + OTs + paragens planeadas).
 - Regras de recorrência/planeamento robustas.
@@ -114,6 +138,12 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 
 ## Fase 4 — Stock/Peças + Compras (core industrial)
 
+**O que é**
+- Gestão de stock e consumo por OT (inventário, movimentos, mínimos) com base industrial.
+
+**Para que serve**
+- Evitar ruturas de peças, controlar custos por manutenção e suportar processos de compra/receção com rastreabilidade.
+
 **Must**
 - Stock mínimo, movimentos (entrada/saída), consumo por OT.
 - Inventário por fábrica.
@@ -136,6 +166,12 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 ---
 
 ## Fase 5 — Reports/BI e Exportações “vendáveis”
+
+**O que é**
+- Pacote de relatórios e exports consistentes focados em métricas “de compra”: SLA, custos, backlog, preventivas.
+
+**Para que serve**
+- Tornar o produto mais “vendável”: responder rapidamente a perguntas de gestão e permitir extração de dados sem trabalho manual.
 
 **Must**
 - Relatórios essenciais: backlog aging, preventivas, custos, SLA.
@@ -160,6 +196,12 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 
 ## Fase 6 — Suporte e Operações (SuperAdmin) + Tickets (futuro)
 
+**O que é**
+- Consola de operações/suporte para gerir saúde, diagnósticos, exportações e ações de reparação com auditoria.
+
+**Para que serve**
+- Reduzir tempo de resolução de incidentes e dar ferramentas seguras de suporte sem mexer diretamente na BD.
+
 **Must**
 - Consola de suporte completa (já existe base): bundles, integridade, drift, exports.
 - Ferramentas seguras (com auditoria) para reset/repair e ações de suporte.
@@ -169,7 +211,7 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - Modo quarentena/readonly.
 
 **Could**
-- Sistema de Tickets (ver docs/ROADMAP_SUPERADMIN_TICKETS.md)
+- Sistema de Tickets (ver planning/ROADMAP_SUPERADMIN_TICKETS.md)
 
 **Dependências**
 - BD/API/UI: sim
