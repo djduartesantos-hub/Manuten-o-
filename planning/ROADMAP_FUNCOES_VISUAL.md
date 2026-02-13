@@ -18,6 +18,8 @@ Legenda de estado:
 - `[ ]` = por fazer
 - `→` = depende de outro bloco
 
+Última verificação do estado `[x]`: **2026-02-13** (validação por referência direta a ficheiros do código).
+
 ---
 
 ## Mapa visual (módulos e dependências)
@@ -47,9 +49,9 @@ flowchart TD
 
 ### 1) Plataforma & Operações (base)
 
-- [x] Auth + tenant scoping base (já existente no produto)
-- [x] RBAC base (roles/permissões) + normalização/repair (inclui “Reparar RBAC” no SuperAdmin)
-- [x] Hardening básico (helmet/rate limit) (ver roadmap 2026)
+- [x] Auth + tenant scoping base — ver backend/src/middlewares/auth.ts, backend/src/middlewares/tenant.ts, frontend/src/services/api.ts
+- [x] RBAC base (roles/permissões) + normalização/repair — ver backend/src/services/rbac.service.ts, backend/src/controllers/setup.controller.ts, backend/src/routes/setup.routes.ts, frontend/src/pages/SettingsPage.tsx
+- [x] Hardening básico (helmet/rate limit) + OpenAPI básico — ver backend/src/app.ts, backend/src/routes/docs.routes.ts
 - [ ] Auditoria completa com diff por alteração (quem/antes/depois)
 - [ ] Gestão de sessões (revogar sessões ativas, logs de login falhado)
 - [ ] Políticas de segurança (password policy/lockout) → depende de “gestão de sessões”
@@ -57,17 +59,17 @@ flowchart TD
 
 ### 2) SuperAdmin (operações e suporte)
 
-- [x] Seleção de empresa persistida (última escolhida / primeira) e sem “Global”
-- [x] Consola SuperAdmin simplificada (sem navegação no topo; layout mais mobile)
-- [x] Diagnósticos + exportações (bundle, integridade, drift, etc.) (base já existente)
-- [x] Ferramenta “Reparar RBAC” (patch/seed)
+- [x] Seleção de empresa persistida (última escolhida / primeira) e sem “Global” — ver frontend/src/components/Header.tsx, frontend/src/pages/SettingsPage.tsx
+- [x] Consola SuperAdmin simplificada (sem navegação no topo; layout mais mobile) — ver frontend/src/pages/SettingsPage.tsx
+- [x] Diagnósticos + exportações (bundle, integridade, drift, audit, exports) — ver backend/src/routes/superadmin.routes.ts, backend/src/controllers/superadmin.controller.ts
+- [x] Ferramenta “Reparar RBAC” (patch/seed) — ver backend/src/controllers/setup.controller.ts, backend/src/routes/setup.routes.ts, frontend/src/pages/SettingsPage.tsx
 - [ ] Health score por tenant + alertas
 - [ ] Quarantine/read-only por tenant
 - [ ] Sistema de Tickets (MVP) → ver [planning/ROADMAP_SUPERADMIN_TICKETS.md](planning/ROADMAP_SUPERADMIN_TICKETS.md)
 
 ### 3) Work Orders (OT) — “profissional”
 
-- [x] Work orders base + SLA (existente)
+- [x] Work orders base + SLA — ver backend/src/routes/workorder.routes.ts, backend/src/services/workorder.service.ts, backend/src/utils/workorder-sla.js
 - [ ] Workflow configurável (estados/transições/aprovações)
 - [ ] Evidências completas (anexos/fotos antes/depois) → liga a “Documentos & Compliance”
 - [ ] Timeline/audit legível de OT (derivada de audit logs)
@@ -76,7 +78,7 @@ flowchart TD
 
 ### 4) Preventivas & Planeamento
 
-- [x] Preventivas base + schedules (existente)
+- [x] Preventivas base + schedules — ver backend/src/routes/maintenance.routes.ts, frontend/src/services/api.ts
 - [ ] Calendário unificado (preventivas + OTs + paragens planeadas)
 - [ ] Regras robustas de recorrência/planeamento
 - [ ] Checklists dinâmicas por tipo de ativo/plano
@@ -84,27 +86,27 @@ flowchart TD
 
 ### 5) Ativos (Asset Management)
 
-- [x] CRUD de ativos + categorias (existente)
+- [x] CRUD de ativos + categorias — ver backend/src/routes/asset.routes.ts, backend/src/routes/asset-category.routes.ts
 - [ ] Ciclo de vida do ativo (custos, depreciação, substituições)
 - [ ] Etiquetas QR/NFC (ativos/locais, abertura rápida de OT)
 
 ### 6) Stock & Compras
 
-- [x] Stock/movimentos base (existente)
-- [x] Reservas por ordem + kits (ver roadmap 2026)
+- [x] Stock/movimentos base — ver backend/src/routes/sparepart.routes.ts, backend/src/services/sparepart.service.ts, frontend/src/pages/SparePartsPage.tsx
+- [x] Reservas por ordem + kits — ver backend/src/routes/maintenancekit.routes.ts, frontend/src/pages/WorkOrdersPage.tsx, frontend/src/pages/MaintenanceKitsPage.tsx
 - [ ] Inventário avançado (lotes/localização/mínimos/reposição automática)
 - [ ] Compras & requisições (pedido interno → fornecedor → receção)
 
 ### 7) Documentos & Compliance
 
-- [x] Biblioteca de documentos + upload/versionamento (base existente)
+- [x] Biblioteca de documentos + upload/versionamento — ver backend/src/services/document.service.ts, backend/src/routes/alert.routes.ts, frontend/src/pages/SettingsPage.tsx
 - [ ] Validade/certificações + alertas de expiração
 - [ ] “Quality & Compliance” (calibrações/inspeções/ISO/evidências)
 
 ### 8) Notificações & Alertas
 
-- [x] Alertas base + Settings (ver roadmap 2026)
-- [x] Notificações (in-app/socket) (ver roadmap 2026)
+- [x] Alertas base + Settings — ver backend/src/services/alert.service.ts, backend/src/routes/alert.routes.ts, frontend/src/pages/SettingsPage.tsx
+- [x] Notificações (in-app + socket) — ver backend/src/routes/notification.routes.ts, backend/src/services/notification.service.ts, frontend/src/pages/NotificationsPage.tsx, frontend/src/context/SocketContext.tsx
 - [ ] Relatórios agendados por email
 - [ ] Templates de notificação por tenant
 - [ ] Email-to-WorkOrder (criar OT via email) → depende de “Integrações”
@@ -117,7 +119,7 @@ flowchart TD
 
 ### 10) Experiência (UX)
 
-- [x] Dark mode / tema (base já existe)
+- [x] Dark mode / tema — ver frontend/src/context/ThemeContext.tsx, frontend/src/components/Header.tsx
 - [ ] Dashboards por persona (admin/gestor/técnico/operador)
 - [ ] PWA mobile offline-first (técnicos)
 - [ ] Multi-idioma (pt/en/es)
