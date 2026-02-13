@@ -30,6 +30,7 @@ import { TechnicianWorkOrdersHomePage } from './pages/TechnicianWorkOrdersHomePa
 import { OperatorWorkOrdersHomePage } from './pages/OperatorWorkOrdersHomePage';
 
 import { SuperAdminPage } from './pages/SuperAdminPage';
+import { UnauthorizedPage } from './pages/UnauthorizedPage';
 
 
 import { ThemeProvider } from './context/ThemeContext';
@@ -129,6 +130,15 @@ function App() {
             />
             <Route path="/setup" element={<SetupInitPage />} />
 
+            <Route
+              path="/unauthorized"
+              element={
+                <ProtectedRoute>
+                  <UnauthorizedPage />
+                </ProtectedRoute>
+              }
+            />
+
               <Route
                 path="/superadmin"
                 element={
@@ -205,7 +215,7 @@ function App() {
             <Route
               path="/tecnico"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['tecnico']}>
                   <TechnicianWorkOrdersHomePage />
                 </ProtectedRoute>
               }
@@ -214,7 +224,7 @@ function App() {
             <Route
               path="/operador"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['operador']}>
                   <OperatorWorkOrdersHomePage />
                 </ProtectedRoute>
               }
@@ -222,7 +232,7 @@ function App() {
             <Route
               path="/assets"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['admin_empresa', 'gestor_manutencao', 'supervisor', 'viewer', 'superadmin']}>
                   <AssetsPage />
                 </ProtectedRoute>
               }
@@ -230,7 +240,7 @@ function App() {
             <Route
               path="/maintenance-plans"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['admin_empresa', 'gestor_manutencao', 'supervisor', 'superadmin']}>
                   <Navigate to="/settings?panel=preventive&sub=plans" replace />
                 </ProtectedRoute>
               }
@@ -238,7 +248,7 @@ function App() {
             <Route
               path="/preventive-schedules"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['admin_empresa', 'gestor_manutencao', 'supervisor', 'superadmin']}>
                   <Navigate to="/settings?panel=preventive&sub=schedules" replace />
                 </ProtectedRoute>
               }
@@ -246,7 +256,7 @@ function App() {
             <Route
               path="/spare-parts"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['admin_empresa', 'gestor_manutencao', 'supervisor', 'superadmin']}>
                   <SparePartsPage />
                 </ProtectedRoute>
               }
@@ -254,7 +264,7 @@ function App() {
             <Route
               path="/maintenance-kits"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['admin_empresa', 'gestor_manutencao', 'supervisor', 'superadmin']}>
                   <MaintenanceKitsListPage />
                 </ProtectedRoute>
               }
@@ -262,7 +272,7 @@ function App() {
             <Route
               path="/suppliers"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['admin_empresa', 'gestor_manutencao', 'supervisor', 'superadmin']}>
                   <SuppliersPage />
                 </ProtectedRoute>
               }
@@ -270,7 +280,7 @@ function App() {
             <Route
               path="/reports"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['admin_empresa', 'gestor_manutencao', 'supervisor', 'viewer', 'superadmin']}>
                   <ReportsPage />
                 </ProtectedRoute>
               }
@@ -278,7 +288,7 @@ function App() {
             <Route
               path="/settings"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['admin_empresa', 'gestor_manutencao', 'supervisor', 'superadmin']}>
                   <SettingsPage />
                 </ProtectedRoute>
               }

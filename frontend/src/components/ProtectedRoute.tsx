@@ -21,8 +21,8 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
     );
   }
 
-  if (requiredRoles && user && !requiredRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" replace />;
+  if (requiredRoles && !requiredRoles.includes(String(user?.role || ''))) {
+    return <Navigate to="/unauthorized" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;

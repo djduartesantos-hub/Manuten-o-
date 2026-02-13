@@ -26,6 +26,7 @@ import { useAppStore } from '../context/store';
 import { useSocket } from '../context/SocketContext';
 import { useTheme } from '../context/ThemeContext';
 import { getSuperadminDbStatus, getSuperadminTenants } from '../services/api';
+import { canAccessPath } from '../utils/access';
 
 interface NavItem {
   label: string;
@@ -222,6 +223,10 @@ export function Header() {
       ],
     },
   ])
+  .map((section) => ({
+    ...section,
+    items: section.items.filter((item) => canAccessPath(user?.role, item.href)),
+  }))
   .filter((section) => section.items.length > 0);
 
   const handleLogout = () => {
