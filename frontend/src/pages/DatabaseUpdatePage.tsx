@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle, Database, RefreshCw, Server, Wrench } from 'l
 import {
   clearAllData,
   getSetupStatus,
+  getSqlMigrationsStatus,
   initializeDatabase,
   applyDbCorrections,
   runMigrations,
@@ -44,6 +45,16 @@ interface DatabaseStatus {
 
 interface MigrationResult {
   files?: string[];
+  pendingFilesBefore?: string[];
+  pendingFilesAfter?: string[];
+  executedFilesAll?: string[];
+}
+
+interface SqlMigrationsStatus {
+  migrationsDir: string | null;
+  availableFiles: string[];
+  executedFiles: string[];
+  pendingFiles: string[];
 }
 
 interface CorrectionsResult {
@@ -57,6 +68,7 @@ interface DatabaseUpdatePageProps {
 
 export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps) {
   const [status, setStatus] = useState<DatabaseStatus | null>(null);
+  const [sqlStatus, setSqlStatus] = useState<SqlMigrationsStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -68,6 +80,8 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
     try {
       const data = await getSetupStatus();
       setStatus(data);
+      const mig = await getSqlMigrationsStatus();
+      setSqlStatus(mig);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao verificar estado');
     } finally {
@@ -76,7 +90,7 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
   };
 
   const handleMigrate = async () => {
-    if (!confirm('Deseja aplicar todas as migracoes SQL disponiveis?')) {
+    if (!confirm('Deseja aplicar apenas as migracoes SQL pendentes?')) {
       return;
     }
 
@@ -91,7 +105,7 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
       setSuccess(
         files.length > 0
           ? `Migracoes aplicadas: ${files.join(', ')}`
-          : 'Nenhuma migracao encontrada para executar.'
+          : 'Nenhuma migracao pendente para executar.'
       );
       await fetchStatus();
     } catch (err) {
@@ -220,14 +234,6 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
           </h2>
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={handleMigrate}
-              disabled={loading}
-              className="btn-primary inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <Wrench className="w-4 h-4" />
-              Executar Migracoes
-            </button>
-            <button
               onClick={fetchStatus}
               disabled={loading}
               className="btn-secondary inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
@@ -288,6 +294,55 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
           </div>
         )}
 
+        <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold theme-text">Migracoes SQL</p>
+              <p className="text-xs theme-text-muted mt-1">
+                Executa apenas as migracoes pendentes em scripts/database/migrations.
+              </p>
+            </div>
+            <button
+              onClick={handleMigrate}
+              disabled={loading || (sqlStatus?.pendingFiles?.length ?? 0) === 0}
+              className="btn-primary inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Wrench className="w-4 h-4" />
+              Executar Pendentes
+            </button>
+          </div>
+
+          {sqlStatus && (
+            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+                <div className="text-sm theme-text-muted mb-1">Pendentes</div>
+                <div className="text-2xl font-bold theme-text">{sqlStatus.pendingFiles.length}</div>
+              </div>
+              <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+                <div className="text-sm theme-text-muted mb-1">Executadas</div>
+                <div className="text-2xl font-bold theme-text">{sqlStatus.executedFiles.length}</div>
+              </div>
+              <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 col-span-2">
+                <div className="text-sm theme-text-muted mb-1">Diretorio</div>
+                <div className="text-sm font-semibold theme-text break-all">{sqlStatus.migrationsDir ?? '—'}</div>
+              </div>
+            </div>
+          )}
+
+          {sqlStatus?.pendingFiles?.length ? (
+            <div className="mt-4 rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text">
+              <div className="font-semibold theme-text mb-2">Pendentes</div>
+              <ul className="space-y-1">
+                {sqlStatus.pendingFiles.map((file) => (
+                  <li key={file}>{file}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <div className="mt-4 text-xs theme-text-muted">Sem migracoes pendentes.</div>
+          )}
+        </div>
+
         <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 mb-6 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -307,44 +362,52 @@ export function DatabaseUpdatePage({ embedded = false }: DatabaseUpdatePageProps
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button
-            onClick={handleInitialize}
-            disabled={loading}
-            className="btn-primary inline-flex w-full items-center justify-center gap-2 py-3 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <Server className="w-4 h-4" />
-            Inicializar Tenant
-          </button>
+        {migrations.length > 0 && (
+          <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text mb-6">
+            <div className="font-semibold theme-text mb-2">Migracoes executadas agora</div>
+            <ul className="space-y-1">
+              {migrations.map((file) => (
+                <li key={file}>{file}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-          <button
-            onClick={handleSeedData}
-            disabled={loading}
-            className="btn-secondary inline-flex w-full items-center justify-center gap-2 py-3 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <Database className="w-4 h-4" />
-            Carregar Dados Demo
-          </button>
+        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 mb-6 space-y-3">
+          <div>
+            <p className="text-sm font-semibold theme-text">Zona Perigosa</p>
+            <p className="text-xs theme-text-muted mt-1">
+              Acoes destrutivas ou que alteram dados de forma significativa. Use com cuidado.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              onClick={handleInitialize}
+              disabled={loading}
+              className="btn-secondary inline-flex w-full items-center justify-center gap-2 py-3 border-rose-500/30 bg-rose-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Server className="w-4 h-4" />
+              Inicializar Tenant
+            </button>
 
-          <button
-            onClick={handleClearData}
-            disabled={loading}
-            className="btn-secondary inline-flex w-full items-center justify-center gap-2 py-3 border-rose-500/30 bg-rose-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <AlertCircle className="w-4 h-4" />
-            Apagar Todos os Dados
-          </button>
+            <button
+              onClick={handleSeedData}
+              disabled={loading}
+              className="btn-secondary inline-flex w-full items-center justify-center gap-2 py-3 border-rose-500/30 bg-rose-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Database className="w-4 h-4" />
+              Carregar Dados Demo
+            </button>
 
-          {migrations.length > 0 && (
-            <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text">
-              <div className="font-semibold theme-text mb-2">Migracoes executadas</div>
-              <ul className="space-y-1">
-                {migrations.map((file) => (
-                  <li key={file}>{file}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+            <button
+              onClick={handleClearData}
+              disabled={loading}
+              className="btn-secondary inline-flex w-full items-center justify-center gap-2 py-3 border-rose-500/30 bg-rose-500/10 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <AlertCircle className="w-4 h-4" />
+              Apagar Todos os Dados
+            </button>
+          </div>
         </div>
 
         <div className="mt-6 rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">

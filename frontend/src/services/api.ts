@@ -1218,6 +1218,10 @@ export async function runMigrations() {
   });
 }
 
+export async function getSqlMigrationsStatus() {
+  return apiCall('/setup/migrations/status');
+}
+
 export async function patchWorkOrders() {
   return apiCall('/setup/patch/work-orders', {
     method: 'POST',

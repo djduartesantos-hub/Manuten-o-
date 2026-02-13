@@ -509,33 +509,91 @@ export class SetupController {
     return { dir: migrationsDir, files: migrationFiles };
   }
 
+  private static async ensureSqlMigrationsTable(): Promise<void> {
+    await db.execute(sql.raw(`
+      CREATE TABLE IF NOT EXISTS sql_migrations (
+        filename TEXT PRIMARY KEY,
+        executed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `));
+  }
+
+  private static async getSqlMigrationsStatusInternal(): Promise<{
+    migrationsDir: string | null;
+    availableFiles: string[];
+    executedFiles: string[];
+    pendingFiles: string[];
+  }> {
+    const { dir: migrationsDir, files: availableFiles } = await SetupController.listMigrationFiles();
+
+    if (!migrationsDir || availableFiles.length === 0) {
+      return {
+        migrationsDir,
+        availableFiles,
+        executedFiles: [],
+        pendingFiles: [],
+      };
+    }
+
+    await SetupController.ensureSqlMigrationsTable();
+
+    const executedRes = await db.execute(sql.raw(`SELECT filename FROM sql_migrations ORDER BY executed_at ASC;`));
+    const executedAll = (executedRes.rows ?? [])
+      .map((r: any) => String(r.filename || '').trim())
+      .filter(Boolean);
+
+    const executedSet = new Set(executedAll);
+    const pendingFiles = availableFiles.filter((f) => !executedSet.has(f));
+
+    // Keep ordering consistent with folder sorting.
+    const executedFiles = availableFiles.filter((f) => executedSet.has(f));
+
+    return {
+      migrationsDir,
+      availableFiles,
+      executedFiles,
+      pendingFiles,
+    };
+  }
+
+  private static async markSqlMigrationExecuted(filename: string): Promise<void> {
+    await SetupController.ensureSqlMigrationsTable();
+    await db.execute(sql`
+      INSERT INTO sql_migrations (filename)
+      VALUES (${filename})
+      ON CONFLICT (filename) DO NOTHING;
+    `);
+  }
+
   private static async runMigrationsInternal(): Promise<string[]> {
-    const { dir: migrationsDir, files: migrationFiles } = await SetupController.listMigrationFiles();
+    const status = await SetupController.getSqlMigrationsStatusInternal();
 
-    if (!migrationsDir) {
+    if (!status.migrationsDir) {
       return [];
     }
 
-    if (migrationFiles.length === 0) {
+    if (status.pendingFiles.length === 0) {
       return [];
     }
 
-    const executed: string[] = [];
+    const executedNow: string[] = [];
 
-    for (const file of migrationFiles) {
-      const fullPath = path.join(migrationsDir, file);
+    for (const file of status.pendingFiles) {
+      const fullPath = path.join(status.migrationsDir, file);
       const sqlContent = await fs.readFile(fullPath, 'utf-8');
       const trimmed = sqlContent.trim();
 
       if (!trimmed) {
+        await SetupController.markSqlMigrationExecuted(file);
         continue;
       }
 
       await db.execute(sql.raw(trimmed));
-      executed.push(file);
+      await SetupController.markSqlMigrationExecuted(file);
+      executedNow.push(file);
     }
 
-    return executed;
+    return executedNow;
   }
 
   private static async ensureTenantsTable(): Promise<void> {
@@ -1702,8 +1760,9 @@ END $$;`
         return;
       }
 
-      const available = await SetupController.listMigrationFiles();
-      const executed = await SetupController.runMigrationsInternal();
+      const before = await SetupController.getSqlMigrationsStatusInternal();
+      const executedNow = await SetupController.runMigrationsInternal();
+      const after = await SetupController.getSqlMigrationsStatusInternal();
 
       const tenantId = String(req.tenantId || DEFAULT_TENANT_ID);
       const userId = req.user ? String((req.user as any).id || '') : '';
@@ -1711,17 +1770,21 @@ END $$;`
         tenantId,
         runType: 'migrate',
         userId: userId || null,
-        migrations: executed,
+        migrations: executedNow,
       });
 
-      if (available.files.length === 0) {
+      if (before.availableFiles.length === 0) {
         res.json({
           success: true,
           message: 'No migrations found',
           data: {
-            migrationsDir: available.dir,
+            migrationsDir: before.migrationsDir,
             availableFiles: [],
             executedFiles: [],
+            pendingFiles: [],
+            executedFilesAll: [],
+            pendingFilesBefore: [],
+            pendingFilesAfter: [],
           },
         });
         return;
@@ -1729,18 +1792,49 @@ END $$;`
 
       res.json({
         success: true,
-        message: 'Migrations executed successfully',
+        message: executedNow.length > 0 ? 'Migrations executed successfully' : 'No pending migrations to execute',
         data: {
-          migrationsDir: available.dir,
-          availableFiles: available.files,
-          executedFiles: executed,
-          files: executed,
+          migrationsDir: before.migrationsDir,
+          availableFiles: before.availableFiles,
+          pendingFiles: before.pendingFiles,
+          executedFiles: executedNow,
+          executedFilesAll: after.executedFiles,
+          pendingFilesBefore: before.pendingFiles,
+          pendingFilesAfter: after.pendingFiles,
+          files: executedNow,
         },
       });
     } catch (error) {
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to run migrations',
+      });
+    }
+  }
+
+  /**
+   * SQL migrations status (pending/executed) for scripts/database/migrations
+   */
+  static async getSqlMigrationsStatus(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user || !['superadmin', 'admin_empresa'].includes(String(req.user.role))) {
+        res.status(403).json({
+          success: false,
+          error: 'Only superadmin/admin_empresa can view migrations status',
+        });
+        return;
+      }
+
+      const status = await SetupController.getSqlMigrationsStatusInternal();
+
+      res.json({
+        success: true,
+        data: status,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get migrations status',
       });
     }
   }

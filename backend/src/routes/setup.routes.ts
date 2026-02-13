@@ -34,6 +34,14 @@ router.post(
   SetupController.runMigrations,
 );
 
+// GET /api/setup/migrations/status - SQL migrations status (requires auth)
+router.get(
+  '/migrations/status',
+  authMiddleware,
+  requirePermission('setup:run', 'tenant'),
+  SetupController.getSqlMigrationsStatus,
+);
+
 // POST /api/setup/patch/work-orders - Add work_performed column if missing
 router.post(
 	'/patch/work-orders',
