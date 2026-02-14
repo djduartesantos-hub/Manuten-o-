@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { authMiddleware } from '../middlewares/auth.js';
 import { requirePermission } from '../middlewares/permissions.js';
 import { validateRequest } from '../middlewares/validation.js';
@@ -8,6 +9,27 @@ import * as SlaController from '../controllers/sla.controller.js';
 import { CreateSLARuleSchema, UpdateTenantSecurityPolicySchema } from '../schemas/validation.js';
 
 const router = Router();
+
+const adminWriteLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000,
+	limit: 60,
+	standardHeaders: true,
+	legacyHeaders: false,
+});
+
+const passwordResetLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000,
+	limit: 20,
+	standardHeaders: true,
+	legacyHeaders: false,
+});
+
+const rbacWriteLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000,
+	limit: 80,
+	standardHeaders: true,
+	legacyHeaders: false,
+});
 
 router.use(authMiddleware);
 
@@ -22,6 +44,7 @@ router.get('/security-policy', requirePermission('admin:users', 'tenant'), Secur
 router.patch(
 	'/security-policy',
 	requirePermission('admin:users', 'tenant'),
+	adminWriteLimiter,
 	validateRequest(UpdateTenantSecurityPolicySchema),
 	SecurityController.updateTenantSecurityPolicy,
 );
@@ -33,14 +56,16 @@ router.patch('/users/:userId', requirePermission('admin:users', 'tenant'), Admin
 router.post(
 	'/users/:userId/reset-password',
 	requirePermission('admin:users', 'tenant'),
+	passwordResetLimiter,
 	AdminController.resetUserPassword,
 );
 
 // Roles
 router.get('/roles', requirePermission('admin:users', 'tenant'), AdminController.listRoles);
-router.post('/roles', requirePermission('admin:rbac', 'tenant'), AdminController.createRole);
-router.patch('/roles/:roleKey', requirePermission('admin:rbac', 'tenant'), AdminController.updateRole);
+router.post('/roles', requirePermission('admin:rbac', 'tenant'), rbacWriteLimiter, AdminController.createRole);
+router.patch('/roles/:roleKey', requirePermission('admin:rbac', 'tenant'), rbacWriteLimiter, AdminController.updateRole);
 router.get('/permissions', requirePermission('admin:rbac', 'tenant'), AdminController.listPermissions);
+router.get('/roles/export.csv', requirePermission('admin:rbac', 'tenant'), AdminController.exportRbacMatrix);
 router.get(
 	'/roles/:roleKey/permissions',
 	requirePermission('admin:rbac', 'tenant'),
@@ -49,12 +74,13 @@ router.get(
 router.put(
 	'/roles/:roleKey/permissions',
 	requirePermission('admin:rbac', 'tenant'),
+	rbacWriteLimiter,
 	AdminController.setRolePermissions,
 );
 
 // Role Home Pages (global + per-plant)
 router.get('/role-homes', requirePermission('admin:rbac', 'tenant'), AdminController.listRoleHomePages);
-router.put('/role-homes', requirePermission('admin:rbac', 'tenant'), AdminController.setRoleHomePages);
+router.put('/role-homes', requirePermission('admin:rbac', 'tenant'), rbacWriteLimiter, AdminController.setRoleHomePages);
 
 // SLA Rules (work_order + ticket)
 router.get('/sla-rules', requirePermission('admin:rbac', 'tenant'), SlaController.listSlaRules);

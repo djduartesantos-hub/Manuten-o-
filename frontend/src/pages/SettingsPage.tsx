@@ -69,6 +69,7 @@ import {
   applyRbacPatch,
   getAdminSecurityPolicy,
   updateAdminSecurityPolicy,
+  downloadAdminRbacMatrixCsv,
 } from '../services/api';
 import {
   Bell,
@@ -6408,13 +6409,32 @@ function PermissionsSettings() {
           </select>
         </div>
 
-        <button
-          className="btn-primary"
-          onClick={handleSave}
-          disabled={saving || loading || !activeRole || isProtectedRole || !canManageRbac}
-        >
-          Guardar permissões
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={async () => {
+              setError(null);
+              try {
+                await downloadAdminRbacMatrixCsv();
+              } catch (err: any) {
+                setError(err?.message || 'Falha ao exportar RBAC');
+              }
+            }}
+            disabled={loading || saving || !canManageRbac}
+          >
+            Exportar RBAC (CSV)
+          </button>
+
+          <button
+            className="btn-primary"
+            onClick={handleSave}
+            disabled={saving || loading || !activeRole || isProtectedRole || !canManageRbac}
+            type="button"
+          >
+            Guardar permissões
+          </button>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">

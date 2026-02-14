@@ -1627,6 +1627,14 @@ export async function getAdminRoles() {
   return apiCall('/admin/roles');
 }
 
+export async function downloadAdminRbacMatrixCsv() {
+  const res = await apiCallRaw('/admin/roles/export.csv', {
+    method: 'GET',
+  });
+  const blob = await res.blob();
+  triggerDownload(blob, 'rbac_matrix.csv');
+}
+
 export async function createAdminRole(data: {
   key: string;
   name: string;

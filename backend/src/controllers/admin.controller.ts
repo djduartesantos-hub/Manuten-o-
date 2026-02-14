@@ -5,8 +5,25 @@ import { v4 as uuidv4 } from 'uuid';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { AuthenticatedRequest } from '../types/index.js';
 import { db } from '../config/database.js';
-import { assets, plants, rbacRoles, userPlants, users } from '../db/schema.js';
+import { assets, plants, rbacPermissions, rbacRolePermissions, rbacRoles, userPlants, users } from '../db/schema.js';
 import { SecurityPolicyService } from '../services/security-policy.service.js';
+import { AuditService } from '../services/audit.service.js';
+
+function getClientIp(req: AuthenticatedRequest): string | null {
+  const forwarded = (req as any)?.headers?.['x-forwarded-for'];
+  const forwardedStr = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+  const fromForwarded = (String(forwardedStr || '').split(',')[0] || '').trim();
+  return fromForwarded || (req.ip ? String(req.ip) : null);
+}
+
+function toCsvValue(value: any): string {
+  if (value === null || value === undefined) return '';
+  const s = String(value);
+  if (/[",\n\r]/.test(s)) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
 
 function generateTempPassword(length = 14): string {
   // Base64url gives URL-safe chars; slice for desired length.
@@ -671,6 +688,30 @@ export async function createRole(req: AuthenticatedRequest, res: Response) {
       })
       .returning();
 
+    // Best-effort audit log
+    const actorUserId = req.user?.userId ? String(req.user.userId) : null;
+    if (actorUserId) {
+      try {
+        await AuditService.createLog({
+          tenant_id: tenantId,
+          user_id: actorUserId,
+          action: 'rbac.role.create',
+          entity_type: 'rbac_role',
+          entity_id: String(created.key),
+          old_values: null,
+          new_values: {
+            key: created.key,
+            name: created.name,
+            description: created.description,
+            is_system: created.is_system,
+          },
+          ip_address: getClientIp(req),
+        });
+      } catch {
+        // ignore
+      }
+    }
+
     return res.status(201).json({
       success: true,
       data: {
@@ -734,6 +775,35 @@ export async function updateRole(req: AuthenticatedRequest, res: Response) {
       })
       .where(and(eq(rbacRoles.tenant_id, tenantId), eq(rbacRoles.key, normalizedKey)))
       .returning();
+
+    // Best-effort audit log
+    const actorUserId = req.user?.userId ? String(req.user.userId) : null;
+    if (actorUserId) {
+      try {
+        await AuditService.createLog({
+          tenant_id: tenantId,
+          user_id: actorUserId,
+          action: 'rbac.role.update',
+          entity_type: 'rbac_role',
+          entity_id: String(updated.key),
+          old_values: {
+            key: existing.rows[0]?.key,
+            name: existing.rows[0]?.name,
+            description: existing.rows[0]?.description,
+            is_system: existing.rows[0]?.is_system,
+          },
+          new_values: {
+            key: updated.key,
+            name: updated.name,
+            description: updated.description,
+            is_system: updated.is_system,
+          },
+          ip_address: getClientIp(req),
+        });
+      } catch {
+        // ignore
+      }
+    }
 
     return res.json({
       success: true,
@@ -911,6 +981,30 @@ export async function setRoleHomePages(req: AuthenticatedRequest, res: Response)
     }));
 
     // Replace set for this scope
+    // Capture before state (best-effort)
+    let before: any[] = [];
+    try {
+      if (plantId) {
+        const beforeRes = await db.execute(sql`
+          SELECT role_key, home_path
+          FROM rbac_role_home_pages
+          WHERE tenant_id = ${tenantId} AND plant_id = ${plantId} AND role_key <> 'superadmin'
+          ORDER BY role_key ASC;
+        `);
+        before = (beforeRes.rows || []) as any[];
+      } else {
+        const beforeRes = await db.execute(sql`
+          SELECT role_key, home_path
+          FROM rbac_role_home_pages
+          WHERE tenant_id = ${tenantId} AND plant_id IS NULL AND role_key <> 'superadmin'
+          ORDER BY role_key ASC;
+        `);
+        before = (beforeRes.rows || []) as any[];
+      }
+    } catch {
+      before = [];
+    }
+
     if (plantId) {
       await db.execute(sql`
         DELETE FROM rbac_role_home_pages
@@ -928,6 +1022,25 @@ export async function setRoleHomePages(req: AuthenticatedRequest, res: Response)
         INSERT INTO rbac_role_home_pages (tenant_id, plant_id, role_key, home_path, created_at, updated_at)
         VALUES (${tenantId}, ${plantId}, ${e.roleKey}, ${e.homePath}, NOW(), NOW())
       `);
+    }
+
+    // Best-effort audit log
+    const actorUserId = req.user?.userId ? String(req.user.userId) : null;
+    if (actorUserId) {
+      try {
+        await AuditService.createLog({
+          tenant_id: tenantId,
+          user_id: actorUserId,
+          action: 'rbac.role_home_pages.set',
+          entity_type: 'rbac_role_home_pages',
+          entity_id: plantId ? String(plantId) : 'tenant_base',
+          old_values: { plant_id: plantId, entries: before },
+          new_values: { plant_id: plantId, entries: uniqueEntries },
+          ip_address: getClientIp(req),
+        });
+      } catch {
+        // ignore
+      }
     }
 
     return res.json({ success: true, message: 'Home pages atualizadas' });
@@ -971,9 +1084,114 @@ export async function resetUserPassword(req: AuthenticatedRequest, res: Response
       .set({ password_hash: passwordHash, updated_at: new Date() })
       .where(and(eq(users.tenant_id, tenantId), eq(users.id, userId)));
 
+    // Best-effort audit log
+    const actorUserId = req.user?.userId ? String(req.user.userId) : null;
+    if (actorUserId) {
+      try {
+        await AuditService.createLog({
+          tenant_id: String(tenantId),
+          user_id: actorUserId,
+          action: 'user.password.reset',
+          entity_type: 'user',
+          entity_id: String(userId),
+          old_values: null,
+          new_values: { reset: true },
+          ip_address: getClientIp(req),
+        });
+      } catch {
+        // ignore
+      }
+    }
+
     return res.json({ success: true, message: 'Password atualizada' });
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to reset password' });
+  }
+}
+
+export async function exportRbacMatrix(req: AuthenticatedRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    }
+
+    // Backward-compat: if RBAC tables not present, export a minimal CSV.
+    try {
+      const tableCheck = await db.execute(sql`SELECT to_regclass('public.rbac_roles') AS name`);
+      const tableName = (tableCheck as any)?.rows?.[0]?.name;
+      if (!tableName) {
+        const headers = ['role_key', 'role_name', 'permission_key', 'permission_label', 'group_name'];
+        const csv = [headers.join(',')].join('\n');
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="rbac_matrix.csv"');
+        return res.status(200).send(csv);
+      }
+    } catch {
+      // ignore and attempt normal flow
+    }
+
+    const result = await db
+      .select({
+        role_key: rbacRoles.key,
+        role_name: rbacRoles.name,
+        role_description: rbacRoles.description,
+        role_is_system: rbacRoles.is_system,
+        permission_key: rbacRolePermissions.permission_key,
+        permission_label: rbacPermissions.label,
+        group_name: rbacPermissions.group_name,
+      })
+      .from(rbacRoles)
+      .leftJoin(
+        rbacRolePermissions,
+        and(eq(rbacRolePermissions.tenant_id, rbacRoles.tenant_id), eq(rbacRolePermissions.role_key, rbacRoles.key)),
+      )
+      .leftJoin(rbacPermissions, eq(rbacPermissions.key, rbacRolePermissions.permission_key))
+      .where(eq(rbacRoles.tenant_id, tenantId));
+
+    const headers = [
+      'role_key',
+      'role_name',
+      'role_description',
+      'role_is_system',
+      'permission_key',
+      'permission_label',
+      'group_name',
+    ];
+    const csv = [
+      headers.join(','),
+      ...result
+        .sort((a: any, b: any) => {
+          const ar = String(a.role_name || a.role_key || '').localeCompare(String(b.role_name || b.role_key || ''));
+          if (ar !== 0) return ar;
+          return String(a.permission_key || '').localeCompare(String(b.permission_key || ''));
+        })
+        .map((row: any) => headers.map((h) => toCsvValue((row as any)[h])).join(',')),
+    ].join('\n');
+
+    // Best-effort audit log
+    const actorUserId = req.user?.userId ? String(req.user.userId) : null;
+    if (actorUserId) {
+      try {
+        await AuditService.createLog({
+          tenant_id: tenantId,
+          user_id: actorUserId,
+          action: 'rbac.matrix.export',
+          entity_type: 'rbac',
+          entity_id: 'matrix',
+          new_values: { format: 'csv' },
+          ip_address: getClientIp(req),
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="rbac_matrix.csv"');
+    return res.status(200).send(csv);
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to export RBAC matrix' });
   }
 }
 
@@ -1038,6 +1256,20 @@ export async function setRolePermissions(req: AuthenticatedRequest, res: Respons
       });
     }
 
+    // Capture before state
+    let beforePerms: string[] = [];
+    try {
+      const beforeRes = await db.execute(sql`
+        SELECT permission_key
+        FROM rbac_role_permissions
+        WHERE tenant_id = ${tenantId} AND role_key = ${normalizedRoleKey}
+        ORDER BY permission_key ASC;
+      `);
+      beforePerms = (beforeRes.rows || []).map((r: any) => String(r.permission_key));
+    } catch {
+      beforePerms = [];
+    }
+
     // Replace set
     await db.execute(sql`
       DELETE FROM rbac_role_permissions
@@ -1050,6 +1282,25 @@ export async function setRolePermissions(req: AuthenticatedRequest, res: Respons
         VALUES (${tenantId}, ${normalizedRoleKey}, ${perm})
         ON CONFLICT (tenant_id, role_key, permission_key) DO NOTHING;
       `);
+    }
+
+    // Best-effort audit log
+    const actorUserId = req.user?.userId ? String(req.user.userId) : null;
+    if (actorUserId) {
+      try {
+        await AuditService.createLog({
+          tenant_id: tenantId,
+          user_id: actorUserId,
+          action: 'rbac.role.permissions.set',
+          entity_type: 'rbac_role',
+          entity_id: normalizedRoleKey,
+          old_values: { permissions: beforePerms },
+          new_values: { permissions: perms },
+          ip_address: getClientIp(req),
+        });
+      } catch {
+        // ignore
+      }
     }
 
     return res.json({ success: true, message: 'Permissões atualizadas', data: perms });

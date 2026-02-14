@@ -13,7 +13,7 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 
 ---
 
-## Fase 0 — “Release readiness” (Hardening mínimo)
+## Fase 0 — “Release readiness” (Hardening mínimo) — COMPLETA ✅
 
 **O que é**
 - Hardening e estabilização para produção: segurança básica, observabilidade, erros consistentes e capacidade de recuperar.
@@ -22,15 +22,15 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - Garantir que o produto é **operável** (suporte consegue diagnosticar) e **seguro** (não vaza segredos, não cai com abuso), antes de adicionar mais features.
 
 **Must**
-- Autenticação/Autorização consistente em todas as rotas (incl. tenant scope) e auditoria dos caminhos críticos.
-- Logs estruturados + request id (mínimo em produção).
-- Rate limit nos endpoints sensíveis (auth, reset password, exports grandes).
-- Erros padronizados (não vazar stack/segredos).
-- Backups e recuperação (runbook simples).
+- [x] Autenticação/Autorização consistente em todas as rotas (incl. tenant scope) e auditoria dos caminhos críticos.
+- [x] Logs estruturados + request id (mínimo em produção).
+- [x] Rate limit nos endpoints sensíveis (auth, reset password, exports grandes).
+- [x] Erros padronizados (não vazar stack/segredos).
+- [x] Backups e recuperação (runbook simples).
 
 **Should**
-- Healthchecks completos (db/redis/jobs) e página de status no SuperAdmin.
-- Política de retenção de audit logs (config).
+- [x] Healthchecks completos (db/redis/jobs) e página de status no SuperAdmin.
+- [ ] Política de retenção de audit logs (config).
 
 **Could**
 - “Read-only mode” por tenant (quarentena) para suporte.
@@ -49,6 +49,8 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 
 ## Fase 1 — RBAC e Segurança “comercial”
 
+— COMPLETA ✅
+
 **O que é**
 - Formalizar o modelo de permissões (RBAC) e reforçar segurança/gestão de sessão para um uso “de empresa”.
 
@@ -56,13 +58,13 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - Evitar “Permissões insuficientes” inesperadas, permitir auditoria/controlo e suportar equipas com roles diferentes sem risco de acesso indevido.
 
 **Must**
-- RBAC completo por tenant e fábrica (consistência entre backend e UI).
-- Auditoria de mudanças RBAC (quem alterou o quê).
-- Gestão de sessões: revogar token/sessões ativas.
+- [x] RBAC completo por tenant e fábrica (consistência entre backend e UI).
+- [x] Auditoria de mudanças RBAC (quem alterou o quê).
+- [x] Gestão de sessões: revogar token/sessões ativas.
 
 **Should**
-- Políticas de password por tenant (comprimento, expiração opcional, lockout básico).
-- Alertas de drift (RBAC drift + integridade) com export.
+- [x] Políticas de password por tenant (comprimento, expiração opcional, lockout básico).
+- [x] Alertas de drift (RBAC drift + integridade) com export.
 
 **Could**
 - MFA (TOTP) por tenant.
@@ -73,12 +75,12 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - UI: sim
 
 **DoD**
-- Matriz RBAC completa (com paginação) + export
-- Alterações RBAC geram audit log
+- [x] Matriz RBAC completa (com paginação) + export
+- [x] Alterações RBAC geram audit log
 
 ---
 
-## Fase 2 — Work Orders “profissional” (fluxos + evidências)
+## Fase 2 — Work Orders “profissional” (fluxos + evidências) — COMPLETA ✅
 
 **O que é**
 - Evoluir as Ordens de Trabalho (OT) para um ciclo de vida completo: workflow, evidências e histórico.
@@ -87,13 +89,13 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - Transformar OTs em registos confiáveis (para equipa e cliente), com rastreabilidade, prova de execução e medição de SLA.
 
 **Must**
-- Workflow de OT consistente: estados, transições e permissões.
-- Evidências: anexos/fotos antes/depois, comentários, histórico.
-- SLA por prioridade (pelo menos cálculo e reporting básico).
+- [x] Workflow de OT consistente: estados, transições e permissões.
+- [x] Evidências: anexos/fotos antes/depois, comentários, histórico.
+- [x] SLA por prioridade (pelo menos cálculo e reporting básico).
 
 **Should**
-- Templates de OT por tipo de manutenção.
-- Reabertura com motivo.
+- [ ] Templates de OT por tipo de manutenção.
+- [ ] Reabertura com motivo.
 
 **Could**
 - Assinatura (simples) e relatório PDF.
