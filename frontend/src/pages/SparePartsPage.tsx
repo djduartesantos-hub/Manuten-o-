@@ -15,6 +15,12 @@ import {
   getSpareParts,
   getSparePartsForecast,
   getStockMovementsByPlant,
+  listStocktakes,
+  createStocktake,
+  getStocktake,
+  updateStocktakeItem,
+  closeStocktake,
+  downloadStocktakeCsv,
 } from '../services/api';
 import { StockEntryPage } from './StockEntryPage';
 import { SparePartRegisterPage } from './SparePartRegisterPage';
@@ -46,7 +52,7 @@ interface StockMovement {
 export function SparePartsPage() {
   const { selectedPlant } = useAppStore();
   const access = useProfileAccess();
-  const [activeView, setActiveView] = useState<'parts' | 'movements' | 'forecast'>('parts');
+  const [activeView, setActiveView] = useState<'parts' | 'movements' | 'forecast' | 'inventory'>('parts');
   const [quickAction, setQuickAction] = useState<'spareparts' | 'stock' | null>(null);
   const [parts, setParts] = useState<SparePart[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
@@ -93,6 +99,25 @@ export function SparePartsPage() {
   const [partsVisibleCount, setPartsVisibleCount] = useState(20);
   const [movementsVisibleCount, setMovementsVisibleCount] = useState(20);
 
+  const [stocktakes, setStocktakes] = useState<any[]>([]);
+  const [stocktakesLoading, setStocktakesLoading] = useState(false);
+  const [stocktakesError, setStocktakesError] = useState<string | null>(null);
+
+  const [activeStocktake, setActiveStocktake] = useState<any | null>(null);
+  const [activeStocktakeLoading, setActiveStocktakeLoading] = useState(false);
+  const [activeStocktakeError, setActiveStocktakeError] = useState<string | null>(null);
+  const [stocktakeEdits, setStocktakeEdits] = useState<Record<string, string>>({});
+  const [stocktakeSavingItem, setStocktakeSavingItem] = useState<Record<string, boolean>>({});
+  const [stocktakeClosing, setStocktakeClosing] = useState(false);
+  const [stocktakeMessage, setStocktakeMessage] = useState<string | null>(null);
+
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleString();
+  };
+
   const canRegisterParts = useMemo(() => {
     if (access.isSuperAdmin) return true;
     return access.permissions.has('stock:write');
@@ -136,6 +161,119 @@ export function SparePartsPage() {
       setLoading(false);
     }
   }, [selectedPlant]);
+
+  const loadStocktakes = useCallback(async () => {
+    if (!selectedPlant) {
+      setStocktakes([]);
+      return;
+    }
+
+    setStocktakesLoading(true);
+    setStocktakesError(null);
+    try {
+      const data = await listStocktakes(selectedPlant);
+      setStocktakes(Array.isArray(data) ? data : (data as any)?.data || []);
+    } catch (err: any) {
+      setStocktakes([]);
+      setStocktakesError(err.message || 'Erro ao carregar inventários');
+    } finally {
+      setStocktakesLoading(false);
+    }
+  }, [selectedPlant]);
+
+  const openStocktake = useCallback(
+    async (stocktakeId: string) => {
+      if (!selectedPlant) return;
+
+      setActiveStocktakeLoading(true);
+      setActiveStocktakeError(null);
+      setStocktakeMessage(null);
+      try {
+        const data = await getStocktake(selectedPlant, stocktakeId);
+        const result = (data as any)?.stocktake ? data : (data as any)?.data || data;
+        setActiveStocktake(result);
+        setStocktakeEdits({});
+      } catch (err: any) {
+        setActiveStocktake(null);
+        setActiveStocktakeError(err.message || 'Erro ao abrir inventário');
+      } finally {
+        setActiveStocktakeLoading(false);
+      }
+    },
+    [selectedPlant],
+  );
+
+  const handleCreateStocktake = useCallback(async () => {
+    if (!selectedPlant) return;
+    setStocktakeMessage(null);
+    setActiveStocktakeError(null);
+    setActiveStocktakeLoading(true);
+    try {
+      const data = await createStocktake(selectedPlant, {});
+      const result = (data as any)?.stocktake ? data : (data as any)?.data || data;
+      setActiveStocktake(result);
+      setStocktakeMessage('Inventário criado. Registe as contagens e feche para ajustar.');
+      await loadStocktakes();
+    } catch (err: any) {
+      setActiveStocktake(null);
+      setActiveStocktakeError(err.message || 'Erro ao criar inventário');
+    } finally {
+      setActiveStocktakeLoading(false);
+    }
+  }, [loadStocktakes, selectedPlant]);
+
+  const handleSaveCounted = useCallback(
+    async (itemId: string, raw: string) => {
+      if (!selectedPlant || !activeStocktake?.stocktake?.id) return;
+
+      const stocktakeId = String(activeStocktake.stocktake.id);
+      const parsed = Number(raw);
+      if (!Number.isFinite(parsed) || parsed < 0 || !Number.isInteger(parsed)) {
+        setStocktakeMessage('Quantidade inválida. Use um inteiro >= 0.');
+        return;
+      }
+
+      setStocktakeSavingItem((prev) => ({ ...prev, [itemId]: true }));
+      setStocktakeMessage(null);
+      try {
+        await updateStocktakeItem(selectedPlant, stocktakeId, itemId, { counted_qty: parsed });
+        await openStocktake(stocktakeId);
+      } catch (err: any) {
+        setStocktakeMessage(err.message || 'Erro ao guardar contagem');
+      } finally {
+        setStocktakeSavingItem((prev) => ({ ...prev, [itemId]: false }));
+      }
+    },
+    [activeStocktake?.stocktake?.id, openStocktake, selectedPlant],
+  );
+
+  const handleCloseStocktake = useCallback(
+    async (applyAdjustments: boolean) => {
+      if (!selectedPlant || !activeStocktake?.stocktake?.id) return;
+      const stocktakeId = String(activeStocktake.stocktake.id);
+
+      setStocktakeClosing(true);
+      setStocktakeMessage(null);
+      try {
+        await closeStocktake(selectedPlant, stocktakeId, { applyAdjustments });
+        setStocktakeMessage(applyAdjustments ? 'Inventário fechado e ajustado.' : 'Inventário fechado.');
+        await Promise.all([loadData(), loadStocktakes(), openStocktake(stocktakeId)]);
+      } catch (err: any) {
+        setStocktakeMessage(err.message || 'Erro ao fechar inventário');
+      } finally {
+        setStocktakeClosing(false);
+      }
+    },
+    [activeStocktake?.stocktake?.id, loadData, loadStocktakes, openStocktake, selectedPlant],
+  );
+
+  useEffect(() => {
+    if (!selectedPlant) return;
+    if (activeView !== 'inventory') return;
+    if (!stocktakesLoading && stocktakes.length === 0) {
+      loadStocktakes();
+    }
+  }, [activeView, loadStocktakes, selectedPlant, stocktakes.length, stocktakesLoading]);
 
   const loadForecast = useCallback(async () => {
     if (!selectedPlant) return;
@@ -408,6 +546,22 @@ export function SparePartsPage() {
                   }`}
                 >
                   Previsão
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveView('inventory');
+                    if (selectedPlant) {
+                      loadStocktakes();
+                    }
+                  }}
+                  className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                    activeView === 'inventory'
+                      ? 'bg-[color:var(--dash-surface)] theme-text'
+                      : 'theme-text-muted hover:bg-[color:var(--dash-surface)]'
+                  }`}
+                >
+                  Inventário
                 </button>
               </div>
               <button
@@ -1109,6 +1263,193 @@ export function SparePartsPage() {
                         )}
                       </div>
                     )}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {selectedPlant && activeView === 'inventory' && (
+              <section className="space-y-4">
+                <div className="rounded-[28px] border theme-border theme-card shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
+                  <div className="border-b border-[color:var(--dash-border)] p-5">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <h2 className="text-lg font-semibold theme-text">Inventário por fábrica</h2>
+                        <p className="text-sm theme-text-muted">
+                          Crie uma contagem, registe quantidades e feche para gerar ajustes e auditoria.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          className="btn-primary"
+                          onClick={handleCreateStocktake}
+                          disabled={stocktakesLoading || activeStocktakeLoading || !selectedPlant}
+                        >
+                          Criar inventário
+                        </button>
+                        <button
+                          className="btn-secondary"
+                          onClick={loadStocktakes}
+                          disabled={stocktakesLoading || !selectedPlant}
+                        >
+                          Atualizar
+                        </button>
+                      </div>
+                    </div>
+                    {(stocktakesError || activeStocktakeError || stocktakeMessage) && (
+                      <p className="mt-3 text-sm theme-text-muted">
+                        {stocktakesError || activeStocktakeError || stocktakeMessage}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="p-5">
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                      <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] theme-text-muted">Histórico</p>
+                        {stocktakesLoading && (
+                          <p className="mt-3 text-sm theme-text-muted">A carregar...</p>
+                        )}
+                        {!stocktakesLoading && stocktakes.length === 0 && (
+                          <p className="mt-3 text-sm theme-text-muted">Sem inventários ainda.</p>
+                        )}
+
+                        {!stocktakesLoading && stocktakes.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {stocktakes.slice(0, 8).map((s) => (
+                              <button
+                                key={s.id}
+                                className="w-full rounded-xl border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-left text-sm theme-text hover:bg-[color:var(--dash-surface)]"
+                                onClick={() => openStocktake(String(s.id))}
+                              >
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="font-semibold">
+                                    {String(s.id).slice(0, 8)}
+                                  </span>
+                                  <span className="text-xs theme-text-muted">{String(s.status)}</span>
+                                </div>
+                                <div className="mt-1 text-xs theme-text-muted">
+                                  {formatDateTime(s.created_at)}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="lg:col-span-2 rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] theme-text-muted">Inventário ativo</p>
+
+                        {activeStocktakeLoading && (
+                          <p className="mt-3 text-sm theme-text-muted">A abrir inventário...</p>
+                        )}
+
+                        {!activeStocktakeLoading && !activeStocktake && (
+                          <p className="mt-3 text-sm theme-text-muted">
+                            Selecione um inventário no histórico ou crie um novo.
+                          </p>
+                        )}
+
+                        {!activeStocktakeLoading && activeStocktake && (
+                          <>
+                            <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                              <div>
+                                <p className="text-sm font-semibold theme-text">
+                                  ID: {String(activeStocktake.stocktake?.id || '').slice(0, 12)}
+                                </p>
+                                <p className="text-xs theme-text-muted">
+                                  Estado: {String(activeStocktake.stocktake?.status || '')} · Criado em{' '}
+                                  {formatDateTime(activeStocktake.stocktake?.created_at)}
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <button
+                                  className="btn-secondary"
+                                  onClick={() =>
+                                    downloadStocktakeCsv(selectedPlant, String(activeStocktake.stocktake?.id))
+                                  }
+                                >
+                                  Exportar CSV
+                                </button>
+                                {String(activeStocktake.stocktake?.status) === 'aberta' && (
+                                  <>
+                                    <button
+                                      className="btn-primary"
+                                      onClick={() => handleCloseStocktake(true)}
+                                      disabled={stocktakeClosing}
+                                    >
+                                      {stocktakeClosing ? 'A fechar...' : 'Fechar e ajustar'}
+                                    </button>
+                                    <button
+                                      className="btn-secondary"
+                                      onClick={() => handleCloseStocktake(false)}
+                                      disabled={stocktakeClosing}
+                                    >
+                                      Fechar sem ajustes
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="mt-4 overflow-x-auto">
+                              <table className="min-w-full divide-y divide-[color:var(--dash-border)] text-xs">
+                                <thead className="bg-[color:var(--dash-panel)]">
+                                  <tr>
+                                    <th className="px-3 py-2 text-left font-semibold text-[color:var(--dash-muted)]">Peça</th>
+                                    <th className="px-3 py-2 text-left font-semibold text-[color:var(--dash-muted)]">Esperado</th>
+                                    <th className="px-3 py-2 text-left font-semibold text-[color:var(--dash-muted)]">Contado</th>
+                                    <th className="px-3 py-2 text-left font-semibold text-[color:var(--dash-muted)]">Dif.</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[color:var(--dash-border)]">
+                                  {(activeStocktake.items || []).map((item: any) => {
+                                    const expected = Number(item.expected_qty ?? 0);
+                                    const counted = item.counted_qty == null ? null : Number(item.counted_qty);
+                                    const diff = counted == null ? null : counted - expected;
+                                    const editValue =
+                                      stocktakeEdits[item.id] ??
+                                      (counted == null ? '' : String(counted));
+
+                                    const isOpen = String(activeStocktake.stocktake?.status) === 'aberta';
+
+                                    return (
+                                      <tr key={item.id}>
+                                        <td className="px-3 py-2 theme-text">
+                                          {item.spare_part
+                                            ? `${item.spare_part.code} - ${item.spare_part.name}`
+                                            : '-'}
+                                        </td>
+                                        <td className="px-3 py-2 theme-text">{expected}</td>
+                                        <td className="px-3 py-2">
+                                          <input
+                                            type="number"
+                                            min={0}
+                                            className="input h-8 w-28"
+                                            value={editValue}
+                                            disabled={!isOpen || !!stocktakeSavingItem[item.id]}
+                                            onChange={(e) =>
+                                              setStocktakeEdits((prev) => ({
+                                                ...prev,
+                                                [item.id]: e.target.value,
+                                              }))
+                                            }
+                                            onBlur={() => handleSaveCounted(item.id, editValue)}
+                                          />
+                                        </td>
+                                        <td className="px-3 py-2 theme-text">
+                                          {diff == null ? '-' : diff}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </section>

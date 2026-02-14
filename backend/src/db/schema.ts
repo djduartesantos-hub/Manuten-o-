@@ -51,6 +51,8 @@ export const stockReservationStatusEnum = pgEnum('stock_reservation_status', [
   'cancelada',
 ]);
 
+export const stocktakeStatusEnum = pgEnum('stocktake_status', ['aberta', 'fechada', 'cancelada']);
+
 export const ticketStatusEnum = pgEnum('ticket_status', [
   'aberto',
   'em_progresso',
@@ -844,6 +846,61 @@ export const stockReservations = pgTable(
     plantIdIdx: index('stock_reservations_plant_id_idx').on(table.plant_id),
     workOrderIdIdx: index('stock_reservations_work_order_id_idx').on(table.work_order_id),
     sparePartIdIdx: index('stock_reservations_spare_part_id_idx').on(table.spare_part_id),
+  }),
+);
+
+// Stocktakes (inventory counts)
+export const stocktakes = pgTable(
+  'stocktakes',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    plant_id: uuid('plant_id')
+      .notNull()
+      .references(() => plants.id, { onDelete: 'cascade' }),
+    status: stocktakeStatusEnum('status').notNull().default('aberta'),
+    notes: text('notes'),
+    created_by: uuid('created_by')
+      .notNull()
+      .references(() => users.id),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    closed_by: uuid('closed_by').references(() => users.id),
+    closed_at: timestamp('closed_at', { withTimezone: true }),
+    close_notes: text('close_notes'),
+  },
+  (table) => ({
+    tenantIdIdx: index('stocktakes_tenant_id_idx').on(table.tenant_id),
+    plantIdIdx: index('stocktakes_plant_id_idx').on(table.plant_id),
+    statusIdx: index('stocktakes_status_idx').on(table.status),
+    createdAtIdx: index('stocktakes_created_at_idx').on(table.created_at),
+  }),
+);
+
+export const stocktakeItems = pgTable(
+  'stocktake_items',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    stocktake_id: uuid('stocktake_id')
+      .notNull()
+      .references(() => stocktakes.id, { onDelete: 'cascade' }),
+    spare_part_id: uuid('spare_part_id')
+      .notNull()
+      .references(() => spareParts.id, { onDelete: 'restrict' }),
+    expected_qty: integer('expected_qty').notNull(),
+    counted_qty: integer('counted_qty'),
+    unit_cost: decimal('unit_cost', { precision: 15, scale: 2 }),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index('stocktake_items_tenant_id_idx').on(table.tenant_id),
+    stocktakeIdIdx: index('stocktake_items_stocktake_id_idx').on(table.stocktake_id),
+    sparePartIdIdx: index('stocktake_items_spare_part_id_idx').on(table.spare_part_id),
+    uniqStocktakePart: uniqueIndex('stocktake_items_stocktake_part_uniq').on(
+      table.stocktake_id,
+      table.spare_part_id,
+    ),
   }),
 );
 

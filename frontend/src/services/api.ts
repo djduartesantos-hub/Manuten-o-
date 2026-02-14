@@ -1470,6 +1470,68 @@ export async function getStockMovementsByPlant(plantId: string) {
   return apiCall(`/${plantId}/stock-movements/plant/${plantId}`);
 }
 
+// ============================================================================
+// STOCKTAKES (Inventário / contagem)
+// ============================================================================
+
+export async function listStocktakes(plantId: string, status?: string) {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  return apiCall(`/${encodeURIComponent(String(plantId))}/stocktakes${qs}`);
+}
+
+export async function createStocktake(plantId: string, data?: { notes?: string }) {
+  return apiCall(`/${encodeURIComponent(String(plantId))}/stocktakes`, {
+    method: 'POST',
+    body: JSON.stringify(data ?? {}),
+  });
+}
+
+export async function getStocktake(plantId: string, stocktakeId: string) {
+  return apiCall(
+    `/${encodeURIComponent(String(plantId))}/stocktakes/${encodeURIComponent(String(stocktakeId))}`,
+  );
+}
+
+export async function updateStocktakeItem(
+  plantId: string,
+  stocktakeId: string,
+  itemId: string,
+  data: { counted_qty: number },
+) {
+  return apiCall(
+    `/${encodeURIComponent(String(plantId))}/stocktakes/${encodeURIComponent(
+      String(stocktakeId),
+    )}/items/${encodeURIComponent(String(itemId))}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    },
+  );
+}
+
+export async function closeStocktake(
+  plantId: string,
+  stocktakeId: string,
+  data: { applyAdjustments: boolean; closeNotes?: string },
+) {
+  return apiCall(
+    `/${encodeURIComponent(String(plantId))}/stocktakes/${encodeURIComponent(String(stocktakeId))}/close`,
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    },
+  );
+}
+
+export async function downloadStocktakeCsv(plantId: string, stocktakeId: string) {
+  const res = await apiCallRaw(
+    `/${encodeURIComponent(String(plantId))}/stocktakes/${encodeURIComponent(String(stocktakeId))}/export.csv`,
+    { method: 'GET' },
+  );
+  const blob = await res.blob();
+  triggerDownload(blob, `inventario-${String(stocktakeId).slice(0, 8)}.csv`);
+}
+
 export async function createStockMovement(plantId: string, data: any) {
   return apiCall(`/${plantId}/stock-movements`, {
     method: 'POST',

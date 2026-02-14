@@ -25,9 +25,30 @@ export const createStockMovementSchema = z.object({
   plant_id: z.string().uuid('Plant ID deve ser UUID'),
   work_order_id: z.string().uuid('Work Order ID deve ser UUID').optional(),
   type: z.enum(['entrada', 'saida', 'ajuste']),
-  quantity: z.number().int().positive('Quantidade deve ser positiva'),
+  quantity: z.number().int(),
   unit_cost: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Formato decimal inválido').optional(),
   notes: z.string().max(1000).optional(),
+}).superRefine((val, ctx) => {
+  const qty = Number(val.quantity);
+  if (!qty || Number.isNaN(qty)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['quantity'], message: 'Quantidade é obrigatória' });
+    return;
+  }
+
+  if (val.type === 'ajuste') {
+    if (qty === 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['quantity'], message: 'Quantidade não pode ser 0' });
+    }
+    return;
+  }
+
+  if (qty <= 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['quantity'],
+      message: 'Quantidade deve ser positiva',
+    });
+  }
 });
 
 export type CreateSparePartInput = z.infer<typeof createSparePartSchema>;

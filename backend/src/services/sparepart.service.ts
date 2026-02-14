@@ -254,13 +254,20 @@ export class SparePartService {
     // Verify spare part exists
     await this.getSparePartById(tenant_id, input.spare_part_id);
 
-    if (!input.quantity || Number(input.quantity) <= 0) {
-      throw new Error('Quantidade deve ser positiva');
+    const qty = Number(input.quantity);
+    if (!qty || Number.isNaN(qty)) {
+      throw new Error('Quantidade é obrigatória');
+    }
+
+    if (input.type === 'ajuste') {
+      if (qty === 0) throw new Error('Quantidade não pode ser 0');
+    } else {
+      if (qty <= 0) throw new Error('Quantidade deve ser positiva');
     }
 
     if (input.type === 'saida') {
       const currentQty = await this.getStockQuantity(tenant_id, input.spare_part_id, input.plant_id);
-      if (currentQty < Number(input.quantity)) {
+      if (currentQty < qty) {
         throw new Error(`Stock insuficiente. Disponível: ${currentQty}`);
       }
     }

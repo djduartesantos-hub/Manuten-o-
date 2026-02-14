@@ -28,6 +28,7 @@ import profileRoutes from './routes/profile.routes.js';
 import superadminRoutes from './routes/superadmin.routes.js';
 import ticketRoutes from './routes/tickets.routes.js';
 import plannerRoutes from './routes/planner.routes.js';
+import stocktakeRoutes from './routes/stocktake.routes.js';
 import { errorHandler, notFoundHandler, requestLogger } from './middlewares/error.js';
 import { tenantSlugMiddleware } from './middlewares/tenant.js';
 
@@ -101,6 +102,7 @@ export function createApp(): Express {
   app.use('/api', maintenanceKitRoutes);
   app.use('/api', sparePartRoutes);
   app.use('/api', supplierRoutes);
+  app.use('/api', stocktakeRoutes);
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/alerts', alertRoutes);
   app.use('/api/notifications', notificationRoutes);
