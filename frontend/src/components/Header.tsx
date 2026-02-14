@@ -15,6 +15,8 @@ import { useAppStore } from '../context/store';
 import { useSocket } from '../context/SocketContext';
 import { useTheme } from '../context/ThemeContext';
 import { getSuperadminDbStatus, getSuperadminTenants, logout as apiLogout } from '../services/api';
+import { useProfileAccess } from '../hooks/useProfileAccess';
+import { canAccessPathByPermissions } from '../utils/routePermissions';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -24,6 +26,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
   const { user, logout } = useAuth();
   const { selectedPlant, plants, setSelectedPlant } = useAppStore();
   const { isConnected, unreadCount } = useSocket();
+  const { permissions, loading: permissionsLoading } = useProfileAccess();
   const location = useLocation();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
@@ -31,6 +34,12 @@ export function Header({ onToggleSidebar }: HeaderProps) {
   const role = String(user?.role || '').trim().toLowerCase();
   const isSuperAdmin = role === 'superadmin';
   const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.trim() || 'U';
+  const canAccessSettings = canAccessPathByPermissions({
+    path: '/settings',
+    isSuperAdmin,
+    permissions,
+    loading: permissionsLoading,
+  });
 
   const superAdminHome = '/superadmin/dashboard';
 
@@ -302,6 +311,9 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                 onMouseLeave={() => setUserMenuOpen(false)}
                 role="menu"
               >
+                <div className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.28em] theme-text-muted">
+                  Conta
+                </div>
                 <Link
                   to="/profile"
                   onClick={() => setUserMenuOpen(false)}
@@ -310,6 +322,26 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                 >
                   <span>Perfil</span>
                 </Link>
+                {canAccessSettings && (
+                  <Link
+                    to="/settings"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="flex items-center justify-between px-4 py-2.5 text-sm font-semibold text-[color:var(--dash-muted)] transition-colors hover:bg-[color:var(--dash-surface)] hover:text-[color:var(--dash-ink)]"
+                    role="menuitem"
+                  >
+                    <span>Configuracoes</span>
+                  </Link>
+                )}
+                {isSuperAdmin && (
+                  <Link
+                    to={superAdminHome}
+                    onClick={() => setUserMenuOpen(false)}
+                    className="flex items-center justify-between px-4 py-2.5 text-sm font-semibold text-[color:var(--dash-muted)] transition-colors hover:bg-[color:var(--dash-surface)] hover:text-[color:var(--dash-ink)]"
+                    role="menuitem"
+                  >
+                    <span>SuperAdmin</span>
+                  </Link>
+                )}
               </div>
             )}
           </div>

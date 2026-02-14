@@ -14,6 +14,7 @@ import {
   Settings,
   Shield,
   Building2,
+  User,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../context/store';
@@ -88,10 +89,21 @@ function buildNavSections(options: {
               active: pathname.startsWith('/superadmin/suporte'),
             },
             {
-              label: 'Definicoes',
+              label: 'Configuracoes',
               href: '/settings?panel=superadmin',
               icon: Settings,
               active: pathname.startsWith('/settings'),
+            },
+          ],
+        },
+        {
+          title: 'Conta',
+          items: [
+            {
+              label: 'Perfil',
+              href: '/profile',
+              icon: User,
+              active: pathname === '/profile',
             },
           ],
         },
@@ -111,12 +123,6 @@ function buildNavSections(options: {
               href: '/search',
               icon: Search,
               active: pathname === '/search',
-            },
-            {
-              label: 'Relatorios',
-              href: '/reports',
-              icon: FileText,
-              active: pathname === '/reports',
             },
           ],
         },
@@ -173,6 +179,17 @@ function buildNavSections(options: {
           ],
         },
         {
+          title: 'Relatorios',
+          items: [
+            {
+              label: 'Relatorios',
+              href: '/reports',
+              icon: FileText,
+              active: pathname === '/reports',
+            },
+          ],
+        },
+        {
           title: 'Administracao',
           items: [
             {
@@ -186,6 +203,17 @@ function buildNavSections(options: {
               href: '/plants',
               icon: Building2,
               active: pathname === '/plants',
+            },
+          ],
+        },
+        {
+          title: 'Conta',
+          items: [
+            {
+              label: 'Perfil',
+              href: '/profile',
+              icon: User,
+              active: pathname === '/profile',
             },
           ],
         },

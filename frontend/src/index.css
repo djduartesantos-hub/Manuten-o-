@@ -188,6 +188,7 @@ body {
 .nav-link {
   color: var(--dash-muted);
   border: 1px solid transparent;
+  position: relative;
 }
 
 .nav-link:hover {
@@ -201,6 +202,18 @@ body {
   color: var(--dash-ink);
   border-color: var(--dash-border);
   box-shadow: 0 16px 40px -32px rgba(20, 184, 166, 0.7);
+}
+
+.nav-link-active::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--dash-accent), var(--dash-accent-2));
+  box-shadow: 0 0 12px rgba(20, 184, 166, 0.45);
 }
 
 @keyframes plans-fade-up {
