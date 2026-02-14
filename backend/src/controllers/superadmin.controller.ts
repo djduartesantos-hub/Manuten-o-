@@ -7,6 +7,9 @@ import { AuthenticatedRequest } from '../types/index.js';
 import { tenants, users } from '../db/schema.js';
 import { hashPassword } from '../auth/jwt.js';
 import { SuperadminAuditService } from '../services/superadminAudit.service.js';
+import { RedisService } from '../services/redis.service.js';
+import { ElasticsearchService } from '../services/elasticsearch.service.js';
+import { JobQueueService, QUEUES } from '../services/job.service.js';
 
 const normalizeSlug = (value: unknown) => {
   const raw = String(value || '').trim().toLowerCase();
@@ -220,6 +223,33 @@ export async function getHealth(_req: AuthenticatedRequest, res: Response) {
       dbTime = null;
     }
 
+    // Redis (best-effort)
+    let redisOk: boolean | null = null;
+    try {
+      redisOk = await RedisService.ping();
+    } catch {
+      redisOk = false;
+    }
+
+    // Elasticsearch (best-effort)
+    const elasticEnabled = ElasticsearchService.isEnabled();
+    let elasticOk: boolean | null = null;
+    try {
+      elasticOk = elasticEnabled ? await ElasticsearchService.ping() : null;
+    } catch {
+      elasticOk = false;
+    }
+
+    // Job queues (best-effort; requires Redis)
+    let queues: any[] | null = null;
+    try {
+      const names = Object.values(QUEUES);
+      const stats = await Promise.all(names.map((q) => JobQueueService.getStats(q)));
+      queues = stats.filter(Boolean);
+    } catch {
+      queues = null;
+    }
+
     return res.json({
       success: true,
       data: {
@@ -229,6 +259,12 @@ export async function getHealth(_req: AuthenticatedRequest, res: Response) {
         version: process.env.GIT_SHA || process.env.RENDER_GIT_COMMIT || null,
         dbOk,
         dbTime,
+        redisOk,
+        elasticsearch: {
+          enabled: elasticEnabled,
+          ok: elasticOk,
+        },
+        queues,
         config: {
           nodeEnv: process.env.NODE_ENV || null,
           timezone: process.env.TZ || null,

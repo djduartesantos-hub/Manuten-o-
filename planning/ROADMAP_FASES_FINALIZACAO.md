@@ -139,7 +139,7 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 
 ---
 
-## Fase 4 — Stock/Peças + Compras (core industrial)
+## Fase 4 — Stock/Peças + Compras (core industrial) — COMPLETA ✅
 
 **O que é**
 - Gestão de stock e consumo por OT (inventário, movimentos, mínimos) com base industrial.
@@ -148,8 +148,8 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - Evitar ruturas de peças, controlar custos por manutenção e suportar processos de compra/receção com rastreabilidade.
 
 **Must**
-- Stock mínimo, movimentos (entrada/saída), consumo por OT.
-- Inventário por fábrica.
+- [x] Stock mínimo, movimentos (entrada/saída), consumo por OT.
+- [x] Inventário por fábrica.
 
 **Should**
 - Requisições internas e receção.
@@ -163,12 +163,12 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - API/UI: sim
 
 **DoD**
-- Inventário fecha com auditoria e export
-- OTs registam consumo de peças com custo
+- [x] Inventário fecha com auditoria e export
+- [x] OTs registam consumo de peças com custo
 
 ---
 
-## Fase 5 — Reports/BI e Exportações “vendáveis”
+## Fase 5 — Reports/BI e Exportações “vendáveis” — COMPLETA ✅
 
 **O que é**
 - Pacote de relatórios e exports consistentes focados em métricas “de compra”: SLA, custos, backlog, preventivas.
@@ -177,8 +177,8 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - Tornar o produto mais “vendável”: responder rapidamente a perguntas de gestão e permitir extração de dados sem trabalho manual.
 
 **Must**
-- Relatórios essenciais: backlog aging, preventivas, custos, SLA.
-- Export CSV/JSON em tudo o que for operacional.
+- [x] Relatórios essenciais: backlog aging, preventivas, custos, SLA.
+- [x] Export CSV/JSON em tudo o que for operacional.
 
 **Should**
 - Relatórios agendados (email).
@@ -192,12 +192,12 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - Ops: email provider/queue
 
 **DoD**
-- 5–10 relatórios que respondem a perguntas comerciais reais
-- Export consistente e sem timeouts
+- [x] 5–10 relatórios que respondem a perguntas comerciais reais
+- [x] Export consistente e sem timeouts
 
 ---
 
-## Fase 6 — Suporte e Operações (SuperAdmin) + Tickets
+## Fase 6 — Suporte e Operações (SuperAdmin) + Tickets — COMPLETA ✅
 
 **O que é**
 - Consola de operações/suporte para gerir saúde, diagnósticos, exportações e ações de reparação com auditoria.
@@ -206,16 +206,16 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - Reduzir tempo de resolução de incidentes e dar ferramentas seguras de suporte sem mexer diretamente na BD.
 
 **Must**
-- Consola de suporte completa (já existe base): bundles, integridade, drift, exports.
-- Ferramentas seguras (com auditoria) para reset/repair e ações de suporte.
-- Sistema de Tickets (implementado): fluxo **fábrica → empresa → superadmin** (com exceção “problema geral” direto ao SuperAdmin), comentários e gestão de estado.
+- [x] Consola de suporte completa (já existe base): bundles, integridade, drift, exports.
+- [x] Ferramentas seguras (com auditoria) para reset/repair e ações de suporte.
+- [x] Sistema de Tickets (implementado): fluxo **fábrica → empresa → superadmin** (com exceção “problema geral” direto ao SuperAdmin), comentários e gestão de estado.
 
 **Should**
-- “Health score” por tenant e alertas.
-- Modo quarentena/readonly.
-- Auditoria/timeline por ticket (eventos) + notificação in-app dos eventos.
-- Filtros/paginação básicos na listagem (q/status + limit/offset).
-- RBAC por permissão para tickets (ex.: `tickets:read`, `tickets:write`, `tickets:forward`).
+- [x] “Health score” por tenant e alertas.
+- [x] Modo quarentena/readonly.
+- [x] Auditoria/timeline por ticket (eventos) + notificação in-app dos eventos.
+- [x] Filtros/paginação básicos na listagem (q/status + limit/offset).
+- [x] RBAC por permissão para tickets (ex.: `tickets:read`, `tickets:write`, `tickets:forward`).
 
 **Could**
 - Melhorias incrementais de tickets (ver planning/ROADMAP_SUPERADMIN_TICKETS.md)
@@ -224,7 +224,7 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - BD/API/UI: sim
 
 **DoD**
-- Qualquer incidente consegue ser diagnosticado com 1 bundle + 1 export
+- [x] Qualquer incidente consegue ser diagnosticado com 1 bundle + 1 export
 
 ---
 

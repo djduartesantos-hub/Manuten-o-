@@ -10,19 +10,22 @@
 
 ---
 
-## 🎯 Current Phase: Phase 3 COMPLETE ✅
+## 🎯 Current Phase: Phase 6 COMPLETE ✅
 
-### Progress: 100% Complete (Phase 3A Complete, Phase 3B Complete)
+### Progress: Phase 4–6 delivered (hardening + reports + SuperAdmin ops)
 
 ```
 Phase 3A - Settings Hub:  ████████████████████ 100% ✅
 Phase 3B - Real-time:     ████████████████████ 100% ✅
-Overall Project:          ██████████████████░░ 85% (Phases 1-3 Done, 4+ Planned)
+Phase 4 - Stock/Peças:    ████████████████████ 100% ✅
+Phase 5 - Reports/BI:     ████████████████████ 100% ✅
+Phase 6 - SuperAdmin:     ████████████████████ 100% ✅
+Overall Project:          ███████████████████░░ 92% (Hardening/RBAC/WO polish ongoing)
 ```
 
 ---
 
-## ✅ Completed (as of 4 Feb 2026)
+## ✅ Completed (as of 14 Feb 2026)
 
 ### Phase 1: Asset Management
 - [x] CRUD operations
@@ -72,6 +75,12 @@ Overall Project:          ██████████████████
 - [x] Planeamento: página `/planner` com calendário unificado (preventivas + ordens + paragens planeadas)
 - [x] Planeamento: CRUD de paragens planeadas (`planned_downtimes`) + endpoint unificado `GET /:plantId/planner`
 - [x] Documento de referência: `docs/ARCHITECTURE/FEATURES_659664c_SECURITY_SESSIONS_ATTACHMENTS.md`
+
+**Atualizações recentes (2026-02-14 / 2026-02-15)**
+- [x] Reports: relatório “Backlog (Aging)” com buckets + export PDF/CSV
+- [x] SuperAdmin: auditoria para todos os exports/downloads (incl. diagnostics bundle)
+- [x] Ops: `x-request-id` end-to-end + hardening de erros 5xx (sem leak de mensagens internas)
+- [x] Stocktakes: criação de inventário por fábrica otimizada (bulk compute + bulk insert)
 
 ### Phase 3B: Real-time Infrastructure (COMPLETE ✅)
 - [x] WebSocket/Socket.io with tenant rooms & JWT auth
