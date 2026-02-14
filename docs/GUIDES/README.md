@@ -14,6 +14,12 @@ Guias rápidas para configuração e resolução de problemas.
 
 ---
 
+## 🎫 Tickets (Suporte)
+
+- **[TICKETS.md](./TICKETS.md)** - Fluxo Fábrica → Empresa → SuperAdmin (RBAC + timeline + notificações)
+
+---
+
 ## 🆘 Troubleshooting
 
 - **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - Problemas comuns (Linux/Mac)
