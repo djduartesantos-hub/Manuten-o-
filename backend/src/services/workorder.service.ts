@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { CacheKeys, CacheTTL, RedisService } from './redis.service.js';
 import { logger } from '../config/logger.js';
 import { ElasticsearchService } from './elasticsearch.service.js';
+import { computeWorkOrderSlaDeadline, type WorkOrderPriority } from '../utils/workorder-sla-rules.js';
 
 export class WorkOrderService {
   private static normalizeWorkOrderStatus(status?: string | null): string {
@@ -106,20 +107,13 @@ export class WorkOrderService {
     scheduled_date?: Date | string;
     sla_deadline?: Date | string;
   }) {
-    const priority = data.priority || 'media';
-    const slaHoursMap: Record<string, number> = {
-      baixa: 96,
-      media: 72,
-      alta: 24,
-      critica: 8,
-    };
-
-    const slaHours = slaHoursMap[priority] || 72;
-    const baseDate = data.scheduled_date
-      ? new Date(data.scheduled_date)
-      : new Date();
-
-    const calculatedSla = new Date(baseDate.getTime() + slaHours * 60 * 60 * 1000);
+    const priority = (data.priority || 'media') as WorkOrderPriority;
+    const baseDate = data.scheduled_date ? new Date(data.scheduled_date) : new Date();
+    const calculatedSla = await computeWorkOrderSlaDeadline({
+      tenantId: data.tenant_id,
+      priority,
+      baseDate,
+    });
 
     const [workOrder] = await db
       .insert(workOrders)

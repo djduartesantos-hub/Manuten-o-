@@ -13,7 +13,7 @@ import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance
 import { StockReservationService } from '../services/stockreservation.service.js';
 import { isSlaOverdue } from '../utils/workorder-sla.js';
 import { db } from '../config/database.js';
-import { attachments, users, workOrders } from '../db/schema.js';
+import { attachments, users, workOrderEvents, workOrders } from '../db/schema.js';
 import { CacheKeys, RedisService } from '../services/redis.service.js';
 import {
   createStockReservationSchema,
@@ -29,6 +29,31 @@ const __dirname = dirname(__filename);
 function computeFileUrlFromUpload(params: { uploadBaseDir: string; file: Express.Multer.File }): string {
   const relative = path.relative(params.uploadBaseDir, params.file.path).split(path.sep).join('/');
   return `/uploads/${relative}`;
+}
+
+async function logWorkOrderEvent(input: {
+  tenantId: string;
+  plantId: string;
+  workOrderId: string;
+  eventType: string;
+  message?: string | null;
+  meta?: any;
+  actorUserId?: string | null;
+}) {
+  try {
+    await db.insert(workOrderEvents).values({
+      tenant_id: input.tenantId,
+      plant_id: input.plantId,
+      work_order_id: input.workOrderId,
+      event_type: input.eventType,
+      message: input.message ?? null,
+      meta: input.meta ?? null,
+      actor_user_id: input.actorUserId ?? null,
+      created_at: new Date(),
+    } as any);
+  } catch {
+    // best-effort
+  }
 }
 
 export class WorkOrderController {
@@ -223,6 +248,22 @@ export class WorkOrderController {
         } as any)
         .returning();
 
+      await logWorkOrderEvent({
+        tenantId,
+        plantId,
+        workOrderId,
+        eventType: 'work_order_attachment_added',
+        message: `Anexo enviado: ${(created as any)?.file_name || file.originalname || 'ficheiro'}`,
+        meta: {
+          attachment_id: (created as any)?.id,
+          file_name: (created as any)?.file_name,
+          file_url: (created as any)?.file_url,
+          file_type: (created as any)?.file_type,
+          file_size: (created as any)?.file_size,
+        },
+        actorUserId: String(req.user.userId),
+      });
+
       await db
         .update(workOrders)
         .set({ updated_at: new Date() } as any)
@@ -353,6 +394,21 @@ export class WorkOrderController {
         description,
         priority,
         estimated_hours,
+      });
+
+      await logWorkOrderEvent({
+        tenantId,
+        plantId,
+        workOrderId: workOrder.id,
+        eventType: 'work_order_created',
+        message: 'Ordem criada',
+        meta: {
+          title: workOrder.title,
+          priority: workOrder.priority,
+          status: workOrder.status,
+          asset_id: workOrder.asset_id,
+        },
+        actorUserId: req.user?.userId ? String(req.user.userId) : null,
       });
 
       if (req.user?.userId) {
@@ -780,6 +836,68 @@ export class WorkOrderController {
         updates,
         plantId,
       );
+
+      const changedFields = Object.keys(updates || {});
+      const didChangeStatus =
+        Object.prototype.hasOwnProperty.call(updates, 'status') &&
+        updates.status !== undefined &&
+        updates.status !== null &&
+        String(updates.status) !== String(existing.status);
+      const didChangeAssignment =
+        Object.prototype.hasOwnProperty.call(updates, 'assigned_to') &&
+        String(updates.assigned_to || '') !== String(existing.assigned_to || '');
+      const didChangePriority =
+        Object.prototype.hasOwnProperty.call(updates, 'priority') &&
+        String(updates.priority || '') !== String(existing.priority || '');
+
+      if (didChangeStatus) {
+        await logWorkOrderEvent({
+          tenantId,
+          plantId,
+          workOrderId: workOrder.id,
+          eventType: 'work_order_status_changed',
+          message: `Estado: ${String(existing.status)} → ${String(workOrder.status)}`,
+          meta: { from: existing.status, to: workOrder.status },
+          actorUserId: userId ? String(userId) : null,
+        });
+      }
+
+      if (didChangeAssignment) {
+        await logWorkOrderEvent({
+          tenantId,
+          plantId,
+          workOrderId: workOrder.id,
+          eventType: 'work_order_assigned',
+          message: updates.assigned_to ? 'Ordem atribuída' : 'Atribuição removida',
+          meta: { from: existing.assigned_to, to: workOrder.assigned_to },
+          actorUserId: userId ? String(userId) : null,
+        });
+      }
+
+      if (didChangePriority) {
+        await logWorkOrderEvent({
+          tenantId,
+          plantId,
+          workOrderId: workOrder.id,
+          eventType: 'work_order_priority_changed',
+          message: `Prioridade: ${String(existing.priority)} → ${String(workOrder.priority)}`,
+          meta: { from: existing.priority, to: workOrder.priority },
+          actorUserId: userId ? String(userId) : null,
+        });
+      }
+
+      // If notes/work performed were changed, log a generic note event (without copying full text)
+      if (changedFields.includes('notes') || changedFields.includes('work_performed')) {
+        await logWorkOrderEvent({
+          tenantId,
+          plantId,
+          workOrderId: workOrder.id,
+          eventType: 'work_order_updated',
+          message: 'Atualização registada',
+          meta: { fields: changedFields.slice(0, 20) },
+          actorUserId: userId ? String(userId) : null,
+        });
+      }
 
       const shouldTriggerAlerts = Boolean(
         updates.status || updates.sla_deadline || updates.asset_id || updates.completed_at || updates.priority,
@@ -1211,6 +1329,122 @@ export class WorkOrderController {
         success: false,
         error: 'Failed to fetch audit logs',
       });
+    }
+  }
+
+  // -------------------- Events (Timeline) --------------------
+
+  static async listEvents(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { workOrderId, plantId } = req.params;
+      const tenantId = req.tenantId;
+
+      if (!tenantId || !workOrderId || !plantId) {
+        res.status(400).json({ success: false, error: 'Work order ID is required' });
+        return;
+      }
+
+      const workOrder = await WorkOrderService.getWorkOrderById(tenantId, workOrderId, plantId);
+      if (!workOrder) {
+        res.status(404).json({ success: false, error: 'Work order not found' });
+        return;
+      }
+
+      const rows = await db
+        .select({
+          id: workOrderEvents.id,
+          event_type: workOrderEvents.event_type,
+          message: workOrderEvents.message,
+          meta: workOrderEvents.meta,
+          actor_user_id: workOrderEvents.actor_user_id,
+          created_at: workOrderEvents.created_at,
+          actor_first_name: users.first_name,
+          actor_last_name: users.last_name,
+        })
+        .from(workOrderEvents)
+        .leftJoin(users, eq(workOrderEvents.actor_user_id, users.id))
+        .where(
+          and(
+            eq(workOrderEvents.tenant_id, tenantId),
+            eq(workOrderEvents.plant_id, plantId),
+            eq(workOrderEvents.work_order_id, workOrderId),
+          ),
+        )
+        .orderBy(desc(workOrderEvents.created_at));
+
+      res.json({
+        success: true,
+        data: (rows || []).map((r: any) => ({
+          id: String(r.id),
+          event_type: String(r.event_type),
+          message: r.message ? String(r.message) : null,
+          meta: r.meta ?? null,
+          actor_user_id: r.actor_user_id ? String(r.actor_user_id) : null,
+          created_at: r.created_at,
+          actor: r.actor_user_id
+            ? { id: String(r.actor_user_id), first_name: r.actor_first_name, last_name: r.actor_last_name }
+            : null,
+        })),
+      });
+    } catch (error) {
+      logger.error('List work order events error:', error);
+      res.status(500).json({ success: false, error: 'Failed to fetch events' });
+    }
+  }
+
+  static async addNoteEvent(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user?.userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
+      const { workOrderId, plantId } = req.params;
+      const tenantId = req.tenantId;
+      const messageRaw = req.body?.message;
+      const message = String(messageRaw || '').trim();
+
+      if (!tenantId || !workOrderId || !plantId) {
+        res.status(400).json({ success: false, error: 'Work order ID is required' });
+        return;
+      }
+
+      if (message.length < 2) {
+        res.status(400).json({ success: false, error: 'Mensagem é obrigatória' });
+        return;
+      }
+
+      const workOrder = await WorkOrderService.getWorkOrderById(tenantId, workOrderId, plantId);
+      if (!workOrder) {
+        res.status(404).json({ success: false, error: 'Work order not found' });
+        return;
+      }
+
+      await logWorkOrderEvent({
+        tenantId,
+        plantId,
+        workOrderId,
+        eventType: 'work_order_note',
+        message,
+        meta: null,
+        actorUserId: String(req.user.userId),
+      });
+
+      await db
+        .update(workOrders)
+        .set({ updated_at: new Date() } as any)
+        .where(and(eq(workOrders.tenant_id, tenantId), eq(workOrders.id, workOrderId)));
+
+      try {
+        await RedisService.del(CacheKeys.workOrder(tenantId, workOrderId));
+      } catch {
+        // ignore
+      }
+
+      res.status(201).json({ success: true, data: { ok: true } });
+    } catch (error) {
+      logger.error('Add work order note event error:', error);
+      res.status(500).json({ success: false, error: 'Failed to add note' });
     }
   }
 

@@ -53,6 +53,18 @@ router.get('/:plantId/work-orders/:workOrderId', requirePermission('workorders:r
 router.put('/:plantId/work-orders/:workOrderId', requirePermission('workorders:write'), WorkOrderController.update);
 router.delete('/:plantId/work-orders/:workOrderId', requirePermission('workorders:write'), WorkOrderController.remove);
 
+// Timeline/Events
+router.get(
+	'/:plantId/work-orders/:workOrderId/events',
+	requirePermission('workorders:read'),
+	WorkOrderController.listEvents,
+);
+router.post(
+	'/:plantId/work-orders/:workOrderId/events/note',
+	requirePermission('workorders:write'),
+	WorkOrderController.addNoteEvent,
+);
+
 // Attachments (evidências)
 router.get(
 	'/:plantId/work-orders/:workOrderId/attachments',

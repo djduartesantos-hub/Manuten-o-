@@ -931,6 +931,20 @@ export type WorkOrderAttachment = {
   } | null;
 };
 
+export type WorkOrderEvent = {
+  id: string;
+  event_type: string;
+  message?: string | null;
+  meta?: any;
+  actor_user_id?: string | null;
+  created_at?: string;
+  actor?: {
+    id: string;
+    first_name?: string | null;
+    last_name?: string | null;
+  } | null;
+};
+
 export async function getWorkOrders(plantId: string, status?: string) {
   const params = new URLSearchParams();
   if (status) params.append('status', status);
@@ -958,6 +972,20 @@ export async function updateWorkOrder(plantId: string, workOrderId: string, data
 
 export async function getWorkOrderAuditLogs(plantId: string, workOrderId: string) {
   return apiCall(`/${plantId}/work-orders/${workOrderId}/audit`);
+}
+
+export async function listWorkOrderEvents(plantId: string, workOrderId: string): Promise<WorkOrderEvent[]> {
+  return apiCall(`/${encodeURIComponent(String(plantId))}/work-orders/${encodeURIComponent(String(workOrderId))}/events`);
+}
+
+export async function addWorkOrderNote(plantId: string, workOrderId: string, message: string): Promise<{ ok: boolean } | void> {
+  return apiCall(
+    `/${encodeURIComponent(String(plantId))}/work-orders/${encodeURIComponent(String(workOrderId))}/events/note`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    },
+  );
 }
 
 export async function listWorkOrderAttachments(plantId: string, workOrderId: string): Promise<WorkOrderAttachment[]> {

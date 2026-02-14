@@ -889,6 +889,35 @@ export const attachments = pgTable(
   }),
 );
 
+// Work Order Events (Timeline)
+export const workOrderEvents = pgTable(
+  'work_order_events',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    plant_id: uuid('plant_id')
+      .notNull()
+      .references(() => plants.id, { onDelete: 'cascade' }),
+    work_order_id: uuid('work_order_id')
+      .notNull()
+      .references(() => workOrders.id, { onDelete: 'cascade' }),
+    event_type: text('event_type').notNull(),
+    message: text('message'),
+    meta: jsonb('meta'),
+    actor_user_id: uuid('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    workOrderCreatedIdx: index('work_order_events_work_order_id_created_at_idx').on(
+      table.work_order_id,
+      table.created_at,
+    ),
+    tenantCreatedIdx: index('work_order_events_tenant_id_created_at_idx').on(table.tenant_id, table.created_at),
+    plantCreatedIdx: index('work_order_events_plant_id_created_at_idx').on(table.plant_id, table.created_at),
+    eventTypeIdx: index('work_order_events_event_type_idx').on(table.event_type),
+  }),
+);
+
 // Audit Logs
 export const auditLogs = pgTable(
   'audit_logs',
@@ -1108,6 +1137,7 @@ export const workOrdersRelations = relations(workOrders, ({ one, many }) => ({
   }),
   tasks: many(workOrderTasks),
   attachments: many(attachments),
+  events: many(workOrderEvents),
   stockMovements: many(stockMovements),
 }));
 // Alert Configurations

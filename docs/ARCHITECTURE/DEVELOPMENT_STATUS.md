@@ -67,6 +67,8 @@ Overall Project:          ██████████████████
 - [x] Admin: endpoints para gerir política (`GET/PATCH /admin/security-policy`) + UI em Settings
 - [x] Sessões: listar/revogar sessões no Perfil + tracking best-effort (`touchSession`)
 - [x] Ordens de Trabalho: anexos (evidências) `GET/POST /:plantId/work-orders/:workOrderId/attachments`
+- [x] Ordens de Trabalho: timeline profissional (eventos + notas rápidas) `GET /:plantId/work-orders/:workOrderId/events` + `POST /:plantId/work-orders/:workOrderId/events/note`
+- [x] Ordens de Trabalho: SLA por prioridade via tabela `sla_rules` (em vez de mapa hardcoded)
 - [x] Documento de referência: `docs/ARCHITECTURE/FEATURES_659664c_SECURITY_SESSIONS_ATTACHMENTS.md`
 
 ### Phase 3B: Real-time Infrastructure (COMPLETE ✅)

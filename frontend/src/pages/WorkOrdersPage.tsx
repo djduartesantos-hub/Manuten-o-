@@ -39,6 +39,8 @@ import {
   getPreventiveSchedules,
   getWorkOrder,
   getWorkOrderAuditLogs,
+  listWorkOrderEvents,
+  addWorkOrderNote,
   listWorkOrderAttachments,
   uploadWorkOrderAttachment,
   getWorkOrderReservations,
@@ -47,6 +49,7 @@ import {
   getStockMovementsByPlant,
   getWorkOrders,
   type WorkOrderAttachment,
+  type WorkOrderEvent,
   releaseWorkOrderReservation,
   addWorkOrderTask,
   deleteWorkOrderTask,
@@ -381,6 +384,11 @@ export function WorkOrdersPage() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
+  const [orderEvents, setOrderEvents] = useState<WorkOrderEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventsError, setEventsError] = useState<string | null>(null);
+  const [noteMessage, setNoteMessage] = useState('');
+  const [noteSaving, setNoteSaving] = useState(false);
   const [templates, setTemplates] = useState<
     Array<{ name: string; data: WorkOrderFormState }>
   >([]);
@@ -1373,6 +1381,60 @@ export function WorkOrdersPage() {
     });
   }, [auditLogs]);
 
+  const eventsTimeline = useMemo<AuditTimelineItem[]>(() => {
+    const items = (orderEvents || [])
+      .filter((ev) => Boolean(ev.created_at))
+      .map<AuditTimelineItem>((ev) => {
+        const createdAt = String(ev.created_at);
+
+        const actorLabel = ev.actor
+          ? `${ev.actor.first_name || ''} ${ev.actor.last_name || ''}`.trim()
+          : '';
+
+        const userLabel = actorLabel || (ev.actor_user_id ? 'Utilizador' : 'Sistema');
+
+        const title = (() => {
+          const t = String(ev.event_type || '').trim();
+          if (t === 'work_order_note') return 'Nota';
+          if (t === 'work_order_created') return 'Criada';
+          if (t === 'work_order_status_changed') return 'Estado';
+          if (t === 'work_order_assigned') return 'Atribuição';
+          if (t === 'work_order_priority_changed') return 'Prioridade';
+          if (t === 'work_order_attachment_added') return 'Anexo';
+          if (t === 'work_order_updated') return 'Atualização';
+          return t || 'Evento';
+        })();
+
+        const details: string[] = [];
+        if (ev.message) details.push(String(ev.message));
+
+        return {
+          id: `event:${ev.id}`,
+          title,
+          createdAt,
+          userLabel,
+          details,
+        };
+      });
+
+    return items.sort((a, b) => {
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return tb - ta;
+    });
+  }, [orderEvents]);
+
+  const combinedTimeline = useMemo<AuditTimelineItem[]>(() => {
+    const merged = [...eventsTimeline, ...auditTimeline];
+    return merged
+      .filter((it) => it.createdAt)
+      .sort((a, b) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tb - ta;
+      });
+  }, [auditTimeline, eventsTimeline]);
+
   const handleStartEdit = (order: WorkOrder) => {
     setEditingOrder(order);
     setShowFinishFields(false);
@@ -1395,6 +1457,9 @@ export function WorkOrdersPage() {
     setNotesAppend('');
     setAuditLogs([]);
     setAuditError(null);
+    setOrderEvents([]);
+    setEventsError(null);
+    setNoteMessage('');
     setUpdateForm({
       status: order.status || 'aberta',
       sub_status: order.sub_status || '',
@@ -1448,10 +1513,13 @@ export function WorkOrdersPage() {
     setTasksError(null);
     setAuditLoading(true);
     setAuditError(null);
+    setEventsLoading(true);
+    setEventsError(null);
     try {
       const workOrder = await getWorkOrder(selectedPlant, workOrderId);
       setEditingOrder(workOrder);
       setNotesAppend('');
+      setNoteMessage('');
       void loadOrderAttachments(workOrderId);
       try {
         const tasks = await getWorkOrderTasks(selectedPlant, workOrderId);
@@ -1487,19 +1555,51 @@ export function WorkOrdersPage() {
       setAuditLoading(false);
       setTasksLoading(false);
       setAuditLogs([]);
+      setEventsLoading(false);
+      setOrderEvents([]);
       return;
     } finally {
       setTasksLoading(false);
     }
 
     try {
-      const logs = await getWorkOrderAuditLogs(selectedPlant, workOrderId);
+      const [logs, events] = await Promise.all([
+        getWorkOrderAuditLogs(selectedPlant, workOrderId),
+        listWorkOrderEvents(selectedPlant, workOrderId),
+      ]);
       setAuditLogs(logs || []);
+      setOrderEvents(Array.isArray(events) ? (events as WorkOrderEvent[]) : []);
     } catch (err: any) {
       setAuditLogs([]);
-      setAuditError(err.message || 'Erro ao carregar historico.');
+      setOrderEvents([]);
+      const msg = err?.message || 'Erro ao carregar historico.';
+      setAuditError(msg);
+      setEventsError(msg);
     } finally {
       setAuditLoading(false);
+      setEventsLoading(false);
+    }
+  };
+
+  const handleAddTimelineNote = async () => {
+    if (!selectedPlant || !editingOrder) return;
+    const message = noteMessage.trim();
+    if (message.length < 2) {
+      setEventsError('Escreva uma nota curta (min. 2 caracteres).');
+      return;
+    }
+
+    setNoteSaving(true);
+    setEventsError(null);
+    try {
+      await addWorkOrderNote(selectedPlant, editingOrder.id, message);
+      setNoteMessage('');
+      const events = await listWorkOrderEvents(selectedPlant, editingOrder.id);
+      setOrderEvents(Array.isArray(events) ? (events as WorkOrderEvent[]) : []);
+    } catch (err: any) {
+      setEventsError(err?.message || 'Erro ao adicionar nota.');
+    } finally {
+      setNoteSaving(false);
     }
   };
 
@@ -3891,7 +3991,7 @@ export function WorkOrdersPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
                     Timeline
                   </p>
-                  {auditTimeline.length > 1 && (
+                  {combinedTimeline.length > 1 && (
                     <button
                       type="button"
                       className="btn-secondary px-3 py-1 text-xs"
@@ -3902,21 +4002,53 @@ export function WorkOrdersPage() {
                   )}
                 </div>
 
-                {auditError && (
-                  <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm theme-text">
-                    {auditError}
+                {editingPermissions?.canOperateOrder && (
+                  <div className="mt-4">
+                    <label className="block text-xs font-semibold uppercase tracking-[0.18em] theme-text-muted">
+                      Adicionar nota ao histórico
+                    </label>
+                    <textarea
+                      className="input mt-2 min-h-[84px]"
+                      value={noteMessage}
+                      onChange={(event) => setNoteMessage(event.target.value)}
+                      placeholder="Ex: intervenção iniciada, peça substituída, observações..."
+                      disabled={noteSaving}
+                    />
+                    <div className="mt-2 flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={handleAddTimelineNote}
+                        disabled={noteSaving || noteMessage.trim().length < 2}
+                      >
+                        {noteSaving ? (
+                          <span className="inline-flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            A guardar...
+                          </span>
+                        ) : (
+                          'Adicionar nota'
+                        )}
+                      </button>
+                    </div>
                   </div>
                 )}
-                {auditLoading && (
+
+                {(auditError || eventsError) && (
+                  <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm theme-text">
+                    {eventsError || auditError}
+                  </div>
+                )}
+                {(auditLoading || eventsLoading) && (
                   <p className="mt-4 text-xs theme-text-muted">A carregar histórico...</p>
                 )}
-                {!auditLoading && auditLogs.length === 0 && (
-                  <p className="mt-4 text-xs theme-text-muted">Sem alterações registadas ainda.</p>
+                {!auditLoading && !eventsLoading && combinedTimeline.length === 0 && (
+                  <p className="mt-4 text-xs theme-text-muted">Sem registos ainda.</p>
                 )}
 
-                {auditTimeline.length > 0 && (
+                {combinedTimeline.length > 0 && (
                   <div className="mt-4 space-y-3">
-                    {(timelineExpanded ? auditTimeline : auditTimeline.slice(0, 1)).map(
+                    {(timelineExpanded ? combinedTimeline : combinedTimeline.slice(0, 1)).map(
                       (item, index, list) => (
                         <div key={item.id} className="relative pl-6">
                           <div className="absolute left-[9px] top-3 h-3 w-3 rounded-full border theme-border bg-[color:var(--dash-surface)]" />
