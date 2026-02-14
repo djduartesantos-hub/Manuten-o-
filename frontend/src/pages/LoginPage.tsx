@@ -50,7 +50,7 @@ function DemoLoginSelector(props: {
   const selected = props.demoKey === 'custom' ? null : DEMO_ACCOUNTS.find((a) => a.key === props.demoKey) || null;
 
   return (
-    <div className="mt-6 rounded-2xl border theme-border theme-card p-4 text-xs theme-text">
+    <div className="mt-6 rounded-2xl border theme-border glass-panel p-4 text-xs theme-text">
       <p className="font-semibold">Demo rápido</p>
       <p className="mt-1 theme-text-muted">Escolha uma role para preencher as credenciais.</p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -135,7 +135,8 @@ export function LoginPage() {
     <div className="relative min-h-screen overflow-hidden theme-bg theme-text">
       <div className="absolute -top-32 -left-24 h-80 w-80 rounded-full bg-[color:var(--dash-accent)] opacity-10 blur-3xl auth-float" />
       <div className="absolute -bottom-40 right-0 h-96 w-96 rounded-full bg-[color:var(--dash-accent-2)] opacity-10 blur-3xl auth-float" />
-      <div className="absolute left-1/3 top-10 h-2 w-24 rounded-full bg-[color:var(--dash-accent)] opacity-30" />
+      <div className="absolute left-1/4 top-16 h-2 w-28 rounded-full bg-[color:var(--dash-accent)] opacity-30" />
+      <div className="absolute right-1/4 top-24 h-2 w-16 rounded-full bg-[color:var(--dash-accent-2)] opacity-35" />
 
       <div className="absolute right-6 top-6 z-20">
         <button
@@ -144,7 +145,7 @@ export function LoginPage() {
           role="switch"
           aria-checked={isDark}
           aria-label="Alternar tema"
-          className="relative h-11 w-[88px] rounded-full border theme-border theme-card shadow-sm transition"
+          className="relative h-11 w-[88px] rounded-full border theme-border glass-panel shadow-sm transition"
         >
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-500">
             <Sun className="h-4 w-4" />
@@ -162,10 +163,10 @@ export function LoginPage() {
       </div>
 
       {loginStyle === 'minimal' ? (
-        <div className="relative mx-auto flex min-h-screen max-w-xl flex-col justify-center px-6 py-14">
+          <div className="relative mx-auto flex min-h-screen max-w-xl flex-col justify-center px-6 py-14">
           <div className="mx-auto w-full">
             <div className="mb-8 text-center">
-              <div className="mx-auto inline-flex items-center gap-2 rounded-full border theme-border theme-card px-4 py-2 text-xs uppercase tracking-[0.3em] theme-text-muted shadow-sm">
+              <div className="mx-auto inline-flex items-center gap-2 rounded-full border theme-border glass-panel px-4 py-2 text-xs uppercase tracking-[0.3em] theme-text-muted shadow-sm">
                 <Sparkles className="h-3.5 w-3.5 text-[color:var(--dash-accent)]" />
                 Maintenance Intelligence Suite
               </div>
@@ -175,7 +176,7 @@ export function LoginPage() {
               </p>
             </div>
 
-            <div className="w-full overflow-hidden rounded-[32px] border theme-border theme-card shadow-sm">
+            <div className="w-full overflow-hidden rounded-[32px] border theme-border glass-panel shadow-sm">
               <div className="h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent),var(--dash-accent-2))]" />
               <div className="p-8">
                 <div className="mb-6">
@@ -209,7 +210,7 @@ export function LoginPage() {
                       autoComplete="username"
                       spellCheck={false}
                       disabled={loading}
-                      className="mt-2 w-full rounded-2xl border theme-border bg-[color:var(--dash-panel-2)] px-4 py-3 text-sm theme-text placeholder:theme-text-muted focus:outline-none focus:ring-2 focus:ring-[color:var(--dash-accent)]/25 disabled:opacity-70"
+                      className="input mt-2 rounded-2xl px-4 py-3 text-sm"
                       required
                     />
                   </div>
@@ -232,7 +233,7 @@ export function LoginPage() {
                         }}
                         autoComplete="current-password"
                         disabled={loading}
-                        className="w-full rounded-2xl border theme-border bg-[color:var(--dash-panel-2)] px-4 py-3 pr-12 text-sm theme-text focus:outline-none focus:ring-2 focus:ring-[color:var(--dash-accent)]/25 disabled:opacity-70"
+                        className="input rounded-2xl px-4 py-3 pr-12 text-sm"
                         required
                       />
                       <button
@@ -251,7 +252,7 @@ export function LoginPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="mt-2 w-full rounded-2xl bg-[color:var(--dash-accent)] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[color:var(--dash-accent)]/30 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="btn-primary mt-2 w-full rounded-2xl px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {loading ? 'Entrando...' : 'Entrar'}
                   </button>
@@ -265,7 +266,7 @@ export function LoginPage() {
       ) : loginStyle === 'split' ? (
         <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col items-center gap-12 px-6 py-16 lg:flex-row lg:items-stretch">
           <div className="flex w-full flex-col justify-center lg:w-1/2">
-            <div className="inline-flex items-center gap-2 rounded-full border theme-border theme-card px-4 py-2 text-xs uppercase tracking-[0.3em] theme-text-muted shadow-sm">
+            <div className="inline-flex items-center gap-2 rounded-full border theme-border glass-panel px-4 py-2 text-xs uppercase tracking-[0.3em] theme-text-muted shadow-sm">
               <Sparkles className="h-3.5 w-3.5 text-[color:var(--dash-accent)]" />
               Maintenance Intelligence Suite
             </div>
@@ -277,17 +278,17 @@ export function LoginPage() {
               acompanhe a performance em tempo real.
             </p>
             <div className="mt-8 grid gap-4 text-sm theme-text-muted">
-              <div className="rounded-2xl border theme-border theme-card px-4 py-3 shadow-sm">
+              <div className="rounded-2xl border theme-border glass-panel px-4 py-3 shadow-sm">
                 Dashboards com KPIs, alertas e backlog sempre atualizados.
               </div>
-              <div className="rounded-2xl border theme-border theme-card px-4 py-3 shadow-sm">
+              <div className="rounded-2xl border theme-border glass-panel px-4 py-3 shadow-sm">
                 Planeie, execute e reveja ordens com equipas distribuídas.
               </div>
             </div>
           </div>
 
           <div className="flex w-full items-center lg:w-1/2">
-            <div className="w-full overflow-hidden rounded-[32px] border theme-border theme-card shadow-sm">
+            <div className="w-full overflow-hidden rounded-[32px] border theme-border glass-panel shadow-sm">
               <div className="h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent),var(--dash-accent-2))]" />
               <div className="p-8">
                 <div className="mb-6">
@@ -321,7 +322,7 @@ export function LoginPage() {
                       autoComplete="username"
                       spellCheck={false}
                       disabled={loading}
-                      className="mt-2 w-full rounded-2xl border theme-border bg-[color:var(--dash-panel-2)] px-4 py-3 text-sm theme-text placeholder:theme-text-muted focus:outline-none focus:ring-2 focus:ring-[color:var(--dash-accent)]/25 disabled:opacity-70"
+                      className="input mt-2 rounded-2xl px-4 py-3 text-sm"
                       required
                     />
                   </div>
@@ -344,7 +345,7 @@ export function LoginPage() {
                         }}
                         autoComplete="current-password"
                         disabled={loading}
-                        className="w-full rounded-2xl border theme-border bg-[color:var(--dash-panel-2)] px-4 py-3 pr-12 text-sm theme-text focus:outline-none focus:ring-2 focus:ring-[color:var(--dash-accent)]/25 disabled:opacity-70"
+                        className="input rounded-2xl px-4 py-3 pr-12 text-sm"
                         required
                       />
                       <button
@@ -363,7 +364,7 @@ export function LoginPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="mt-2 w-full rounded-2xl bg-[color:var(--dash-accent)] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[color:var(--dash-accent)]/30 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="btn-primary mt-2 w-full rounded-2xl px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {loading ? 'Entrando...' : 'Entrar'}
                   </button>
@@ -376,11 +377,11 @@ export function LoginPage() {
         </div>
       ) : (
         <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-6 py-14">
-          <div className="w-full overflow-hidden rounded-[32px] border theme-border theme-card shadow-sm">
+          <div className="w-full overflow-hidden rounded-[32px] border theme-border glass-panel shadow-sm">
             <div className="h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent),var(--dash-accent-2))]" />
             <div className="grid gap-10 p-8 lg:grid-cols-2 lg:p-10">
               <div className="flex flex-col justify-center">
-                <div className="inline-flex w-fit items-center gap-2 rounded-full border theme-border theme-card px-4 py-2 text-xs uppercase tracking-[0.3em] theme-text-muted shadow-sm">
+                <div className="inline-flex w-fit items-center gap-2 rounded-full border theme-border glass-panel px-4 py-2 text-xs uppercase tracking-[0.3em] theme-text-muted shadow-sm">
                   <Sparkles className="h-3.5 w-3.5 text-[color:var(--dash-accent)]" />
                   Maintenance Intelligence Suite
                 </div>
@@ -392,10 +393,10 @@ export function LoginPage() {
                   operação em tempo real.
                 </p>
                 <div className="mt-8 grid gap-4 text-sm theme-text-muted">
-                  <div className="rounded-2xl border theme-border theme-card px-4 py-3 shadow-sm">
+                  <div className="rounded-2xl border theme-border glass-panel px-4 py-3 shadow-sm">
                     KPIs, alertas e backlog sempre atualizados.
                   </div>
-                  <div className="rounded-2xl border theme-border theme-card px-4 py-3 shadow-sm">
+                  <div className="rounded-2xl border theme-border glass-panel px-4 py-3 shadow-sm">
                     Ordens, ativos e equipas num só fluxo.
                   </div>
                 </div>
@@ -433,7 +434,7 @@ export function LoginPage() {
                       autoComplete="username"
                       spellCheck={false}
                       disabled={loading}
-                      className="mt-2 w-full rounded-2xl border theme-border bg-[color:var(--dash-panel-2)] px-4 py-3 text-sm theme-text placeholder:theme-text-muted focus:outline-none focus:ring-2 focus:ring-[color:var(--dash-accent)]/25 disabled:opacity-70"
+                      className="input mt-2 rounded-2xl px-4 py-3 text-sm"
                       required
                     />
                   </div>
@@ -456,7 +457,7 @@ export function LoginPage() {
                         }}
                         autoComplete="current-password"
                         disabled={loading}
-                        className="w-full rounded-2xl border theme-border bg-[color:var(--dash-panel-2)] px-4 py-3 pr-12 text-sm theme-text focus:outline-none focus:ring-2 focus:ring-[color:var(--dash-accent)]/25 disabled:opacity-70"
+                        className="input rounded-2xl px-4 py-3 pr-12 text-sm"
                         required
                       />
                       <button
@@ -475,7 +476,7 @@ export function LoginPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="mt-2 w-full rounded-2xl bg-[color:var(--dash-accent)] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[color:var(--dash-accent)]/30 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="btn-primary mt-2 w-full rounded-2xl px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {loading ? 'Entrando...' : 'Entrar'}
                   </button>

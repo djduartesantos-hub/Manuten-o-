@@ -183,7 +183,7 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - [x] Export CSV/JSON em tudo o que for operacional.
 
 **Should**
-- Relatórios agendados (email).
+- [x] Relatórios agendados (email).
 - Dashboards por persona.
 
 **Could**

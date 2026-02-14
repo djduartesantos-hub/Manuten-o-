@@ -10,17 +10,19 @@
 
 ---
 
-## 🎯 Current Phase: Phase 6 COMPLETE ✅
+## 🎯 Current Phase: Phase 3D IN PROGRESS 🚧
 
 ### Progress: Phase 4–6 delivered (hardening + reports + SuperAdmin ops)
 
 ```
 Phase 3A - Settings Hub:  ████████████████████ 100% ✅
 Phase 3B - Real-time:     ████████████████████ 100% ✅
+Phase 3C - Smart Notifs:  ████████████████████ 100% ✅
+Phase 3D - Multi-factory: ████████░░░░░░░░░░░░ 40% 🚧
 Phase 4 - Stock/Peças:    ████████████████████ 100% ✅
 Phase 5 - Reports/BI:     ████████████████████ 100% ✅
 Phase 6 - SuperAdmin:     ████████████████████ 100% ✅
-Overall Project:          ███████████████████░░ 92% (Hardening/RBAC/WO polish ongoing)
+Overall Project:          ███████████████████░░ 93% (Phase 3D focus)
 ```
 
 ---
@@ -129,6 +131,11 @@ Overall Project:          ██████████████████
   - Action recommendations
   - ETA: 2-3 days
 
+- 🔄 **Smart Notifications (Phase 3C)** (100% - DONE)
+  - SLA/stock/recurring alerts
+  - Scheduled reports (email)
+  - Multi-channel delivery (in-app, socket, email)
+
 - 🔄 **DocumentsLibrary** (20% - File management)
   - Upload (multipart) + Download
   - PDF/image preview
@@ -155,15 +162,15 @@ Overall Project:          ██████████████████
 - **Impact:** 50-70% latency reduction, live UX
 
 ### Phase 3C: Smart Notifications (2-3 weeks)
-- [ ] Alert system (SLA, stock, recurring issues)
-- [ ] Email report scheduling
-- [ ] Multi-channel delivery
+- [x] Alert system (SLA, stock, recurring issues)
+- [x] Email report scheduling
+- [x] Multi-channel delivery
 - **Impact:** Operators always informed
 
 ### Phase 3D: Multi-factory + Profile + Role-based Home (3-5 weeks)
 - [ ] Enable multi-factory creation & memberships (scoping end-to-end)
 - [ ] User profile (header click → profile/preferences)
-- [ ] Post-login landing per role (admin/manager/technician/viewer)
+- [x] Post-login landing per role (admin/manager/technician/viewer)
 - [ ] Login page refresh (UX + accessibility + security baseline)
 - **Impact:** Unblocks growth to multi-sites, better daily UX
 

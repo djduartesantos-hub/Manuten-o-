@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,23 +6,30 @@
 
 /* Add global CSS variables for light and dark themes */
 :root {
-  --background: #ffffff; /* Light background */
-  --foreground: #1f2937; /* Dark text */
-  --card: #f3f4f6; /* Light card background */
-  --border: #e5e7eb; /* Light border */
+  --background: #f2f4f7;
+  --foreground: #1f2937;
+  --card: #ffffff;
+  --border: #dfe4ea;
 
   /* Theme variables */
-  --dash-bg: #f1f5f9;
-  --dash-accent: #38bdf8;
-  --dash-accent-2: #fef9c3;
-  --dash-ink: #334155;
+  --dash-bg: #f2f4f7;
+  --dash-accent: #14b8a6;
+  --dash-accent-2: #f59e0b;
+  --dash-ink: #1f2937;
   --dash-text: var(--dash-ink);
-  --dash-muted: #64748b;
-  --dash-panel: rgba(255,255,255,0.98);
-  --dash-panel-2: rgba(248,250,252,0.98);
-  --dash-border: rgba(148,163,184,0.18);
+  --dash-muted: #5b6471;
+  --dash-panel: rgba(255, 255, 255, 0.92);
+  --dash-panel-2: rgba(244, 247, 251, 0.92);
+  --dash-border: rgba(100, 116, 139, 0.2);
   --dash-surface: #f8fafc;
-  --dash-surface-2: #f1f5f9;
+  --dash-surface-2: #eef2f7;
+  --dash-bg-pattern:
+    radial-gradient(circle at 12% 12%, rgba(20, 184, 166, 0.12), transparent 45%),
+    radial-gradient(circle at 88% 18%, rgba(245, 158, 11, 0.1), transparent 52%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(242, 244, 247, 0.95)),
+    linear-gradient(90deg, rgba(100, 116, 139, 0.08) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(100, 116, 139, 0.08) 1px, transparent 1px);
+  --dash-grid-size: 110px;
 
   /* Page accents (aliases to theme primitives) */
   --settings-accent: var(--dash-accent);
@@ -30,23 +37,30 @@
 }
 
 .dark {
-  --background: #1f2937; /* Dark background */
-  --foreground: #f9fafb; /* Light text */
-  --card: #374151; /* Dark card background */
-  --border: #4b5563; /* Dark border */
+  --background: #0c1116;
+  --foreground: #e5e7eb;
+  --card: #111827;
+  --border: #1f2937;
 
   /* Theme variables */
-  --dash-bg: #0b1220;
-  --dash-accent: #38bdf8;
-  --dash-accent-2: #0f766e;
-  --dash-ink: #f8fafc;
+  --dash-bg: #0c1116;
+  --dash-accent: #2dd4bf;
+  --dash-accent-2: #f59e0b;
+  --dash-ink: #e5e7eb;
   --dash-text: var(--dash-ink);
-  --dash-muted: #cbd5e1;
-  --dash-panel: rgba(30,41,59,0.98);
-  --dash-panel-2: rgba(51,65,85,0.98);
-  --dash-border: rgba(148,163,184,0.35);
-  --dash-surface: #1e293b;
-  --dash-surface-2: #334155;
+  --dash-muted: #9aa4b2;
+  --dash-panel: rgba(17, 24, 39, 0.92);
+  --dash-panel-2: rgba(24, 32, 45, 0.95);
+  --dash-border: rgba(148, 163, 184, 0.25);
+  --dash-surface: #121826;
+  --dash-surface-2: #1b2433;
+  --dash-bg-pattern:
+    radial-gradient(circle at 10% 18%, rgba(45, 212, 191, 0.16), transparent 55%),
+    radial-gradient(circle at 85% 10%, rgba(245, 158, 11, 0.14), transparent 60%),
+    linear-gradient(180deg, rgba(12, 17, 22, 0.92), rgba(10, 14, 20, 0.98)),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  --dash-grid-size: 120px;
 
   /* Page accents (aliases to theme primitives) */
   --settings-accent: var(--dash-accent);
@@ -55,7 +69,16 @@
 
 body {
   background-color: var(--background);
+  background-image:
+    var(--dash-bg-pattern);
+  background-size:
+    auto,
+    auto,
+    auto,
+    var(--dash-grid-size) var(--dash-grid-size),
+    var(--dash-grid-size) var(--dash-grid-size);
   color: var(--foreground);
+  font-family: 'Space Grotesk', 'Sora', 'Segoe UI', sans-serif;
 }
 
 .container-custom {
@@ -78,7 +101,13 @@ body {
 }
 
 .btn-primary {
-  @apply px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition font-medium;
+  @apply px-4 py-2 rounded-lg transition font-medium;
+  background: linear-gradient(135deg, var(--dash-accent), var(--dash-accent-2));
+  color: #0b1020;
+}
+
+.btn-primary:hover {
+  filter: brightness(0.96);
 }
 
 .btn-secondary {
@@ -86,6 +115,7 @@ body {
   background-color: var(--dash-panel-2);
   border-color: var(--dash-border);
   color: var(--dash-ink);
+  box-shadow: 0 12px 30px -24px rgba(15, 23, 42, 0.5);
 }
 
 .btn-secondary:hover {
@@ -93,15 +123,22 @@ body {
 }
 
 .input {
-  @apply w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500;
+  @apply w-full px-3 py-2 border rounded-lg focus:outline-none;
   background-color: var(--dash-panel);
   border-color: var(--dash-border);
   color: var(--dash-ink);
+  box-shadow: 0 10px 30px -28px rgba(15, 23, 42, 0.5);
+}
+
+.input:focus {
+  border-color: color-mix(in srgb, var(--dash-accent) 55%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dash-accent) 35%, transparent);
 }
 
 /* Theme-aware classes */
 .theme-bg {
   background-color: var(--dash-bg) !important;
+  background-image: var(--dash-bg-pattern) !important;
 }
 
 .theme-text {
@@ -138,7 +175,32 @@ body {
 }
 
 .font-display {
-  font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+  font-family: 'Fraunces', 'Space Grotesk', 'Sora', sans-serif;
+}
+
+.glass-panel {
+  background: var(--dash-panel);
+  border: 1px solid var(--dash-border);
+  box-shadow: 0 24px 70px -50px rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(18px);
+}
+
+.nav-link {
+  color: var(--dash-muted);
+  border: 1px solid transparent;
+}
+
+.nav-link:hover {
+  background: var(--dash-surface);
+  color: var(--dash-ink);
+  border-color: var(--dash-border);
+}
+
+.nav-link-active {
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.18), rgba(245, 158, 11, 0.12));
+  color: var(--dash-ink);
+  border-color: var(--dash-border);
+  box-shadow: 0 16px 40px -32px rgba(20, 184, 166, 0.7);
 }
 
 @keyframes plans-fade-up {

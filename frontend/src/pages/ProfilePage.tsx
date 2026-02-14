@@ -196,26 +196,32 @@ export function ProfilePage() {
 
   return (
     <MainLayout>
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold theme-text">Perfil</h1>
-            <p className="mt-1 text-sm theme-text-muted">
-              Atualize os seus dados e a segurança da conta.
-            </p>
-          </div>
+      <div className="mx-auto max-w-6xl">
+        <section className="relative overflow-hidden rounded-[32px] border theme-border glass-panel p-6 shadow-sm">
+          <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent),var(--dash-accent-2))]" />
+          <div className="absolute -right-24 -top-24 h-56 w-56 rounded-full bg-[color:var(--dash-accent)] opacity-10 blur-3xl" />
+          <div className="absolute -left-20 -bottom-24 h-52 w-52 rounded-full bg-[color:var(--dash-accent-2)] opacity-10 blur-3xl" />
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">Conta</p>
+              <h1 className="mt-2 text-2xl font-semibold theme-text">Perfil & Segurança</h1>
+              <p className="mt-1 text-sm theme-text-muted">
+                Atualize os seus dados e a segurança da conta.
+              </p>
+            </div>
 
-          <div className="flex items-center gap-2">
-            {loading && (
-              <span className="text-xs theme-text-muted">A guardar…</span>
-            )}
+            <div className="flex items-center gap-2">
+              {loading && (
+                <span className="text-xs theme-text-muted">A guardar…</span>
+              )}
+            </div>
           </div>
-        </div>
+        </section>
 
         <div className="grid gap-6 lg:grid-cols-5">
           {/* Summary */}
           <div className="lg:col-span-2">
-            <div className="rounded-2xl border theme-border theme-card p-6">
+            <div className="rounded-2xl border theme-border glass-panel p-6">
               <div className="flex items-center gap-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl theme-surface text-lg font-semibold theme-text">
                   {initials}
@@ -281,7 +287,7 @@ export function ProfilePage() {
           <div className="grid gap-6 lg:col-span-3">
             <form
               onSubmit={handleSaveProfile}
-              className="rounded-2xl border theme-border theme-card p-6"
+              className="rounded-2xl border theme-border glass-panel p-6"
             >
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
@@ -299,7 +305,7 @@ export function ProfilePage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="rounded-full bg-[color:var(--dash-accent)] px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
+                  className="btn-primary rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
                 >
                   Guardar
                 </button>
@@ -313,7 +319,7 @@ export function ProfilePage() {
                   <input
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full rounded-2xl border theme-border theme-card px-4 py-3 text-sm theme-text focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    className="input rounded-2xl px-4 py-3 text-sm"
                   />
                 </label>
 
@@ -324,7 +330,7 @@ export function ProfilePage() {
                   <input
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className="w-full rounded-2xl border theme-border theme-card px-4 py-3 text-sm theme-text focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    className="input rounded-2xl px-4 py-3 text-sm"
                   />
                 </label>
 
@@ -336,7 +342,7 @@ export function ProfilePage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     type="email"
-                    className="w-full rounded-2xl border theme-border theme-card px-4 py-3 text-sm theme-text focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    className="input rounded-2xl px-4 py-3 text-sm"
                   />
                 </label>
 
@@ -347,7 +353,7 @@ export function ProfilePage() {
                   <input
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full rounded-2xl border theme-border theme-card px-4 py-3 text-sm theme-text focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    className="input rounded-2xl px-4 py-3 text-sm"
                   />
                 </label>
               </div>
@@ -355,7 +361,7 @@ export function ProfilePage() {
 
             <form
               onSubmit={handleChangePassword}
-              className="rounded-2xl border theme-border theme-card p-6"
+              className="rounded-2xl border theme-border glass-panel p-6"
             >
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
@@ -373,7 +379,7 @@ export function ProfilePage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="rounded-full bg-[color:var(--dash-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95 disabled:opacity-60"
+                  className="btn-primary rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
                 >
                   Atualizar
                 </button>
@@ -390,7 +396,7 @@ export function ProfilePage() {
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     type="password"
                     autoComplete="current-password"
-                    className="w-full rounded-2xl border theme-border theme-card px-4 py-3 text-sm theme-text focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    className="input rounded-2xl px-4 py-3 text-sm"
                   />
                 </label>
 
@@ -403,7 +409,7 @@ export function ProfilePage() {
                     onChange={(e) => setNewPassword(e.target.value)}
                     type="password"
                     autoComplete="new-password"
-                    className="w-full rounded-2xl border theme-border theme-card px-4 py-3 text-sm theme-text focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    className="input rounded-2xl px-4 py-3 text-sm"
                   />
                 </label>
 
@@ -416,13 +422,13 @@ export function ProfilePage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     type="password"
                     autoComplete="new-password"
-                    className="w-full rounded-2xl border theme-border theme-card px-4 py-3 text-sm theme-text focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    className="input rounded-2xl px-4 py-3 text-sm"
                   />
                 </label>
               </div>
             </form>
 
-            <div className="rounded-2xl border theme-border theme-card p-6">
+            <div className="rounded-2xl border theme-border glass-panel p-6">
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="flex items-center gap-2">

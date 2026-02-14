@@ -6,6 +6,7 @@ import { authSessions, users } from '../db/schema.js';
 import { comparePasswords, hashPassword } from '../auth/jwt.js';
 import { RbacService } from '../services/rbac.service.js';
 import { AuthService } from '../services/auth.service.js';
+import { ensureRbacStructureAndSeed } from '../db/auto-seed.js';
 import { SecurityPolicyService } from '../services/security-policy.service.js';
 
 function toProfileDto(user: any) {
@@ -399,6 +400,19 @@ export class ProfileController {
 
       if (!plantId) {
         return res.status(400).json({ success: false, error: 'plantId is required' });
+      }
+
+      try {
+        const hasReports = await RbacService.permissionExists('reports:read');
+        if (!hasReports) {
+          await ensureRbacStructureAndSeed(String(tenantId));
+        }
+      } catch {
+        try {
+          await ensureRbacStructureAndSeed(String(tenantId));
+        } catch {
+          // ignore - best effort seeding only
+        }
       }
 
       const plantRole = await RbacService.getUserRoleForPlant({ userId, plantId });

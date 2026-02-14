@@ -6983,6 +6983,7 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
   const [plantUsersModalOpen, setPlantUsersModalOpen] = React.useState(false);
   const [plantUsersPlant, setPlantUsersPlant] = React.useState<any | null>(null);
   const [plantUsersSelection, setPlantUsersSelection] = React.useState<string[]>([]);
+  const [plantUsersRoleMap, setPlantUsersRoleMap] = React.useState<Record<string, string>>({});
   const [plantUsersSaving, setPlantUsersSaving] = React.useState(false);
   const [editingPlantId, setEditingPlantId] = React.useState<string | null>(null);
   const [plantForm, setPlantForm] = React.useState({
@@ -7022,6 +7023,26 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
       plant_id: plantId,
       role: roleMap[plantId] || defaultRole,
     }));
+
+  const getUserPlantRoleMap = (user: any) => {
+    const map: Record<string, string> = {};
+    const plantRoles = Array.isArray(user?.plant_roles) ? user.plant_roles : [];
+
+    for (const row of plantRoles) {
+      const plantId = String(row?.plant_id || '').trim();
+      const role = String(row?.role || '').trim();
+      if (plantId && role) map[plantId] = role;
+    }
+
+    if (Object.keys(map).length === 0 && Array.isArray(user?.plant_ids)) {
+      for (const plantIdRaw of user.plant_ids) {
+        const plantId = String(plantIdRaw || '').trim();
+        if (plantId) map[plantId] = String(user?.role || 'tecnico');
+      }
+    }
+
+    return map;
+  };
 
   const togglePlantSelection = (ids: string[], plantId: string) =>
     ids.includes(plantId) ? ids.filter((id) => id !== plantId) : [...ids, plantId];
@@ -7187,15 +7208,28 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
     const assignedIds = users
       .filter((user) => Array.isArray(user.plant_ids) && user.plant_ids.includes(plant.id))
       .map((user) => user.id);
+    const roleMap: Record<string, string> = {};
+    users.forEach((user) => {
+      const currentMap = getUserPlantRoleMap(user);
+      roleMap[user.id] = currentMap[plant.id] || String(user?.role || 'tecnico');
+    });
     setPlantUsersPlant(plant);
     setPlantUsersSelection(assignedIds);
+    setPlantUsersRoleMap(roleMap);
     setPlantUsersModalOpen(true);
   };
 
   const togglePlantUser = (userId: string) => {
-    setPlantUsersSelection((current) =>
-      current.includes(userId) ? current.filter((id) => id !== userId) : [...current, userId],
-    );
+    setPlantUsersSelection((current) => {
+      const next = current.includes(userId) ? current.filter((id) => id !== userId) : [...current, userId];
+      if (!current.includes(userId)) {
+        setPlantUsersRoleMap((rolesMap) => ({
+          ...rolesMap,
+          [userId]: rolesMap[userId] || 'tecnico',
+        }));
+      }
+      return next;
+    });
   };
 
   const handleSavePlantUsers = async () => {
@@ -7208,24 +7242,42 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
     try {
       const updates = users
         .map((user) => {
-          const currentIds = Array.isArray(user.plant_ids) ? user.plant_ids : [];
+          const currentMap = getUserPlantRoleMap(user);
+          const currentIds = Object.keys(currentMap);
           const shouldHave = plantUsersSelection.includes(user.id);
           const hasPlant = currentIds.includes(plantId);
+          const currentRole = currentMap[plantId];
+          const nextRole = String(plantUsersRoleMap[user.id] || currentRole || user.role || 'tecnico');
 
-          if (shouldHave === hasPlant) {
+          if (!shouldHave && hasPlant && currentIds.length <= 1) {
             return null;
           }
 
-          const nextIds = shouldHave
-            ? [...currentIds, plantId]
-            : currentIds.filter((id: string) => id !== plantId);
+          if (shouldHave && hasPlant && currentRole === nextRole) {
+            return null;
+          }
+
+          if (!shouldHave && !hasPlant) {
+            return null;
+          }
+
+          if (shouldHave) {
+            currentMap[plantId] = nextRole;
+          } else {
+            delete currentMap[plantId];
+          }
+
+          const nextPlantRoles = Object.entries(currentMap).map(([pid, role]) => ({
+            plant_id: pid,
+            role,
+          }));
 
           return updateAdminUser(user.id, {
             first_name: user.first_name || '',
             last_name: user.last_name || '',
             role: user.role || 'tecnico',
             is_active: user.is_active ?? true,
-            plant_ids: nextIds,
+            plant_roles: nextPlantRoles,
           });
         })
         .filter(Boolean) as Promise<any>[];
@@ -8297,25 +8349,55 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
             </h3>
 
             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-              {users.map((user) => (
-                <label
-                  key={user.id}
-                  className="flex items-center justify-between rounded-2xl border theme-border bg-[color:var(--dash-surface)] px-4 py-3 text-sm shadow-sm"
-                >
-                  <div>
-                    <p className="font-medium theme-text">
-                      {user.first_name} {user.last_name}
-                    </p>
-                    <p className="text-xs theme-text-muted">{user.email}</p>
+              {users.map((user) => {
+                const assigned = plantUsersSelection.includes(user.id);
+                const currentPlantIds = Array.isArray(user.plant_ids) ? user.plant_ids : [];
+                const onlyThisPlant =
+                  currentPlantIds.length === 1 && currentPlantIds.includes(plantUsersPlant.id);
+                return (
+                  <div
+                    key={user.id}
+                    className="flex flex-col gap-3 rounded-2xl border theme-border bg-[color:var(--dash-surface)] px-4 py-3 text-sm shadow-sm"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium theme-text">
+                          {user.first_name} {user.last_name}
+                        </p>
+                        <p className="text-xs theme-text-muted">{user.email}</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={assigned}
+                        onChange={() => togglePlantUser(user.id)}
+                        className="h-4 w-4 rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
+                        disabled={onlyThisPlant && assigned}
+                        title={onlyThisPlant && assigned ? 'Este utilizador precisa de pelo menos uma planta' : ''}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs theme-text-muted">Role nesta planta</span>
+                      <select
+                        className="input h-9"
+                        value={plantUsersRoleMap[user.id] || user.role || 'tecnico'}
+                        onChange={(event) =>
+                          setPlantUsersRoleMap((current) => ({
+                            ...current,
+                            [user.id]: event.target.value,
+                          }))
+                        }
+                        disabled={!assigned}
+                      >
+                        {roles.map((role) => (
+                          <option key={role.value} value={role.value}>
+                            {role.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={plantUsersSelection.includes(user.id)}
-                    onChange={() => togglePlantUser(user.id)}
-                    className="h-4 w-4 rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
-                  />
-                </label>
-              ))}
+                );
+              })}
               {users.length === 0 && (
                 <p className="text-sm theme-text-muted">Nenhum utilizador encontrado.</p>
               )}

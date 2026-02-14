@@ -44,6 +44,7 @@ interface AdminUser {
   role: string;
   is_active: boolean;
   plant_ids?: string[];
+  plant_roles?: Array<{ plant_id: string; role: string }>;
 }
 
 const allowedRoles = new Set(['superadmin', 'admin_empresa']);
@@ -90,6 +91,27 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
   const [originalAssignedUserIds, setOriginalAssignedUserIds] = useState<Set<string>>(
     new Set(),
   );
+  const [assignedUserRoles, setAssignedUserRoles] = useState<Record<string, string>>({});
+
+  const getUserPlantRoleMap = (user: AdminUser) => {
+    const map: Record<string, string> = {};
+    const plantRoles = Array.isArray(user.plant_roles) ? user.plant_roles : [];
+
+    for (const row of plantRoles) {
+      const plantId = String(row?.plant_id || '').trim();
+      const role = String(row?.role || '').trim();
+      if (plantId && role) map[plantId] = role;
+    }
+
+    if (Object.keys(map).length === 0 && Array.isArray(user.plant_ids)) {
+      for (const plantIdRaw of user.plant_ids) {
+        const plantId = String(plantIdRaw || '').trim();
+        if (plantId) map[plantId] = String(user.role || 'tecnico');
+      }
+    }
+
+    return map;
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -128,6 +150,12 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
     );
     setAssignedUserIds(assigned);
     setOriginalAssignedUserIds(new Set(assigned));
+    const roleMap: Record<string, string> = {};
+    users.forEach((user) => {
+      const plantRoleMap = getUserPlantRoleMap(user);
+      roleMap[user.id] = plantRoleMap[selectedPlantId] || String(user.role || 'tecnico');
+    });
+    setAssignedUserRoles(roleMap);
   }, [selectedPlantId, users]);
 
   const selectedPlant = useMemo(
@@ -233,6 +261,10 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
         next.delete(userId);
       } else {
         next.add(userId);
+        setAssignedUserRoles((current) => ({
+          ...current,
+          [userId]: current[userId] || 'tecnico',
+        }));
       }
       return next;
     });
@@ -248,25 +280,30 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
         .map((user) => {
           const wasAssigned = originalAssignedUserIds.has(user.id);
           const isAssigned = assignedUserIds.has(user.id);
-          if (wasAssigned === isAssigned) return null;
+          const roleMap = getUserPlantRoleMap(user);
+          const currentRole = roleMap[selectedPlantId];
+          const nextRole = assignedUserRoles[user.id] || currentRole || user.role || 'tecnico';
+          const roleChanged = isAssigned && currentRole !== nextRole;
 
-          const existing = Array.isArray(user.plant_ids) ? user.plant_ids : [];
-          let nextPlantIds = existing;
+          if (wasAssigned === isAssigned && !roleChanged) return null;
 
           if (isAssigned) {
-            nextPlantIds = existing.includes(selectedPlantId)
-              ? existing
-              : [...existing, selectedPlantId];
+            roleMap[selectedPlantId] = nextRole;
           } else {
-            nextPlantIds = existing.filter((id) => id !== selectedPlantId);
+            delete roleMap[selectedPlantId];
           }
 
-          return { userId: user.id, plant_ids: nextPlantIds };
+          const nextPlantRoles = Object.entries(roleMap).map(([plantId, role]) => ({
+            plant_id: plantId,
+            role,
+          }));
+
+          return { userId: user.id, plant_roles: nextPlantRoles };
         })
-        .filter(Boolean) as Array<{ userId: string; plant_ids: string[] }>;
+        .filter(Boolean) as Array<{ userId: string; plant_roles: Array<{ plant_id: string; role: string }> }>;
 
       await Promise.all(
-        updates.map((update) => updateAdminUser(update.userId, { plant_ids: update.plant_ids })),
+        updates.map((update) => updateAdminUser(update.userId, { plant_roles: update.plant_roles })),
       );
 
       setOriginalAssignedUserIds(new Set(assignedUserIds));
@@ -440,21 +477,43 @@ export function PlantsPage({ embedded = false }: { embedded?: boolean } = {}) {
                   userItem.plant_ids?.includes(selectedPlantId);
 
                 return (
-                  <label
+                  <div
                     key={userItem.id}
-                    className="flex items-center justify-between gap-3 text-sm theme-text"
+                    className="flex flex-col gap-2 rounded-2xl border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-sm theme-text"
                   >
-                    <span>
-                      {userItem.first_name} {userItem.last_name}
-                      <span className="ml-2 text-xs theme-text-muted">{userItem.role}</span>
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={isAssigned}
-                      onChange={() => toggleUserAssignment(userItem.id)}
-                      disabled={!canEdit || onlyThisPlant}
-                    />
-                  </label>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>
+                        {userItem.first_name} {userItem.last_name}
+                        <span className="ml-2 text-xs theme-text-muted">{userItem.role}</span>
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={isAssigned}
+                        onChange={() => toggleUserAssignment(userItem.id)}
+                        disabled={!canEdit || onlyThisPlant}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-3 text-xs theme-text-muted">
+                      <span>Role nesta planta</span>
+                      <select
+                        className="input h-8"
+                        value={assignedUserRoles[userItem.id] || userItem.role || 'tecnico'}
+                        onChange={(event) =>
+                          setAssignedUserRoles((current) => ({
+                            ...current,
+                            [userItem.id]: event.target.value,
+                          }))
+                        }
+                        disabled={!isAssigned || !canEdit}
+                      >
+                        {Array.from(allowedRoles).map((role) => (
+                          <option key={role} value={role}>
+                            {role.replace(/_/g, ' ')}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 );
               })}
               {users.length === 0 && (

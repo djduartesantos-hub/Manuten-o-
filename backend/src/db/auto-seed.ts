@@ -9,7 +9,7 @@ function normalize(value: string) {
   return value.trim().toLowerCase();
 }
 
-async function ensureRbacStructureAndSeed(tenantId: string): Promise<void> {
+export async function ensureRbacStructureAndSeed(tenantId: string): Promise<void> {
   // Estrutura base (idempotente)
   await db.execute(sql.raw(`
     CREATE TABLE IF NOT EXISTS rbac_permissions (

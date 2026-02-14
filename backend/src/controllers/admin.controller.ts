@@ -6,6 +6,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { AuthenticatedRequest } from '../types/index.js';
 import { db } from '../config/database.js';
 import { assets, plants, rbacPermissions, rbacRolePermissions, rbacRoles, userPlants, users } from '../db/schema.js';
+import { ensureRbacStructureAndSeed } from '../db/auto-seed.js';
 import { SecurityPolicyService } from '../services/security-policy.service.js';
 import { AuditService } from '../services/audit.service.js';
 
@@ -1197,6 +1198,26 @@ export async function exportRbacMatrix(req: AuthenticatedRequest, res: Response)
 
 export async function listPermissions(req: AuthenticatedRequest, res: Response) {
   try {
+    const tenantId = req.tenantId;
+    if (tenantId) {
+      try {
+        const exists = await db.execute(sql`
+          SELECT 1 AS ok
+          FROM rbac_permissions
+          WHERE key = 'reports:read'
+          LIMIT 1;
+        `);
+        if ((exists.rows?.length || 0) === 0) {
+          await ensureRbacStructureAndSeed(String(tenantId));
+        }
+      } catch {
+        try {
+          await ensureRbacStructureAndSeed(String(tenantId));
+        } catch {
+          // ignore - best effort seeding only
+        }
+      }
+    }
     const result = await db.execute(sql`
       SELECT key, label, group_name, description
       FROM rbac_permissions
