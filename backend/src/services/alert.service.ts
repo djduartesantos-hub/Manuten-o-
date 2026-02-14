@@ -3,6 +3,7 @@ import {
   alertConfigurations,
   alertsHistory,
   workOrders,
+  assets,
 } from '../db/schema.js';
 import { eq, and, desc, inArray, notInArray, gt } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -10,6 +11,7 @@ import { CacheKeys, CacheTTL, RedisService } from './redis.service.js';
 import { logger } from '../config/logger.js';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 import { getWorkOrderStatusAgingMs, isSlaOverdue } from '../utils/workorder-sla.js';
+import { NotificationService } from './notification.service.js';
 
 export class AlertService {
   // ========== ALERT CONFIGURATIONS ==========
@@ -608,6 +610,45 @@ export class AlertService {
           }
         }
       }
+
+      if (config.alert_type === 'high_failure_rate') {
+        const warning = await this.generateMaintenanceWarnings(tenantId, assetId);
+        if (!warning) continue;
+
+        const failures = Number(warning.metrics?.failures_90_days ?? 0);
+        if (failures < Number(config.threshold || 1)) continue;
+
+        const severity = warning.severity || 'high';
+        await this.createAlert({
+          tenant_id: tenantId,
+          alert_config_id: config.id,
+          asset_id: assetId,
+          severity,
+          message: warning.message,
+        }, {
+          dedupe: { scope: 'config', windowHours: 24 },
+        });
+
+        if (warning.type === 'high_failure_rate' || warning.type === 'recurring_issue') {
+          try {
+            const asset = await db.query.assets.findFirst({
+              where: (fields: any, { and, eq }: any) =>
+                and(eq(fields.tenant_id, tenantId), eq(fields.id, assetId)),
+            });
+            if (asset && asset.id && asset.plant_id) {
+              await NotificationService.notifyRecurringIssue({
+                id: asset.id,
+                tenant_id: tenantId,
+                plant_id: String(asset.plant_id),
+                name: String(asset.name || 'Equipamento'),
+                message: warning.message,
+              });
+            }
+          } catch {
+            // ignore notification failures
+          }
+        }
+      }
     }
   }
 
@@ -644,6 +685,44 @@ export class AlertService {
       } catch (error) {
         errors += 1;
         logger.warn('SLA-critical periodic alert check failed', {
+          error: error instanceof Error ? error.message : error,
+          tenantId: pair.tenantId,
+          assetId: pair.assetId,
+        });
+      }
+    }
+
+    return { checked: pairs.length, errors };
+  }
+
+  static async checkRecurringIssuesAll(): Promise<{ checked: number; errors: number }> {
+    const configs = await db.query.alertConfigurations.findMany({
+      where: and(eq(alertConfigurations.is_active, true), eq(alertConfigurations.alert_type, 'high_failure_rate')),
+      columns: {
+        tenant_id: true,
+        asset_id: true,
+      },
+    });
+
+    const uniquePairs = new Set<string>();
+    const pairs: Array<{ tenantId: string; assetId: string }> = [];
+    for (const cfg of configs as any[]) {
+      const tenantId = cfg.tenant_id as string | undefined;
+      const assetId = cfg.asset_id as string | undefined;
+      if (!tenantId || !assetId) continue;
+      const key = `${tenantId}:${assetId}`;
+      if (uniquePairs.has(key)) continue;
+      uniquePairs.add(key);
+      pairs.push({ tenantId, assetId });
+    }
+
+    let errors = 0;
+    for (const pair of pairs) {
+      try {
+        await AlertService.checkAndTriggerAlerts(pair.tenantId, pair.assetId);
+      } catch (error) {
+        errors += 1;
+        logger.warn('Recurring issue alert check failed', {
           error: error instanceof Error ? error.message : error,
           tenantId: pair.tenantId,
           assetId: pair.assetId,

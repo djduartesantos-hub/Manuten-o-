@@ -1344,6 +1344,34 @@ export const notifications = pgTable(
   }),
 );
 
+// Scheduled Reports (email delivery)
+export const scheduledReports = pgTable(
+  'scheduled_reports',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    user_id: uuid('user_id').notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+    frequency: text('frequency').notNull(),
+    send_day: integer('send_day'),
+    send_time: text('send_time').notNull().default('09:00'),
+    recipients: text('recipients').array().notNull(),
+    report_type: text('report_type').notNull(),
+    include_charts: boolean('include_charts').default(true),
+    include_data: boolean('include_data').default(true),
+    is_active: boolean('is_active').default(true),
+    last_sent_at: timestamp('last_sent_at', { withTimezone: true }),
+    next_send_at: timestamp('next_send_at', { withTimezone: true }).notNull(),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdx: index('scheduled_reports_tenant_id_idx').on(table.tenant_id),
+    tenantNextIdx: index('scheduled_reports_tenant_next_send_idx').on(table.tenant_id, table.next_send_at),
+  }),
+);
+
 // Asset Documents (Manuais, esquemas, certificados)
 export const assetDocuments = pgTable(
   'asset_documents',

@@ -13,6 +13,7 @@ import {
 import { CacheKeys, CacheTTL, RedisService } from './redis.service.js';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 import { isSlaOverdue } from '../utils/workorder-sla.js';
+import { JobQueueService, QUEUES } from './job.service.js';
 
 const MANAGER_ROLES = ['gestor_manutencao', 'admin_empresa', 'superadmin'];
 const DEFAULT_RULES = [
@@ -78,6 +79,12 @@ const DEFAULT_RULES = [
   },
   {
     event_type: 'asset_critical',
+    channels: ['in_app', 'socket'],
+    recipients: ['managers', 'plant_users'],
+    is_active: true,
+  },
+  {
+    event_type: 'recurring_issue',
     channels: ['in_app', 'socket'],
     recipients: ['managers', 'plant_users'],
     is_active: true,
@@ -207,7 +214,22 @@ export class NotificationService {
 
   static shouldSend(rule: NotificationRule | null) {
     if (!rule || !rule.is_active) return false;
-    return rule.channels?.includes('in_app') || rule.channels?.includes('socket') || false;
+    return (
+      rule.channels?.includes('in_app') ||
+      rule.channels?.includes('socket') ||
+      rule.channels?.includes('email') ||
+      false
+    );
+  }
+
+  static async getUserEmails(tenantId: string, userIds: string[]): Promise<string[]> {
+    if (!userIds || userIds.length === 0) return [];
+    const rows = await db.query.users.findMany({
+      columns: { email: true },
+      where: (fields: any, { and, eq, inArray }: any) =>
+        and(eq(fields.tenant_id, tenantId), inArray(fields.id, userIds)),
+    });
+    return rows.map((row: any) => String(row.email || '')).filter((email) => email.length > 0);
   }
 
   static getRecipients(rule: NotificationRule | null, data: {
@@ -261,6 +283,7 @@ export class NotificationService {
       meta?: any;
     },
     includeManagers = true,
+    channels?: string[],
   ): Promise<void> {
     const uniqueUsers = new Set(userIds.filter(Boolean));
 
@@ -276,37 +299,57 @@ export class NotificationService {
     const targetUserIds = Array.from(uniqueUsers).filter((id) => id !== '__plant_users__');
     const createdAt = new Date();
 
+    const shouldPersist = channels?.includes('in_app') || channels?.includes('socket') || !channels;
+
     let persisted: Array<{ id: string; user_id: string; created_at: Date }> = [];
-    try {
-      if (targetUserIds.length > 0) {
-        persisted = await db
-          .insert(notifications)
-          .values(
-            targetUserIds.map((userId) => ({
-              tenant_id: tenantId,
-              user_id: userId,
-              plant_id: payload.plantId,
-              event_type: payload.eventType,
-              title: payload.title,
-              message: payload.message,
-              level: payload.type || 'info',
-              entity: payload.entity,
-              entity_id: payload.entityId,
-              meta: payload.meta,
-              created_at: createdAt,
-            })),
-          )
-          .returning({
-            id: notifications.id,
-            user_id: notifications.user_id,
-            created_at: notifications.created_at,
-          });
+    if (shouldPersist) {
+      try {
+        if (targetUserIds.length > 0) {
+          persisted = await db
+            .insert(notifications)
+            .values(
+              targetUserIds.map((userId) => ({
+                tenant_id: tenantId,
+                user_id: userId,
+                plant_id: payload.plantId,
+                event_type: payload.eventType,
+                title: payload.title,
+                message: payload.message,
+                level: payload.type || 'info',
+                entity: payload.entity,
+                entity_id: payload.entityId,
+                meta: payload.meta,
+                created_at: createdAt,
+              })),
+            )
+            .returning({
+              id: notifications.id,
+              user_id: notifications.user_id,
+              created_at: notifications.created_at,
+            });
+        }
+      } catch {
+        // best-effort: still try to emit via socket
       }
-    } catch {
-      // best-effort: still try to emit via socket
     }
 
-    if (!isSocketManagerReady()) return;
+    if (channels?.includes('email')) {
+      try {
+        const emails = await NotificationService.getUserEmails(tenantId, targetUserIds);
+        if (emails.length > 0) {
+          await JobQueueService.addJob(QUEUES.EMAIL, 'send-email', {
+            to: emails,
+            subject: `Notificacao: ${payload.title}`,
+            text: payload.message,
+            html: `<div><strong>${payload.title}</strong></div><div>${payload.message}</div>`,
+          });
+        }
+      } catch {
+        // ignore email failures
+      }
+    }
+
+    if (!isSocketManagerReady() || !(channels?.includes('socket') || shouldPersist)) return;
     const socketManager = getSocketManager();
 
     const persistedByUser = new Map(
@@ -359,6 +402,7 @@ export class NotificationService {
         plantId: data.plantId,
       },
       recipients.includeManagers,
+      rule?.channels,
     );
   }
 
@@ -411,6 +455,7 @@ export class NotificationService {
         meta: data.meta,
       },
       recipients.includeManagers,
+      rule?.channels,
     );
   }
 
@@ -449,6 +494,7 @@ export class NotificationService {
         plantId: data.plantId,
       },
       recipients.includeManagers,
+      rule?.channels,
     );
   }
 
@@ -497,6 +543,7 @@ export class NotificationService {
         plantId: schedule.plant_id,
       },
       recipients.includeManagers,
+      rule?.channels,
     );
   }
 
@@ -543,6 +590,53 @@ export class NotificationService {
         plantId: assetRow.plant_id,
       },
       recipients.includeManagers,
+      rule?.channels,
+    );
+  }
+
+  static async notifyRecurringIssue(assetRow: {
+    id: string;
+    tenant_id: string;
+    plant_id: string;
+    name: string;
+    message: string;
+  }) {
+    const rule = await NotificationService.getRule(assetRow.tenant_id, 'recurring_issue');
+    if (!NotificationService.shouldSend(rule)) return;
+
+    const cacheKey = `recurring-issue:${assetRow.id}`;
+    try {
+      const alreadyNotified = await RedisService.exists(cacheKey);
+      if (alreadyNotified) return;
+      await RedisService.set(cacheKey, '1', 12 * 60 * 60);
+    } catch {
+      // best-effort
+    }
+
+    const recipients = NotificationService.getRecipients(rule, {
+      plantId: assetRow.plant_id,
+    });
+    const plantUserIds = recipients.userIds.includes('__plant_users__')
+      ? await NotificationService.getPlantUserIds(assetRow.plant_id)
+      : [];
+    const userIds = recipients.userIds
+      .filter((value) => value !== '__plant_users__')
+      .concat(plantUserIds);
+
+    await NotificationService.emitNotification(
+      assetRow.tenant_id,
+      userIds,
+      {
+        eventType: 'recurring_issue',
+        title: 'Problema recorrente',
+        message: assetRow.message,
+        type: 'warning',
+        entity: 'asset',
+        entityId: assetRow.id,
+        plantId: assetRow.plant_id,
+      },
+      recipients.includeManagers,
+      rule?.channels,
     );
   }
 

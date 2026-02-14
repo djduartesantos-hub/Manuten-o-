@@ -10,6 +10,7 @@ import { ElasticsearchService } from './services/elasticsearch.service.js';
 import { NotificationService } from './services/notification.service.js';
 import { AlertService } from './services/alert.service.js';
 import { autoSeedDemoIfEmpty } from './db/auto-seed.js';
+import { CustomizationService } from './services/customization.service.js';
 
 const PORT = process.env.PORT || 3000;
 
@@ -93,6 +94,21 @@ async function startServer() {
     setInterval(() => {
       AlertService.checkSlaCriticalAll().catch((error) => {
         logger.warn('SLA-critical alert generation failed:', error instanceof Error ? error.message : error);
+      });
+    }, 10 * 60 * 1000);
+
+    // Recurring issues alerts (best-effort)
+    setInterval(() => {
+      AlertService.checkRecurringIssuesAll().catch((error) => {
+        logger.warn('Recurring issues alert generation failed:', error instanceof Error ? error.message : error);
+      });
+    }, 12 * 60 * 60 * 1000);
+
+    // Scheduled reports (email)
+    const customizationService = new CustomizationService();
+    setInterval(() => {
+      customizationService.processDueReports().catch((error) => {
+        logger.warn('Scheduled reports processing failed:', error instanceof Error ? error.message : error);
       });
     }, 10 * 60 * 1000);
 

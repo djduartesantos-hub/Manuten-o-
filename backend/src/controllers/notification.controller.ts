@@ -13,6 +13,7 @@ const ALLOWED_EVENTS = [
   'stock_low',
   'preventive_overdue',
   'asset_critical',
+  'recurring_issue',
 ];
 
 function toNotificationDto(row: any) {

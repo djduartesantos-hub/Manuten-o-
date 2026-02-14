@@ -70,6 +70,10 @@ import {
   getAdminSecurityPolicy,
   updateAdminSecurityPolicy,
   downloadAdminRbacMatrixCsv,
+  getScheduledReports,
+  createScheduledReport,
+  updateScheduledReport,
+  deleteScheduledReport,
 } from '../services/api';
 import {
   Bell,
@@ -3736,8 +3740,23 @@ function NotificationSettings() {
   const [notificationsSaving, setNotificationsSaving] = React.useState(false);
   const [notificationsError, setNotificationsError] = React.useState('');
 
+  const [scheduledReports, setScheduledReports] = React.useState<any[]>([]);
+  const [reportsLoading, setReportsLoading] = React.useState(false);
+  const [reportsSaving, setReportsSaving] = React.useState(false);
+  const [reportError, setReportError] = React.useState('');
+  const [reportForm, setReportForm] = React.useState({
+    name: '',
+    frequency: 'weekly',
+    sendDay: 1,
+    sendTime: '09:00',
+    recipients: '',
+    reportType: 'summary',
+    isActive: true,
+  });
+
   React.useEffect(() => {
     fetchNotificationRules();
+    fetchScheduledReports();
   }, []);
 
   const fetchNotificationRules = async () => {
@@ -3801,6 +3820,63 @@ function NotificationSettings() {
     }
   };
 
+  const fetchScheduledReports = async () => {
+    try {
+      setReportsLoading(true);
+      setReportError('');
+      const data = await getScheduledReports();
+      setScheduledReports(Array.isArray(data) ? data : (data?.data || []));
+    } catch (error) {
+      console.error('Failed to fetch scheduled reports:', error);
+      setScheduledReports([]);
+      setReportError('Falha ao carregar relatorios agendados');
+    } finally {
+      setReportsLoading(false);
+    }
+  };
+
+  const handleCreateReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const recipients = reportForm.recipients
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
+
+    if (!reportForm.name.trim() || recipients.length === 0) {
+      setReportError('Nome e emails sao obrigatorios.');
+      return;
+    }
+
+    try {
+      setReportsSaving(true);
+      setReportError('');
+      await createScheduledReport({
+        name: reportForm.name.trim(),
+        frequency: reportForm.frequency as any,
+        sendDay: reportForm.frequency === 'daily' ? undefined : Number(reportForm.sendDay || 1),
+        sendTime: reportForm.sendTime || '09:00',
+        recipients,
+        reportType: reportForm.reportType as any,
+        isActive: reportForm.isActive,
+      });
+      setReportForm({
+        name: '',
+        frequency: 'weekly',
+        sendDay: 1,
+        sendTime: '09:00',
+        recipients: '',
+        reportType: 'summary',
+        isActive: true,
+      });
+      await fetchScheduledReports();
+    } catch (error) {
+      console.error('Failed to create scheduled report:', error);
+      setReportError('Falha ao criar relatorio');
+    } finally {
+      setReportsSaving(false);
+    }
+  };
+
   const notificationEvents = [
     {
       value: 'work_order_status_changed',
@@ -3832,11 +3908,17 @@ function NotificationSettings() {
       label: 'Falha crítica',
       description: 'Quando um equipamento crítico entra em estado parado/manutencao',
     },
+    {
+      value: 'recurring_issue',
+      label: 'Problema recorrente',
+      description: 'Quando um equipamento apresenta falhas repetidas',
+    },
   ];
 
   const channelOptions = [
     { value: 'in_app', label: 'In-app' },
     { value: 'socket', label: 'Socket' },
+    { value: 'email', label: 'Email' },
   ];
 
   const recipientOptions = [
@@ -3871,6 +3953,13 @@ function NotificationSettings() {
         <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text">
           <span className="badge-danger mr-2 text-xs">Erro</span>
           {notificationsError}
+        </div>
+      )}
+
+      {reportError && (
+        <div className="mt-3 rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text">
+          <span className="badge-danger mr-2 text-xs">Erro</span>
+          {reportError}
         </div>
       )}
 
@@ -3962,6 +4051,194 @@ function NotificationSettings() {
           })}
         </div>
       )}
+
+      <div className="mt-8">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
+              Relatorios agendados
+            </p>
+            <h3 className="mt-1 text-lg font-semibold theme-text">Envio por email</h3>
+            <p className="text-xs theme-text-muted">Defina frequencia e destinatarios.</p>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary h-9 px-3"
+            onClick={() => fetchScheduledReports()}
+            disabled={reportsLoading}
+          >
+            Atualizar
+          </button>
+        </div>
+
+        <form
+          onSubmit={handleCreateReport}
+          className="grid gap-3 rounded-[22px] border theme-border theme-card p-4 shadow-sm md:grid-cols-2"
+        >
+          <div className="md:col-span-2">
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+              Nome
+            </label>
+            <input
+              className="input mt-2"
+              value={reportForm.name}
+              onChange={(e) => setReportForm((p) => ({ ...p, name: e.target.value }))}
+              placeholder="Ex: Resumo semanal"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+              Frequencia
+            </label>
+            <select
+              className="input mt-2"
+              value={reportForm.frequency}
+              onChange={(e) => setReportForm((p) => ({ ...p, frequency: e.target.value }))}
+            >
+              <option value="daily">Diario</option>
+              <option value="weekly">Semanal</option>
+              <option value="monthly">Mensal</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+              Dia (1-7 / 1-28)
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={reportForm.frequency === 'monthly' ? 28 : 7}
+              className="input mt-2"
+              value={reportForm.sendDay}
+              onChange={(e) => setReportForm((p) => ({ ...p, sendDay: Number(e.target.value) }))}
+              disabled={reportForm.frequency === 'daily'}
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+              Hora
+            </label>
+            <input
+              type="time"
+              className="input mt-2"
+              value={reportForm.sendTime}
+              onChange={(e) => setReportForm((p) => ({ ...p, sendTime: e.target.value }))}
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+              Tipo
+            </label>
+            <select
+              className="input mt-2"
+              value={reportForm.reportType}
+              onChange={(e) => setReportForm((p) => ({ ...p, reportType: e.target.value }))}
+            >
+              <option value="summary">Resumo</option>
+              <option value="kpi">KPIs</option>
+              <option value="maintenance">Manutencao</option>
+              <option value="inventory">Inventario</option>
+              <option value="detailed">Detalhado</option>
+            </select>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+              Emails (separados por virgula)
+            </label>
+            <input
+              className="input mt-2"
+              value={reportForm.recipients}
+              onChange={(e) => setReportForm((p) => ({ ...p, recipients: e.target.value }))}
+              placeholder="gestor@empresa.com, admin@empresa.com"
+            />
+          </div>
+
+          <div className="md:col-span-2 flex items-center justify-between gap-2">
+            <label className="inline-flex items-center gap-2 text-xs theme-text-muted">
+              <input
+                type="checkbox"
+                checked={reportForm.isActive}
+                onChange={(e) => setReportForm((p) => ({ ...p, isActive: e.target.checked }))}
+                className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
+              />
+              Ativo
+            </label>
+            <button
+              type="submit"
+              className="btn-primary h-9 px-4"
+              disabled={reportsSaving}
+            >
+              {reportsSaving ? 'A guardar...' : 'Agendar'}
+            </button>
+          </div>
+        </form>
+
+        <div className="mt-4 space-y-3">
+          {reportsLoading ? (
+            <div className="rounded-2xl border theme-border theme-card p-4 text-sm theme-text-muted">
+              A carregar relatorios...
+            </div>
+          ) : scheduledReports.length === 0 ? (
+            <div className="rounded-2xl border theme-border theme-card p-4 text-sm theme-text-muted">
+              Sem relatorios agendados.
+            </div>
+          ) : (
+            scheduledReports.map((report: any) => (
+              <div key={report.id} className="rounded-2xl border theme-border theme-card p-4 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold theme-text">{String(report.name)}</div>
+                    <div className="text-xs theme-text-muted">
+                      {String(report.frequency)} • {String(report.report_type)} • {String(report.send_time)}
+                    </div>
+                    <div className="mt-1 text-xs theme-text-muted">
+                      Emails: {Array.isArray(report.recipients) ? report.recipients.join(', ') : ''}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="inline-flex items-center gap-2 text-xs theme-text-muted">
+                      <input
+                        type="checkbox"
+                        checked={report.is_active !== false}
+                        onChange={async (e) => {
+                          try {
+                            await updateScheduledReport(report.id, { isActive: e.target.checked });
+                            await fetchScheduledReports();
+                          } catch {
+                            setReportError('Falha ao atualizar relatorio');
+                          }
+                        }}
+                        className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
+                      />
+                      Ativo
+                    </label>
+                    <button
+                      type="button"
+                      className="btn-secondary h-8 px-3"
+                      onClick={async () => {
+                        if (!window.confirm('Eliminar este relatorio?')) return;
+                        try {
+                          await deleteScheduledReport(report.id);
+                          await fetchScheduledReports();
+                        } catch {
+                          setReportError('Falha ao eliminar relatorio');
+                        }
+                      }}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }

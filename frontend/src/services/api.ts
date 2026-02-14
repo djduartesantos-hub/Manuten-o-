@@ -1547,6 +1547,45 @@ export async function getJobQueueStats() {
 }
 
 // ============================================================================
+// SCHEDULED REPORTS
+// ============================================================================
+
+export async function getScheduledReports() {
+  return apiCall('/customization/reports');
+}
+
+export async function createScheduledReport(data: {
+  name: string;
+  description?: string | null;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  sendDay?: number;
+  sendTime?: string;
+  recipients: string[];
+  reportType: 'summary' | 'detailed' | 'kpi' | 'maintenance' | 'inventory';
+  includeCharts?: boolean;
+  includeData?: boolean;
+  isActive?: boolean;
+}) {
+  return apiCall('/customization/reports', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateScheduledReport(reportId: string, data: any) {
+  return apiCall(`/customization/reports/${reportId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteScheduledReport(reportId: string) {
+  return apiCall(`/customization/reports/${reportId}`, {
+    method: 'DELETE',
+  });
+}
+
+// ============================================================================
 // ADMIN MANAGEMENT (plants, users, roles)
 // ============================================================================
 
