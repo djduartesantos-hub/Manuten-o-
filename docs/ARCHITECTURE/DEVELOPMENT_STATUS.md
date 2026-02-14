@@ -69,6 +69,8 @@ Overall Project:          ██████████████████
 - [x] Ordens de Trabalho: anexos (evidências) `GET/POST /:plantId/work-orders/:workOrderId/attachments`
 - [x] Ordens de Trabalho: timeline profissional (eventos + notas rápidas) `GET /:plantId/work-orders/:workOrderId/events` + `POST /:plantId/work-orders/:workOrderId/events/note`
 - [x] Ordens de Trabalho: SLA por prioridade via tabela `sla_rules` (em vez de mapa hardcoded)
+- [x] Planeamento: página `/planner` com calendário unificado (preventivas + ordens + paragens planeadas)
+- [x] Planeamento: CRUD de paragens planeadas (`planned_downtimes`) + endpoint unificado `GET /:plantId/planner`
 - [x] Documento de referência: `docs/ARCHITECTURE/FEATURES_659664c_SECURITY_SESSIONS_ATTACHMENTS.md`
 
 ### Phase 3B: Real-time Infrastructure (COMPLETE ✅)

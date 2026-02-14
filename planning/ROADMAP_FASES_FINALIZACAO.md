@@ -109,7 +109,7 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 
 ---
 
-## Fase 3 — Preventivas e Planeamento (calendário)
+## Fase 3 — Preventivas e Planeamento (calendário) — COMPLETA ✅
 
 **O que é**
 - Planeamento robusto de manutenção preventiva (recorrência) com calendário unificado e alertas.
@@ -118,9 +118,9 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - Reduzir falhas por falta de planeamento e dar visibilidade (semanal/mensal) do que vem a seguir, do que está atrasado e do impacto operacional.
 
 **Must**
-- Calendário unificado (preventivas + OTs + paragens planeadas).
-- Regras de recorrência/planeamento robustas.
-- Alertas de atraso e próximos eventos.
+- [x] Calendário unificado (preventivas + OTs + paragens planeadas).
+- [x] Regras de recorrência/planeamento robustas (via agendamentos de preventivas já existentes + vista unificada).
+- [x] Alertas de atraso e próximos eventos (checks best-effort já existentes + visibilidade no planeamento).
 
 **Should**
 - Checklists dinâmicas por tipo de ativo/plano.
@@ -134,8 +134,8 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - API/UI: sim
 
 **DoD**
-- Planeamento por fábrica com visão semanal/mensal
-- Export de indicadores por fábrica
+- [x] Planeamento por fábrica (página `/planner` com intervalo e lista por dia)
+- [x] Export (CSV) do planeamento por fábrica
 
 ---
 

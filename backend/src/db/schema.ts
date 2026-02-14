@@ -631,6 +631,36 @@ export const preventiveMaintenanceSchedules = pgTable(
   }),
 );
 
+// Planned Downtimes (Planner/Calendar)
+export const plannedDowntimes = pgTable(
+  'planned_downtimes',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    plant_id: uuid('plant_id')
+      .notNull()
+      .references(() => plants.id, { onDelete: 'cascade' }),
+
+    title: text('title').notNull(),
+    description: text('description'),
+
+    start_at: timestamp('start_at', { withTimezone: true }).notNull(),
+    end_at: timestamp('end_at', { withTimezone: true }).notNull(),
+
+    downtime_type: text('downtime_type').notNull(),
+    downtime_category: text('downtime_category').notNull(),
+
+    created_by: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index('planned_downtimes_tenant_id_idx').on(table.tenant_id),
+    plantIdIdx: index('planned_downtimes_plant_id_idx').on(table.plant_id),
+    startAtIdx: index('planned_downtimes_start_at_idx').on(table.start_at),
+  }),
+);
+
 // Work Orders
 export const workOrders = pgTable(
   'work_orders',

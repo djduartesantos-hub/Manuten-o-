@@ -945,6 +945,114 @@ export type WorkOrderEvent = {
   } | null;
 };
 
+export type PlannerItem =
+  | {
+      kind: 'preventive';
+      id: string;
+      title: string;
+      startAt: string;
+      endAt: string;
+      status?: string;
+      planId?: string | null;
+      assetId?: string | null;
+    }
+  | {
+      kind: 'work_order';
+      id: string;
+      title: string;
+      startAt: string;
+      endAt: string;
+      status?: string;
+      priority?: string;
+      assetId?: string | null;
+    }
+  | {
+      kind: 'downtime';
+      id: string;
+      title: string;
+      startAt: string;
+      endAt: string;
+      downtimeType: string;
+      downtimeCategory: string;
+      description?: string | null;
+    };
+
+export type PlannerResponse = {
+  items: PlannerItem[];
+  range?: { start: string; end: string };
+  totals?: { total: number; downtimes: number; schedules: number; workOrders: number };
+};
+
+export type PlannedDowntime = {
+  id: string;
+  title: string;
+  description?: string | null;
+  start_at: string;
+  end_at: string;
+  downtime_type: string;
+  downtime_category: string;
+  created_by?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export async function listPlanner(
+  plantId: string,
+  range?: { start?: string; end?: string },
+): Promise<PlannerResponse> {
+  const params = new URLSearchParams();
+  if (range?.start) params.append('start', range.start);
+  if (range?.end) params.append('end', range.end);
+
+  const query = params.toString();
+  const data = await apiCall(`/${encodeURIComponent(String(plantId))}/planner${query ? `?${query}` : ''}`);
+
+  if (Array.isArray(data)) {
+    return { items: data as any };
+  }
+
+  if (data && Array.isArray((data as any).data)) {
+    return {
+      items: (data as any).data as any,
+      range: (data as any).range,
+      totals: (data as any).totals,
+    };
+  }
+
+  if (data && Array.isArray((data as any).items)) {
+    return {
+      items: (data as any).items as any,
+      range: (data as any).range,
+      totals: (data as any).totals,
+    };
+  }
+
+  return { items: [] };
+}
+
+export async function createPlannedDowntime(
+  plantId: string,
+  payload: {
+    title: string;
+    description?: string | null;
+    start_at: string;
+    end_at: string;
+    downtime_type: 'total' | 'parcial';
+    downtime_category: 'producao' | 'seguranca' | 'energia' | 'pecas' | 'outras';
+  },
+): Promise<PlannedDowntime | any> {
+  return apiCall(`/${encodeURIComponent(String(plantId))}/planned-downtimes`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deletePlannedDowntime(plantId: string, downtimeId: string): Promise<any> {
+  return apiCall(`/${encodeURIComponent(String(plantId))}/planned-downtimes/${encodeURIComponent(String(downtimeId))}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function getWorkOrders(plantId: string, status?: string) {
   const params = new URLSearchParams();
   if (status) params.append('status', status);

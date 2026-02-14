@@ -191,6 +191,12 @@ export function Header() {
           active: location.pathname === '/tickets',
           icon: LifeBuoy,
         },
+        {
+          label: 'Planeamento',
+          href: '/planner',
+          active: location.pathname === '/planner',
+          icon: CalendarClock,
+        },
       ],
     },
     {
