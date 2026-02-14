@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { and, asc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../config/database.js';
+import { logger } from '../config/logger.js';
 import { slaRules } from '../db/schema.js';
 import { AuthenticatedRequest } from '../types/index.js';
 
@@ -16,6 +17,17 @@ function normalizePriority(raw: unknown): 'baixa' | 'media' | 'alta' | 'critica'
   const v = String(raw || '').trim();
   const allowed = new Set(['baixa', 'media', 'alta', 'critica']);
   return allowed.has(v) ? (v as any) : null;
+}
+
+function logAndReturn500(params: {
+  req: AuthenticatedRequest;
+  res: Response;
+  error: unknown;
+  message: string;
+}) {
+  const { req, res, error, message } = params;
+  logger.error(message, { requestId: req.requestId, err: error });
+  return res.status(500).json({ success: false, error: message });
 }
 
 export async function listSlaRules(req: AuthenticatedRequest, res: Response) {
@@ -45,7 +57,7 @@ export async function listSlaRules(req: AuthenticatedRequest, res: Response) {
 
     return res.json({ success: true, data: rows });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to list SLA rules' });
+    return logAndReturn500({ req, res, error, message: 'Failed to list SLA rules' });
   }
 }
 
@@ -110,7 +122,7 @@ export async function upsertSlaRule(req: AuthenticatedRequest, res: Response) {
 
     return res.status(201).json({ success: true, data: created, message: 'SLA criado' });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to upsert SLA rule' });
+    return logAndReturn500({ req, res, error, message: 'Failed to upsert SLA rule' });
   }
 }
 
@@ -136,6 +148,6 @@ export async function deactivateSlaRule(req: AuthenticatedRequest, res: Response
 
     return res.json({ success: true, data: updated, message: 'SLA desativado' });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to deactivate SLA rule' });
+    return logAndReturn500({ req, res, error, message: 'Failed to deactivate SLA rule' });
   }
 }

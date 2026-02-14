@@ -3,11 +3,23 @@ import { and, desc, eq, ilike, like, or, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import { db } from '../config/database.js';
+import { logger } from '../config/logger.js';
 import { AuthenticatedRequest } from '../types/index.js';
 import { RbacService } from '../services/rbac.service.js';
 import { NotificationService } from '../services/notification.service.js';
 import { ticketAttachments, ticketComments, ticketEvents, tickets, tenants, users } from '../db/schema.js';
 import { computeTicketSlaDeadlines, type TicketPriority } from '../utils/ticket-sla.js';
+
+function logAndReturn500(params: {
+  req: AuthenticatedRequest;
+  res: Response;
+  error: unknown;
+  message: string;
+}) {
+  const { req, res, error, message } = params;
+  logger.error(message, { requestId: req.requestId, err: error });
+  return res.status(500).json({ success: false, error: message });
+}
 
 type TicketLevel = 'fabrica' | 'empresa' | 'superadmin';
 
@@ -343,7 +355,7 @@ export async function listPlantTickets(req: AuthenticatedRequest, res: Response)
 
     return res.json({ success: true, data: rows });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to list tickets' });
+    return logAndReturn500({ req, res, error, message: 'Failed to list tickets' });
   }
 }
 
@@ -425,7 +437,7 @@ export async function createPlantTicket(req: AuthenticatedRequest, res: Response
 
     return res.status(201).json({ success: true, data: created, message: 'Ticket criado com sucesso' });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to create ticket' });
+    return logAndReturn500({ req, res, error, message: 'Failed to create ticket' });
   }
 }
 
@@ -475,7 +487,7 @@ export async function getPlantTicket(req: AuthenticatedRequest, res: Response) {
       },
     });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to fetch ticket' });
+    return logAndReturn500({ req, res, error, message: 'Failed to fetch ticket' });
   }
 }
 
@@ -562,7 +574,7 @@ export async function addPlantTicketComment(req: AuthenticatedRequest, res: Resp
 
     return res.status(201).json({ success: true, data: created, message: 'Comentário adicionado' });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to add comment' });
+    return logAndReturn500({ req, res, error, message: 'Failed to add comment' });
   }
 }
 
@@ -644,7 +656,7 @@ export async function updatePlantTicketStatus(req: AuthenticatedRequest, res: Re
 
     return res.json({ success: true, data: updated, message: 'Estado atualizado' });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to update status' });
+    return logAndReturn500({ req, res, error, message: 'Failed to update status' });
   }
 }
 
@@ -728,7 +740,7 @@ export async function forwardPlantTicketToCompany(req: AuthenticatedRequest, res
 
     return res.json({ success: true, data: updated, message: 'Reencaminhado para empresa' });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to forward ticket' });
+    return logAndReturn500({ req, res, error, message: 'Failed to forward ticket' });
   }
 }
 
@@ -796,7 +808,7 @@ export async function listCompanyTickets(req: AuthenticatedRequest, res: Respons
 
     return res.json({ success: true, data: rows });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to list company tickets' });
+    return logAndReturn500({ req, res, error, message: 'Failed to list company tickets' });
   }
 }
 
@@ -835,7 +847,7 @@ export async function getCompanyTicket(req: AuthenticatedRequest, res: Response)
 
     return res.json({ success: true, data: { ticket, comments, events } });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to fetch ticket' });
+    return logAndReturn500({ req, res, error, message: 'Failed to fetch ticket' });
   }
 }
 
@@ -917,7 +929,7 @@ export async function addCompanyTicketComment(req: AuthenticatedRequest, res: Re
 
     return res.status(201).json({ success: true, data: created, message: 'Comentário adicionado' });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to add comment' });
+    return logAndReturn500({ req, res, error, message: 'Failed to add comment' });
   }
 }
 
@@ -989,7 +1001,7 @@ export async function updateCompanyTicketStatus(req: AuthenticatedRequest, res: 
 
     return res.json({ success: true, data: updated, message: 'Estado atualizado' });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to update status' });
+    return logAndReturn500({ req, res, error, message: 'Failed to update status' });
   }
 }
 
@@ -1064,7 +1076,7 @@ export async function forwardCompanyTicketToSuperadmin(req: AuthenticatedRequest
 
     return res.json({ success: true, data: updated, message: 'Reencaminhado para SuperAdmin' });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to forward ticket' });
+    return logAndReturn500({ req, res, error, message: 'Failed to forward ticket' });
   }
 }
 
@@ -1142,7 +1154,7 @@ export async function updateCompanyTicket(req: AuthenticatedRequest, res: Respon
 
     return res.json({ success: true, data: updated, message: 'Ticket atualizado' });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to update ticket' });
+    return logAndReturn500({ req, res, error, message: 'Failed to update ticket' });
   }
 }
 
@@ -1201,7 +1213,7 @@ export async function superadminListTickets(req: AuthenticatedRequest, res: Resp
 
     return res.json({ success: true, data: paged });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to list tickets' });
+    return logAndReturn500({ req, res, error, message: 'Failed to list tickets' });
   }
 }
 
@@ -1237,7 +1249,7 @@ export async function superadminGetTicket(req: AuthenticatedRequest, res: Respon
 
     return res.json({ success: true, data: { ticket, comments, events } });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to fetch ticket' });
+    return logAndReturn500({ req, res, error, message: 'Failed to fetch ticket' });
   }
 }
 
@@ -1398,7 +1410,7 @@ export async function superadminUpdateTicket(req: AuthenticatedRequest, res: Res
 
     return res.json({ success: true, data: updated, message: 'Ticket atualizado' });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to update ticket' });
+    return logAndReturn500({ req, res, error, message: 'Failed to update ticket' });
   }
 }
 
@@ -1482,7 +1494,7 @@ export async function superadminAddComment(req: AuthenticatedRequest, res: Respo
 
     return res.status(201).json({ success: true, data: created, message: 'Comentário adicionado' });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to add comment' });
+    return logAndReturn500({ req, res, error, message: 'Failed to add comment' });
   }
 }
 
@@ -1561,7 +1573,7 @@ export async function listPlantTicketAttachments(req: AuthenticatedRequest, res:
     const rows = await listTicketAttachmentsByScope({ tenantId, ticketId: String((ticket as any).id) });
     return res.json({ success: true, data: rows });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to list attachments' });
+    return logAndReturn500({ req, res, error, message: 'Failed to list attachments' });
   }
 }
 
@@ -1630,7 +1642,7 @@ export async function uploadPlantTicketAttachment(req: AuthenticatedRequest, res
 
     return res.status(201).json({ success: true, data: created, message: 'Anexo enviado' });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to upload attachment' });
+    return logAndReturn500({ req, res, error, message: 'Failed to upload attachment' });
   }
 }
 
@@ -1658,7 +1670,7 @@ export async function listCompanyTicketAttachments(req: AuthenticatedRequest, re
     const rows = await listTicketAttachmentsByScope({ tenantId, ticketId: String((ticket as any).id) });
     return res.json({ success: true, data: rows });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to list attachments' });
+    return logAndReturn500({ req, res, error, message: 'Failed to list attachments' });
   }
 }
 
@@ -1723,7 +1735,7 @@ export async function uploadCompanyTicketAttachment(req: AuthenticatedRequest, r
 
     return res.status(201).json({ success: true, data: created, message: 'Anexo enviado' });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to upload attachment' });
+    return logAndReturn500({ req, res, error, message: 'Failed to upload attachment' });
   }
 }
 
@@ -1745,7 +1757,7 @@ export async function superadminListTicketAttachments(req: AuthenticatedRequest,
     const rows = await listTicketAttachmentsByScope({ tenantId, ticketId: String((ticket as any).id) });
     return res.json({ success: true, data: rows });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to list attachments' });
+    return logAndReturn500({ req, res, error, message: 'Failed to list attachments' });
   }
 }
 
@@ -1806,7 +1818,7 @@ export async function superadminUploadTicketAttachment(req: AuthenticatedRequest
 
     return res.status(201).json({ success: true, data: created, message: 'Anexo enviado' });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to upload attachment' });
+    return logAndReturn500({ req, res, error, message: 'Failed to upload attachment' });
   }
 }
 
@@ -1976,7 +1988,7 @@ export async function superadminListTicketSuggestions(req: AuthenticatedRequest,
 
     return res.json({ success: true, data: { tenantId, suggestions: filtered } });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to list suggestions' });
+    return logAndReturn500({ req, res, error, message: 'Failed to list suggestions' });
   }
 }
 
@@ -2055,6 +2067,6 @@ export async function superadminCreateTicketFromSuggestion(req: AuthenticatedReq
 
     return res.status(201).json({ success: true, data: created, message: 'Ticket criado a partir de sugestão' });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to create ticket from suggestion' });
+    return logAndReturn500({ req, res, error, message: 'Failed to create ticket from suggestion' });
   }
 }

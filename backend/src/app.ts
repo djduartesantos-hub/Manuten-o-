@@ -31,6 +31,7 @@ import plannerRoutes from './routes/planner.routes.js';
 import stocktakeRoutes from './routes/stocktake.routes.js';
 import { errorHandler, notFoundHandler, requestLogger } from './middlewares/error.js';
 import { tenantSlugMiddleware } from './middlewares/tenant.js';
+import { requestIdMiddleware } from './middlewares/requestId.js';
 
 // ESM __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -66,6 +67,7 @@ export function createApp(): Express {
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+  app.use(requestIdMiddleware());
   app.use(
     cors({
       origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
