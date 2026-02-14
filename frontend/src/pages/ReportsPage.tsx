@@ -46,8 +46,10 @@ const workOrderPriorityLabel = (value?: string | null) => {
 
 const REPORTS_STORAGE_KEY = 'reportsPreferences:v2';
 
-type ReportType = 'general' | 'asset' | 'technician' | 'temporal' | 'downtime' | 'preventive';
+type ReportType = 'general' | 'asset' | 'technician' | 'temporal' | 'backlog' | 'downtime' | 'preventive';
 type PeriodPreset = 'custom' | 'last7' | 'last30' | 'last90' | 'thisMonth';
+
+const BACKLOG_OPEN_STATUSES = ['aberta', 'em_analise', 'em_execucao', 'em_pausa'] as const;
 
 const toISODate = (d: Date) => {
   const year = d.getFullYear();
@@ -349,6 +351,11 @@ export function ReportsPage() {
     },
   ) => {
     return orders.filter((order) => {
+      if (opts.reportType === 'backlog') {
+        const statusKey = String(order.status || '').trim().toLowerCase();
+        if (!BACKLOG_OPEN_STATUSES.includes(statusKey as any)) return false;
+      }
+
       if (opts.statusFilter && order.status !== opts.statusFilter) return false;
       if (opts.priorityFilter && order.priority !== opts.priorityFilter) return false;
       if (opts.assetFilter && order.asset?.code !== opts.assetFilter) return false;
@@ -522,6 +529,16 @@ export function ReportsPage() {
     });
     return copy;
   }, [filteredOrders, reportType]);
+
+  const sortedFilteredOrdersWithAge = useMemo(() => {
+    if (reportType !== 'backlog') return sortedFilteredOrders as any;
+    const now = Date.now();
+    return (sortedFilteredOrders as any[]).map((order) => {
+      const createdAtMs = order.created_at ? new Date(order.created_at).getTime() : 0;
+      const ageDays = createdAtMs ? Math.max(0, Math.floor((now - createdAtMs) / (1000 * 60 * 60 * 24))) : 0;
+      return { ...order, __ageDays: ageDays };
+    });
+  }, [sortedFilteredOrders, reportType]);
 
   // Calculate MTTR (Mean Time To Repair) and MTBF (Mean Time Between Failures)
   const computeMetrics = (orders: WorkOrder[], totalUniverse: WorkOrder[]) => {
@@ -862,6 +879,44 @@ export function ReportsPage() {
     };
   }, [filteredOrders]);
 
+  const backlogAgingChartData = useMemo(() => {
+    if (reportType !== 'backlog') return null;
+
+    const buckets: Record<string, number> = {
+      '0-7': 0,
+      '8-14': 0,
+      '15-30': 0,
+      '31-60': 0,
+      '61+': 0,
+    };
+
+    const now = Date.now();
+    filteredOrders.forEach((order) => {
+      const createdAtMs = order.created_at ? new Date(order.created_at).getTime() : 0;
+      const ageDays = createdAtMs ? Math.max(0, Math.floor((now - createdAtMs) / (1000 * 60 * 60 * 24))) : 0;
+
+      if (ageDays <= 7) buckets['0-7'] += 1;
+      else if (ageDays <= 14) buckets['8-14'] += 1;
+      else if (ageDays <= 30) buckets['15-30'] += 1;
+      else if (ageDays <= 60) buckets['31-60'] += 1;
+      else buckets['61+'] += 1;
+    });
+
+    const labels = Object.keys(buckets);
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Ordens abertas (count)',
+          data: labels.map((k) => buckets[k] || 0),
+          backgroundColor: '#0ea5e9',
+          borderColor: '#0284c7',
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [filteredOrders, reportType]);
+
   const downtimeSummary = useMemo(() => {
     if (reportType !== 'downtime') return { totalMinutes: 0, totalHours: '0.0' };
     const totalMinutes = downtimeOrders.reduce(
@@ -1033,6 +1088,7 @@ export function ReportsPage() {
       { key: 'asset' as const, label: 'Por Ativo', hint: 'Top ativos com mais ordens.' },
       { key: 'technician' as const, label: 'Por Técnico', hint: 'Distribuição por responsável.' },
       { key: 'temporal' as const, label: 'Temporal', hint: 'Tendência semanal.' },
+      { key: 'backlog' as const, label: 'Backlog (Aging)', hint: 'Ordens abertas por antiguidade.' },
       { key: 'downtime' as const, label: 'Downtime', hint: 'Paragens e causas.' },
       { key: 'preventive' as const, label: 'Preventivas', hint: 'Agenda e execução das preventivas.' },
     ],
@@ -1085,6 +1141,8 @@ export function ReportsPage() {
         ? 'Relatório de Downtime'
         : reportType === 'preventive'
         ? 'Relatório de Preventivas'
+        : reportType === 'backlog'
+        ? 'Relatório de Backlog (Aging)'
         : 'Relatório de Ordens de Serviço',
       14,
       20,
@@ -1183,6 +1241,27 @@ export function ReportsPage() {
       return;
     }
 
+    if (reportType === 'backlog') {
+      const baseY = filtersLabel ? 35 : 28;
+      doc.text(`Ordens abertas: ${summary.total}`, 14, baseY);
+
+      autoTable(doc, {
+        startY: baseY + 10,
+        head: [['Ordem', 'Status', 'Prioridade', 'Ativo', 'Criada em', 'Idade (dias)']],
+        body: (sortedFilteredOrdersWithAge as any[]).slice(0, 60).map((order) => [
+          String(order.title || '').substring(0, 22),
+          workOrderStatusLabel(order.status),
+          workOrderPriorityLabel(order.priority),
+          order.asset ? String(order.asset.code || '') : '-',
+          order.created_at ? new Date(order.created_at).toLocaleDateString('pt-PT') : '-',
+          String(order.__ageDays ?? ''),
+        ]),
+      });
+
+      doc.save('relatorio-backlog-aging.pdf');
+      return;
+    }
+
     const baseY = filtersLabel ? 35 : 28;
     doc.text(`Tipo: ${reportType} | Total: ${summary.total} | Em atraso: ${summary.overdue}`, 14, baseY);
     doc.text(
@@ -1209,7 +1288,7 @@ export function ReportsPage() {
     doc.save('relatorio-ordens.pdf');
   };
 
-  const exportCsv = () => {
+  const exportCsv = async () => {
     if (reportType === 'preventive') {
       const headers = ['Schedule ID', 'Plano ID', 'Plano', 'Ativo', 'Agendada para', 'Status', 'Concluída em', 'Notas'];
       const rows = sortedPreventives.map((s) => [
@@ -1233,6 +1312,39 @@ export function ReportsPage() {
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
       link.setAttribute('download', `preventivas-${new Date().toISOString().split('T')[0]}.csv`);
+      link.click();
+      return;
+    }
+
+    if (reportType === 'backlog') {
+      const headers = ['ID', 'Título', 'Status', 'Prioridade', 'Ativo', 'Criada em', 'Idade (dias)', 'SLA deadline'];
+      const now = Date.now();
+
+      const rows = (sortedFilteredOrders as WorkOrder[]).map((order) => {
+        const createdAtMs = order.created_at ? new Date(order.created_at).getTime() : 0;
+        const ageDays = createdAtMs ? Math.max(0, Math.floor((now - createdAtMs) / (1000 * 60 * 60 * 24))) : 0;
+        return [
+          order.id,
+          order.title,
+          order.status,
+          order.priority || '',
+          order.asset ? `${order.asset.code} - ${order.asset.name}` : '',
+          order.created_at ? new Date(order.created_at).toLocaleString('pt-PT') : '',
+          String(ageDays),
+          order.sla_deadline ? new Date(order.sla_deadline).toLocaleString('pt-PT') : '',
+        ];
+      });
+
+      const csvContent = [
+        headers,
+        ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `backlog-aging-${new Date().toISOString().split('T')[0]}.csv`);
       link.click();
       return;
     }
@@ -1502,9 +1614,13 @@ export function ReportsPage() {
                       <option value="em_analise">Em Análise</option>
                       <option value="em_execucao">Em Execução</option>
                       <option value="em_pausa">Em Pausa</option>
-                      <option value="concluida">Concluída</option>
-                      <option value="fechada">Fechada</option>
-                      <option value="cancelada">Cancelada</option>
+                      {reportType !== 'backlog' && (
+                        <>
+                          <option value="concluida">Concluída</option>
+                          <option value="fechada">Fechada</option>
+                          <option value="cancelada">Cancelada</option>
+                        </>
+                      )}
                     </select>
                     <select
                       className="input"
@@ -1709,6 +1825,24 @@ export function ReportsPage() {
             </div>
           )}
 
+          {reportType === 'backlog' && (
+            <div className="mt-6 rounded-[28px] border theme-border theme-card p-6 shadow-sm">
+              <h3 className="text-lg font-semibold theme-text mb-4 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5" />
+                Backlog (Aging)
+              </h3>
+              <div className="h-80">
+                {backlogAgingChartData ? (
+                  <Bar data={backlogAgingChartData} options={chartOptionsWithClick} />
+                ) : (
+                  <div className="h-full rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-6 text-sm theme-text-muted">
+                    Sem dados para este período.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {reportType === 'downtime' && (
             <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div className="rounded-[28px] border theme-border theme-card p-6 shadow-sm">
@@ -1857,6 +1991,9 @@ export function ReportsPage() {
                         <>
                           <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Status</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Prioridade</th>
+                          {reportType === 'backlog' && (
+                            <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Idade (dias)</th>
+                          )}
                           <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Horas</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-[color:var(--dash-muted)] uppercase">Criada em</th>
                         </>
@@ -1875,12 +2012,17 @@ export function ReportsPage() {
                   <tbody className="bg-[color:var(--dash-panel)] divide-y divide-[color:var(--dash-border)]">
                     {(reportType === 'downtime' ? downtimeOrders.length === 0 : sortedFilteredOrders.length === 0) && (
                       <tr>
-                        <td colSpan={reportType === 'downtime' ? 8 : 6} className="px-6 py-6 text-center theme-text-muted">
+                        <td colSpan={reportType === 'downtime' ? 8 : reportType === 'backlog' ? 7 : 6} className="px-6 py-6 text-center theme-text-muted">
                           {reportType === 'downtime' ? 'Nenhum downtime encontrado' : 'Nenhuma ordem encontrada'}
                         </td>
                       </tr>
                     )}
-                    {(reportType === 'downtime' ? downtimeOrders : sortedFilteredOrders).map((order: any) => (
+                    {(reportType === 'downtime'
+                      ? downtimeOrders
+                      : reportType === 'backlog'
+                      ? (sortedFilteredOrdersWithAge as any[])
+                      : sortedFilteredOrders
+                    ).map((order: any) => (
                       <tr key={order.id} className="hover:bg-[color:var(--dash-surface)]">
                         <td className="px-6 py-4">
                           <div className="text-sm font-medium theme-text">{order.title}</div>
@@ -1908,6 +2050,9 @@ export function ReportsPage() {
                                 {workOrderPriorityLabel(order.priority)}
                               </span>
                             </td>
+                            {reportType === 'backlog' && (
+                              <td className="px-6 py-4 text-sm theme-text">{String(order.__ageDays ?? '')}</td>
+                            )}
                             <td className="px-6 py-4 text-sm theme-text">
                               {order.actual_hours
                                 ? `${order.actual_hours}h`
