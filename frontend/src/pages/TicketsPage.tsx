@@ -82,6 +82,7 @@ export function TicketsPage() {
 
   const pageLimit = 30;
 
+  const [createFormOpen, setCreateFormOpen] = React.useState(false);
   const [creating, setCreating] = React.useState(false);
   const [newTitle, setNewTitle] = React.useState('');
   const [newDescription, setNewDescription] = React.useState('');
@@ -288,6 +289,7 @@ export function TicketsPage() {
       setNewIsGeneral(false);
       setNewPriority('media');
       setNewTagsText('');
+      setCreateFormOpen(false);
       await load();
       if (created?.id) setSelectedId(String(created.id));
     } catch (err: any) {
@@ -483,7 +485,7 @@ export function TicketsPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setCreating((v) => !v)}
+                onClick={() => setCreateFormOpen((v) => !v)}
                 className="btn-secondary h-9 px-3 inline-flex items-center"
               >
                 <Plus className="mr-2 h-4 w-4" />
@@ -561,7 +563,7 @@ export function TicketsPage() {
             )}
           </div>
 
-          {creating ? (
+          {createFormOpen ? (
             <form onSubmit={handleCreate} className="rounded-2xl border theme-border theme-card p-4">
               <p className="text-sm font-semibold theme-text">Criar ticket</p>
               <div className="mt-3 grid gap-3">
