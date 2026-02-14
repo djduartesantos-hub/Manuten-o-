@@ -51,6 +51,7 @@ import {
   type WorkOrderAttachment,
   type WorkOrderEvent,
   releaseWorkOrderReservation,
+  consumeWorkOrderReservation,
   addWorkOrderTask,
   deleteWorkOrderTask,
   updateWorkOrderTask,
@@ -1837,6 +1838,31 @@ export function WorkOrdersPage() {
       await loadOrderReservations(editingOrder.id);
     } catch (err: any) {
       setReservationMessage(err.message || 'Erro ao libertar reserva.');
+    } finally {
+      setReservationSaving(false);
+    }
+  };
+
+  const handleConsumeReservation = async (reservationId: string) => {
+    if (!selectedPlant || !editingOrder) return;
+    if (!editingPermissions?.canOperateOrder && !editingPermissions?.canEditOrder) {
+      setReservationMessage('Sem permissão para consumir reservas nesta ordem.');
+      return;
+    }
+
+    setReservationSaving(true);
+    setReservationMessage(null);
+    try {
+      await consumeWorkOrderReservation(selectedPlant, editingOrder.id, reservationId, {
+        notes: 'consumo na ordem',
+      });
+      setReservationMessage('Reserva consumida.');
+      await Promise.all([
+        loadOrderReservations(editingOrder.id),
+        loadOrderMovements(editingOrder.id),
+      ]);
+    } catch (err: any) {
+      setReservationMessage(err.message || 'Erro ao consumir reserva.');
     } finally {
       setReservationSaving(false);
     }
@@ -3819,13 +3845,22 @@ export function WorkOrdersPage() {
                                 <td className="px-3 py-2">
                                   {reservation.status === 'ativa' &&
                                     !['cancelada', 'fechada'].includes(editingOrder.status) && (
-                                      <button
-                                        className="btn-secondary"
-                                        onClick={() => handleReleaseReservation(reservation.id)}
-                                        disabled={reservationSaving}
-                                      >
-                                        Libertar
-                                      </button>
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <button
+                                          className="btn-primary"
+                                          onClick={() => handleConsumeReservation(reservation.id)}
+                                          disabled={reservationSaving}
+                                        >
+                                          Consumir
+                                        </button>
+                                        <button
+                                          className="btn-secondary"
+                                          onClick={() => handleReleaseReservation(reservation.id)}
+                                          disabled={reservationSaving}
+                                        >
+                                          Libertar
+                                        </button>
+                                      </div>
                                     )}
                                   {reservation.status !== 'ativa' && (
                                     <span className="text-[11px] theme-text-muted">-</span>

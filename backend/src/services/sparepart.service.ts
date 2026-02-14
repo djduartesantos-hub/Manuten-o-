@@ -254,6 +254,17 @@ export class SparePartService {
     // Verify spare part exists
     await this.getSparePartById(tenant_id, input.spare_part_id);
 
+    if (!input.quantity || Number(input.quantity) <= 0) {
+      throw new Error('Quantidade deve ser positiva');
+    }
+
+    if (input.type === 'saida') {
+      const currentQty = await this.getStockQuantity(tenant_id, input.spare_part_id, input.plant_id);
+      if (currentQty < Number(input.quantity)) {
+        throw new Error(`Stock insuficiente. Disponível: ${currentQty}`);
+      }
+    }
+
     // Calculate total cost
     let totalCost: string | undefined;
     if (input.unit_cost && input.quantity) {

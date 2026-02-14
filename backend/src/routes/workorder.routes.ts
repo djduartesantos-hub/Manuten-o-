@@ -101,4 +101,10 @@ router.post(
 	WorkOrderController.releaseStockReservation,
 );
 
+router.post(
+	'/:plantId/work-orders/:workOrderId/reservations/:reservationId/consume',
+	requirePermission('workorders:write'),
+	WorkOrderController.consumeStockReservation,
+);
+
 export default router;

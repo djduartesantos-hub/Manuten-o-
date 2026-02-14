@@ -17,6 +17,7 @@ import { attachments, users, workOrderEvents, workOrders } from '../db/schema.js
 import { CacheKeys, RedisService } from '../services/redis.service.js';
 import {
   createStockReservationSchema,
+  consumeStockReservationSchema,
   releaseStockReservationSchema,
 } from '../schemas/stockreservation.validation.js';
 
@@ -1619,6 +1620,80 @@ export class WorkOrderController {
       res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to release reservation',
+      });
+    }
+  }
+
+  static async consumeStockReservation(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { workOrderId, plantId, reservationId } = req.params;
+      const tenantId = req.tenantId;
+      const userId = req.user?.userId;
+      const role = req.user?.role;
+
+      if (!tenantId || !workOrderId || !plantId || !reservationId || !userId) {
+        res.status(400).json({ success: false, error: 'Missing required fields' });
+        return;
+      }
+
+      const validation = consumeStockReservationSchema.safeParse(req.body ?? {});
+      if (!validation.success) {
+        res.status(400).json({
+          success: false,
+          error: 'Invalid input',
+          details: validation.error.errors,
+        });
+        return;
+      }
+
+      const workOrder = await WorkOrderService.getWorkOrderById(tenantId, workOrderId, plantId);
+      if (!workOrder) {
+        res.status(404).json({ success: false, error: 'Work order not found' });
+        return;
+      }
+
+      const isAdmin = WorkOrderController.isAdmin(role);
+      const isManager = WorkOrderController.isManager(role);
+      const isCreator = Boolean(userId && workOrder.created_by === userId);
+      const isAssignedUser = Boolean(userId && workOrder.assigned_to === userId);
+
+      if (!isAdmin && !isManager && !isCreator && !isAssignedUser) {
+        res.status(403).json({
+          success: false,
+          error: 'Sem permissao para consumir reservas nesta ordem',
+        });
+        return;
+      }
+
+      const result = await stockReservationService.consumeReservation(tenantId, userId, reservationId, {
+        quantity: validation.data.quantity,
+        notes: validation.data.notes,
+      });
+
+      await logWorkOrderEvent({
+        tenantId,
+        plantId,
+        workOrderId,
+        eventType: 'work_order_stock_consumed',
+        message: `Reserva consumida: ${result.movement.quantity}x ${(result as any)?.movement?.spare_part_id || ''}`,
+        meta: {
+          reservation_id: reservationId,
+          stock_movement_id: (result as any)?.movement?.id,
+          quantity: (result as any)?.movement?.quantity,
+        },
+        actorUserId: String(userId),
+      });
+
+      res.json({
+        success: true,
+        data: result,
+        message: 'Reserva consumida com sucesso',
+      });
+    } catch (error) {
+      logger.error('Consume stock reservation error:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to consume reservation',
       });
     }
   }

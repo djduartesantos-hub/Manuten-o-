@@ -1143,6 +1143,18 @@ export async function releaseWorkOrderReservation(
   });
 }
 
+export async function consumeWorkOrderReservation(
+  plantId: string,
+  workOrderId: string,
+  reservationId: string,
+  data?: { quantity?: number; notes?: string },
+) {
+  return apiCall(`/${plantId}/work-orders/${workOrderId}/reservations/${reservationId}/consume`, {
+    method: 'POST',
+    body: JSON.stringify(data ?? {}),
+  });
+}
+
 export async function getWorkOrderTasks(plantId: string, workOrderId: string) {
   return apiCall(`/${plantId}/work-orders/${workOrderId}/tasks`);
 }

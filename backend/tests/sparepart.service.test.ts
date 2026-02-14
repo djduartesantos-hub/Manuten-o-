@@ -12,7 +12,7 @@ describe('SparePartService', () => {
   let plantId: string;
   let userId: string;
   let partId: string;
-  let movementId: string;
+  const movementIds: string[] = [];
 
   beforeAll(async () => {
     const [tenant] = await db
@@ -48,10 +48,10 @@ describe('SparePartService', () => {
   });
 
   afterAll(async () => {
-    if (movementId) {
-      await db
-        .delete(stockMovements)
-        .where(eq(stockMovements.id, movementId));
+    if (movementIds.length) {
+      for (const id of movementIds) {
+        await db.delete(stockMovements).where(eq(stockMovements.id, id));
+      }
     }
     if (partId) {
       await db.delete(spareParts).where(eq(spareParts.id, partId));
@@ -86,10 +86,36 @@ describe('SparePartService', () => {
       notes: 'Stock inicial',
     });
 
-    movementId = movement.id;
+    movementIds.push(movement.id);
     expect(movement.quantity).toBe(5);
 
     const quantity = await service.getStockQuantity(tenantId, partId, plantId);
     expect(quantity).toBe(5);
+
+    // Should not allow taking out more than available
+    await expect(
+      service.createStockMovement(tenantId, userId, {
+        spare_part_id: partId,
+        plant_id: plantId,
+        type: 'saida',
+        quantity: 6,
+        notes: 'Consumo inválido',
+      }),
+    ).rejects.toThrow(/Stock insuficiente/i);
+
+    const stillQty = await service.getStockQuantity(tenantId, partId, plantId);
+    expect(stillQty).toBe(5);
+
+    const okExit = await service.createStockMovement(tenantId, userId, {
+      spare_part_id: partId,
+      plant_id: plantId,
+      type: 'saida',
+      quantity: 2,
+      notes: 'Consumo válido',
+    });
+    movementIds.push(okExit.id);
+
+    const finalQty = await service.getStockQuantity(tenantId, partId, plantId);
+    expect(finalQty).toBe(3);
   });
 });

@@ -188,4 +188,95 @@ export class StockReservationService {
         AND status = 'ativa'
     `);
   }
+
+  async consumeReservation(
+    tenantId: string,
+    userId: string,
+    reservationId: string,
+    input?: { quantity?: number; notes?: string },
+  ) {
+    const existing = await db.query.stockReservations.findFirst({
+      where: (fields: any, { and, eq }: any) =>
+        and(eq(fields.tenant_id, tenantId), eq(fields.id, reservationId)),
+    });
+
+    if (!existing) {
+      throw new Error('Reserva não encontrada');
+    }
+
+    if (existing.status !== 'ativa') {
+      throw new Error('Reserva não está ativa');
+    }
+
+    const requestedQty = input?.quantity == null ? Number(existing.quantity) : Number(input.quantity);
+    if (!requestedQty || requestedQty <= 0) {
+      throw new Error('Quantidade deve ser positiva');
+    }
+
+    if (requestedQty > Number(existing.quantity)) {
+      throw new Error(`Quantidade a consumir excede a reserva. Reservado: ${existing.quantity}`);
+    }
+
+    const stockQty = await this.sparePartService.getStockQuantity(
+      tenantId,
+      String(existing.spare_part_id),
+      String(existing.plant_id),
+    );
+
+    const reservedQty = await this.getActiveReservedQuantity(
+      tenantId,
+      String(existing.plant_id),
+      String(existing.spare_part_id),
+    );
+
+    const reservedOther = reservedQty - Number(existing.quantity);
+    const availableForThis = stockQty - reservedOther;
+    if (availableForThis < requestedQty) {
+      throw new Error(`Stock insuficiente para consumir reserva. Disponível: ${availableForThis}`);
+    }
+
+    const part = await this.sparePartService.getSparePartById(tenantId, String(existing.spare_part_id));
+    const unitCost = (part as any)?.unit_cost != null ? String((part as any).unit_cost) : undefined;
+
+    const notes = input?.notes?.trim()
+      ? input.notes.trim()
+      : `Consumo de reserva ${existing.id}`;
+
+    const movement = await this.sparePartService.createStockMovement(tenantId, userId, {
+      plant_id: String(existing.plant_id),
+      spare_part_id: String(existing.spare_part_id),
+      work_order_id: String(existing.work_order_id),
+      type: 'saida',
+      quantity: requestedQty,
+      unit_cost: unitCost,
+      notes,
+    });
+
+    if (requestedQty === Number(existing.quantity)) {
+      const [updated] = await db
+        .update(stockReservations)
+        .set({
+          status: 'libertada',
+          released_at: new Date(),
+          released_by: userId,
+          release_reason: input?.notes?.trim() ? `consumida: ${input.notes.trim()}` : 'consumida',
+        })
+        .where(and(eq(stockReservations.tenant_id, tenantId), eq(stockReservations.id, reservationId)))
+        .returning();
+
+      return { reservation: updated, movement };
+    }
+
+    const remaining = Number(existing.quantity) - requestedQty;
+    const [updated] = await db
+      .update(stockReservations)
+      .set({
+        quantity: remaining,
+        notes: existing.notes,
+      })
+      .where(and(eq(stockReservations.tenant_id, tenantId), eq(stockReservations.id, reservationId)))
+      .returning();
+
+    return { reservation: updated, movement };
+  }
 }

@@ -10,5 +10,11 @@ export const releaseStockReservationSchema = z.object({
   reason: z.string().max(1000).optional(),
 });
 
+export const consumeStockReservationSchema = z.object({
+  quantity: z.number().int().positive('Quantidade deve ser positiva').optional(),
+  notes: z.string().max(1000).optional(),
+});
+
 export type CreateStockReservationInput = z.infer<typeof createStockReservationSchema>;
 export type ReleaseStockReservationInput = z.infer<typeof releaseStockReservationSchema>;
+export type ConsumeStockReservationInput = z.infer<typeof consumeStockReservationSchema>;
