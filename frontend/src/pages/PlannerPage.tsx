@@ -183,98 +183,123 @@ export function PlannerPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
-              <CalendarClock className="h-5 w-5 text-gray-700 dark:text-gray-200" />
+      <div className="space-y-8 font-display">
+        <section className="relative overflow-hidden rounded-[32px] border theme-border glass-panel p-8 shadow-sm">
+          <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-emerald-200/40 blur-3xl" />
+          <div className="absolute -left-14 bottom-0 h-44 w-44 rounded-full bg-amber-200/40 blur-3xl" />
+          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border theme-border bg-[color:var(--dash-panel)] text-[color:var(--dash-accent)] shadow-sm">
+                <CalendarClock className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
+                  Sala de planeamento
+                </p>
+                <h1 className="mt-2 text-3xl font-semibold theme-text sm:text-4xl">
+                  Planeamento
+                </h1>
+                <p className="mt-2 text-sm theme-text-muted">
+                  Calendario unificado: preventivas, ordens e paragens planeadas.
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Planeamento</h1>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Calendário unificado: preventivas, ordens e paragens planeadas.
-              </p>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={load}
+                className="btn-secondary inline-flex items-center gap-2"
+                disabled={loading || !selectedPlant}
+                type="button"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+                Recarregar
+              </button>
+              <button
+                onClick={handleExport}
+                className="btn-primary inline-flex items-center gap-2"
+                disabled={loading || !items.length}
+                type="button"
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </button>
             </div>
           </div>
+        </section>
 
-          <button
-            onClick={load}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50"
-            disabled={loading || !selectedPlant}
-            type="button"
-          >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-            Recarregar
-          </button>
-
-          <button
-            onClick={handleExport}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
-            disabled={loading || !items.length}
-            type="button"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </button>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
-          <div className="w-full sm:w-auto">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Início</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="mt-1 w-full sm:w-48 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-            />
-          </div>
-          <div className="w-full sm:w-auto">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Fim</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="mt-1 w-full sm:w-48 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-            />
-          </div>
-          {error ? (
-            <div className="flex items-center gap-2 text-sm text-red-700 dark:text-red-300">
-              <AlertCircle className="h-4 w-4" />
-              {error}
+        <section className="rounded-2xl border theme-border glass-panel p-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="grid w-full gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-[0.22em] theme-text-muted">
+                  Inicio
+                </span>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="input mt-2 w-full rounded-2xl"
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-[0.22em] theme-text-muted">
+                  Fim
+                </span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="input mt-2 w-full rounded-2xl"
+                />
+              </label>
             </div>
-          ) : null}
-        </div>
+            {error ? (
+              <div className="flex items-center gap-2 text-xs text-rose-700">
+                <AlertCircle className="h-4 w-4" />
+                {error}
+              </div>
+            ) : null}
+          </div>
+        </section>
 
         {canWrite ? (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Adicionar paragem planeada</h2>
-            <form onSubmit={handleCreateDowntime} className="mt-4 grid grid-cols-1 md:grid-cols-6 gap-3">
+          <section className="rounded-2xl border theme-border glass-panel p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] theme-text-muted">
+                  Planeamento
+                </p>
+                <h2 className="mt-2 text-lg font-semibold theme-text">Adicionar paragem planeada</h2>
+              </div>
+            </div>
+            <form onSubmit={handleCreateDowntime} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-6">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Título</label>
+                <label className="block text-sm font-medium theme-text">Titulo</label>
                 <input
                   value={downtimeTitle}
                   onChange={(e) => setDowntimeTitle(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                  className="input mt-1 rounded-2xl"
                   placeholder="Ex: Manutenção elétrica"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Tipo</label>
+                <label className="block text-sm font-medium theme-text">Tipo</label>
                 <select
                   value={downtimeType}
                   onChange={(e) => setDowntimeType(e.target.value as any)}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                  className="input mt-1 rounded-2xl"
                 >
                   <option value="total">Total</option>
                   <option value="parcial">Parcial</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Categoria</label>
+                <label className="block text-sm font-medium theme-text">Categoria</label>
                 <select
                   value={downtimeCategory}
                   onChange={(e) => setDowntimeCategory(e.target.value as any)}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                  className="input mt-1 rounded-2xl"
                 >
                   <option value="producao">Produção</option>
                   <option value="seguranca">Segurança</option>
@@ -284,29 +309,29 @@ export function PlannerPage() {
                 </select>
               </div>
               <div className="md:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Início</label>
+                <label className="block text-sm font-medium theme-text">Inicio</label>
                 <input
                   type="datetime-local"
                   value={downtimeStart}
                   onChange={(e) => setDowntimeStart(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                  className="input mt-1 rounded-2xl"
                 />
               </div>
               <div className="md:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Fim</label>
+                <label className="block text-sm font-medium theme-text">Fim</label>
                 <input
                   type="datetime-local"
                   value={downtimeEnd}
                   onChange={(e) => setDowntimeEnd(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                  className="input mt-1 rounded-2xl"
                 />
               </div>
               <div className="md:col-span-5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Descrição (opcional)</label>
+                <label className="block text-sm font-medium theme-text">Descricao (opcional)</label>
                 <input
                   value={downtimeDescription}
                   onChange={(e) => setDowntimeDescription(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                  className="input mt-1 rounded-2xl"
                   placeholder="Detalhes / impacto / notas"
                 />
               </div>
@@ -314,37 +339,37 @@ export function PlannerPage() {
                 <button
                   type="submit"
                   disabled={creating || permsLoading || !selectedPlant}
-                  className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                  className="btn-primary w-full inline-flex items-center justify-center gap-2"
                 >
                   {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                   Criar
                 </button>
               </div>
             </form>
-          </div>
+          </section>
         ) : (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 text-sm text-gray-600 dark:text-gray-300">
-            Não tens permissões para criar paragens planeadas.
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm theme-text">
+            Nao tens permissoes para criar paragens planeadas.
           </div>
         )}
 
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Itens</h2>
+        <section className="rounded-2xl border theme-border glass-panel overflow-hidden">
+          <div className="px-5 py-4 border-b theme-border bg-[color:var(--dash-surface)]">
+            <h2 className="text-lg font-semibold theme-text">Itens</h2>
           </div>
 
           {loading ? (
-            <div className="p-6 flex items-center gap-2 text-gray-700 dark:text-gray-200">
+            <div className="p-6 flex items-center gap-2 theme-text">
               <Loader2 className="h-5 w-5 animate-spin" />
               A carregar...
             </div>
           ) : groups.length === 0 ? (
-            <div className="p-6 text-gray-600 dark:text-gray-300">Sem itens no intervalo.</div>
+            <div className="p-6 text-sm theme-text-muted">Sem itens no intervalo.</div>
           ) : (
-            <div className="divide-y divide-gray-200 dark:divide-gray-800">
+            <div className="divide-y theme-border">
               {groups.map(([day, dayItems]) => (
                 <div key={day} className="p-4">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-white">{day}</div>
+                  <div className="text-sm font-semibold theme-text">{day}</div>
                   <div className="mt-3 space-y-2">
                     {dayItems
                       .slice()
@@ -352,19 +377,19 @@ export function PlannerPage() {
                       .map((item) => (
                         <div
                           key={`${item.kind}:${item.id}`}
-                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg border border-gray-200 dark:border-gray-800 p-3"
+                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-2xl border theme-border bg-[color:var(--dash-panel)] p-3"
                         >
                           <div className="min-w-0">
-                            <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            <div className="text-sm font-medium theme-text truncate">
                               {item.title}
                             </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-300">
+                            <div className="text-xs theme-text-muted">
                               {formatDateTime(item.startAt)} → {formatDateTime(item.endAt)}
                             </div>
                           </div>
 
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                            <span className="text-xs px-2 py-1 rounded-full border theme-border bg-[color:var(--dash-surface)] theme-text-muted">
                               {item.kind === 'work_order'
                                 ? 'Ordem'
                                 : item.kind === 'preventive'
@@ -372,17 +397,17 @@ export function PlannerPage() {
                                   : 'Paragem'}
                             </span>
                             {'status' in item && item.status ? (
-                              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                              <span className="text-xs px-2 py-1 rounded-full border theme-border bg-[color:var(--dash-surface)] theme-text-muted">
                                 {item.status}
                               </span>
                             ) : null}
                             {item.kind === 'work_order' && item.priority ? (
-                              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                              <span className="text-xs px-2 py-1 rounded-full border theme-border bg-[color:var(--dash-surface)] theme-text-muted">
                                 prioridade: {item.priority}
                               </span>
                             ) : null}
                             {item.kind === 'downtime' ? (
-                              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                              <span className="text-xs px-2 py-1 rounded-full border theme-border bg-[color:var(--dash-surface)] theme-text-muted">
                                 {item.downtimeType} • {item.downtimeCategory}
                               </span>
                             ) : null}
@@ -391,7 +416,7 @@ export function PlannerPage() {
                               <button
                                 type="button"
                                 onClick={() => handleDeleteDowntime(item.id)}
-                                className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border theme-border bg-[color:var(--dash-panel)] text-[color:var(--dash-muted)] hover:bg-[color:var(--dash-surface)]"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                                 Remover
@@ -405,7 +430,7 @@ export function PlannerPage() {
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </MainLayout>
   );
