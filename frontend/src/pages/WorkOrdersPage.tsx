@@ -2442,7 +2442,7 @@ export function WorkOrdersPage() {
   return (
     <MainLayout>
       <div className="space-y-8 font-display">
-        <section className="relative overflow-hidden rounded-[32px] border theme-border bg-[radial-gradient(circle_at_top,var(--dash-panel)_0%,var(--dash-bg)_45%,var(--dash-surface)_100%)] p-8 shadow-[0_26px_60px_-40px_rgba(15,23,42,0.45)]">
+        <section className="relative overflow-hidden rounded-[32px] border theme-border glass-panel p-8 shadow-sm">
           <div className="absolute -right-14 -top-20 h-56 w-56 rounded-full bg-emerald-200/60 blur-3xl" />
           <div className="absolute left-10 top-10 h-12 w-12 rotate-12 rounded-2xl border border-emerald-200/70 bg-[color:var(--dash-panel)] opacity-70 shadow-sm" />
           <div className="absolute bottom-6 right-12 h-16 w-16 rounded-full border theme-border bg-[color:var(--dash-panel)] opacity-70" />
@@ -2489,7 +2489,7 @@ export function WorkOrdersPage() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
+              <div className="rounded-2xl border theme-border glass-panel p-4 shadow-sm">
                 <div className="flex items-center gap-3 text-sm theme-text-muted">
                   <List className="h-4 w-4 text-emerald-600" />
                   Total de ordens
@@ -2499,7 +2499,7 @@ export function WorkOrdersPage() {
                 </p>
                 <p className="mt-1 text-xs theme-text-muted">Fila completa</p>
               </div>
-              <div className="rounded-2xl border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
+              <div className="rounded-2xl border theme-border glass-panel p-4 shadow-sm">
                 <div className="flex items-center gap-3 text-sm theme-text-muted">
                   <AlertCircle className="h-4 w-4 text-amber-600" />
                   Abertas
@@ -2509,7 +2509,7 @@ export function WorkOrdersPage() {
                 </p>
                 <p className="mt-1 text-xs theme-text-muted">Aguardando início</p>
               </div>
-              <div className="rounded-2xl border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
+              <div className="rounded-2xl border theme-border glass-panel p-4 shadow-sm">
                 <div className="flex items-center gap-3 text-sm theme-text-muted">
                   <RefreshCcw className="h-4 w-4 text-cyan-600" />
                   Em Execução
@@ -2519,7 +2519,7 @@ export function WorkOrdersPage() {
                 </p>
                 <p className="mt-1 text-xs theme-text-muted">Execução ativa</p>
               </div>
-              <div className="rounded-2xl border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.5)]">
+              <div className="rounded-2xl border theme-border glass-panel p-4 shadow-sm">
                 <div className="flex items-center gap-3 text-sm theme-text-muted">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                   Concluídas
@@ -2574,7 +2574,7 @@ export function WorkOrdersPage() {
         )}
 
         {!selectedPlant && (
-          <div className="rounded-3xl border border-dashed theme-border theme-card p-10 text-center">
+          <div className="rounded-3xl border border-dashed theme-border glass-panel p-10 text-center">
             <AlertCircle className="mx-auto mb-4 h-10 w-10 theme-text-muted" />
             <h2 className="mb-2 text-xl font-semibold theme-text">
               Selecione uma fabrica

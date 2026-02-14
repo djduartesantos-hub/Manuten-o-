@@ -401,8 +401,8 @@ export function AssetsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-8 font-display bg-[color:var(--dash-bg)]">
-        <section className="relative overflow-hidden rounded-3xl theme-border theme-card p-8 shadow-sm">
+      <div className="space-y-8 font-display">
+        <section className="relative overflow-hidden rounded-3xl border theme-border glass-panel p-8 shadow-sm">
           <div className="absolute -right-10 -top-14 h-56 w-56 rounded-full bg-amber-200/50 blur-3xl" />
           <div className="absolute -left-14 bottom-0 h-44 w-44 rounded-full bg-emerald-200/40 blur-3xl" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -453,7 +453,7 @@ export function AssetsPage() {
           </div>
 
           <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border theme-border theme-card p-4">
+            <div className="rounded-2xl border theme-border glass-panel p-4">
               <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <Boxes className="h-4 w-4 text-[color:var(--assets-card-icon-total)]" />
                 Total de equipamentos
@@ -461,7 +461,7 @@ export function AssetsPage() {
               <p className="mt-3 text-2xl font-semibold text-[color:var(--assets-card-value)]">{assets.length}</p>
               <p className="mt-1 text-xs text-[color:var(--assets-card-updated)]">Atualizado agora</p>
             </div>
-            <div className="rounded-2xl border theme-border theme-card p-4">
+            <div className="rounded-2xl border theme-border glass-panel p-4">
               <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                 Operacionais
@@ -471,7 +471,7 @@ export function AssetsPage() {
               </p>
               <p className="mt-1 text-xs theme-text-muted">Prontos para uso</p>
             </div>
-            <div className="rounded-2xl border theme-border theme-card p-4">
+            <div className="rounded-2xl border theme-border glass-panel p-4">
               <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <Wrench className="h-4 w-4 text-amber-600" />
                 Em manutencao
@@ -481,7 +481,7 @@ export function AssetsPage() {
               </p>
               <p className="mt-1 text-xs theme-text-muted">Acompanhamento ativo</p>
             </div>
-            <div className="rounded-2xl border theme-border theme-card p-4">
+            <div className="rounded-2xl border theme-border glass-panel p-4">
               <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <Clock3 className="h-4 w-4 text-rose-600" />
                 Parados

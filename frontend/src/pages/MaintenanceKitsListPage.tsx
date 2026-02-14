@@ -179,7 +179,7 @@ export function MaintenanceKitsListPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
-            <div className="rounded-3xl border theme-border theme-card p-4 shadow-sm">
+            <div className="rounded-3xl border theme-border glass-panel p-4 shadow-sm">
               <div className="flex items-center justify-between gap-2 mb-3">
                 <h2 className="text-lg font-semibold theme-text">Kits</h2>
                 <button
@@ -235,7 +235,7 @@ export function MaintenanceKitsListPage() {
           </div>
 
           <div className="lg:col-span-2 space-y-6">
-            <div className="rounded-3xl border theme-border theme-card p-6 shadow-sm">
+            <div className="rounded-3xl border theme-border glass-panel p-6 shadow-sm">
               <div className="flex items-center justify-between gap-3 mb-4">
                 <h2 className="text-xl font-semibold theme-text">Detalhes</h2>
                 {(loadingLookups || loadingItems) && (

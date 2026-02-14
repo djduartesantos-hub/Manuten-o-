@@ -1423,7 +1423,7 @@ export function ReportsPage() {
   return (
     <MainLayout>
       <div className="space-y-8 font-display">
-        <section className="relative overflow-hidden rounded-[32px] border theme-border bg-[linear-gradient(135deg,var(--dash-panel),var(--dash-panel-2))] p-8 shadow-sm">
+        <section className="relative overflow-hidden rounded-[32px] border theme-border glass-panel p-8 shadow-sm">
           <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-emerald-200/40 blur-3xl" />
           <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-sky-200/40 blur-3xl" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -1470,7 +1470,7 @@ export function ReportsPage() {
         )}
 
         {loading && (
-          <div className="rounded-[32px] border theme-border theme-card p-12 text-center">
+          <div className="rounded-[32px] border theme-border glass-panel p-12 text-center">
             <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin theme-text-muted" />
             <p className="text-sm theme-text-muted">Carregando relatórios...</p>
           </div>
@@ -1478,7 +1478,7 @@ export function ReportsPage() {
 
         {!loading && (
           <>
-          <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
+          <div className="rounded-[28px] border theme-border glass-panel p-5 shadow-sm">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="space-y-1">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] theme-text-muted">
@@ -1507,7 +1507,7 @@ export function ReportsPage() {
               </div>
             </div>
 
-            <div className="mt-5 rounded-[24px] border theme-border bg-[color:var(--dash-surface)] p-4">
+            <div className="mt-5 rounded-[24px] border theme-border glass-panel p-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-3">
                 <Filter className="h-4 w-4 text-emerald-600" />

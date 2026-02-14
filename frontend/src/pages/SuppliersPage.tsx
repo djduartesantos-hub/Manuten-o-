@@ -290,7 +290,7 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
           </div>
 
           <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border theme-border theme-card p-4">
+            <div className="rounded-2xl border theme-border glass-panel p-4">
               <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <Users className="h-4 w-4 text-[color:var(--suppliers-card-icon-total)]" />
                 Fornecedores ativos
@@ -300,7 +300,7 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
               </p>
               <p className="mt-1 text-xs text-[color:var(--suppliers-card-updated)]">Base central</p>
             </div>
-            <div className="rounded-2xl border theme-border theme-card p-4">
+            <div className="rounded-2xl border theme-border glass-panel p-4">
               <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <Mail className="h-4 w-4 text-[color:var(--suppliers-card-icon-email)]" />
                 Emails validados
@@ -310,7 +310,7 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
               </p>
               <p className="mt-1 text-xs text-[color:var(--suppliers-card-updated)]">Contato rapido</p>
             </div>
-            <div className="rounded-2xl border theme-border theme-card p-4">
+            <div className="rounded-2xl border theme-border glass-panel p-4">
               <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <Phone className="h-4 w-4 text-[color:var(--suppliers-card-icon-phone)]" />
                 Telefones ativos
@@ -320,7 +320,7 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
               </p>
               <p className="mt-1 text-xs text-[color:var(--suppliers-card-updated)]">Canal direto</p>
             </div>
-            <div className="rounded-2xl border theme-border theme-card p-4">
+            <div className="rounded-2xl border theme-border glass-panel p-4">
               <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <MapPin className="h-4 w-4 text-[color:var(--suppliers-card-icon-country)]" />
                 Paises mapeados
@@ -333,7 +333,7 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
           </div>
         </section>
 
-        <section className="rounded-3xl border theme-border theme-card p-6 shadow-sm">
+        <section className="rounded-3xl border theme-border glass-panel p-6 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-lg font-semibold theme-text">Pesquisa rapida</h2>
@@ -367,7 +367,7 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
         </section>
 
         {showForm && (
-          <section className="rounded-3xl border theme-border theme-card p-6 shadow-sm">
+          <section className="rounded-3xl border theme-border glass-panel p-6 shadow-sm">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold theme-text">
@@ -471,7 +471,7 @@ export function SuppliersPage({ embedded = false }: { embedded?: boolean } = {})
           </section>
         )}
 
-        <section className="rounded-3xl border theme-border theme-card p-6 shadow-sm">
+        <section className="rounded-3xl border theme-border glass-panel p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold theme-text">Lista de fornecedores</h2>

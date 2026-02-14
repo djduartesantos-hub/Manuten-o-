@@ -447,9 +447,7 @@ export function DashboardPage() {
 
   return (
     <MainLayout wide>
-      <div
-        className="relative w-full space-y-10 rounded-[32px] bg-[color:var(--dash-bg)] p-6 font-display text-[color:var(--dash-ink)] sm:p-8"
-      >
+      <div className="relative w-full space-y-10 font-display text-[color:var(--dash-ink)]">
         <section className="relative overflow-hidden rounded-[36px] border border-[color:var(--dash-border)] bg-[linear-gradient(135deg,var(--dash-panel),var(--dash-panel-2))] p-8 shadow-[0_32px_80px_-55px_rgba(15,118,110,0.45)] lg:p-10">
           <div className="absolute -left-20 top-4 h-40 w-40 rounded-full bg-emerald-200/60 blur-3xl dash-float" />
           <div className="absolute -right-24 -top-16 h-64 w-64 rounded-full bg-amber-200/60 blur-3xl dash-float" />

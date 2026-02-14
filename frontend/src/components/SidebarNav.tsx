@@ -15,6 +15,7 @@ import {
   Shield,
   Building2,
   User,
+  Bell,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../context/store';
@@ -45,7 +46,34 @@ function buildNavSections(options: {
   loading: boolean;
   role?: string | null;
 }): NavSection[] {
-  const { pathname, isSuperAdmin, permissions, loading } = options;
+  const { pathname, isSuperAdmin, permissions, loading, role } = options;
+
+  const roleKey = String(role || '').trim().toLowerCase();
+  const roleTitleMap: Record<string, string> = {
+    operador: 'Operador',
+    tecnico: 'Tecnico',
+    supervisor: 'Supervisor',
+    gestor_manutencao: 'Gestor',
+    admin_empresa: 'Admin Empresa',
+  };
+  const primaryTitle = roleTitleMap[roleKey] || 'Operacoes';
+
+  const profileHomeItem: NavItem | null =
+    roleKey === 'operador'
+      ? {
+          label: 'Minhas ordens',
+          href: '/operador',
+          icon: ClipboardList,
+          active: pathname === '/operador',
+        }
+      : roleKey === 'tecnico'
+        ? {
+            label: 'Minhas ordens',
+            href: '/tecnico',
+            icon: ClipboardList,
+            active: pathname === '/tecnico',
+          }
+        : null;
 
   const sections: NavSection[] = isSuperAdmin
     ? [
@@ -100,6 +128,12 @@ function buildNavSections(options: {
           title: 'Conta',
           items: [
             {
+              label: 'Notificacoes',
+              href: '/notifications',
+              icon: Bell,
+              active: pathname === '/notifications',
+            },
+            {
               label: 'Perfil',
               href: '/profile',
               icon: User,
@@ -110,8 +144,9 @@ function buildNavSections(options: {
       ]
     : [
         {
-          title: 'Visao Geral',
+          title: primaryTitle,
           items: [
+            ...(profileHomeItem ? [profileHomeItem] : []),
             {
               label: 'Dashboard',
               href: '/dashboard',
@@ -124,11 +159,6 @@ function buildNavSections(options: {
               icon: Search,
               active: pathname === '/search',
             },
-          ],
-        },
-        {
-          title: 'Operacoes',
-          items: [
             {
               label: 'Ordens',
               href: '/work-orders',
@@ -150,7 +180,7 @@ function buildNavSections(options: {
           ],
         },
         {
-          title: 'Ativos & Stock',
+          title: 'Inventario',
           items: [
             {
               label: 'Equipamentos',
@@ -179,7 +209,7 @@ function buildNavSections(options: {
           ],
         },
         {
-          title: 'Relatorios',
+          title: 'Insights',
           items: [
             {
               label: 'Relatorios',
@@ -209,6 +239,12 @@ function buildNavSections(options: {
         {
           title: 'Conta',
           items: [
+            {
+              label: 'Notificacoes',
+              href: '/notifications',
+              icon: Bell,
+              active: pathname === '/notifications',
+            },
             {
               label: 'Perfil',
               href: '/profile',
@@ -264,7 +300,7 @@ export function SidebarNav({ open, onClose }: SidebarNavProps) {
       />
       <aside
         className={
-          'fixed left-0 top-0 z-50 h-full w-[280px] border-r theme-border glass-panel shadow-2xl transition-transform lg:static lg:translate-x-0 lg:shadow-none ' +
+          'group fixed left-0 top-0 z-50 h-full w-[280px] border-r theme-border glass-panel shadow-2xl transition-transform lg:static lg:translate-x-0 lg:shadow-none lg:w-20 lg:hover:w-[280px] lg:overflow-hidden lg:transition-all lg:duration-300 ' +
           (open ? 'translate-x-0' : '-translate-x-full')
         }
       >
@@ -276,12 +312,12 @@ export function SidebarNav({ open, onClose }: SidebarNavProps) {
                 navigate(isSuperAdmin ? '/superadmin/dashboard' : '/dashboard');
                 onClose();
               }}
-              className="flex items-center gap-3"
+              className="flex items-center gap-3 lg:gap-0 lg:group-hover:gap-3"
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(140deg,var(--dash-accent),var(--dash-accent-2))] text-sm font-semibold text-[#0b1020]">
                 M
               </span>
-              <div className="text-left">
+              <div className="text-left transition lg:opacity-0 lg:translate-x-2 lg:group-hover:opacity-100 lg:group-hover:translate-x-0">
                 <div className="text-base font-semibold theme-text">Manutencao</div>
                 <div className="text-[11px] uppercase tracking-[0.3em] theme-text-muted">
                   Ops Studio
@@ -290,7 +326,7 @@ export function SidebarNav({ open, onClose }: SidebarNavProps) {
             </button>
 
             {!isSuperAdmin && plants.length > 0 && (
-              <div className="mt-6">
+              <div className="mt-6 transition lg:opacity-0 lg:pointer-events-none lg:group-hover:opacity-100 lg:group-hover:pointer-events-auto">
                 <label className="text-[10px] font-semibold uppercase tracking-[0.28em] theme-text-muted">
                   Fabrica ativa
                 </label>
@@ -315,7 +351,7 @@ export function SidebarNav({ open, onClose }: SidebarNavProps) {
           <div className="mt-8 flex-1 overflow-y-auto px-4 pb-6">
             {navSections.map((section) => (
               <div key={section.title} className="mb-6">
-                <div className="px-2 text-[10px] font-semibold uppercase tracking-[0.3em] theme-text-muted">
+                <div className="px-2 text-[10px] font-semibold uppercase tracking-[0.3em] theme-text-muted transition lg:opacity-0 lg:translate-x-2 lg:group-hover:opacity-100 lg:group-hover:translate-x-0">
                   {section.title}
                 </div>
                 <div className="mt-2 space-y-1">
@@ -327,12 +363,14 @@ export function SidebarNav({ open, onClose }: SidebarNavProps) {
                         to={item.href}
                         onClick={onClose}
                         className={
-                          'flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-semibold transition nav-link ' +
+                          'flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-semibold transition nav-link lg:justify-center lg:gap-0 lg:group-hover:justify-start lg:group-hover:gap-3 ' +
                           (item.active ? 'nav-link-active' : '')
                         }
                       >
                         <ItemIcon className="h-4 w-4" />
-                        <span>{item.label}</span>
+                        <span className="transition lg:opacity-0 lg:translate-x-2 lg:group-hover:opacity-100 lg:group-hover:translate-x-0">
+                          {item.label}
+                        </span>
                       </Link>
                     );
                   })}

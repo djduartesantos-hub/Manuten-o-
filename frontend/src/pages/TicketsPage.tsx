@@ -439,45 +439,50 @@ export function TicketsPage() {
 
   return (
     <MainLayout>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">Suporte</p>
-          <h1 className="mt-2 text-2xl font-semibold theme-text">Tickets</h1>
-          <p className="mt-1 text-sm theme-text-muted">Abra e acompanhe pedidos de suporte.</p>
-        </div>
+      <div className="space-y-8 font-display">
+        <section className="relative overflow-hidden rounded-[32px] border theme-border glass-panel p-6 shadow-sm">
+          <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-emerald-200/40 blur-3xl" />
+          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-sky-200/40 blur-3xl" />
+          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">Suporte</p>
+              <h1 className="mt-2 text-3xl font-semibold theme-text">Tickets</h1>
+              <p className="mt-1 text-sm theme-text-muted">Abra e acompanhe pedidos de suporte.</p>
+            </div>
 
-        <div className="flex items-center gap-2">
-          {String(roleKey || '') === 'admin_empresa' ? (
-            <select
-              className="h-9 rounded-xl border theme-border theme-card px-3 text-sm theme-text"
-              value={viewMode}
-              onChange={(e) => {
-                setSelectedId('');
-                setDetail(null);
-                setViewMode(e.target.value as any);
-              }}
-              disabled={loading}
-              title="Caixa"
-            >
-              <option value="empresa">Caixa: Empresa</option>
-              <option value="fabrica">Caixa: Fábrica</option>
-            </select>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="btn-secondary h-9 px-3 inline-flex items-center"
-            disabled={loading}
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Atualizar
-          </button>
-        </div>
-      </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {String(roleKey || '') === 'admin_empresa' ? (
+                <select
+                  className="h-9 rounded-xl border theme-border theme-card px-3 text-sm theme-text"
+                  value={viewMode}
+                  onChange={(e) => {
+                    setSelectedId('');
+                    setDetail(null);
+                    setViewMode(e.target.value as any);
+                  }}
+                  disabled={loading}
+                  title="Caixa"
+                >
+                  <option value="empresa">Caixa: Empresa</option>
+                  <option value="fabrica">Caixa: Fábrica</option>
+                </select>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void load()}
+                className="btn-secondary h-9 px-3 inline-flex items-center"
+                disabled={loading}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Atualizar
+              </button>
+            </div>
+          </div>
+        </section>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-1 space-y-4">
-          <div className="rounded-2xl border theme-border theme-card p-4">
+          <div className="rounded-2xl border theme-border glass-panel p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <LifeBuoy className="h-4 w-4 theme-text-muted" />
@@ -564,7 +569,7 @@ export function TicketsPage() {
           </div>
 
           {createFormOpen ? (
-            <form onSubmit={handleCreate} className="rounded-2xl border theme-border theme-card p-4">
+            <form onSubmit={handleCreate} className="rounded-2xl border theme-border glass-panel p-4">
               <p className="text-sm font-semibold theme-text">Criar ticket</p>
               <div className="mt-3 grid gap-3">
                 <div>
@@ -637,7 +642,7 @@ export function TicketsPage() {
         </div>
 
         <div className="lg:col-span-2">
-          <div className="rounded-2xl border theme-border theme-card p-5">
+          <div className="rounded-2xl border theme-border glass-panel p-5">
             {!selectedId ? (
               <div className="text-sm theme-text-muted">Selecione um ticket para ver detalhe.</div>
             ) : detailLoading ? (

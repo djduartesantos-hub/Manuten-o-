@@ -111,15 +111,13 @@ export function SearchPage() {
 
   return (
     <MainLayout>
-      <div
-        className="relative space-y-10 font-display bg-[color:var(--dash-bg)] text-[color:var(--search-ink)]"
-      >
-        <section className="relative overflow-hidden rounded-[32px] theme-border theme-card p-8 shadow-[0_28px_80px_-60px_rgba(124,58,237,0.4)]">
-          <div className="absolute -right-12 -top-20 h-56 w-56 rounded-full bg-violet-200/60 blur-3xl search-float" />
-          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-sky-200/50 blur-3xl search-float" />
-          <div className="absolute right-12 top-10 h-2 w-20 rounded-full bg-[color:var(--search-accent)] opacity-40" />
+      <div className="relative space-y-10 font-display">
+        <section className="relative overflow-hidden rounded-[32px] border theme-border glass-panel p-8 shadow-sm">
+          <div className="absolute -right-12 -top-20 h-56 w-56 rounded-full bg-violet-200/50 blur-3xl search-float" />
+          <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-sky-200/40 blur-3xl search-float" />
+          <div className="absolute right-12 top-10 h-2 w-20 rounded-full bg-[color:var(--dash-accent)] opacity-35" />
           <div className="relative">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-700">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-accent)]">
               Pesquisa inteligente
             </p>
             <h1 className="mt-3 text-3xl font-semibold theme-text sm:text-4xl lg:text-5xl">
@@ -131,7 +129,7 @@ export function SearchPage() {
           </div>
         </section>
 
-        <div className="rounded-[28px] theme-border theme-card p-5 shadow-sm backdrop-blur">
+        <div className="rounded-[28px] border theme-border glass-panel p-5 shadow-sm backdrop-blur">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-7">
             <input
               className="input md:col-span-2"
@@ -194,7 +192,7 @@ export function SearchPage() {
             </select>
             <button
               onClick={() => handleSearch(1)}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--search-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
+              className="btn-primary inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold"
             >
               <Search className="h-4 w-4" />
               Pesquisar

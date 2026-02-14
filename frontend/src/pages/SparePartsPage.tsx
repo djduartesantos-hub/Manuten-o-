@@ -498,13 +498,13 @@ export function SparePartsPage() {
   return (
     <MainLayout>
       <div className="space-y-8 font-display">
-        <section className="relative overflow-hidden rounded-[32px] border theme-border bg-[radial-gradient(circle_at_top,var(--dash-panel)_0%,var(--dash-bg)_55%)] p-8 shadow-[0_28px_80px_-60px_rgba(59,130,246,0.35)]">
+        <section className="relative overflow-hidden rounded-[32px] border theme-border glass-panel p-8 shadow-sm">
           <div className="absolute -right-12 -top-16 h-56 w-56 rounded-full bg-sky-200/50 blur-3xl" />
           <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-emerald-200/40 blur-3xl" />
-          <div className="absolute right-10 top-10 h-2 w-20 rounded-full bg-sky-400/40" />
+          <div className="absolute right-10 top-10 h-2 w-20 rounded-full bg-[color:var(--dash-accent)]/40" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--dash-accent)]">
                 Inventário
               </p>
               <h1 className="mt-3 text-3xl font-semibold theme-text sm:text-4xl">
@@ -608,7 +608,7 @@ export function SparePartsPage() {
           </div>
 
           <div className="relative mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-[26px] border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
+            <div className="rounded-[26px] border theme-border glass-panel p-4 shadow-sm">
               <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <Boxes className="h-4 w-4 text-sky-600" />
                 Peças no catálogo
@@ -616,7 +616,7 @@ export function SparePartsPage() {
               <p className="mt-3 text-2xl font-semibold theme-text">{parts.length}</p>
               <p className="mt-1 text-xs theme-text-muted">Registos disponíveis</p>
             </div>
-            <div className="rounded-[26px] border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
+            <div className="rounded-[26px] border theme-border glass-panel p-4 shadow-sm">
               <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <ArrowUpCircle className="h-4 w-4 text-emerald-600" />
                 Entradas
@@ -626,7 +626,7 @@ export function SparePartsPage() {
               </p>
               <p className="mt-1 text-xs theme-text-muted">Movimentos recentes</p>
             </div>
-            <div className="rounded-[26px] border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
+            <div className="rounded-[26px] border theme-border glass-panel p-4 shadow-sm">
               <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <ArrowDownCircle className="h-4 w-4 text-rose-600" />
                 Saidas
@@ -636,7 +636,7 @@ export function SparePartsPage() {
               </p>
               <p className="mt-1 text-xs theme-text-muted">Consumo</p>
             </div>
-            <div className="rounded-[26px] border theme-border theme-card p-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)]">
+            <div className="rounded-[26px] border theme-border glass-panel p-4 shadow-sm">
               <div className="flex items-center gap-3 text-sm theme-text-muted">
                 <Wrench className="h-4 w-4 text-sky-600" />
                 Ajustes

@@ -8,6 +8,9 @@ export function getRequiredPermissionsForPath(pathRaw: string): string[] | null 
   if (path === '/reports') return ['reports:read'];
 
   if (path === '/work-orders') return ['workorders:read', 'workorders:write'];
+  if (path === '/planner') return ['workorders:read', 'schedules:read'];
+  if (path === '/tecnico') return ['workorders:write', 'assets:write'];
+  if (path === '/operador') return ['workorders:write'];
 
   if (path === '/assets') return ['assets:read', 'assets:write'];
 
@@ -26,6 +29,8 @@ export function getRequiredPermissionsForPath(pathRaw: string): string[] | null 
   if (path === '/plants') return ['admin:plants'];
 
   if (path === '/notifications') return ['notifications:read', 'notifications:write'];
+  if (path === '/tickets') return ['tickets:read', 'tickets:write', 'tickets:forward'];
+  if (path === '/profile') return null;
 
   // Default: no explicit gating (keeps backward compatibility)
   return null;

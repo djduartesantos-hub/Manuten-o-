@@ -14,7 +14,7 @@ export function MainLayout({ children, wide = false }: MainLayoutProps) {
     <div className="min-h-screen theme-bg theme-text">
       <div className="relative flex">
         <SidebarNav open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="min-w-0 flex-1 lg:pl-[280px]">
+        <div className="min-w-0 flex-1 lg:pl-20 transition-[padding] duration-300">
           <Header onToggleSidebar={() => setSidebarOpen((v) => !v)} />
           <main
             className={
