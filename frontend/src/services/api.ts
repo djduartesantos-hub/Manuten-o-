@@ -74,6 +74,9 @@ export async function apiCall<T = any>(
         endpoint.startsWith('/superadmin/diagnostics/integrity?') ||
         endpoint === '/superadmin/diagnostics/integrity/export' ||
         endpoint.startsWith('/superadmin/diagnostics/integrity/export?') ||
+        endpoint === '/superadmin/tickets/suggestions' ||
+        endpoint.startsWith('/superadmin/tickets/suggestions?') ||
+        endpoint.startsWith('/superadmin/tickets/suggestions/') ||
         endpoint.startsWith('/admin/') ||
         endpoint.startsWith('/setup/') ||
         endpoint === '/plants' ||
@@ -163,7 +166,12 @@ async function apiCallRaw(
         endpoint === '/superadmin/diagnostics/integrity/export' ||
         endpoint.startsWith('/superadmin/diagnostics/integrity/export?') ||
         endpoint === '/superadmin/metrics/rbac/drift/export' ||
-        endpoint.startsWith('/superadmin/metrics/rbac/drift/export?');
+        endpoint.startsWith('/superadmin/metrics/rbac/drift/export?') ||
+        endpoint === '/superadmin/tickets/suggestions' ||
+        endpoint.startsWith('/superadmin/tickets/suggestions?') ||
+        endpoint.startsWith('/superadmin/tickets/suggestions/') ||
+        endpoint.startsWith('/admin/') ||
+        endpoint.startsWith('/setup/');
 
       if (tenantScopedSuperadmin) {
         const selectedTenantId = localStorage.getItem('superadminTenantId');
@@ -1617,6 +1625,8 @@ export type TicketStatus = 'aberto' | 'em_progresso' | 'resolvido' | 'fechado';
 
 export type TicketLevel = 'fabrica' | 'empresa' | 'superadmin';
 
+export type TicketPriority = 'baixa' | 'media' | 'alta' | 'critica';
+
 export type Ticket = {
   id: string;
   tenant_id: string;
@@ -1626,6 +1636,15 @@ export type Ticket = {
   title: string;
   description: string;
   status: TicketStatus;
+  priority?: TicketPriority;
+  tags?: string[];
+  source_type?: string | null;
+  source_key?: string | null;
+  source_meta?: any;
+  sla_response_deadline?: string | null;
+  sla_resolution_deadline?: string | null;
+  first_response_at?: string | null;
+  resolved_at?: string | null;
   level?: TicketLevel;
   is_general?: boolean;
   is_internal?: boolean;
@@ -1635,6 +1654,18 @@ export type Ticket = {
   closed_at?: string | null;
   forwarded_at?: string | null;
   forward_note?: string | null;
+};
+
+export type TicketAttachment = {
+  id: string;
+  ticket_id: string;
+  tenant_id: string;
+  file_name: string;
+  mime_type?: string | null;
+  size_bytes?: number | null;
+  file_url: string;
+  uploaded_by_user_id?: string | null;
+  created_at: string;
 };
 
 export type TicketComment = {
@@ -1690,7 +1721,16 @@ export async function listPlantTickets(
 
 export async function createPlantTicket(
   plantId: string,
-  input: { title: string; description: string; is_general?: boolean },
+  input: {
+    title: string;
+    description: string;
+    is_general?: boolean;
+    priority?: TicketPriority;
+    tags?: string[];
+    source_type?: string;
+    source_key?: string;
+    source_meta?: any;
+  },
 ): Promise<Ticket> {
   return apiCall(`/plants/${encodeURIComponent(plantId)}/tickets`, {
     method: 'POST',
@@ -1735,6 +1775,28 @@ export async function forwardPlantTicketToCompany(
   });
 }
 
+export async function listPlantTicketAttachments(plantId: string, ticketId: string): Promise<TicketAttachment[]> {
+  return apiCall(
+    `/plants/${encodeURIComponent(plantId)}/tickets/${encodeURIComponent(ticketId)}/attachments`,
+  );
+}
+
+export async function uploadPlantTicketAttachment(
+  plantId: string,
+  ticketId: string,
+  file: File,
+): Promise<TicketAttachment> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await apiCallRaw(
+    `/plants/${encodeURIComponent(plantId)}/tickets/${encodeURIComponent(ticketId)}/attachments`,
+    { method: 'POST', body: form },
+  );
+  const json = await res.json();
+  if (!json?.success) throw new Error(json?.error || 'Upload failed');
+  return json.data as TicketAttachment;
+}
+
 // Empresa (tenant-scoped)
 export async function listCompanyTickets(params?: {
   status?: TicketStatus;
@@ -1769,11 +1831,37 @@ export async function updateCompanyTicketStatus(ticketId: string, status: Ticket
   });
 }
 
+export async function updateCompanyTicket(
+  ticketId: string,
+  patch: { assigned_to_user_id?: string | null; priority?: TicketPriority; tags?: string[] },
+): Promise<Ticket> {
+  return apiCall(`/tickets/company/${encodeURIComponent(ticketId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
+}
+
 export async function forwardCompanyTicketToSuperadmin(ticketId: string, input?: { note?: string }): Promise<Ticket> {
   return apiCall(`/tickets/company/${encodeURIComponent(ticketId)}/forward`, {
     method: 'PATCH',
     body: JSON.stringify(input || {}),
   });
+}
+
+export async function listCompanyTicketAttachments(ticketId: string): Promise<TicketAttachment[]> {
+  return apiCall(`/tickets/company/${encodeURIComponent(ticketId)}/attachments`);
+}
+
+export async function uploadCompanyTicketAttachment(ticketId: string, file: File): Promise<TicketAttachment> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await apiCallRaw(`/tickets/company/${encodeURIComponent(ticketId)}/attachments`, {
+    method: 'POST',
+    body: form,
+  });
+  const json = await res.json();
+  if (!json?.success) throw new Error(json?.error || 'Upload failed');
+  return json.data as TicketAttachment;
 }
 
 export type SuperadminTicketListItem = {
@@ -1830,5 +1918,42 @@ export async function superadminAddTicketComment(
   return apiCall(`/superadmin/tickets/${encodeURIComponent(ticketId)}/comments`, {
     method: 'POST',
     body: JSON.stringify(input),
+  });
+}
+
+export async function superadminListTicketAttachments(ticketId: string): Promise<TicketAttachment[]> {
+  return apiCall(`/superadmin/tickets/${encodeURIComponent(ticketId)}/attachments`);
+}
+
+export async function superadminUploadTicketAttachment(ticketId: string, file: File): Promise<TicketAttachment> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await apiCallRaw(`/superadmin/tickets/${encodeURIComponent(ticketId)}/attachments`, {
+    method: 'POST',
+    body: form,
+  });
+  const json = await res.json();
+  if (!json?.success) throw new Error(json?.error || 'Upload failed');
+  return json.data as TicketAttachment;
+}
+
+export type TicketSuggestion = {
+  key: string;
+  title: string;
+  description: string;
+  priority: TicketPriority;
+  source_type: string;
+  source_key: string;
+  source_meta?: any;
+  alreadyOpen?: boolean;
+};
+
+export async function superadminListTicketSuggestions(): Promise<{ tenantId: string; suggestions: TicketSuggestion[] }> {
+  return apiCall('/superadmin/tickets/suggestions');
+}
+
+export async function superadminCreateTicketFromSuggestion(key: string): Promise<Ticket> {
+  return apiCall(`/superadmin/tickets/suggestions/${encodeURIComponent(key)}/create`, {
+    method: 'POST',
   });
 }

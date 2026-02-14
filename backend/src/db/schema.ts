@@ -190,10 +190,19 @@ export const tickets = pgTable(
     assigned_to_user_id: uuid('assigned_to_user_id').references(() => users.id, { onDelete: 'set null' }),
     title: text('title').notNull(),
     description: text('description').notNull(),
+    priority: priorityEnum('priority').notNull().default('media'),
     status: ticketStatusEnum('status').notNull().default('aberto'),
     level: ticketLevelEnum('level').notNull().default('fabrica'),
     is_general: boolean('is_general').default(false).notNull(),
     is_internal: boolean('is_internal').default(false),
+    tags: text('tags').array(),
+    source_type: text('source_type'),
+    source_key: text('source_key'),
+    source_meta: jsonb('source_meta'),
+    sla_response_deadline: timestamp('sla_response_deadline', { withTimezone: true }),
+    sla_resolution_deadline: timestamp('sla_resolution_deadline', { withTimezone: true }),
+    first_response_at: timestamp('first_response_at', { withTimezone: true }),
+    resolved_at: timestamp('resolved_at', { withTimezone: true }),
     forwarded_by_user_id: uuid('forwarded_by_user_id').references(() => users.id, { onDelete: 'set null' }),
     forwarded_at: timestamp('forwarded_at', { withTimezone: true }),
     forward_note: text('forward_note'),
@@ -207,7 +216,32 @@ export const tickets = pgTable(
     plantIdx: index('tickets_plant_id_idx').on(table.plant_id),
     statusIdx: index('tickets_status_idx').on(table.status),
     levelIdx: index('tickets_level_idx').on(table.level),
+    priorityIdx: index('tickets_priority_idx').on(table.priority),
     lastActivityIdx: index('tickets_last_activity_at_idx').on(table.last_activity_at),
+  }),
+);
+
+export const ticketAttachments = pgTable(
+  'ticket_attachments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    ticket_id: uuid('ticket_id')
+      .notNull()
+      .references(() => tickets.id, { onDelete: 'cascade' }),
+    comment_id: uuid('comment_id').references(() => ticketComments.id, { onDelete: 'cascade' }),
+    file_url: text('file_url').notNull(),
+    file_name: text('file_name').notNull(),
+    file_type: text('file_type'),
+    file_size: integer('file_size'),
+    uploaded_by: uuid('uploaded_by').references(() => users.id, { onDelete: 'set null' }),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    ticketIdx: index('ticket_attachments_ticket_id_idx').on(table.ticket_id),
+    tenantIdx: index('ticket_attachments_tenant_id_idx').on(table.tenant_id),
+    commentIdx: index('ticket_attachments_comment_id_idx').on(table.comment_id),
+    createdIdx: index('ticket_attachments_created_at_idx').on(table.created_at),
   }),
 );
 
@@ -887,6 +921,7 @@ export const slaRules = pgTable(
     priority: priorityEnum('priority').notNull(),
     response_time_hours: integer('response_time_hours').notNull(),
     resolution_time_hours: integer('resolution_time_hours').notNull(),
+    entity_type: text('entity_type').notNull().default('work_order'),
     is_active: boolean('is_active').default(true),
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true })
@@ -895,6 +930,11 @@ export const slaRules = pgTable(
   },
   (table) => ({
     tenantIdIdx: index('sla_rules_tenant_id_idx').on(table.tenant_id),
+    tenantEntityPriorityIdx: index('sla_rules_tenant_entity_priority_idx').on(
+      table.tenant_id,
+      table.entity_type,
+      table.priority,
+    ),
   }),
 );
 

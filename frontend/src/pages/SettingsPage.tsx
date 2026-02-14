@@ -59,8 +59,12 @@ import {
   updateAdminUser,
   updateNotificationRules,
   superadminAddTicketComment,
+  superadminCreateTicketFromSuggestion,
   superadminGetTicket,
+  superadminListTicketAttachments,
+  superadminListTicketSuggestions,
   superadminListTickets,
+  superadminUploadTicketAttachment,
   superadminUpdateTicket,
   applyRbacPatch,
 } from '../services/api';
@@ -825,9 +829,16 @@ export function SuperAdminSettings() {
   const [supportTenantsHealthScore, setSupportTenantsHealthScore] = React.useState<any | null>(null);
   const [supportAudit, setSupportAudit] = React.useState<any[]>([]);
   const [supportTickets, setSupportTickets] = React.useState<any[]>([]);
+  const [supportSuggestions, setSupportSuggestions] = React.useState<any[]>([]);
+  const [loadingSupportSuggestions, setLoadingSupportSuggestions] = React.useState(false);
+  const [creatingSuggestionKey, setCreatingSuggestionKey] = React.useState<string | null>(null);
   const [supportSelectedTicketId, setSupportSelectedTicketId] = React.useState<string>('');
   const [supportTicketDetail, setSupportTicketDetail] = React.useState<any | null>(null);
   const [loadingSupportTicketDetail, setLoadingSupportTicketDetail] = React.useState(false);
+  const [supportTicketAttachments, setSupportTicketAttachments] = React.useState<any[]>([]);
+  const [loadingSupportTicketAttachments, setLoadingSupportTicketAttachments] = React.useState(false);
+  const [supportAttachmentFile, setSupportAttachmentFile] = React.useState<File | null>(null);
+  const [uploadingSupportAttachment, setUploadingSupportAttachment] = React.useState(false);
   const [supportTicketCommentBody, setSupportTicketCommentBody] = React.useState('');
   const [supportTicketCommentInternal, setSupportTicketCommentInternal] = React.useState(false);
   const [supportTicketSaving, setSupportTicketSaving] = React.useState(false);
@@ -862,6 +873,20 @@ export function SuperAdminSettings() {
       setSupportAudit(Array.isArray(audit) ? audit : []);
       setSupportTickets(Array.isArray(ticketRows) ? ticketRows : []);
 
+      if (selectedTenantId) {
+        setLoadingSupportSuggestions(true);
+        try {
+          const sugg = await superadminListTicketSuggestions();
+          setSupportSuggestions(Array.isArray((sugg as any)?.suggestions) ? (sugg as any).suggestions : []);
+        } catch {
+          setSupportSuggestions([]);
+        } finally {
+          setLoadingSupportSuggestions(false);
+        }
+      } else {
+        setSupportSuggestions([]);
+      }
+
       if (supportSelectedTicketId) {
         const stillExists = (ticketRows || []).some((t: any) => String((t as any)?.id) === String(supportSelectedTicketId));
         if (!stillExists) {
@@ -876,17 +901,19 @@ export function SuperAdminSettings() {
       setSupportTenantsHealthScore(null);
       setSupportAudit([]);
       setSupportTickets([]);
+      setSupportSuggestions([]);
       setSupportSelectedTicketId('');
       setSupportTicketDetail(null);
     } finally {
       setLoadingSupport(false);
     }
-  }, [supportSelectedTicketId]);
+  }, [selectedTenantId, supportSelectedTicketId]);
 
   React.useEffect(() => {
     const ticketId = String(supportSelectedTicketId || '').trim();
     if (!ticketId) {
       setSupportTicketDetail(null);
+      setSupportTicketAttachments([]);
       return;
     }
 
@@ -896,9 +923,20 @@ export function SuperAdminSettings() {
       try {
         const data = await superadminGetTicket(ticketId);
         if (!cancelled) setSupportTicketDetail(data || null);
+
+        setLoadingSupportTicketAttachments(true);
+        try {
+          const att = await superadminListTicketAttachments(ticketId);
+          if (!cancelled) setSupportTicketAttachments(Array.isArray(att) ? att : []);
+        } catch {
+          if (!cancelled) setSupportTicketAttachments([]);
+        } finally {
+          if (!cancelled) setLoadingSupportTicketAttachments(false);
+        }
       } catch (err: any) {
         if (!cancelled) {
           setSupportTicketDetail(null);
+          setSupportTicketAttachments([]);
           setError(err?.message || 'Falha ao carregar ticket');
         }
       } finally {
@@ -2535,6 +2573,64 @@ export function SuperAdminSettings() {
                         Lista
                       </div>
 
+                      <div className="mt-3 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-3">
+                        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                          Sugestões (auto-ticket)
+                        </div>
+                        {loadingSupportSuggestions ? (
+                          <div className="mt-2 text-sm text-[color:var(--dash-muted)]">A carregar…</div>
+                        ) : supportSuggestions.length === 0 ? (
+                          <div className="mt-2 text-sm text-[color:var(--dash-muted)]">Sem sugestões.</div>
+                        ) : (
+                          <div className="mt-2 space-y-2">
+                            {supportSuggestions.map((s: any) => (
+                              <div key={String(s?.key)} className="rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <div className="font-semibold text-[color:var(--dash-ink)] truncate">{String(s?.title || s?.key)}</div>
+                                    <div className="mt-0.5 text-xs text-[color:var(--dash-muted)] truncate">prioridade={String(s?.priority || 'media')}</div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {s?.alreadyOpen ? (
+                                      <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-800">
+                                        Já existe
+                                      </span>
+                                    ) : null}
+                                    <button
+                                      type="button"
+                                      className="btn-secondary h-8 px-3"
+                                      disabled={Boolean(s?.alreadyOpen) || creatingSuggestionKey === String(s?.key)}
+                                      onClick={async () => {
+                                        const k = String(s?.key || '').trim();
+                                        if (!k) return;
+                                        setCreatingSuggestionKey(k);
+                                        setError('');
+                                        try {
+                                          const created = await superadminCreateTicketFromSuggestion(k);
+                                          setSuccess('Ticket criado a partir da sugestão.');
+                                          await loadSupportData();
+                                          if ((created as any)?.id) setSupportSelectedTicketId(String((created as any).id));
+                                        } catch (err: any) {
+                                          setError(err?.message || 'Falha ao criar ticket');
+                                        } finally {
+                                          setCreatingSuggestionKey(null);
+                                        }
+                                      }}
+                                      title="Cria um ticket interno SuperAdmin"
+                                    >
+                                      Criar
+                                    </button>
+                                  </div>
+                                </div>
+                                {s?.description ? (
+                                  <div className="mt-2 text-xs text-[color:var(--dash-muted)] whitespace-pre-wrap">{String(s.description)}</div>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
                       {supportTickets.length === 0 ? (
                         <div className="mt-3 text-sm text-[color:var(--dash-muted)]">
                           {loadingSupport ? 'A carregar…' : 'Sem tickets.'}
@@ -2631,6 +2727,81 @@ export function SuperAdminSettings() {
                             </div>
                             <div className="mt-2 text-sm text-[color:var(--dash-ink)] whitespace-pre-wrap">
                               {String(supportTicketDetail.ticket.description || '—')}
+                            </div>
+                          </div>
+
+                          <div className="mt-3 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-3">
+                            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                              Anexos
+                            </div>
+
+                            <div className="mt-2">
+                              {loadingSupportTicketAttachments ? (
+                                <div className="text-sm text-[color:var(--dash-muted)]">A carregar anexos…</div>
+                              ) : supportTicketAttachments.length === 0 ? (
+                                <div className="text-sm text-[color:var(--dash-muted)]">Sem anexos.</div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {supportTicketAttachments
+                                    .slice()
+                                    .sort((a: any, b: any) => new Date(String(b.created_at)).getTime() - new Date(String(a.created_at)).getTime())
+                                    .map((a: any) => (
+                                      <div key={String(a?.id)} className="rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-2">
+                                        <div className="flex items-start justify-between gap-2">
+                                          <a
+                                            href={String(a?.file_url || '#')}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-sm font-semibold text-[color:var(--dash-ink)] underline truncate"
+                                            title={String(a?.file_name || '')}
+                                          >
+                                            {String(a?.file_name || 'ficheiro')}
+                                          </a>
+                                          <div className="text-xs text-[color:var(--dash-muted)] whitespace-nowrap">{a?.created_at ? String(a.created_at) : '—'}</div>
+                                        </div>
+                                        {typeof a?.size_bytes === 'number' ? (
+                                          <div className="mt-1 text-xs text-[color:var(--dash-muted)]">{Math.round(Number(a.size_bytes) / 1024)} KB</div>
+                                        ) : null}
+                                      </div>
+                                    ))}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              <input
+                                type="file"
+                                disabled={uploadingSupportAttachment || supportTicketSaving}
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0] || null;
+                                  setSupportAttachmentFile(f || null);
+                                }}
+                                className="text-sm text-[color:var(--dash-ink)]"
+                              />
+                              <button
+                                type="button"
+                                className="btn-secondary h-9 px-3"
+                                disabled={uploadingSupportAttachment || !supportAttachmentFile || supportTicketSaving}
+                                onClick={async () => {
+                                  if (!supportSelectedTicketId) return;
+                                  if (!supportAttachmentFile) return;
+                                  setUploadingSupportAttachment(true);
+                                  setError('');
+                                  try {
+                                    await superadminUploadTicketAttachment(supportSelectedTicketId, supportAttachmentFile);
+                                    setSupportAttachmentFile(null);
+                                    const att = await superadminListTicketAttachments(supportSelectedTicketId);
+                                    setSupportTicketAttachments(Array.isArray(att) ? att : []);
+                                    setSuccess('Anexo enviado.');
+                                  } catch (err: any) {
+                                    setError(err?.message || 'Falha ao enviar anexo');
+                                  } finally {
+                                    setUploadingSupportAttachment(false);
+                                  }
+                                }}
+                              >
+                                {uploadingSupportAttachment ? 'A enviar…' : 'Enviar anexo'}
+                              </button>
                             </div>
                           </div>
 

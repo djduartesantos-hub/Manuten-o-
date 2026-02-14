@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middlewares/auth.js';
 import { requirePermission } from '../middlewares/permissions.js';
+import { validateRequest } from '../middlewares/validation.js';
 import * as AdminController from '../controllers/admin.controller.js';
+import * as SlaController from '../controllers/sla.controller.js';
+import { CreateSLARuleSchema } from '../schemas/validation.js';
 
 const router = Router();
 
@@ -42,5 +45,15 @@ router.put(
 // Role Home Pages (global + per-plant)
 router.get('/role-homes', requirePermission('admin:rbac', 'tenant'), AdminController.listRoleHomePages);
 router.put('/role-homes', requirePermission('admin:rbac', 'tenant'), AdminController.setRoleHomePages);
+
+// SLA Rules (work_order + ticket)
+router.get('/sla-rules', requirePermission('admin:rbac', 'tenant'), SlaController.listSlaRules);
+router.post(
+	'/sla-rules',
+	requirePermission('admin:rbac', 'tenant'),
+	validateRequest(CreateSLARuleSchema),
+	SlaController.upsertSlaRule,
+);
+router.delete('/sla-rules/:ruleId', requirePermission('admin:rbac', 'tenant'), SlaController.deactivateSlaRule);
 
 export default router;

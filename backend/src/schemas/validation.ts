@@ -195,6 +195,11 @@ export const CreateTicketSchema = z.object({
   title: z.string().min(3, 'Título mínimo 3 caracteres').max(200),
   description: z.string().min(1, 'Descrição obrigatória').max(5000),
   is_general: z.boolean().optional(),
+  priority: z.enum(['baixa', 'media', 'alta', 'critica']).optional(),
+  tags: z.array(z.string().min(1).max(40)).max(20).optional(),
+  source_type: z.string().max(40).optional(),
+  source_key: z.string().max(120).optional(),
+  source_meta: z.unknown().optional(),
 });
 
 export const CreateTicketCommentSchema = z.object({
@@ -214,6 +219,17 @@ export const SuperadminUpdateTicketSchema = z.object({
   assigned_to_user_id: z.string().uuid().nullable().optional(),
   is_internal: z.boolean().optional(),
   level: z.enum(['fabrica', 'empresa', 'superadmin']).optional(),
+  priority: z.enum(['baixa', 'media', 'alta', 'critica']).optional(),
+  tags: z.array(z.string().min(1).max(40)).max(20).optional(),
+  source_type: z.string().max(40).nullable().optional(),
+  source_key: z.string().max(120).nullable().optional(),
+  source_meta: z.unknown().nullable().optional(),
+});
+
+export const CompanyUpdateTicketSchema = z.object({
+  assigned_to_user_id: z.string().uuid().nullable().optional(),
+  priority: z.enum(['baixa', 'media', 'alta', 'critica']).optional(),
+  tags: z.array(z.string().min(1).max(40)).max(20).optional(),
 });
 
 export const SuperadminCreateTicketCommentSchema = z.object({
@@ -223,17 +239,19 @@ export const SuperadminCreateTicketCommentSchema = z.object({
 
 // SLA Rule Schemas
 export const CreateSLARuleSchema = z.object({
-  priority: z.number().int().min(1).max(4),
-  response_time_hours: z.number().positive('Tempo deve ser positivo'),
-  resolution_time_hours: z.number().positive('Tempo deve ser positivo'),
-  description: z.string().max(500).optional(),
+  entity_type: z.enum(['work_order', 'ticket']).optional(),
+  priority: z.enum(['baixa', 'media', 'alta', 'critica']),
+  response_time_hours: z.number().int().positive('Tempo deve ser positivo'),
+  resolution_time_hours: z.number().int().positive('Tempo deve ser positivo'),
+  is_active: z.boolean().optional(),
 });
 
 export const UpdateSLARuleSchema = z.object({
-  priority: z.number().int().min(1).max(4).optional(),
-  response_time_hours: z.number().positive().optional(),
-  resolution_time_hours: z.number().positive().optional(),
-  description: z.string().max(500).optional(),
+  entity_type: z.enum(['work_order', 'ticket']).optional(),
+  priority: z.enum(['baixa', 'media', 'alta', 'critica']).optional(),
+  response_time_hours: z.number().int().positive().optional(),
+  resolution_time_hours: z.number().int().positive().optional(),
+  is_active: z.boolean().optional(),
 });
 
 // Type exports

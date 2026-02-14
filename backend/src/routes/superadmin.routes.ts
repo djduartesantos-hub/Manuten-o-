@@ -1,4 +1,9 @@
 import { Router } from 'express';
+import path from 'path';
+import fs from 'fs';
+import multer from 'multer';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { authMiddleware, requireRole } from '../middlewares/auth.js';
 import { validateRequest } from '../middlewares/validation.js';
 import {
@@ -7,8 +12,56 @@ import {
 } from '../schemas/validation.js';
 import * as SuperAdminController from '../controllers/superadmin.controller.js';
 import * as TicketsController from '../controllers/tickets.controller.js';
+import { db } from '../config/database.js';
 
 const router = Router();
+
+// ESM __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const uploadBaseDir = path.join(__dirname, '../../uploads');
+const ticketUpload = multer({
+	storage: multer.diskStorage({
+		destination: (req, _file, cb) => {
+			const tenantId = (req as any).tenantId || (req as any).resolvedTicketTenantId || 'unknown-tenant';
+			const ticketId = String((req as any).params?.ticketId || 'unknown-ticket');
+			const dest = path.join(uploadBaseDir, tenantId, 'tickets', ticketId);
+			try {
+				fs.mkdirSync(dest, { recursive: true });
+			} catch {
+				// ignore
+			}
+			cb(null, dest);
+		},
+		filename: (_req, file, cb) => {
+			const original = file.originalname || 'file';
+			const ext = path.extname(original).slice(0, 12);
+			const safeBase = path
+				.basename(original, path.extname(original))
+				.replace(/[^a-zA-Z0-9_.-]/g, '_')
+				.slice(0, 60);
+			cb(null, `${Date.now()}-${safeBase}${ext}`);
+		},
+	}),
+	limits: { fileSize: 10 * 1024 * 1024 },
+});
+
+async function resolveTicketTenant(req: any, res: any, next: any) {
+	try {
+		const ticketId = String(req.params?.ticketId || '').trim();
+		if (!ticketId) return res.status(400).json({ success: false, error: 'Ticket ID is required' });
+		const ticket = await db.query.tickets.findFirst({
+			where: (fields: any, ops: any) => ops.eq(fields.id, ticketId),
+		});
+		if (!ticket) return res.status(404).json({ success: false, error: 'Ticket not found' });
+		(req as any).resolvedTicketTenantId = String((ticket as any).tenant_id);
+		(req as any).tenantId = String((ticket as any).tenant_id);
+		return next();
+	} catch (e: any) {
+		return res.status(500).json({ success: false, error: e?.message || 'Failed to resolve tenant' });
+	}
+}
 
 router.use(authMiddleware);
 router.use(requireRole('superadmin'));
@@ -68,6 +121,18 @@ router.post(
 	validateRequest(SuperadminCreateTicketCommentSchema),
 	TicketsController.superadminAddComment,
 );
+
+router.get('/tickets/:ticketId/attachments', TicketsController.superadminListTicketAttachments);
+router.post(
+	'/tickets/:ticketId/attachments',
+	resolveTicketTenant,
+	ticketUpload.single('file'),
+	TicketsController.superadminUploadTicketAttachment,
+);
+
+// Diagnostics -> Ticket suggestions
+router.get('/tickets/suggestions', TicketsController.superadminListTicketSuggestions);
+router.post('/tickets/suggestions/:key/create', TicketsController.superadminCreateTicketFromSuggestion);
 
 // Setup runs export (tenant-scoped)
 router.get('/db/runs/export', SuperAdminController.exportSetupRuns);

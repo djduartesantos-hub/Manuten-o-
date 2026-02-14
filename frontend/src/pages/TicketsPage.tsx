@@ -9,14 +9,21 @@ import {
   forwardPlantTicketToCompany,
   getCompanyTicket,
   getPlantTicket,
+  listCompanyTicketAttachments,
   listCompanyTickets,
+  listPlantTicketAttachments,
   listPlantTickets,
+  updateCompanyTicket,
   updateCompanyTicketStatus,
   updatePlantTicketStatus,
+  uploadCompanyTicketAttachment,
+  uploadPlantTicketAttachment,
   type Ticket,
+  type TicketAttachment,
   type TicketDetail,
   type TicketEvent,
   type TicketLevel,
+  type TicketPriority,
   type TicketStatus,
 } from '../services/api';
 import { LifeBuoy, Plus, RefreshCw } from 'lucide-react';
@@ -34,6 +41,13 @@ const LEVEL_LABEL: Record<TicketLevel, string> = {
   fabrica: 'Fábrica',
   empresa: 'Empresa',
   superadmin: 'SuperAdmin',
+};
+
+const PRIORITY_LABEL: Record<TicketPriority, string> = {
+  baixa: 'Baixa',
+  media: 'Média',
+  alta: 'Alta',
+  critica: 'Crítica',
 };
 
 const EVENT_LABEL: Record<string, string> = {
@@ -72,10 +86,21 @@ export function TicketsPage() {
   const [newTitle, setNewTitle] = React.useState('');
   const [newDescription, setNewDescription] = React.useState('');
   const [newIsGeneral, setNewIsGeneral] = React.useState(false);
+  const [newPriority, setNewPriority] = React.useState<TicketPriority>('media');
+  const [newTagsText, setNewTagsText] = React.useState('');
 
   const [selectedId, setSelectedId] = React.useState<string>('');
   const [detailLoading, setDetailLoading] = React.useState(false);
   const [detail, setDetail] = React.useState<TicketDetail | null>(null);
+
+  const [attachmentsLoading, setAttachmentsLoading] = React.useState(false);
+  const [attachments, setAttachments] = React.useState<TicketAttachment[]>([]);
+  const [uploadingAttachment, setUploadingAttachment] = React.useState(false);
+  const [attachmentFile, setAttachmentFile] = React.useState<File | null>(null);
+
+  const [companyPriority, setCompanyPriority] = React.useState<TicketPriority>('media');
+  const [companyTagsText, setCompanyTagsText] = React.useState('');
+  const [savingCompanyPatch, setSavingCompanyPatch] = React.useState(false);
 
   const [commentBody, setCommentBody] = React.useState('');
   const [commenting, setCommenting] = React.useState(false);
@@ -171,6 +196,13 @@ export function TicketsPage() {
             ? await getPlantTicket(selectedPlant, ticketId)
             : null;
       setDetail(data || null);
+
+      const t = (data as any)?.ticket as Ticket | undefined;
+      const p = String((t as any)?.priority || '').trim() as TicketPriority;
+      if (viewMode === 'empresa') {
+        setCompanyPriority((['baixa', 'media', 'alta', 'critica'] as string[]).includes(p) ? (p as TicketPriority) : 'media');
+        setCompanyTagsText(Array.isArray((t as any)?.tags) ? (t as any).tags.join(', ') : '');
+      }
     } catch (err: any) {
       toast.error(err?.message || 'Falha ao carregar ticket');
       setDetail(null);
@@ -179,6 +211,25 @@ export function TicketsPage() {
     }
   }, [selectedPlant, viewMode]);
 
+  const loadAttachments = React.useCallback(async () => {
+    if (!selectedId) return;
+    if (viewMode !== 'empresa' && !selectedPlant) return;
+
+    setAttachmentsLoading(true);
+    try {
+      const rows =
+        viewMode === 'empresa'
+          ? await listCompanyTicketAttachments(selectedId)
+          : await listPlantTicketAttachments(String(selectedPlant), selectedId);
+      setAttachments(Array.isArray(rows) ? rows : []);
+    } catch (err: any) {
+      toast.error(err?.message || 'Falha ao carregar anexos');
+      setAttachments([]);
+    } finally {
+      setAttachmentsLoading(false);
+    }
+  }, [selectedId, selectedPlant, viewMode]);
+
   React.useEffect(() => {
     void load();
   }, [load]);
@@ -186,7 +237,21 @@ export function TicketsPage() {
   React.useEffect(() => {
     if (!selectedId) return;
     void loadDetail(selectedId);
-  }, [loadDetail, selectedId]);
+    void loadAttachments();
+  }, [loadAttachments, loadDetail, selectedId]);
+
+  React.useEffect(() => {
+    if (!selectedId) return;
+    void loadAttachments();
+  }, [loadAttachments, selectedId, viewMode]);
+
+  const parseTags = (text: string): string[] => {
+    return String(text || '')
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .slice(0, 12);
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,17 +275,72 @@ export function TicketsPage() {
 
     setCreating(true);
     try {
-      const created = await createPlantTicket(selectedPlant, { title, description, is_general: newIsGeneral });
+      const created = await createPlantTicket(selectedPlant, {
+        title,
+        description,
+        is_general: newIsGeneral,
+        priority: newPriority,
+        tags: parseTags(newTagsText),
+      });
       toast.success('Ticket criado');
       setNewTitle('');
       setNewDescription('');
       setNewIsGeneral(false);
+      setNewPriority('media');
+      setNewTagsText('');
       await load();
       if (created?.id) setSelectedId(String(created.id));
     } catch (err: any) {
       toast.error(err?.message || 'Falha ao criar ticket');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleUploadAttachment = async () => {
+    if (!selectedId) return;
+    if (!attachmentFile) {
+      toast.error('Selecione um ficheiro');
+      return;
+    }
+    if (viewMode !== 'empresa' && !selectedPlant) {
+      toast.error('Selecione uma fábrica primeiro');
+      return;
+    }
+
+    setUploadingAttachment(true);
+    try {
+      if (viewMode === 'empresa') {
+        await uploadCompanyTicketAttachment(selectedId, attachmentFile);
+      } else {
+        await uploadPlantTicketAttachment(String(selectedPlant), selectedId, attachmentFile);
+      }
+      setAttachmentFile(null);
+      toast.success('Anexo enviado');
+      await loadAttachments();
+      await loadDetail(selectedId);
+    } catch (err: any) {
+      toast.error(err?.message || 'Falha ao enviar anexo');
+    } finally {
+      setUploadingAttachment(false);
+    }
+  };
+
+  const handleSaveCompanyPatch = async () => {
+    if (!selectedId) return;
+    setSavingCompanyPatch(true);
+    try {
+      await updateCompanyTicket(selectedId, {
+        priority: companyPriority,
+        tags: parseTags(companyTagsText),
+      });
+      toast.success('Ticket atualizado');
+      await load();
+      await loadDetail(selectedId);
+    } catch (err: any) {
+      toast.error(err?.message || 'Falha ao atualizar ticket');
+    } finally {
+      setSavingCompanyPatch(false);
     }
   };
 
@@ -479,6 +599,33 @@ export function TicketsPage() {
                   </label>
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold theme-text-muted">Prioridade</label>
+                    <select
+                      className="mt-1 w-full h-10 rounded-xl border theme-border theme-card px-3 text-sm theme-text"
+                      value={newPriority}
+                      onChange={(e) => setNewPriority(e.target.value as TicketPriority)}
+                      disabled={creating}
+                    >
+                      <option value="baixa">Baixa</option>
+                      <option value="media">Média</option>
+                      <option value="alta">Alta</option>
+                      <option value="critica">Crítica</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold theme-text-muted">Tags (separadas por vírgula)</label>
+                    <input
+                      className="mt-1 w-full h-10 rounded-xl border theme-border theme-card px-3 text-sm theme-text"
+                      value={newTagsText}
+                      onChange={(e) => setNewTagsText(e.target.value)}
+                      placeholder="ex: login, app, urgente"
+                      disabled={creating}
+                    />
+                  </div>
+                </div>
+
                 <button type="submit" className="btn-primary h-10" disabled={creating}>
                   {creating ? 'A criar…' : 'Criar'}
                 </button>
@@ -506,6 +653,30 @@ export function TicketsPage() {
                       Nível: {selectedLevel && (LEVEL_LABEL as any)[selectedLevel] ? (LEVEL_LABEL as any)[selectedLevel] : String(selectedLevel || '—')}
                       {isGeneral ? ' • Geral' : ''}
                     </p>
+                    <p className="mt-1 text-xs theme-text-muted">
+                      Prioridade: {String((selectedTicket as any)?.priority || '').trim() && (PRIORITY_LABEL as any)[String((selectedTicket as any)?.priority)]
+                        ? (PRIORITY_LABEL as any)[String((selectedTicket as any)?.priority)]
+                        : String((selectedTicket as any)?.priority || '—')}
+                      {Array.isArray((selectedTicket as any)?.tags) && (selectedTicket as any).tags.length > 0
+                        ? ` • Tags: ${(selectedTicket as any).tags.join(', ')}`
+                        : ''}
+                    </p>
+                    {(selectedTicket as any)?.sla_response_deadline || (selectedTicket as any)?.sla_resolution_deadline ? (
+                      <p className="mt-1 text-xs theme-text-muted">
+                        SLA resposta: {(selectedTicket as any)?.sla_response_deadline ? formatWhen((selectedTicket as any).sla_response_deadline) : '—'}
+                        {' • '}
+                        SLA resolução: {(selectedTicket as any)?.sla_resolution_deadline ? formatWhen((selectedTicket as any).sla_resolution_deadline) : '—'}
+                      </p>
+                    ) : null}
+                    {(selectedTicket as any)?.first_response_at || (selectedTicket as any)?.resolved_at || (selectedTicket as any)?.closed_at ? (
+                      <p className="mt-1 text-xs theme-text-muted">
+                        1ª resposta: {(selectedTicket as any)?.first_response_at ? formatWhen((selectedTicket as any).first_response_at) : '—'}
+                        {' • '}
+                        Resolvido: {(selectedTicket as any)?.resolved_at ? formatWhen((selectedTicket as any).resolved_at) : '—'}
+                        {' • '}
+                        Fechado: {(selectedTicket as any)?.closed_at ? formatWhen((selectedTicket as any).closed_at) : '—'}
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -537,6 +708,100 @@ export function TicketsPage() {
                 <div className="mt-4 rounded-2xl border theme-border theme-card p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] theme-text-muted">Descrição</p>
                   <p className="mt-2 text-sm theme-text whitespace-pre-wrap">{selectedTicket.description}</p>
+                </div>
+
+                {viewMode === 'empresa' ? (
+                  <div className="mt-4 rounded-2xl border theme-border theme-card p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] theme-text-muted">Gestão (Empresa)</p>
+                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold theme-text-muted">Prioridade</label>
+                        <select
+                          className="mt-1 w-full h-10 rounded-xl border theme-border theme-card px-3 text-sm theme-text"
+                          value={companyPriority}
+                          onChange={(e) => setCompanyPriority(e.target.value as TicketPriority)}
+                          disabled={savingCompanyPatch}
+                        >
+                          <option value="baixa">Baixa</option>
+                          <option value="media">Média</option>
+                          <option value="alta">Alta</option>
+                          <option value="critica">Crítica</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold theme-text-muted">Tags</label>
+                        <input
+                          className="mt-1 w-full h-10 rounded-xl border theme-border theme-card px-3 text-sm theme-text"
+                          value={companyTagsText}
+                          onChange={(e) => setCompanyTagsText(e.target.value)}
+                          placeholder="ex: cliente, backend"
+                          disabled={savingCompanyPatch}
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <button type="button" className="btn-primary h-10 px-4" onClick={() => void handleSaveCompanyPatch()} disabled={savingCompanyPatch}>
+                        {savingCompanyPatch ? 'A guardar…' : 'Guardar'}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="mt-4 rounded-2xl border theme-border theme-card p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] theme-text-muted">Anexos</p>
+
+                  <div className="mt-3">
+                    {attachmentsLoading ? (
+                      <div className="text-sm theme-text-muted">A carregar anexos…</div>
+                    ) : attachments.length === 0 ? (
+                      <div className="text-sm theme-text-muted">Sem anexos.</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {attachments
+                          .slice()
+                          .sort((a, b) => new Date(String(b.created_at)).getTime() - new Date(String(a.created_at)).getTime())
+                          .map((a) => (
+                            <div key={a.id} className="rounded-2xl border theme-border theme-card p-3">
+                              <div className="flex items-start justify-between gap-2">
+                                <a
+                                  className="text-sm font-semibold theme-text underline truncate"
+                                  href={String(a.file_url)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title={a.file_name}
+                                >
+                                  {a.file_name}
+                                </a>
+                                <span className="text-xs theme-text-muted whitespace-nowrap">{formatWhen(a.created_at)}</span>
+                              </div>
+                              {typeof a.size_bytes === 'number' ? (
+                                <p className="mt-1 text-xs theme-text-muted">{Math.round(a.size_bytes / 1024)} KB</p>
+                              ) : null}
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <input
+                      type="file"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] || null;
+                        setAttachmentFile(f || null);
+                      }}
+                      disabled={uploadingAttachment}
+                      className="text-sm theme-text"
+                    />
+                    <button
+                      type="button"
+                      className="btn-secondary h-9 px-3"
+                      disabled={uploadingAttachment || !attachmentFile}
+                      onClick={() => void handleUploadAttachment()}
+                    >
+                      {uploadingAttachment ? 'A enviar…' : 'Enviar anexo'}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-4 rounded-2xl border theme-border theme-card p-4">

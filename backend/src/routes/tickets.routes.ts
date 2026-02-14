@@ -1,16 +1,53 @@
 import { Router } from 'express';
+import path from 'path';
+import fs from 'fs';
+import multer from 'multer';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { authMiddleware, plantMiddleware, tenantMiddleware } from '../middlewares/auth.js';
 import { requirePermission } from '../middlewares/permissions.js';
 import { validateRequest } from '../middlewares/validation.js';
 import {
   CreateTicketCommentSchema,
   CreateTicketSchema,
+  CompanyUpdateTicketSchema,
   ForwardTicketSchema,
   UpdateTicketStatusSchema,
 } from '../schemas/validation.js';
 import * as TicketsController from '../controllers/tickets.controller.js';
 
 const router = Router();
+
+// ESM __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const uploadBaseDir = path.join(__dirname, '../../uploads');
+const ticketUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, _file, cb) => {
+      const tenantId = (req as any).tenantId || (req as any).user?.tenantId || 'unknown-tenant';
+      const ticketId = String((req as any).params?.ticketId || 'unknown-ticket');
+      const dest = path.join(uploadBaseDir, tenantId, 'tickets', ticketId);
+      try {
+        fs.mkdirSync(dest, { recursive: true });
+      } catch {
+        // ignore
+      }
+      cb(null, dest);
+    },
+    filename: (_req, file, cb) => {
+      const original = file.originalname || 'file';
+      const ext = path.extname(original).slice(0, 12);
+      const safeBase = path
+        .basename(original, path.extname(original))
+        .replace(/[^a-zA-Z0-9_.-]/g, '_')
+        .slice(0, 60);
+      cb(null, `${Date.now()}-${safeBase}${ext}`);
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 router.use(authMiddleware);
 router.use(tenantMiddleware);
@@ -42,6 +79,19 @@ router.post(
   validateRequest(CreateTicketCommentSchema),
   TicketsController.addPlantTicketComment,
 );
+router.get(
+  '/plants/:plantId/tickets/:ticketId/attachments',
+  plantMiddleware,
+  requirePermission('tickets:read', 'plant'),
+  TicketsController.listPlantTicketAttachments,
+);
+router.post(
+  '/plants/:plantId/tickets/:ticketId/attachments',
+  plantMiddleware,
+  requirePermission('tickets:write', 'plant'),
+  ticketUpload.single('file'),
+  TicketsController.uploadPlantTicketAttachment,
+);
 router.patch(
   '/plants/:plantId/tickets/:ticketId/status',
   plantMiddleware,
@@ -69,6 +119,23 @@ router.post(
   requirePermission('tickets:write', 'tenant'),
   validateRequest(CreateTicketCommentSchema),
   TicketsController.addCompanyTicketComment,
+);
+router.get(
+  '/tickets/company/:ticketId/attachments',
+  requirePermission('tickets:read', 'tenant'),
+  TicketsController.listCompanyTicketAttachments,
+);
+router.post(
+  '/tickets/company/:ticketId/attachments',
+  requirePermission('tickets:write', 'tenant'),
+  ticketUpload.single('file'),
+  TicketsController.uploadCompanyTicketAttachment,
+);
+router.patch(
+  '/tickets/company/:ticketId',
+  requirePermission('tickets:write', 'tenant'),
+  validateRequest(CompanyUpdateTicketSchema),
+  TicketsController.updateCompanyTicket,
 );
 router.patch(
   '/tickets/company/:ticketId/status',

@@ -1,13 +1,69 @@
 import { Response } from 'express';
-import { and, desc, eq, ilike, like, or } from 'drizzle-orm';
+import { and, desc, eq, ilike, like, or, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
 import { db } from '../config/database.js';
 import { AuthenticatedRequest } from '../types/index.js';
 import { RbacService } from '../services/rbac.service.js';
 import { NotificationService } from '../services/notification.service.js';
-import { ticketComments, ticketEvents, tickets, tenants, users } from '../db/schema.js';
+import { ticketAttachments, ticketComments, ticketEvents, tickets, tenants, users } from '../db/schema.js';
+import { computeTicketSlaDeadlines, type TicketPriority } from '../utils/ticket-sla.js';
 
 type TicketLevel = 'fabrica' | 'empresa' | 'superadmin';
+
+function normalizeTicketPriority(raw: unknown): TicketPriority | null {
+  const v = String(raw || '').trim();
+  if (!v) return null;
+  const allowed = new Set<TicketPriority>(['baixa', 'media', 'alta', 'critica']);
+  return allowed.has(v as TicketPriority) ? (v as TicketPriority) : null;
+}
+
+function normalizeTicketTags(raw: unknown): string[] | null {
+  if (raw == null) return null;
+  const arr = Array.isArray(raw) ? raw : typeof raw === 'string' ? raw.split(',') : [];
+  const tags = (arr || [])
+    .map((t) => String(t || '').trim())
+    .filter(Boolean)
+    .slice(0, 20)
+    .map((t) => t.slice(0, 40));
+  return tags.length > 0 ? Array.from(new Set(tags)) : null;
+}
+
+function applyStatusTimestamps(params: {
+  nextStatus: string;
+  previousStatus?: string | null;
+  previousResolvedAt?: Date | null;
+  previousClosedAt?: Date | null;
+}): { resolved_at?: Date | null; closed_at?: Date | null } {
+  const { nextStatus, previousResolvedAt, previousClosedAt } = params;
+
+  // resolved_at
+  if (nextStatus === 'resolvido') {
+    return {
+      resolved_at: previousResolvedAt || new Date(),
+      closed_at: null,
+    };
+  }
+
+  if (nextStatus === 'fechado') {
+    return {
+      resolved_at: previousResolvedAt || new Date(),
+      closed_at: previousClosedAt || new Date(),
+    };
+  }
+
+  // reopening / in progress
+  if (nextStatus === 'aberto' || nextStatus === 'em_progresso') {
+    return { resolved_at: null, closed_at: null };
+  }
+
+  return {};
+}
+
+function computeFileUrlFromUpload(params: { uploadBaseDir: string; file: Express.Multer.File }): string {
+  const relative = path.relative(params.uploadBaseDir, params.file.path).split(path.sep).join('/');
+  return `/uploads/${relative}`;
+}
 
 function normalizeTicketLevel(raw: unknown): TicketLevel | null {
   const v = String(raw || '').trim();
@@ -260,6 +316,15 @@ export async function listPlantTickets(req: AuthenticatedRequest, res: Response)
         assigned_to_user_id: tickets.assigned_to_user_id,
         title: tickets.title,
         description: tickets.description,
+        priority: tickets.priority,
+        tags: tickets.tags,
+        source_type: tickets.source_type,
+        source_key: tickets.source_key,
+        source_meta: tickets.source_meta,
+        sla_response_deadline: tickets.sla_response_deadline,
+        sla_resolution_deadline: tickets.sla_resolution_deadline,
+        first_response_at: tickets.first_response_at,
+        resolved_at: tickets.resolved_at,
         status: tickets.status,
         level: tickets.level,
         is_general: tickets.is_general,
@@ -294,10 +359,14 @@ export async function createPlantTicket(req: AuthenticatedRequest, res: Response
     if (!plantId) return res.status(400).json({ success: false, error: 'Plant ID is required' });
 
     const userId = String(req.user.userId);
-    const { title, description, is_general } = req.body || {};
+    const { title, description, is_general, priority, tags, source_type, source_key, source_meta } = req.body || {};
 
     const general = Boolean(is_general);
     const level: TicketLevel = general ? 'superadmin' : 'fabrica';
+
+    const prio = normalizeTicketPriority(priority) || 'media';
+    const normalizedTags = normalizeTicketTags(tags);
+    const deadlines = await computeTicketSlaDeadlines({ tenantId, priority: prio });
 
     const [created] = await db
       .insert(tickets)
@@ -308,6 +377,13 @@ export async function createPlantTicket(req: AuthenticatedRequest, res: Response
         created_by_user_id: userId,
         title: String(title || '').trim(),
         description: String(description || '').trim(),
+        priority: prio as any,
+        tags: normalizedTags,
+        source_type: source_type ? String(source_type).trim().slice(0, 40) : null,
+        source_key: source_key ? String(source_key).trim().slice(0, 120) : null,
+        source_meta: source_meta ?? null,
+        sla_response_deadline: deadlines.slaResponseDeadline,
+        sla_resolution_deadline: deadlines.slaResolutionDeadline,
         status: 'aberto' as any,
         level: level as any,
         is_general: general,
@@ -461,6 +537,10 @@ export async function addPlantTicketComment(req: AuthenticatedRequest, res: Resp
       .set({
         updated_at: new Date(),
         last_activity_at: new Date(),
+        first_response_at:
+          (ticket as any)?.first_response_at || String((ticket as any)?.created_by_user_id || '') === authorUserId
+            ? (ticket as any)?.first_response_at || null
+            : new Date(),
       } as any)
       .where(and(eq(tickets.id, String(ticket.id)), eq(tickets.tenant_id, tenantId)));
 
@@ -515,11 +595,18 @@ export async function updatePlantTicketStatus(req: AuthenticatedRequest, res: Re
     const allowed = await canAccessTicketPlantScoped({ req, plantId, ticketRow: ticket });
     if (!allowed) return res.status(403).json({ success: false, error: 'Access denied' });
 
+    const ts = applyStatusTimestamps({
+      nextStatus,
+      previousStatus: String((ticket as any)?.status || ''),
+      previousResolvedAt: (ticket as any)?.resolved_at || null,
+      previousClosedAt: (ticket as any)?.closed_at || null,
+    });
+
     const patch: any = {
       status: nextStatus,
       updated_at: new Date(),
       last_activity_at: new Date(),
-      closed_at: nextStatus === 'fechado' ? new Date() : null,
+      ...ts,
     };
 
     const [updated] = await db
@@ -679,8 +766,18 @@ export async function listCompanyTickets(req: AuthenticatedRequest, res: Respons
         tenant_id: tickets.tenant_id,
         plant_id: tickets.plant_id,
         created_by_user_id: tickets.created_by_user_id,
+        assigned_to_user_id: tickets.assigned_to_user_id,
         title: tickets.title,
         description: tickets.description,
+        priority: tickets.priority,
+        tags: tickets.tags,
+        source_type: tickets.source_type,
+        source_key: tickets.source_key,
+        source_meta: tickets.source_meta,
+        sla_response_deadline: tickets.sla_response_deadline,
+        sla_resolution_deadline: tickets.sla_resolution_deadline,
+        first_response_at: tickets.first_response_at,
+        resolved_at: tickets.resolved_at,
         status: tickets.status,
         level: tickets.level,
         is_general: tickets.is_general,
@@ -792,7 +889,14 @@ export async function addCompanyTicketComment(req: AuthenticatedRequest, res: Re
 
     await db
       .update(tickets)
-      .set({ updated_at: new Date(), last_activity_at: new Date() } as any)
+      .set({
+        updated_at: new Date(),
+        last_activity_at: new Date(),
+        first_response_at:
+          (ticket as any)?.first_response_at || String((ticket as any)?.created_by_user_id || '') === userId
+            ? (ticket as any)?.first_response_at || null
+            : new Date(),
+      } as any)
       .where(and(eq(tickets.id, String((ticket as any).id)), eq(tickets.tenant_id, tenantId)));
 
     try {
@@ -838,13 +942,20 @@ export async function updateCompanyTicketStatus(req: AuthenticatedRequest, res: 
     });
     if (!ticket) return res.status(404).json({ success: false, error: 'Ticket not found' });
 
+    const ts = applyStatusTimestamps({
+      nextStatus,
+      previousStatus: String((ticket as any)?.status || ''),
+      previousResolvedAt: (ticket as any)?.resolved_at || null,
+      previousClosedAt: (ticket as any)?.closed_at || null,
+    });
+
     const [updated] = await db
       .update(tickets)
       .set({
         status: nextStatus as any,
         updated_at: new Date(),
         last_activity_at: new Date(),
-        closed_at: nextStatus === 'fechado' ? new Date() : null,
+        ...ts,
       } as any)
       .where(and(eq(tickets.id, String((ticket as any).id)), eq(tickets.tenant_id, tenantId)))
       .returning();
@@ -957,6 +1068,84 @@ export async function forwardCompanyTicketToSuperadmin(req: AuthenticatedRequest
   }
 }
 
+export async function updateCompanyTicket(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) return res.status(401).json({ success: false, error: 'Not authenticated' });
+    if (!isCompanyAdmin(req)) {
+      return res.status(403).json({ success: false, error: 'Apenas o admin/gestor da empresa pode atualizar' });
+    }
+
+    const tenantId = String(req.tenantId || req.user.tenantId || '').trim();
+    const ticketId = String((req.params as any)?.ticketId || '').trim();
+    if (!tenantId) return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    if (!ticketId) return res.status(400).json({ success: false, error: 'Ticket ID is required' });
+
+    const before = await db.query.tickets.findFirst({
+      where: (fields: any, ops: any) =>
+        ops.and(ops.eq(fields.id, ticketId), ops.eq(fields.tenant_id, tenantId), ops.eq(fields.is_internal, false)),
+    });
+    if (!before) return res.status(404).json({ success: false, error: 'Ticket not found' });
+
+    const { assigned_to_user_id, priority, tags } = req.body || {};
+    const patch: any = {
+      updated_at: new Date(),
+      last_activity_at: new Date(),
+    };
+
+    if (assigned_to_user_id !== undefined) {
+      patch.assigned_to_user_id = assigned_to_user_id ? String(assigned_to_user_id) : null;
+    }
+
+    const nextPriority = priority !== undefined ? normalizeTicketPriority(priority) : null;
+    if (priority !== undefined) {
+      if (!nextPriority) return res.status(400).json({ success: false, error: 'Invalid priority' });
+      patch.priority = nextPriority;
+
+      const hasFirstResponse = Boolean((before as any)?.first_response_at);
+      const hasResolved = Boolean((before as any)?.resolved_at);
+      const deadlines = await computeTicketSlaDeadlines({ tenantId, priority: nextPriority });
+      if (!hasFirstResponse) patch.sla_response_deadline = deadlines.slaResponseDeadline;
+      if (!hasResolved) patch.sla_resolution_deadline = deadlines.slaResolutionDeadline;
+    }
+
+    if (tags !== undefined) {
+      patch.tags = normalizeTicketTags(tags);
+    }
+
+    const [updated] = await db
+      .update(tickets)
+      .set(patch)
+      .where(and(eq(tickets.id, String((before as any).id)), eq(tickets.tenant_id, tenantId)))
+      .returning();
+
+    const changes: any = {};
+    if (patch.assigned_to_user_id !== undefined) {
+      changes.assigned_to_user_id = { from: (before as any)?.assigned_to_user_id, to: patch.assigned_to_user_id };
+    }
+    if (patch.priority !== undefined) {
+      changes.priority = { from: (before as any)?.priority, to: patch.priority };
+    }
+    if (patch.tags !== undefined) {
+      changes.tags = { from: (before as any)?.tags, to: patch.tags };
+    }
+
+    await logTicketEvent({
+      tenantId,
+      ticketId: String((before as any).id),
+      plantId: String((before as any)?.plant_id || '') || null,
+      level: (normalizeTicketLevel((before as any)?.level) || 'empresa') as TicketLevel,
+      eventType: 'ticket_updated',
+      message: 'Ticket atualizado (Empresa)',
+      meta: { changes },
+      actorUserId: String(req.user.userId),
+    });
+
+    return res.json({ success: true, data: updated, message: 'Ticket atualizado' });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || 'Failed to update ticket' });
+  }
+}
+
 // -------------------- SuperAdmin --------------------
 
 export async function superadminListTickets(req: AuthenticatedRequest, res: Response) {
@@ -990,6 +1179,14 @@ export async function superadminListTickets(req: AuthenticatedRequest, res: Resp
         level: tickets.level,
         is_general: tickets.is_general,
         is_internal: tickets.is_internal,
+        priority: tickets.priority,
+        tags: tickets.tags,
+        source_type: tickets.source_type,
+        source_key: tickets.source_key,
+        sla_response_deadline: tickets.sla_response_deadline,
+        sla_resolution_deadline: tickets.sla_resolution_deadline,
+        first_response_at: tickets.first_response_at,
+        resolved_at: tickets.resolved_at,
         created_at: tickets.created_at,
         last_activity_at: tickets.last_activity_at,
         closed_at: tickets.closed_at,
@@ -1063,7 +1260,17 @@ export async function superadminUpdateTicket(req: AuthenticatedRequest, res: Res
       return res.status(404).json({ success: false, error: 'Ticket not found' });
     }
 
-    const { status, assigned_to_user_id, is_internal, level } = req.body || {};
+    const {
+      status,
+      assigned_to_user_id,
+      is_internal,
+      level,
+      priority,
+      tags,
+      source_type,
+      source_key,
+      source_meta,
+    } = req.body || {};
 
     const patch: any = {
       updated_at: new Date(),
@@ -1074,7 +1281,15 @@ export async function superadminUpdateTicket(req: AuthenticatedRequest, res: Res
       const nextStatus = normalizeTicketStatus(status);
       if (!nextStatus) return res.status(400).json({ success: false, error: 'Invalid status' });
       patch.status = nextStatus;
-      patch.closed_at = nextStatus === 'fechado' ? new Date() : null;
+      Object.assign(
+        patch,
+        applyStatusTimestamps({
+          nextStatus,
+          previousStatus: String((before as any)?.status || ''),
+          previousResolvedAt: (before as any)?.resolved_at || null,
+          previousClosedAt: (before as any)?.closed_at || null,
+        }),
+      );
     }
 
     if (assigned_to_user_id !== undefined) {
@@ -1089,6 +1304,32 @@ export async function superadminUpdateTicket(req: AuthenticatedRequest, res: Res
       const nextLevel = normalizeTicketLevel(level);
       if (!nextLevel) return res.status(400).json({ success: false, error: 'Invalid level' });
       patch.level = nextLevel;
+    }
+
+    if (priority !== undefined) {
+      const nextPriority = normalizeTicketPriority(priority);
+      if (!nextPriority) return res.status(400).json({ success: false, error: 'Invalid priority' });
+      patch.priority = nextPriority;
+      const deadlines = await computeTicketSlaDeadlines({
+        tenantId: String((before as any).tenant_id),
+        priority: nextPriority,
+      });
+      if (!(before as any)?.first_response_at) patch.sla_response_deadline = deadlines.slaResponseDeadline;
+      if (!(before as any)?.resolved_at) patch.sla_resolution_deadline = deadlines.slaResolutionDeadline;
+    }
+
+    if (tags !== undefined) {
+      patch.tags = normalizeTicketTags(tags);
+    }
+
+    if (source_type !== undefined) {
+      patch.source_type = source_type ? String(source_type).trim().slice(0, 40) : null;
+    }
+    if (source_key !== undefined) {
+      patch.source_key = source_key ? String(source_key).trim().slice(0, 120) : null;
+    }
+    if (source_meta !== undefined) {
+      patch.source_meta = source_meta ?? null;
     }
 
     const [updated] = await db
@@ -1112,6 +1353,18 @@ export async function superadminUpdateTicket(req: AuthenticatedRequest, res: Res
     }
     if (patch.level !== undefined && String(patch.level || '') !== String((before as any)?.level || '')) {
       changes.level = { from: (before as any)?.level, to: patch.level };
+    }
+    if (patch.priority !== undefined && String(patch.priority || '') !== String((before as any)?.priority || '')) {
+      changes.priority = { from: (before as any)?.priority, to: patch.priority };
+    }
+    if (patch.tags !== undefined) {
+      changes.tags = { from: (before as any)?.tags, to: patch.tags };
+    }
+    if (patch.source_type !== undefined) {
+      changes.source_type = { from: (before as any)?.source_type, to: patch.source_type };
+    }
+    if (patch.source_key !== undefined) {
+      changes.source_key = { from: (before as any)?.source_key, to: patch.source_key };
     }
 
     await logTicketEvent({
@@ -1198,7 +1451,15 @@ export async function superadminAddComment(req: AuthenticatedRequest, res: Respo
 
     await db
       .update(tickets)
-      .set({ updated_at: new Date(), last_activity_at: new Date() } as any)
+      .set({
+        updated_at: new Date(),
+        last_activity_at: new Date(),
+        first_response_at:
+          (ticket as any)?.first_response_at ||
+          String((ticket as any)?.created_by_user_id || '') === String(authorUserId || '')
+            ? (ticket as any)?.first_response_at || null
+            : new Date(),
+      } as any)
       .where(eq(tickets.id, String((ticket as any).id)));
 
     if (!internal) {
@@ -1222,5 +1483,578 @@ export async function superadminAddComment(req: AuthenticatedRequest, res: Respo
     return res.status(201).json({ success: true, data: created, message: 'Comentário adicionado' });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error?.message || 'Failed to add comment' });
+  }
+}
+
+// -------------------- Attachments --------------------
+
+async function listTicketAttachmentsByScope(params: {
+  tenantId: string;
+  ticketId: string;
+}): Promise<
+  Array<{
+    id: string;
+    ticket_id: string;
+    comment_id: string | null;
+    file_url: string;
+    file_name: string;
+    file_type: string | null;
+    file_size: number | null;
+    uploaded_by: string | null;
+    created_at: any;
+  }>
+> {
+  const rows = await db
+    .select({
+      id: ticketAttachments.id,
+      ticket_id: ticketAttachments.ticket_id,
+      comment_id: ticketAttachments.comment_id,
+      file_url: ticketAttachments.file_url,
+      file_name: ticketAttachments.file_name,
+      file_type: ticketAttachments.file_type,
+      file_size: ticketAttachments.file_size,
+      uploaded_by: ticketAttachments.uploaded_by,
+      created_at: ticketAttachments.created_at,
+    })
+    .from(ticketAttachments)
+    .where(and(eq(ticketAttachments.tenant_id, params.tenantId), eq(ticketAttachments.ticket_id, params.ticketId)))
+    .orderBy(desc(ticketAttachments.created_at));
+
+  return (rows || []).map((r) => ({
+    id: String(r.id),
+    ticket_id: String(r.ticket_id),
+    comment_id: r.comment_id ? String(r.comment_id) : null,
+    file_url: String(r.file_url),
+    file_name: String(r.file_name),
+    file_type: r.file_type ? String(r.file_type) : null,
+    file_size: r.file_size == null ? null : Number(r.file_size),
+    uploaded_by: r.uploaded_by ? String(r.uploaded_by) : null,
+    created_at: r.created_at,
+  }));
+}
+
+export async function listPlantTicketAttachments(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) return res.status(401).json({ success: false, error: 'Not authenticated' });
+
+    const tenantId = String(req.tenantId || req.user.tenantId || '').trim();
+    const plantId = String((req.params as any)?.plantId || '').trim();
+    const ticketId = String((req.params as any)?.ticketId || '').trim();
+    if (!tenantId) return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    if (!plantId) return res.status(400).json({ success: false, error: 'Plant ID is required' });
+    if (!ticketId) return res.status(400).json({ success: false, error: 'Ticket ID is required' });
+
+    const ticket = await db.query.tickets.findFirst({
+      where: (fields: any, ops: any) =>
+        ops.and(
+          ops.eq(fields.id, ticketId),
+          ops.eq(fields.tenant_id, tenantId),
+          ops.eq(fields.plant_id, plantId),
+          ops.eq(fields.is_internal, false),
+        ),
+    });
+    if (!ticket) return res.status(404).json({ success: false, error: 'Ticket not found' });
+
+    const allowed = await canAccessTicketPlantScoped({ req, plantId, ticketRow: ticket });
+    if (!allowed) return res.status(403).json({ success: false, error: 'Access denied' });
+
+    const rows = await listTicketAttachmentsByScope({ tenantId, ticketId: String((ticket as any).id) });
+    return res.json({ success: true, data: rows });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || 'Failed to list attachments' });
+  }
+}
+
+export async function uploadPlantTicketAttachment(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) return res.status(401).json({ success: false, error: 'Not authenticated' });
+
+    const tenantId = String(req.tenantId || req.user.tenantId || '').trim();
+    const plantId = String((req.params as any)?.plantId || '').trim();
+    const ticketId = String((req.params as any)?.ticketId || '').trim();
+    if (!tenantId) return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    if (!plantId) return res.status(400).json({ success: false, error: 'Plant ID is required' });
+    if (!ticketId) return res.status(400).json({ success: false, error: 'Ticket ID is required' });
+
+    const file = (req as any).file as Express.Multer.File | undefined;
+    if (!file) return res.status(400).json({ success: false, error: 'Missing file upload' });
+
+    const ticket = await db.query.tickets.findFirst({
+      where: (fields: any, ops: any) =>
+        ops.and(
+          ops.eq(fields.id, ticketId),
+          ops.eq(fields.tenant_id, tenantId),
+          ops.eq(fields.plant_id, plantId),
+          ops.eq(fields.is_internal, false),
+        ),
+    });
+    if (!ticket) return res.status(404).json({ success: false, error: 'Ticket not found' });
+
+    const allowed = await canAccessTicketPlantScoped({ req, plantId, ticketRow: ticket });
+    if (!allowed) return res.status(403).json({ success: false, error: 'Access denied' });
+
+    const uploadBaseDir = path.resolve(file.destination, '../../..');
+    const fileUrl = computeFileUrlFromUpload({ uploadBaseDir, file });
+
+    const [created] = await db
+      .insert(ticketAttachments)
+      .values({
+        id: uuidv4(),
+        tenant_id: tenantId,
+        ticket_id: String((ticket as any).id),
+        comment_id: null,
+        file_url: fileUrl,
+        file_name: String(file.originalname || file.filename || 'file').slice(0, 250),
+        file_type: String(file.mimetype || '') || null,
+        file_size: Number.isFinite(file.size) ? Math.trunc(file.size) : null,
+        uploaded_by: String(req.user.userId),
+        created_at: new Date(),
+      } as any)
+      .returning();
+
+    await logTicketEvent({
+      tenantId,
+      ticketId: String((ticket as any).id),
+      plantId,
+      level: (normalizeTicketLevel((ticket as any)?.level) || 'fabrica') as TicketLevel,
+      eventType: 'ticket_attachment_uploaded',
+      message: 'Anexo adicionado',
+      meta: { attachment_id: String((created as any)?.id || ''), file_name: file.originalname, file_url: fileUrl },
+      actorUserId: String(req.user.userId),
+    });
+
+    await db
+      .update(tickets)
+      .set({ updated_at: new Date(), last_activity_at: new Date() } as any)
+      .where(and(eq(tickets.id, String((ticket as any).id)), eq(tickets.tenant_id, tenantId)));
+
+    return res.status(201).json({ success: true, data: created, message: 'Anexo enviado' });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || 'Failed to upload attachment' });
+  }
+}
+
+export async function listCompanyTicketAttachments(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) return res.status(401).json({ success: false, error: 'Not authenticated' });
+
+    const tenantId = String(req.tenantId || req.user.tenantId || '').trim();
+    const ticketId = String((req.params as any)?.ticketId || '').trim();
+    if (!tenantId) return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    if (!ticketId) return res.status(400).json({ success: false, error: 'Ticket ID is required' });
+
+    const ticket = await db.query.tickets.findFirst({
+      where: (fields: any, ops: any) =>
+        ops.and(ops.eq(fields.id, ticketId), ops.eq(fields.tenant_id, tenantId), ops.eq(fields.is_internal, false)),
+    });
+    if (!ticket) return res.status(404).json({ success: false, error: 'Ticket not found' });
+
+    const userId = String(req.user.userId);
+    const isOwner = String((ticket as any)?.created_by_user_id || '') === userId;
+    if (!isOwner && !isCompanyAdmin(req)) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+
+    const rows = await listTicketAttachmentsByScope({ tenantId, ticketId: String((ticket as any).id) });
+    return res.json({ success: true, data: rows });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || 'Failed to list attachments' });
+  }
+}
+
+export async function uploadCompanyTicketAttachment(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) return res.status(401).json({ success: false, error: 'Not authenticated' });
+
+    const tenantId = String(req.tenantId || req.user.tenantId || '').trim();
+    const ticketId = String((req.params as any)?.ticketId || '').trim();
+    if (!tenantId) return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    if (!ticketId) return res.status(400).json({ success: false, error: 'Ticket ID is required' });
+
+    const file = (req as any).file as Express.Multer.File | undefined;
+    if (!file) return res.status(400).json({ success: false, error: 'Missing file upload' });
+
+    const ticket = await db.query.tickets.findFirst({
+      where: (fields: any, ops: any) =>
+        ops.and(ops.eq(fields.id, ticketId), ops.eq(fields.tenant_id, tenantId), ops.eq(fields.is_internal, false)),
+    });
+    if (!ticket) return res.status(404).json({ success: false, error: 'Ticket not found' });
+
+    const userId = String(req.user.userId);
+    const isOwner = String((ticket as any)?.created_by_user_id || '') === userId;
+    if (!isOwner && !isCompanyAdmin(req)) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+
+    const uploadBaseDir = path.resolve(file.destination, '../../..');
+    const fileUrl = computeFileUrlFromUpload({ uploadBaseDir, file });
+
+    const [created] = await db
+      .insert(ticketAttachments)
+      .values({
+        id: uuidv4(),
+        tenant_id: tenantId,
+        ticket_id: String((ticket as any).id),
+        comment_id: null,
+        file_url: fileUrl,
+        file_name: String(file.originalname || file.filename || 'file').slice(0, 250),
+        file_type: String(file.mimetype || '') || null,
+        file_size: Number.isFinite(file.size) ? Math.trunc(file.size) : null,
+        uploaded_by: userId,
+        created_at: new Date(),
+      } as any)
+      .returning();
+
+    await logTicketEvent({
+      tenantId,
+      ticketId: String((ticket as any).id),
+      plantId: String((ticket as any)?.plant_id || '') || null,
+      level: (normalizeTicketLevel((ticket as any)?.level) || 'empresa') as TicketLevel,
+      eventType: 'ticket_attachment_uploaded',
+      message: 'Anexo adicionado',
+      meta: { attachment_id: String((created as any)?.id || ''), file_name: file.originalname, file_url: fileUrl },
+      actorUserId: userId,
+    });
+
+    await db
+      .update(tickets)
+      .set({ updated_at: new Date(), last_activity_at: new Date() } as any)
+      .where(and(eq(tickets.id, String((ticket as any).id)), eq(tickets.tenant_id, tenantId)));
+
+    return res.status(201).json({ success: true, data: created, message: 'Anexo enviado' });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || 'Failed to upload attachment' });
+  }
+}
+
+export async function superadminListTicketAttachments(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!isSuperAdmin(req)) {
+      return res.status(403).json({ success: false, error: 'Insufficient permissions' });
+    }
+
+    const ticketId = String((req.params as any)?.ticketId || '').trim();
+    if (!ticketId) return res.status(400).json({ success: false, error: 'Ticket ID is required' });
+
+    const ticket = await db.query.tickets.findFirst({
+      where: (fields: any, ops: any) => ops.eq(fields.id, ticketId),
+    });
+    if (!ticket) return res.status(404).json({ success: false, error: 'Ticket not found' });
+
+    const tenantId = String((ticket as any).tenant_id);
+    const rows = await listTicketAttachmentsByScope({ tenantId, ticketId: String((ticket as any).id) });
+    return res.json({ success: true, data: rows });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || 'Failed to list attachments' });
+  }
+}
+
+export async function superadminUploadTicketAttachment(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!isSuperAdmin(req)) {
+      return res.status(403).json({ success: false, error: 'Insufficient permissions' });
+    }
+
+    const ticketId = String((req.params as any)?.ticketId || '').trim();
+    if (!ticketId) return res.status(400).json({ success: false, error: 'Ticket ID is required' });
+
+    const file = (req as any).file as Express.Multer.File | undefined;
+    if (!file) return res.status(400).json({ success: false, error: 'Missing file upload' });
+
+    const ticket = await db.query.tickets.findFirst({
+      where: (fields: any, ops: any) => ops.eq(fields.id, ticketId),
+    });
+    if (!ticket) return res.status(404).json({ success: false, error: 'Ticket not found' });
+
+    const tenantId = String((ticket as any).tenant_id);
+    const uploadBaseDir = path.resolve(file.destination, '../../..');
+    const fileUrl = computeFileUrlFromUpload({ uploadBaseDir, file });
+
+    const authorUserId = req.user?.userId ? String(req.user.userId) : null;
+
+    const [created] = await db
+      .insert(ticketAttachments)
+      .values({
+        id: uuidv4(),
+        tenant_id: tenantId,
+        ticket_id: String((ticket as any).id),
+        comment_id: null,
+        file_url: fileUrl,
+        file_name: String(file.originalname || file.filename || 'file').slice(0, 250),
+        file_type: String(file.mimetype || '') || null,
+        file_size: Number.isFinite(file.size) ? Math.trunc(file.size) : null,
+        uploaded_by: authorUserId,
+        created_at: new Date(),
+      } as any)
+      .returning();
+
+    await logTicketEvent({
+      tenantId,
+      ticketId: String((ticket as any).id),
+      plantId: String((ticket as any)?.plant_id || '') || null,
+      level: (normalizeTicketLevel((ticket as any)?.level) || 'superadmin') as TicketLevel,
+      eventType: 'ticket_attachment_uploaded',
+      message: 'Anexo adicionado (SuperAdmin)',
+      meta: { attachment_id: String((created as any)?.id || ''), file_name: file.originalname, file_url: fileUrl },
+      actorUserId: authorUserId,
+    });
+
+    await db
+      .update(tickets)
+      .set({ updated_at: new Date(), last_activity_at: new Date() } as any)
+      .where(eq(tickets.id, String((ticket as any).id)));
+
+    return res.status(201).json({ success: true, data: created, message: 'Anexo enviado' });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || 'Failed to upload attachment' });
+  }
+}
+
+// -------------------- SuperAdmin Ticket Suggestions (Diagnostics) --------------------
+
+type TicketSuggestion = {
+  key: string;
+  title: string;
+  description: string;
+  priority: TicketPriority;
+  source_type: string;
+  source_key: string;
+  source_meta: any;
+};
+
+async function findOpenTicketBySource(params: {
+  tenantId: string;
+  sourceType: string;
+  sourceKey: string;
+}): Promise<boolean> {
+  const row = await db.query.tickets.findFirst({
+    where: (fields: any, ops: any) =>
+      ops.and(
+        ops.eq(fields.tenant_id, params.tenantId),
+        ops.eq(fields.source_type, params.sourceType),
+        ops.eq(fields.source_key, params.sourceKey),
+        ops.notInArray(fields.status, ['fechado']),
+      ),
+  });
+  return Boolean(row);
+}
+
+async function computeIntegritySuggestion(tenantId: string): Promise<TicketSuggestion | null> {
+  const assetsMissingPlant = await db.execute(sql`
+    SELECT COUNT(*)::int AS count
+    FROM assets a
+    WHERE a.tenant_id = ${tenantId}
+      AND NOT EXISTS (SELECT 1 FROM plants p WHERE p.id = a.plant_id);
+  `);
+
+  const schedulesMissingAsset = await db.execute(sql`
+    SELECT COUNT(*)::int AS count
+    FROM preventive_maintenance_schedules s
+    WHERE s.tenant_id = ${tenantId}
+      AND NOT EXISTS (SELECT 1 FROM assets a WHERE a.id = s.asset_id);
+  `);
+
+  const schedulesMissingPlan = await db.execute(sql`
+    SELECT COUNT(*)::int AS count
+    FROM preventive_maintenance_schedules s
+    WHERE s.tenant_id = ${tenantId}
+      AND NOT EXISTS (SELECT 1 FROM maintenance_plans p WHERE p.id = s.plan_id);
+  `);
+
+  const userPlantsMissingUser = await db.execute(sql`
+    SELECT COUNT(*)::int AS count
+    FROM user_plants up
+    WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = up.user_id);
+  `);
+
+  const userPlantsMissingPlant = await db.execute(sql`
+    SELECT COUNT(*)::int AS count
+    FROM user_plants up
+    WHERE NOT EXISTS (SELECT 1 FROM plants p WHERE p.id = up.plant_id);
+  `);
+
+  const checks = [
+    { key: 'assets_missing_plant', label: 'Assets sem fábrica válida', count: Number((assetsMissingPlant as any)?.rows?.[0]?.count ?? 0) },
+    { key: 'schedules_missing_asset', label: 'Preventivas sem asset válido', count: Number((schedulesMissingAsset as any)?.rows?.[0]?.count ?? 0) },
+    { key: 'schedules_missing_plan', label: 'Preventivas sem plano válido', count: Number((schedulesMissingPlan as any)?.rows?.[0]?.count ?? 0) },
+    { key: 'user_plants_missing_user', label: 'UserPlants com user inexistente', count: Number((userPlantsMissingUser as any)?.rows?.[0]?.count ?? 0) },
+    { key: 'user_plants_missing_plant', label: 'UserPlants com fábrica inexistente', count: Number((userPlantsMissingPlant as any)?.rows?.[0]?.count ?? 0) },
+  ];
+
+  const nonZero = checks.filter((c) => c.count > 0);
+  if (nonZero.length === 0) return null;
+
+  const total = nonZero.reduce((sum, c) => sum + c.count, 0);
+  const priority: TicketPriority = total >= 50 ? 'critica' : total >= 10 ? 'alta' : 'media';
+
+  const lines = nonZero.map((c) => `- ${c.label}: ${c.count}`).join('\n');
+  return {
+    key: 'integrity',
+    title: `Integrity checks com problemas (${nonZero.length})`,
+    description: `Foram detetados problemas de integridade:\n\n${lines}\n\nSugestão: corrigir referências inválidas e/ou re-seed/patch conforme necessário.`,
+    priority,
+    source_type: 'diagnostics',
+    source_key: 'integrity_checks',
+    source_meta: { checks },
+  };
+}
+
+async function computeRbacDriftSuggestion(tenantId: string): Promise<TicketSuggestion | null> {
+  const rolesZeroPerms = await db.execute(sql`
+    SELECT r.key, r.name
+    FROM rbac_roles r
+    LEFT JOIN rbac_role_permissions rp
+      ON rp.tenant_id = r.tenant_id AND rp.role_key = r.key
+    WHERE r.tenant_id = ${tenantId}
+    GROUP BY r.key, r.name
+    HAVING COUNT(rp.permission_key) = 0
+    ORDER BY r.key ASC;
+  `);
+
+  const permsUnused = await db.execute(sql`
+    SELECT p.key, p.label, p.group_name
+    FROM rbac_permissions p
+    LEFT JOIN rbac_role_permissions rp
+      ON rp.permission_key = p.key AND rp.tenant_id = ${tenantId}
+    GROUP BY p.key, p.label, p.group_name
+    HAVING COUNT(rp.role_key) = 0
+    ORDER BY p.group_name ASC, p.key ASC
+    LIMIT 200;
+  `);
+
+  const roles = ((rolesZeroPerms as any)?.rows ?? []).map((r: any) => ({ key: String(r.key), name: String(r.name || '') }));
+  const perms = ((permsUnused as any)?.rows ?? []).map((r: any) => ({
+    key: String(r.key),
+    label: String(r.label || ''),
+    group_name: String(r.group_name || ''),
+  }));
+
+  if (roles.length === 0 && perms.length === 0) return null;
+
+  const score = roles.length * 5 + perms.length;
+  const priority: TicketPriority = score >= 40 ? 'alta' : 'media';
+  const roleLines = roles.slice(0, 30).map((r: any) => `- Role sem permissões: ${r.key} (${r.name})`).join('\n');
+  const permLines = perms.slice(0, 30).map((p: any) => `- Permissão não usada: ${p.group_name}/${p.key} (${p.label})`).join('\n');
+
+  return {
+    key: 'rbac_drift',
+    title: `RBAC drift (roles sem permissões: ${roles.length}, permissões sem roles: ${perms.length})`,
+    description:
+      `Foi detetado drift no RBAC.\n\n${roleLines}${roleLines && permLines ? '\n' : ''}${permLines}`.trim(),
+    priority,
+    source_type: 'diagnostics',
+    source_key: 'rbac_drift',
+    source_meta: { rolesWithNoPermissions: roles, permissionsUnused: perms },
+  };
+}
+
+export async function superadminListTicketSuggestions(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!isSuperAdmin(req)) {
+      return res.status(403).json({ success: false, error: 'Insufficient permissions' });
+    }
+
+    const hasOverride = Boolean((req as any)?.headers?.['x-tenant-id'] || (req as any)?.headers?.['x-tenant-slug']);
+    if (!hasOverride) {
+      return res.status(400).json({ success: false, error: 'Select a tenant (Empresa) via x-tenant-id to list suggestions' });
+    }
+
+    const tenantId = String(req.tenantId || '').trim();
+    if (!tenantId) return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+
+    const suggestions: TicketSuggestion[] = [];
+    const integrity = await computeIntegritySuggestion(tenantId);
+    if (integrity) suggestions.push(integrity);
+    const drift = await computeRbacDriftSuggestion(tenantId);
+    if (drift) suggestions.push(drift);
+
+    const filtered: any[] = [];
+    for (const s of suggestions) {
+      const alreadyOpen = await findOpenTicketBySource({ tenantId, sourceType: s.source_type, sourceKey: s.source_key });
+      filtered.push({ ...s, alreadyOpen });
+    }
+
+    return res.json({ success: true, data: { tenantId, suggestions: filtered } });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || 'Failed to list suggestions' });
+  }
+}
+
+export async function superadminCreateTicketFromSuggestion(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!isSuperAdmin(req)) {
+      return res.status(403).json({ success: false, error: 'Insufficient permissions' });
+    }
+
+    const hasOverride = Boolean((req as any)?.headers?.['x-tenant-id'] || (req as any)?.headers?.['x-tenant-slug']);
+    if (!hasOverride) {
+      return res.status(400).json({ success: false, error: 'Select a tenant (Empresa) via x-tenant-id to create from suggestions' });
+    }
+
+    const tenantId = String(req.tenantId || '').trim();
+    const key = String((req.params as any)?.key || '').trim();
+    if (!tenantId) return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    if (!key) return res.status(400).json({ success: false, error: 'Suggestion key is required' });
+
+    const integrity = key === 'integrity' ? await computeIntegritySuggestion(tenantId) : null;
+    const drift = key === 'rbac_drift' ? await computeRbacDriftSuggestion(tenantId) : null;
+    const suggestion = integrity || drift;
+    if (!suggestion) return res.status(404).json({ success: false, error: 'Suggestion not found or no issues' });
+
+    const alreadyOpen = await findOpenTicketBySource({
+      tenantId,
+      sourceType: suggestion.source_type,
+      sourceKey: suggestion.source_key,
+    });
+    if (alreadyOpen) {
+      return res.status(409).json({ success: false, error: 'Já existe um ticket aberto para esta sugestão' });
+    }
+
+    const deadlines = await computeTicketSlaDeadlines({ tenantId, priority: suggestion.priority });
+    const authorUserId = req.user?.userId ? String(req.user.userId) : null;
+
+    const [created] = await db
+      .insert(tickets)
+      .values({
+        id: uuidv4(),
+        tenant_id: tenantId,
+        plant_id: null,
+        created_by_user_id: authorUserId,
+        title: suggestion.title,
+        description: suggestion.description,
+        priority: suggestion.priority as any,
+        tags: ['diagnostics', suggestion.key],
+        status: 'aberto' as any,
+        level: 'superadmin' as any,
+        is_general: true,
+        is_internal: true,
+        source_type: suggestion.source_type,
+        source_key: suggestion.source_key,
+        source_meta: suggestion.source_meta,
+        sla_response_deadline: deadlines.slaResponseDeadline,
+        sla_resolution_deadline: deadlines.slaResolutionDeadline,
+        created_at: new Date(),
+        updated_at: new Date(),
+        last_activity_at: new Date(),
+      } as any)
+      .returning();
+
+    const createdId = String((created as any)?.id || '').trim();
+    if (createdId) {
+      await logTicketEvent({
+        tenantId,
+        ticketId: createdId,
+        plantId: null,
+        level: 'superadmin',
+        eventType: 'ticket_created',
+        message: `Ticket criado a partir de diagnóstico (${suggestion.key})`,
+        meta: { suggestion_key: suggestion.key, source_type: suggestion.source_type, source_key: suggestion.source_key },
+        actorUserId: authorUserId,
+      });
+    }
+
+    return res.status(201).json({ success: true, data: created, message: 'Ticket criado a partir de sugestão' });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || 'Failed to create ticket from suggestion' });
   }
 }
