@@ -57,6 +57,31 @@ export function requirePermission(permissionKey: string, scope: PermissionScope 
       });
 
       if (!ok) {
+        // Backward-compat para permissões novas:
+        // se a permissão ainda não existe na tabela rbac_permissions (tenant não levou patch/seed),
+        // fazemos fallback controlado para regras antigas por role para não bloquear features após deploy.
+        if (permissionKey.startsWith('tickets:')) {
+          const exists = await RbacService.permissionExists(permissionKey);
+          if (!exists) {
+            // Superadmin bypass já tratado acima.
+            // tenant scope: admin_empresa (admin do tenant)
+            if (scope === 'tenant' && normalizedUserRole === 'admin_empresa') {
+              return next();
+            }
+
+            // plant scope: permitir read/write para utilizadores da planta; forward só para gestor_manutencao.
+            if (scope === 'plant') {
+              if (permissionKey === 'tickets:read' || permissionKey === 'tickets:write') {
+                return next();
+              }
+
+              if (permissionKey === 'tickets:forward' && normalizedRole === 'gestor_manutencao') {
+                return next();
+              }
+            }
+          }
+        }
+
         // Break-glass bootstrap:
         // If RBAC tables exist but tenant has zero seeded permissions,
         // allow admin_empresa to run setup/admin actions so it can repair RBAC.

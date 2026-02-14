@@ -26,6 +26,7 @@ import notificationRoutes from './routes/notification.routes.js';
 import docsRoutes from './routes/docs.routes.js';
 import profileRoutes from './routes/profile.routes.js';
 import superadminRoutes from './routes/superadmin.routes.js';
+import ticketRoutes from './routes/tickets.routes.js';
 import { errorHandler, notFoundHandler, requestLogger } from './middlewares/error.js';
 import { tenantSlugMiddleware } from './middlewares/tenant.js';
 
@@ -109,6 +110,7 @@ export function createApp(): Express {
   app.use('/api/admin', adminRoutes);
   app.use('/api/superadmin', superadminRoutes);
   app.use('/api/profile', profileRoutes);
+  app.use('/api', ticketRoutes);
 
   // Health check
   app.get('/health', (_req, res) => {

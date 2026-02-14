@@ -51,6 +51,15 @@ export const stockReservationStatusEnum = pgEnum('stock_reservation_status', [
   'cancelada',
 ]);
 
+export const ticketStatusEnum = pgEnum('ticket_status', [
+  'aberto',
+  'em_progresso',
+  'resolvido',
+  'fechado',
+]);
+
+export const ticketLevelEnum = pgEnum('ticket_level', ['fabrica', 'empresa', 'superadmin']);
+
 // Tenants (Empresas)
 export const tenants = pgTable(
   'tenants',
@@ -167,6 +176,82 @@ export const authLoginEvents = pgTable(
   (table) => ({
     tenantCreatedIdx: index('auth_login_events_tenant_created_at_idx').on(table.tenant_id, table.created_at),
     userIdx: index('auth_login_events_user_id_idx').on(table.user_id),
+  }),
+);
+
+// Support Tickets (tenant + SuperAdmin)
+export const tickets = pgTable(
+  'tickets',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    plant_id: uuid('plant_id'),
+    created_by_user_id: uuid('created_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    assigned_to_user_id: uuid('assigned_to_user_id').references(() => users.id, { onDelete: 'set null' }),
+    title: text('title').notNull(),
+    description: text('description').notNull(),
+    status: ticketStatusEnum('status').notNull().default('aberto'),
+    level: ticketLevelEnum('level').notNull().default('fabrica'),
+    is_general: boolean('is_general').default(false).notNull(),
+    is_internal: boolean('is_internal').default(false),
+    forwarded_by_user_id: uuid('forwarded_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    forwarded_at: timestamp('forwarded_at', { withTimezone: true }),
+    forward_note: text('forward_note'),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    last_activity_at: timestamp('last_activity_at', { withTimezone: true }).defaultNow().notNull(),
+    closed_at: timestamp('closed_at', { withTimezone: true }),
+  },
+  (table) => ({
+    tenantIdx: index('tickets_tenant_id_idx').on(table.tenant_id),
+    plantIdx: index('tickets_plant_id_idx').on(table.plant_id),
+    statusIdx: index('tickets_status_idx').on(table.status),
+    levelIdx: index('tickets_level_idx').on(table.level),
+    lastActivityIdx: index('tickets_last_activity_at_idx').on(table.last_activity_at),
+  }),
+);
+
+export const ticketComments = pgTable(
+  'ticket_comments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ticket_id: uuid('ticket_id')
+      .notNull()
+      .references(() => tickets.id, { onDelete: 'cascade' }),
+    tenant_id: uuid('tenant_id').notNull(),
+    author_user_id: uuid('author_user_id').references(() => users.id, { onDelete: 'set null' }),
+    body: text('body').notNull(),
+    is_internal: boolean('is_internal').default(false),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    ticketIdx: index('ticket_comments_ticket_id_idx').on(table.ticket_id),
+    tenantIdx: index('ticket_comments_tenant_id_idx').on(table.tenant_id),
+    createdIdx: index('ticket_comments_created_at_idx').on(table.created_at),
+  }),
+);
+
+export const ticketEvents = pgTable(
+  'ticket_events',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    ticket_id: uuid('ticket_id')
+      .notNull()
+      .references(() => tickets.id, { onDelete: 'cascade' }),
+    plant_id: uuid('plant_id'),
+    level: ticketLevelEnum('level').notNull().default('fabrica'),
+    event_type: text('event_type').notNull(),
+    message: text('message'),
+    meta: jsonb('meta'),
+    actor_user_id: uuid('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    ticketCreatedIdx: index('ticket_events_ticket_id_created_at_idx').on(table.ticket_id, table.created_at),
+    tenantCreatedIdx: index('ticket_events_tenant_id_created_at_idx').on(table.tenant_id, table.created_at),
+    plantCreatedIdx: index('ticket_events_plant_id_created_at_idx').on(table.plant_id, table.created_at),
+    eventTypeIdx: index('ticket_events_event_type_idx').on(table.event_type),
   }),
 );
 

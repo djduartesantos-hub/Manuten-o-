@@ -17,6 +17,36 @@ import { isSlaOverdue } from '../utils/workorder-sla.js';
 const MANAGER_ROLES = ['gestor_manutencao', 'admin_empresa', 'superadmin'];
 const DEFAULT_RULES = [
   {
+    event_type: 'ticket_created',
+    channels: ['in_app', 'socket'],
+    recipients: ['creator', 'managers'],
+    is_active: true,
+  },
+  {
+    event_type: 'ticket_commented',
+    channels: ['in_app', 'socket'],
+    recipients: ['creator', 'assigned', 'managers'],
+    is_active: true,
+  },
+  {
+    event_type: 'ticket_status_changed',
+    channels: ['in_app', 'socket'],
+    recipients: ['creator', 'assigned', 'managers'],
+    is_active: true,
+  },
+  {
+    event_type: 'ticket_forwarded_to_company',
+    channels: ['in_app', 'socket'],
+    recipients: ['creator', 'managers'],
+    is_active: true,
+  },
+  {
+    event_type: 'ticket_forwarded_to_superadmin',
+    channels: ['in_app', 'socket'],
+    recipients: ['creator', 'managers'],
+    is_active: true,
+  },
+  {
     event_type: 'work_order_status_changed',
     channels: ['in_app', 'socket'],
     recipients: ['assigned', 'creator', 'managers', 'plant_users'],
@@ -327,6 +357,58 @@ export class NotificationService {
         entity: 'work-order',
         entityId: data.workOrderId,
         plantId: data.plantId,
+      },
+      recipients.includeManagers,
+    );
+  }
+
+  static async notifyTicketEvent(data: {
+    tenantId: string;
+    plantId: string;
+    eventType:
+      | 'ticket_created'
+      | 'ticket_commented'
+      | 'ticket_status_changed'
+      | 'ticket_forwarded_to_company'
+      | 'ticket_forwarded_to_superadmin'
+      | string;
+    assignedTo?: string | null;
+    createdBy?: string | null;
+    title: string;
+    message: string;
+    type?: 'info' | 'success' | 'warning' | 'error';
+    ticketId: string;
+    meta?: any;
+  }) {
+    const rule = await NotificationService.getRule(data.tenantId, data.eventType);
+    if (!NotificationService.shouldSend(rule)) return;
+
+    const recipients = NotificationService.getRecipients(rule, {
+      plantId: data.plantId,
+      assignedTo: data.assignedTo,
+      createdBy: data.createdBy,
+    });
+
+    const plantUserIds = recipients.userIds.includes('__plant_users__')
+      ? await NotificationService.getPlantUserIds(data.plantId)
+      : [];
+
+    const userIds = recipients.userIds
+      .filter((value) => value !== '__plant_users__')
+      .concat(plantUserIds);
+
+    await NotificationService.emitNotification(
+      data.tenantId,
+      userIds,
+      {
+        eventType: data.eventType,
+        title: data.title,
+        message: data.message,
+        type: data.type || 'info',
+        entity: 'ticket',
+        entityId: data.ticketId,
+        plantId: data.plantId,
+        meta: data.meta,
       },
       recipients.includeManagers,
     );

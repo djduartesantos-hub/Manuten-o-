@@ -58,6 +58,10 @@ import {
   updateAdminRole,
   updateAdminUser,
   updateNotificationRules,
+  superadminAddTicketComment,
+  superadminGetTicket,
+  superadminListTickets,
+  superadminUpdateTicket,
   applyRbacPatch,
 } from '../services/api';
 import {
@@ -820,6 +824,13 @@ export function SuperAdminSettings() {
   const [supportDiagnostics, setSupportDiagnostics] = React.useState<any | null>(null);
   const [supportTenantsHealthScore, setSupportTenantsHealthScore] = React.useState<any | null>(null);
   const [supportAudit, setSupportAudit] = React.useState<any[]>([]);
+  const [supportTickets, setSupportTickets] = React.useState<any[]>([]);
+  const [supportSelectedTicketId, setSupportSelectedTicketId] = React.useState<string>('');
+  const [supportTicketDetail, setSupportTicketDetail] = React.useState<any | null>(null);
+  const [loadingSupportTicketDetail, setLoadingSupportTicketDetail] = React.useState(false);
+  const [supportTicketCommentBody, setSupportTicketCommentBody] = React.useState('');
+  const [supportTicketCommentInternal, setSupportTicketCommentInternal] = React.useState(false);
+  const [supportTicketSaving, setSupportTicketSaving] = React.useState(false);
   const [loadingSupport, setLoadingSupport] = React.useState(false);
   const [auditPurging, setAuditPurging] = React.useState(false);
   const [auditExporting, setAuditExporting] = React.useState<'csv' | 'json' | 'xlsx' | 'pdf' | null>(null);
@@ -838,26 +849,67 @@ export function SuperAdminSettings() {
     setLoadingSupport(true);
     setError('');
     try {
-      const [health, diagnostics, healthScore, audit] = await Promise.all([
+      const [health, diagnostics, healthScore, audit, ticketRows] = await Promise.all([
         getSuperadminHealth(),
         getSuperadminTenantDiagnostics(5),
         getSuperadminTenantsHealthScore(50),
         getSuperadminAudit({ limit: 20, offset: 0 }),
+        superadminListTickets({ tenantId: selectedTenantId || undefined, level: 'superadmin', limit: 50 }),
       ]);
       setSupportHealth(health || null);
       setSupportDiagnostics(diagnostics || null);
       setSupportTenantsHealthScore(healthScore || null);
       setSupportAudit(Array.isArray(audit) ? audit : []);
+      setSupportTickets(Array.isArray(ticketRows) ? ticketRows : []);
+
+      if (supportSelectedTicketId) {
+        const stillExists = (ticketRows || []).some((t: any) => String((t as any)?.id) === String(supportSelectedTicketId));
+        if (!stillExists) {
+          setSupportSelectedTicketId('');
+          setSupportTicketDetail(null);
+        }
+      }
     } catch (err: any) {
       setError(err?.message || 'Falha ao carregar dados de suporte');
       setSupportHealth(null);
       setSupportDiagnostics(null);
       setSupportTenantsHealthScore(null);
       setSupportAudit([]);
+      setSupportTickets([]);
+      setSupportSelectedTicketId('');
+      setSupportTicketDetail(null);
     } finally {
       setLoadingSupport(false);
     }
-  }, []);
+  }, [supportSelectedTicketId]);
+
+  React.useEffect(() => {
+    const ticketId = String(supportSelectedTicketId || '').trim();
+    if (!ticketId) {
+      setSupportTicketDetail(null);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingSupportTicketDetail(true);
+    (async () => {
+      try {
+        const data = await superadminGetTicket(ticketId);
+        if (!cancelled) setSupportTicketDetail(data || null);
+      } catch (err: any) {
+        if (!cancelled) {
+          setSupportTicketDetail(null);
+          setError(err?.message || 'Falha ao carregar ticket');
+        }
+      } finally {
+        if (!cancelled) setLoadingSupportTicketDetail(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [supportSelectedTicketId]);
 
   React.useEffect(() => {
     void loadSupportData();
@@ -2448,6 +2500,228 @@ export function SuperAdminSettings() {
                             </div>
                           </div>
                         ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                        Tickets (suporte)
+                      </div>
+                      <p className="mt-2 text-sm text-[color:var(--dash-muted)]">
+                        Lista global de tickets e respostas internas.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        className="btn-secondary h-9 px-3 inline-flex items-center"
+                        onClick={() => void loadSupportData()}
+                        disabled={loadingSupport}
+                      >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Atualizar
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                    <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3">
+                      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                        Lista
+                      </div>
+
+                      {supportTickets.length === 0 ? (
+                        <div className="mt-3 text-sm text-[color:var(--dash-muted)]">
+                          {loadingSupport ? 'A carregar…' : 'Sem tickets.'}
+                        </div>
+                      ) : (
+                        <div className="mt-3 space-y-2">
+                          {supportTickets.map((t: any) => {
+                            const active = String(supportSelectedTicketId) === String(t?.id);
+                            return (
+                              <button
+                                key={String(t?.id)}
+                                type="button"
+                                onClick={() => setSupportSelectedTicketId(String(t?.id))}
+                                className={
+                                  'w-full text-left rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-3 transition ' +
+                                  (active ? 'ring-2 ring-[color:var(--dash-accent)]' : 'hover:bg-[color:var(--dash-panel)]')
+                                }
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-semibold text-[color:var(--dash-muted)] truncate">
+                                      {String(t?.tenant_name || t?.tenant_id || 'Empresa')}
+                                    </div>
+                                    <div className="mt-1 font-semibold text-[color:var(--dash-ink)] truncate">
+                                      {String(t?.title || '—')}
+                                    </div>
+                                  </div>
+                                  <div className="text-xs text-[color:var(--dash-muted)] whitespace-nowrap">
+                                    {String(t?.status || '—')}
+                                  </div>
+                                </div>
+                                <div className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                                  Última atividade: {t?.last_activity_at ? String(t.last_activity_at) : '—'}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="lg:col-span-2 rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-3">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div className="min-w-0">
+                          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                            Detalhe
+                          </div>
+                          <div className="mt-2 font-semibold text-[color:var(--dash-ink)] truncate">
+                            {supportSelectedTicketId ? (supportTicketDetail?.ticket?.title ? String(supportTicketDetail.ticket.title) : '—') : 'Selecione um ticket'}
+                          </div>
+                        </div>
+
+                        {supportSelectedTicketId ? (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <select
+                              className="h-9 rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 text-sm text-[color:var(--dash-ink)]"
+                              value={String(supportTicketDetail?.ticket?.status || 'aberto')}
+                              disabled={supportTicketSaving || loadingSupportTicketDetail}
+                              onChange={async (e) => {
+                                const status = String(e.target.value);
+                                if (!supportSelectedTicketId) return;
+                                setSupportTicketSaving(true);
+                                setError('');
+                                try {
+                                  await superadminUpdateTicket(supportSelectedTicketId, { status: status as any });
+                                  await loadSupportData();
+                                  const updated = await superadminGetTicket(supportSelectedTicketId);
+                                  setSupportTicketDetail(updated || null);
+                                } catch (err: any) {
+                                  setError(err?.message || 'Falha ao atualizar estado');
+                                } finally {
+                                  setSupportTicketSaving(false);
+                                }
+                              }}
+                            >
+                              <option value="aberto">aberto</option>
+                              <option value="em_progresso">em_progresso</option>
+                              <option value="resolvido">resolvido</option>
+                              <option value="fechado">fechado</option>
+                            </select>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {!supportSelectedTicketId ? null : loadingSupportTicketDetail ? (
+                        <div className="mt-3 text-sm text-[color:var(--dash-muted)]">A carregar…</div>
+                      ) : !supportTicketDetail?.ticket ? (
+                        <div className="mt-3 text-sm text-[color:var(--dash-muted)]">Ticket não encontrado.</div>
+                      ) : (
+                        <div className="mt-3">
+                          <div className="rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-3">
+                            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                              Descrição
+                            </div>
+                            <div className="mt-2 text-sm text-[color:var(--dash-ink)] whitespace-pre-wrap">
+                              {String(supportTicketDetail.ticket.description || '—')}
+                            </div>
+                          </div>
+
+                          <div className="mt-3">
+                            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--dash-muted)]">
+                              Comentários
+                            </div>
+
+                            <div className="mt-2 space-y-2">
+                              {(supportTicketDetail?.comments || []).length === 0 ? (
+                                <div className="text-sm text-[color:var(--dash-muted)]">Sem comentários.</div>
+                              ) : (
+                                (supportTicketDetail?.comments || [])
+                                  .slice()
+                                  .reverse()
+                                  .map((c: any) => (
+                                    <div key={String(c?.id)} className="rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-3">
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                          <div className="text-xs font-semibold text-[color:var(--dash-muted)] truncate">
+                                            {c?.is_internal ? 'Interno (SuperAdmin)' : 'Cliente'}
+                                          </div>
+                                          <div className="text-xs text-[color:var(--dash-muted)] truncate">
+                                            {c?.author ? `${String(c.author.first_name || '').trim()} ${String(c.author.last_name || '').trim()}`.trim() : '—'}
+                                          </div>
+                                        </div>
+                                        <div className="text-xs text-[color:var(--dash-muted)] whitespace-nowrap">
+                                          {c?.created_at ? String(c.created_at) : '—'}
+                                        </div>
+                                      </div>
+                                      <div className="mt-2 text-sm text-[color:var(--dash-ink)] whitespace-pre-wrap">{String(c?.body || '')}</div>
+                                    </div>
+                                  ))
+                              )}
+                            </div>
+
+                            <div className="mt-3 grid gap-2">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  id="supportTicketInternal"
+                                  type="checkbox"
+                                  checked={supportTicketCommentInternal}
+                                  onChange={(e) => setSupportTicketCommentInternal(Boolean(e.target.checked))}
+                                  disabled={supportTicketSaving}
+                                />
+                                <label htmlFor="supportTicketInternal" className="text-sm text-[color:var(--dash-muted)]">
+                                  Comentário interno
+                                </label>
+                              </div>
+
+                              <textarea
+                                className="min-h-[90px] rounded-xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 py-2 text-sm text-[color:var(--dash-ink)]"
+                                value={supportTicketCommentBody}
+                                onChange={(e) => setSupportTicketCommentBody(e.target.value)}
+                                placeholder="Escreva uma resposta…"
+                                disabled={supportTicketSaving}
+                              />
+
+                              <button
+                                type="button"
+                                className="btn-primary h-10"
+                                disabled={supportTicketSaving || !supportTicketCommentBody.trim()}
+                                onClick={async () => {
+                                  if (!supportSelectedTicketId) return;
+                                  const body = supportTicketCommentBody.trim();
+                                  if (!body) return;
+
+                                  setSupportTicketSaving(true);
+                                  setError('');
+                                  try {
+                                    await superadminAddTicketComment(supportSelectedTicketId, {
+                                      body,
+                                      is_internal: supportTicketCommentInternal,
+                                    });
+                                    setSupportTicketCommentBody('');
+                                    setSupportTicketCommentInternal(false);
+                                    await loadSupportData();
+                                    const updated = await superadminGetTicket(supportSelectedTicketId);
+                                    setSupportTicketDetail(updated || null);
+                                  } catch (err: any) {
+                                    setError(err?.message || 'Falha ao enviar comentário');
+                                  } finally {
+                                    setSupportTicketSaving(false);
+                                  }
+                                }}
+                              >
+                                Enviar
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>

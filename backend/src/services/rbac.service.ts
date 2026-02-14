@@ -101,4 +101,14 @@ export class RbacService {
 
     return (res.rows?.length || 0) > 0;
   }
+
+  static async permissionExists(permissionKey: string): Promise<boolean> {
+    const res = await db.execute(sql`
+      SELECT 1 AS ok
+      FROM rbac_permissions
+      WHERE key = ${permissionKey}
+      LIMIT 1;
+    `);
+    return (res.rows?.length || 0) > 0;
+  }
 }

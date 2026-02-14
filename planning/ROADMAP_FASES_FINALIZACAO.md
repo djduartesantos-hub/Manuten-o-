@@ -197,7 +197,7 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 
 ---
 
-## Fase 6 — Suporte e Operações (SuperAdmin) + Tickets (futuro)
+## Fase 6 — Suporte e Operações (SuperAdmin) + Tickets
 
 **O que é**
 - Consola de operações/suporte para gerir saúde, diagnósticos, exportações e ações de reparação com auditoria.
@@ -208,13 +208,17 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 **Must**
 - Consola de suporte completa (já existe base): bundles, integridade, drift, exports.
 - Ferramentas seguras (com auditoria) para reset/repair e ações de suporte.
+- Sistema de Tickets (implementado): fluxo **fábrica → empresa → superadmin** (com exceção “problema geral” direto ao SuperAdmin), comentários e gestão de estado.
 
 **Should**
 - “Health score” por tenant e alertas.
 - Modo quarentena/readonly.
+- Auditoria/timeline por ticket (eventos) + notificação in-app dos eventos.
+- Filtros/paginação básicos na listagem (q/status + limit/offset).
+- RBAC por permissão para tickets (ex.: `tickets:read`, `tickets:write`, `tickets:forward`).
 
 **Could**
-- Sistema de Tickets (ver planning/ROADMAP_SUPERADMIN_TICKETS.md)
+- Melhorias incrementais de tickets (ver planning/ROADMAP_SUPERADMIN_TICKETS.md)
 
 **Dependências**
 - BD/API/UI: sim

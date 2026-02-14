@@ -190,6 +190,37 @@ export const CreateStockMovementSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
+// Ticket Schemas
+export const CreateTicketSchema = z.object({
+  title: z.string().min(3, 'Título mínimo 3 caracteres').max(200),
+  description: z.string().min(1, 'Descrição obrigatória').max(5000),
+  is_general: z.boolean().optional(),
+});
+
+export const CreateTicketCommentSchema = z.object({
+  body: z.string().min(1, 'Mensagem obrigatória').max(4000),
+});
+
+export const UpdateTicketStatusSchema = z.object({
+  status: z.enum(['aberto', 'em_progresso', 'resolvido', 'fechado']),
+});
+
+export const ForwardTicketSchema = z.object({
+  note: z.string().max(2000).optional(),
+});
+
+export const SuperadminUpdateTicketSchema = z.object({
+  status: z.enum(['aberto', 'em_progresso', 'resolvido', 'fechado']).optional(),
+  assigned_to_user_id: z.string().uuid().nullable().optional(),
+  is_internal: z.boolean().optional(),
+  level: z.enum(['fabrica', 'empresa', 'superadmin']).optional(),
+});
+
+export const SuperadminCreateTicketCommentSchema = z.object({
+  body: z.string().min(1, 'Mensagem obrigatória').max(4000),
+  is_internal: z.boolean().optional(),
+});
+
 // SLA Rule Schemas
 export const CreateSLARuleSchema = z.object({
   priority: z.number().int().min(1).max(4),

@@ -1,6 +1,6 @@
-# Roadmap (Futuro) — Tickets no SuperAdmin
+# Roadmap — Tickets (implementado) + próximos passos
 
-Objetivo: adicionar um sistema de **tickets de suporte/operacionais** para facilitar o acompanhamento de problemas/ações em **Empresa** e **Fábrica**, sem depender de ferramentas externas.
+Objetivo: ter um sistema de **tickets de suporte/operacionais** para acompanhar problemas/ações em **Fábrica → Empresa → SuperAdmin**, sem depender de ferramentas externas.
 
 ## Problema que resolve
 - Hoje, diagnósticos/auditoria/exportações existem, mas falta um “fio condutor” para:
@@ -9,24 +9,19 @@ Objetivo: adicionar um sistema de **tickets de suporte/operacionais** para facil
   - acompanhar estado (aberto → em progresso → resolvido);
   - deixar histórico de decisões/ações.
 
-## Escopo proposto (MVP)
-- **Criar ticket** a partir de contextos:
-  - página Empresa (tenant)
-  - página Fábrica (plant)
-  - página Suporte (SuperAdmin)
-- Campos:
-  - `title`, `description`
-  - `scope`: `global` | `tenant` | `plant`
-  - `tenantId?`, `plantId?`
-  - `severity`: `low` | `medium` | `high` | `critical`
-  - `status`: `open` | `in_progress` | `blocked` | `resolved` | `closed`
-  - `assigneeUserId?`
-  - `tags[]`
-- Timeline:
-  - comentários/eventos (status change, assign, note)
-  - ligação a eventos do audit log (opcional)
+## Estado atual (implementado)
+- Fluxo hierárquico: **fábrica → empresa → superadmin**
+  - Apenas **gestor de fábrica** reencaminha para empresa.
+  - Apenas **admin/gestor de empresa** reencaminha para superadmin.
+  - Exceção: **“problema geral”** cria já no nível **superadmin**.
+- Campos/estado (atuais): `title`, `description`, `status` + `level` (`fabrica|empresa|superadmin`) + `plant_id` (quando aplicável) + `is_general`.
+- Comentários: `ticket_comments` (com autor e timestamps).
+- Timeline/auditoria: `ticket_events` (eventos como create/comment/status change/forward).
+- Notificações: eventos de ticket geram notificações in-app (regras por tenant).
+- Paginação/filtros: `q`/`status` e `limit/offset` nas listagens.
+- RBAC: permissões `tickets:read`, `tickets:write`, `tickets:forward` aplicadas às rotas.
 
-## Integrações desejadas
+## Integrações desejadas (backlog)
 - **Auto-criação sugerida** (não automática no MVP) quando:
   - Integrity checks > 0 em checks críticos
   - RBAC drift relevante (roles sem permissões, permissões não usadas)
@@ -35,24 +30,22 @@ Objetivo: adicionar um sistema de **tickets de suporte/operacionais** para facil
   - guardar URL/metadata do export ou checksum
 
 ## UX (simples, inline)
-- Listagem: filtros básicos por `status`, `severity`, `scope`.
-- Detalhe do ticket: painel com descrição + timeline.
-- Ações rápidas: alterar estado, atribuir, adicionar nota.
+- Listagem: filtros básicos por `status` e pesquisa (`q`) + paginação.
+- Detalhe do ticket: painel com descrição + comentários + timeline.
+- Ações rápidas: alterar estado, reencaminhar (quando aplicável), adicionar comentário.
 
-## Back-end (estrutura sugerida)
+## Back-end (implementado)
 - Tabelas:
-  - `superadmin_tickets`
-  - `superadmin_ticket_events`
-- Endpoints (exemplos):
-  - `GET /api/superadmin/tickets?status=&severity=&tenantId=&plantId=`
-  - `POST /api/superadmin/tickets`
-  - `GET /api/superadmin/tickets/:id`
-  - `POST /api/superadmin/tickets/:id/events`
-  - `PATCH /api/superadmin/tickets/:id` (status/assignee)
-- Regras multi-tenant:
-  - tickets podem ser globais, por tenant, ou por fábrica
-  - o SuperAdmin deve ver tudo; outros papéis apenas o seu âmbito (se necessário futuramente)
+  - `tickets`
+  - `ticket_comments`
+  - `ticket_events`
+- Endpoints (alto nível):
+  - Fábrica (plant-scoped): listar/criar/detalhe/comentar/alterar estado/reencaminhar.
+  - Empresa (tenant-scoped): listar/detalhe/comentar/alterar estado/reencaminhar.
+  - SuperAdmin: listar/detalhe/atualizar/comentar.
 
-## Observações
-- Manter compatibilidade com o modelo atual de “Global por default” no SuperAdmin.
-- Priorizar consistência de exportações/auditoria (tickets também devem gerar audit logs).
+## Próximos passos sugeridos (não incluídos no MVP atual)
+- `severity`, `assignee`, `tags`.
+- Anexos (imagens/ficheiros) por ticket e por comentário.
+- Regras de auto-sugestão/auto-criação (integridade/drift/anomalias).
+- SLA e métricas (ex.: aging por estado, tempo até 1ª resposta, tempo até resolução).

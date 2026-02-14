@@ -28,6 +28,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { TechnicianWorkOrdersHomePage } from './pages/TechnicianWorkOrdersHomePage';
 import { OperatorWorkOrdersHomePage } from './pages/OperatorWorkOrdersHomePage';
+import { TicketsPage } from './pages/TicketsPage';
 
 import { SuperAdminPage } from './pages/SuperAdminPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
@@ -332,6 +333,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/tickets"
+              element={
+                <ProtectedRoute>
+                  <TicketsPage />
                 </ProtectedRoute>
               }
             />

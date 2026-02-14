@@ -1610,3 +1610,225 @@ export async function markInboxNotificationUnread(notificationId: string): Promi
     method: 'PATCH',
   });
 }
+
+// -------------------- Tickets (tenant + SuperAdmin) --------------------
+
+export type TicketStatus = 'aberto' | 'em_progresso' | 'resolvido' | 'fechado';
+
+export type TicketLevel = 'fabrica' | 'empresa' | 'superadmin';
+
+export type Ticket = {
+  id: string;
+  tenant_id: string;
+  plant_id?: string | null;
+  created_by_user_id?: string | null;
+  assigned_to_user_id?: string | null;
+  title: string;
+  description: string;
+  status: TicketStatus;
+  level?: TicketLevel;
+  is_general?: boolean;
+  is_internal?: boolean;
+  created_at: string;
+  updated_at: string;
+  last_activity_at: string;
+  closed_at?: string | null;
+  forwarded_at?: string | null;
+  forward_note?: string | null;
+};
+
+export type TicketComment = {
+  id: string;
+  ticket_id: string;
+  tenant_id: string;
+  body: string;
+  is_internal?: boolean;
+  created_at: string;
+  author?: {
+    id: string;
+    first_name?: string | null;
+    last_name?: string | null;
+  } | null;
+};
+
+export type TicketEvent = {
+  id: string;
+  ticket_id: string;
+  tenant_id: string;
+  plant_id?: string | null;
+  level?: TicketLevel;
+  event_type: string;
+  message?: string | null;
+  meta?: any;
+  created_at: string;
+  actor?: {
+    id: string;
+    first_name?: string | null;
+    last_name?: string | null;
+  } | null;
+};
+
+export type TicketDetail = {
+  ticket: Ticket;
+  comments: TicketComment[];
+  events?: TicketEvent[];
+};
+
+// Fábrica (plant-scoped)
+export async function listPlantTickets(
+  plantId: string,
+  params?: { status?: TicketStatus; q?: string; limit?: number; offset?: number },
+): Promise<Ticket[]> {
+  const qs = new URLSearchParams();
+  if (params?.status) qs.set('status', String(params.status));
+  if (params?.q) qs.set('q', String(params.q));
+  if (typeof params?.limit === 'number') qs.set('limit', String(params.limit));
+  if (typeof params?.offset === 'number') qs.set('offset', String(params.offset));
+  const suffix = qs.toString();
+  return apiCall(`/plants/${encodeURIComponent(plantId)}/tickets${suffix ? `?${suffix}` : ''}`);
+}
+
+export async function createPlantTicket(
+  plantId: string,
+  input: { title: string; description: string; is_general?: boolean },
+): Promise<Ticket> {
+  return apiCall(`/plants/${encodeURIComponent(plantId)}/tickets`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function getPlantTicket(plantId: string, ticketId: string): Promise<TicketDetail> {
+  return apiCall(`/plants/${encodeURIComponent(plantId)}/tickets/${encodeURIComponent(ticketId)}`);
+}
+
+export async function addPlantTicketComment(
+  plantId: string,
+  ticketId: string,
+  input: { body: string },
+): Promise<TicketComment> {
+  return apiCall(`/plants/${encodeURIComponent(plantId)}/tickets/${encodeURIComponent(ticketId)}/comments`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updatePlantTicketStatus(
+  plantId: string,
+  ticketId: string,
+  status: TicketStatus,
+): Promise<Ticket> {
+  return apiCall(`/plants/${encodeURIComponent(plantId)}/tickets/${encodeURIComponent(ticketId)}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function forwardPlantTicketToCompany(
+  plantId: string,
+  ticketId: string,
+  input?: { note?: string },
+): Promise<Ticket> {
+  return apiCall(`/plants/${encodeURIComponent(plantId)}/tickets/${encodeURIComponent(ticketId)}/forward`, {
+    method: 'PATCH',
+    body: JSON.stringify(input || {}),
+  });
+}
+
+// Empresa (tenant-scoped)
+export async function listCompanyTickets(params?: {
+  status?: TicketStatus;
+  q?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<Ticket[]> {
+  const qs = new URLSearchParams();
+  if (params?.status) qs.set('status', String(params.status));
+  if (params?.q) qs.set('q', String(params.q));
+  if (typeof params?.limit === 'number') qs.set('limit', String(params.limit));
+  if (typeof params?.offset === 'number') qs.set('offset', String(params.offset));
+  const suffix = qs.toString();
+  return apiCall(`/tickets/company${suffix ? `?${suffix}` : ''}`);
+}
+
+export async function getCompanyTicket(ticketId: string): Promise<TicketDetail> {
+  return apiCall(`/tickets/company/${encodeURIComponent(ticketId)}`);
+}
+
+export async function addCompanyTicketComment(ticketId: string, input: { body: string }): Promise<TicketComment> {
+  return apiCall(`/tickets/company/${encodeURIComponent(ticketId)}/comments`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateCompanyTicketStatus(ticketId: string, status: TicketStatus): Promise<Ticket> {
+  return apiCall(`/tickets/company/${encodeURIComponent(ticketId)}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function forwardCompanyTicketToSuperadmin(ticketId: string, input?: { note?: string }): Promise<Ticket> {
+  return apiCall(`/tickets/company/${encodeURIComponent(ticketId)}/forward`, {
+    method: 'PATCH',
+    body: JSON.stringify(input || {}),
+  });
+}
+
+export type SuperadminTicketListItem = {
+  id: string;
+  tenant_id: string;
+  tenant_name?: string | null;
+  plant_id?: string | null;
+  title: string;
+  status: TicketStatus;
+  level?: TicketLevel;
+  is_general?: boolean;
+  is_internal?: boolean;
+  created_at: string;
+  last_activity_at: string;
+  closed_at?: string | null;
+  forwarded_at?: string | null;
+};
+
+export async function superadminListTickets(params?: {
+  tenantId?: string;
+  status?: TicketStatus;
+  level?: TicketLevel;
+  q?: string;
+  limit?: number;
+}): Promise<SuperadminTicketListItem[]> {
+  const qs = new URLSearchParams();
+  if (params?.tenantId) qs.set('tenantId', String(params.tenantId));
+  if (params?.status) qs.set('status', String(params.status));
+  if (params?.level) qs.set('level', String(params.level));
+  if (params?.q) qs.set('q', String(params.q));
+  if (typeof params?.limit === 'number') qs.set('limit', String(params.limit));
+  const suffix = qs.toString();
+  return apiCall(`/superadmin/tickets${suffix ? `?${suffix}` : ''}`);
+}
+
+export async function superadminGetTicket(ticketId: string): Promise<TicketDetail> {
+  return apiCall(`/superadmin/tickets/${encodeURIComponent(ticketId)}`);
+}
+
+export async function superadminUpdateTicket(
+  ticketId: string,
+  patch: { status?: TicketStatus; assigned_to_user_id?: string | null; is_internal?: boolean },
+): Promise<Ticket> {
+  return apiCall(`/superadmin/tickets/${encodeURIComponent(ticketId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
+}
+
+export async function superadminAddTicketComment(
+  ticketId: string,
+  input: { body: string; is_internal?: boolean },
+): Promise<TicketComment> {
+  return apiCall(`/superadmin/tickets/${encodeURIComponent(ticketId)}/comments`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}

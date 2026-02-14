@@ -1,6 +1,12 @@
 import { Router } from 'express';
 import { authMiddleware, requireRole } from '../middlewares/auth.js';
+import { validateRequest } from '../middlewares/validation.js';
+import {
+	SuperadminCreateTicketCommentSchema,
+	SuperadminUpdateTicketSchema,
+} from '../schemas/validation.js';
 import * as SuperAdminController from '../controllers/superadmin.controller.js';
+import * as TicketsController from '../controllers/tickets.controller.js';
 
 const router = Router();
 
@@ -48,6 +54,20 @@ router.post('/audit/purge', SuperAdminController.purgeSuperadminAudit);
 // Support tools
 router.get('/users/search', SuperAdminController.searchUsers);
 router.post('/users/:userId/reset-password', SuperAdminController.resetUserPassword);
+
+// Tickets (Support)
+router.get('/tickets', TicketsController.superadminListTickets);
+router.get('/tickets/:ticketId', TicketsController.superadminGetTicket);
+router.patch(
+	'/tickets/:ticketId',
+	validateRequest(SuperadminUpdateTicketSchema),
+	TicketsController.superadminUpdateTicket,
+);
+router.post(
+	'/tickets/:ticketId/comments',
+	validateRequest(SuperadminCreateTicketCommentSchema),
+	TicketsController.superadminAddComment,
+);
 
 // Setup runs export (tenant-scoped)
 router.get('/db/runs/export', SuperAdminController.exportSetupRuns);
