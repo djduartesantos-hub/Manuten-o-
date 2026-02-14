@@ -1,6 +1,6 @@
 # 📊 Development Status Dashboard
 
-**Last Updated:** 11 February 2026  
+**Last Updated:** 14 February 2026  
 **Project:** Manuten-o CMMS v1.3.0-beta.2  
 **Status:** Dashboard (parcial) + track “fábrica + gestão” em curso
 
@@ -61,6 +61,13 @@ Overall Project:          ██████████████████
 - [x] Settings: Biblioteca de Documentos com upload funcional (multipart), pré-visualização e histórico de versões
 - [x] Settings: Alertas com ação “Testar” (endpoint + UI)
 - [x] Backend: hardening inicial (Helmet + rate limiting) + Swagger/OpenAPI em `/api/docs`
+
+**Atualizações recentes (2026-02-14)**
+- [x] Segurança: política por tenant (password policy + login lockout) + enforcement em auth/admin/profile
+- [x] Admin: endpoints para gerir política (`GET/PATCH /admin/security-policy`) + UI em Settings
+- [x] Sessões: listar/revogar sessões no Perfil + tracking best-effort (`touchSession`)
+- [x] Ordens de Trabalho: anexos (evidências) `GET/POST /:plantId/work-orders/:workOrderId/attachments`
+- [x] Documento de referência: `docs/ARCHITECTURE/FEATURES_659664c_SECURITY_SESSIONS_ATTACHMENTS.md`
 
 ### Phase 3B: Real-time Infrastructure (COMPLETE ✅)
 - [x] WebSocket/Socket.io with tenant rooms & JWT auth
