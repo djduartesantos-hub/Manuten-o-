@@ -102,6 +102,7 @@ export function SparePartsPage() {
   const [stocktakes, setStocktakes] = useState<any[]>([]);
   const [stocktakesLoading, setStocktakesLoading] = useState(false);
   const [stocktakesError, setStocktakesError] = useState<string | null>(null);
+  const [stocktakesAutoLoadedPlant, setStocktakesAutoLoadedPlant] = useState<string | null>(null);
 
   const [activeStocktake, setActiveStocktake] = useState<any | null>(null);
   const [activeStocktakeLoading, setActiveStocktakeLoading] = useState(false);
@@ -268,12 +269,18 @@ export function SparePartsPage() {
   );
 
   useEffect(() => {
-    if (!selectedPlant) return;
-    if (activeView !== 'inventory') return;
-    if (!stocktakesLoading && stocktakes.length === 0) {
-      loadStocktakes();
+    if (!selectedPlant) {
+      setStocktakesAutoLoadedPlant(null);
+      return;
     }
-  }, [activeView, loadStocktakes, selectedPlant, stocktakes.length, stocktakesLoading]);
+    if (activeView !== 'inventory') return;
+
+    // Auto-load at most once per plant when opening the inventory tab.
+    // Avoid infinite retry loops on errors (which can trigger 429).
+    if (stocktakesAutoLoadedPlant === selectedPlant) return;
+    setStocktakesAutoLoadedPlant(selectedPlant);
+    void loadStocktakes();
+  }, [activeView, loadStocktakes, selectedPlant, stocktakesAutoLoadedPlant]);
 
   const loadForecast = useCallback(async () => {
     if (!selectedPlant) return;
