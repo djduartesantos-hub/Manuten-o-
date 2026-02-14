@@ -29,21 +29,28 @@ export class StocktakeService {
       .orderBy(desc(stocktakes.created_at));
   }
 
-  private async computeExpectedQty(tenantId: string, plantId: string, sparePartId: string): Promise<number> {
-    const result = await db
+  private async computeExpectedBySparePart(tenantId: string, plantId: string): Promise<Map<string, number>> {
+    const rows = await db
       .select({
+        spare_part_id: stockMovements.spare_part_id,
         qty: sql<number>`COALESCE(SUM(CASE WHEN ${stockMovements.type} = 'entrada' OR ${stockMovements.type} = 'ajuste' THEN ${stockMovements.quantity} ELSE -${stockMovements.quantity} END), 0)::int`,
       })
       .from(stockMovements)
-      .where(
-        and(
-          eq(stockMovements.tenant_id, tenantId),
-          eq(stockMovements.plant_id, plantId),
-          eq(stockMovements.spare_part_id, sparePartId),
-        ),
-      );
+      .where(and(eq(stockMovements.tenant_id, tenantId), eq(stockMovements.plant_id, plantId)))
+      .groupBy(stockMovements.spare_part_id);
 
-    return Number(result?.[0]?.qty ?? 0);
+    const m = new Map<string, number>();
+    for (const r of rows) {
+      m.set(String((r as any).spare_part_id), Number((r as any).qty ?? 0));
+    }
+    return m;
+  }
+
+  private chunkArray<T>(arr: T[], chunkSize: number): T[][] {
+    if (chunkSize <= 0) return [arr];
+    const out: T[][] = [];
+    for (let i = 0; i < arr.length; i += chunkSize) out.push(arr.slice(i, i + chunkSize));
+    return out;
   }
 
   async create(tenantId: string, plantId: string, userId: string, notes?: string) {
@@ -59,6 +66,8 @@ export class StocktakeService {
       } as any)
       .returning();
 
+    const expectedByPart = await this.computeExpectedBySparePart(tenantId, plantId);
+
     const parts = await db
       .select({
         id: spareParts.id,
@@ -67,21 +76,25 @@ export class StocktakeService {
       .from(spareParts)
       .where(eq(spareParts.tenant_id, tenantId));
 
-    for (const part of parts) {
-      const expected = await this.computeExpectedQty(tenantId, plantId, String(part.id));
-      await db
-        .insert(stocktakeItems)
-        .values({
-          tenant_id: tenantId,
-          stocktake_id: (created as any).id,
-          spare_part_id: String(part.id),
-          expected_qty: expected,
-          counted_qty: null,
-          unit_cost: part.unit_cost as any,
-          created_at: new Date(),
-          updated_at: new Date(),
-        } as any)
-        .onConflictDoNothing();
+    const now = new Date();
+    const rows = parts.map((part) => {
+      const sparePartId = String(part.id);
+      const expected = Number(expectedByPart.get(sparePartId) ?? 0);
+      return {
+        tenant_id: tenantId,
+        stocktake_id: (created as any).id,
+        spare_part_id: sparePartId,
+        expected_qty: expected,
+        counted_qty: null,
+        unit_cost: part.unit_cost as any,
+        created_at: now,
+        updated_at: now,
+      } as any;
+    });
+
+    // Bulk insert in chunks to avoid huge parameter lists.
+    for (const chunk of this.chunkArray(rows, 500)) {
+      await db.insert(stocktakeItems).values(chunk as any).onConflictDoNothing();
     }
 
     return this.getById(tenantId, String((created as any).id));

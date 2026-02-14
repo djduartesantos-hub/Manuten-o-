@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../types/index.js';
 import { z } from 'zod';
 import { StocktakeService } from '../services/stocktake.service.js';
+import { logger } from '../config/logger.js';
 
 const stocktakeService = new StocktakeService();
 
@@ -33,10 +34,8 @@ export class StocktakeController {
       const rows = await stocktakeService.list(tenantId, plantId, status);
       res.json({ success: true, data: rows, total: rows.length });
     } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to list stocktakes',
-      });
+      logger.error('Failed to list stocktakes', { requestId: req.requestId, err: error });
+      res.status(500).json({ success: false, error: 'Failed to list stocktakes', requestId: req.requestId });
     }
   }
 
@@ -60,10 +59,10 @@ export class StocktakeController {
       const result = await stocktakeService.create(tenantId, plantId, userId, validation.data.notes);
       res.status(201).json({ success: true, data: result });
     } catch (error) {
-      res.status(400).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to create stocktake',
-      });
+      logger.error('Failed to create stocktake', { requestId: req.requestId, err: error });
+      res
+        .status(500)
+        .json({ success: false, error: 'Failed to create stocktake', requestId: req.requestId });
     }
   }
 
@@ -80,10 +79,9 @@ export class StocktakeController {
       const result = await stocktakeService.getById(tenantId, stocktakeId);
       res.json({ success: true, data: result });
     } catch (error) {
-      res.status(404).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Stocktake not found',
-      });
+      // Not found should remain 404, but avoid leaking internal errors.
+      const message = error instanceof Error ? error.message : 'Stocktake not found';
+      res.status(404).json({ success: false, error: message, requestId: req.requestId });
     }
   }
 
@@ -112,9 +110,11 @@ export class StocktakeController {
 
       res.json({ success: true, data: updated });
     } catch (error) {
+      logger.error('Failed to update stocktake item', { requestId: req.requestId, err: error });
       res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to update item',
+        requestId: req.requestId,
       });
     }
   }
@@ -143,9 +143,11 @@ export class StocktakeController {
 
       res.json({ success: true, data: result });
     } catch (error) {
+      logger.error('Failed to close stocktake', { requestId: req.requestId, err: error });
       res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to close stocktake',
+        requestId: req.requestId,
       });
     }
   }
@@ -166,9 +168,11 @@ export class StocktakeController {
       res.setHeader('Content-Disposition', `attachment; filename="stocktake-${stocktakeId}.csv"`);
       res.status(200).send(csv);
     } catch (error) {
+      logger.error('Failed to export stocktake csv', { requestId: req.requestId, err: error });
       res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to export',
+        requestId: req.requestId,
       });
     }
   }
