@@ -97,6 +97,8 @@ Manuten-o/
 - [DEVELOPMENT_STATUS.md](./DEVELOPMENT_STATUS.md) — dashboard de estado e progresso
 - [ROADMAP_2026.md](./ROADMAP_2026.md) — roadmap 2026 (em revisão)
 - [PROJECT_STATUS_UPDATE_2026-02-09.md](./PROJECT_STATUS_UPDATE_2026-02-09.md) — registo detalhado de mudanças (inclui addendum 2026-02-11)
+- [MULTI_FACTORY_RBAC.md](./MULTI_FACTORY_RBAC.md) — RBAC por fabrica (roles por planta)
+- [MIGRATION_NOTES_2026-02-14.md](./MIGRATION_NOTES_2026-02-14.md) — notas de migracao (RBAC por planta + menus)
 
 ### UX / SuperAdministrador (gestão global)
 - Painel: `/settings?panel=superadmin`

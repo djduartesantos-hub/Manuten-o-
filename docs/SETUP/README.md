@@ -12,6 +12,7 @@ Documentação detalhada para configuração inicial, banco de dados e ambiente.
 - **[DATABASE_SETUP.md](./DATABASE_SETUP.md)** - PostgreSQL setup e migrations
 - **[WINDOWS_DATABASE_SETUP.md](./WINDOWS_DATABASE_SETUP.md)** - PostgreSQL setup (Windows)
 - **[setup-database.sql](./setup-database.sql)** - SQL inicial (referência)
+- **[MIGRATION_NOTES_2026-02-14.md](../ARCHITECTURE/MIGRATION_NOTES_2026-02-14.md)** - Notas de migracao (RBAC por planta + menus)
 
 ---
 

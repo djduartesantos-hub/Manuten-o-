@@ -8,6 +8,8 @@ Documentação técnica sobre arquitetura, roadmap e status de desenvolvimento.
 - **[PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)** - Estrutura de pastas e organização
 - **[DOCUMENTATION.md](./DOCUMENTATION.md)** - Padrões de documentação
 - **[VERSIONING.md](./VERSIONING.md)** - Semantic versioning e releases
+- **[MULTI_FACTORY_RBAC.md](./MULTI_FACTORY_RBAC.md)** - RBAC por fabrica (roles por planta)
+- **[MIGRATION_NOTES_2026-02-14.md](./MIGRATION_NOTES_2026-02-14.md)** - Notas de migracao (RBAC por planta + menus)
 
 ### Development
 - **[ROADMAP_2026.md](./ROADMAP_2026.md)** - 🎯 **START HERE** - Roadmap estratégico 6+ meses
@@ -38,7 +40,7 @@ Documentação técnica sobre arquitetura, roadmap e status de desenvolvimento.
 ## 📊 Status Rápido
 
 **Versão Atual:** v1.3.0-beta.2  
-**Status (docs):** atualizado a 9 Fevereiro 2026  
+**Status (docs):** atualizado a 14 Fevereiro 2026  
 **Timeline:** Fevereiro-Setembro 2026
 
 Para contexto recente e decisões operacionais:
