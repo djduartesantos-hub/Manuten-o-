@@ -1,7 +1,8 @@
 import { and, eq, lte, sql } from 'drizzle-orm';
 import { db } from '../config/database.js';
-import { scheduledReports, workOrders, preventiveMaintenanceSchedules, spareParts, stockMovements } from '../db/schema.js';
+import { scheduledReports } from '../db/schema.js';
 import { JobQueueService, QUEUES } from './job.service.js';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 interface DashboardLayout {
   id: string;
@@ -317,7 +318,7 @@ export class CustomizationService {
       .where(eq(scheduledReports.id, _report_id));
   }
 
-  private async buildReportSummary(tenantId: string, reportType: string): Promise<{ text: string; html: string }> {
+  private async buildReportSummary(tenantId: string, reportType: string): Promise<{ text: string; html: string; csv: string; pdf: string }> {
     const now = new Date();
 
     const openOrders = await db.execute(sql`
@@ -390,7 +391,43 @@ export class CustomizationService {
     }
 
     const htmlLines = lines.map((line) => line.trim().length === 0 ? '<br />' : `<div>${line}</div>`).join('');
-    return { text: lines.join('\n'), html: htmlLines };
+
+    const csvRows = [
+      ['metric', 'value'],
+      ['open_work_orders', String(openCount)],
+      ['sla_overdue', String(slaCount)],
+      ['preventive_overdue', String(preventiveCount)],
+      ['low_stock_items', String(lowStockCount)],
+    ];
+    if (reportType === 'inventory' && lowStockCount > 0) {
+      csvRows.push(['', '']);
+      csvRows.push(['low_stock_code', 'low_stock_name']);
+      for (const row of lowStockRows.rows || []) {
+        csvRows.push([String(row.code || ''), String(row.name || '')]);
+      }
+    }
+    const csv = csvRows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595, 842]);
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    page.drawText(header, { x: 40, y: 790, size: 16, font, color: rgb(0.1, 0.1, 0.1) });
+
+    let y = 760;
+    for (const line of lines.slice(1)) {
+      if (y < 60) break;
+      if (line.trim().length === 0) {
+        y -= 12;
+        continue;
+      }
+      page.drawText(String(line), { x: 40, y, size: 11, font, color: rgb(0.2, 0.2, 0.2) });
+      y -= 16;
+    }
+
+    const pdfBytes = await pdfDoc.save();
+    const pdfBase64 = Buffer.from(pdfBytes).toString('base64');
+
+    return { text: lines.join('\n'), html: htmlLines, csv, pdf: pdfBase64 };
   }
 
   async processDueReports(): Promise<{ sent: number; errors: number }> {
@@ -400,7 +437,7 @@ export class CustomizationService {
 
     for (const report of reports as any[]) {
       try {
-        const { text, html } = await this.buildReportSummary(report.tenant_id, report.report_type);
+        const { text, html, csv, pdf } = await this.buildReportSummary(report.tenant_id, report.report_type);
         const subject = `Relatorio agendado: ${String(report.name || report.report_type)}`;
 
         const queued = await JobQueueService.addJob(QUEUES.EMAIL, 'send-email', {
@@ -408,6 +445,18 @@ export class CustomizationService {
           subject,
           text,
           html,
+          attachments: [
+            {
+              filename: `relatorio_${String(report.report_type || 'summary')}.csv`,
+              content: Buffer.from(csv, 'utf8').toString('base64'),
+              type: 'text/csv',
+            },
+            {
+              filename: `relatorio_${String(report.report_type || 'summary')}.pdf`,
+              content: pdf,
+              type: 'application/pdf',
+            },
+          ],
         });
 
         if (!queued) {

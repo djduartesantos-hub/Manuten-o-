@@ -12,7 +12,7 @@ export function initJobProcessors(): void {
     // Email jobs
     JobQueueService.processJob(QUEUES.EMAIL, 'send-email', async (job) => {
     job.progress(10);
-    const { to, subject, text, html, from } = job.data || {};
+    const { to, subject, text, html, from, attachments } = job.data || {};
 
     if (!process.env.SENDGRID_API_KEY) {
       logger.warn('SendGrid not configured. Skipping email send.', {
@@ -27,12 +27,24 @@ export function initJobProcessors(): void {
     }
 
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    const safeAttachments = Array.isArray(attachments)
+      ? attachments
+          .map((att: any) => ({
+            filename: String(att?.filename || '').trim(),
+            content: String(att?.content || '').trim(),
+            type: String(att?.type || '').trim() || undefined,
+            disposition: 'attachment',
+          }))
+          .filter((att: any) => att.filename && att.content)
+      : undefined;
+
     await sgMail.send({
       to,
       from: from || process.env.SENDGRID_FROM || 'noreply@cmms.local',
       subject,
       text,
       html,
+      attachments: safeAttachments && safeAttachments.length > 0 ? safeAttachments : undefined,
     });
 
     job.progress(100);

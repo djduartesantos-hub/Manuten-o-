@@ -4,7 +4,6 @@ import { useAuth } from '../hooks/useAuth';
 import { login as apiLogin } from '../services/api';
 import { AlertCircle, Eye, EyeOff, Moon, Sparkles, Sun } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { getHomeRouteForRole } from '../utils/homeRoute';
 
 type LoginStyle = 'minimal' | 'split' | 'full';
 
@@ -101,12 +100,11 @@ export function LoginPage() {
 
   const loginStyle = React.useMemo(() => resolveLoginStyle(location.search), [location.search]);
 
-  const homeRoute = getHomeRouteForRole(user?.role);
   React.useEffect(() => {
     if (isAuthenticated) {
-      navigate(homeRoute, { replace: true });
+      navigate('/', { replace: true });
     }
-  }, [homeRoute, isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,7 +114,7 @@ export function LoginPage() {
     try {
       const result = await apiLogin(username.trim().toLowerCase(), password);
       setAuth(result.user, result.token, result.refreshToken);
-      navigate(getHomeRouteForRole(result.user?.role));
+      navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
