@@ -391,6 +391,12 @@ export async function exportTenantMetrics(req: AuthenticatedRequest, res: Respon
     }));
 
     if (format === 'json') {
+      void SuperadminAuditService.log(req, {
+        action: 'metrics.tenants.export',
+        entity_type: 'export',
+        entity_id: 'tenants_metrics',
+        metadata: { format },
+      });
       return res.json({ success: true, data });
     }
 
@@ -434,6 +440,12 @@ export async function exportTenantMetrics(req: AuthenticatedRequest, res: Respon
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="superadmin_tenants_metrics.csv"');
+    void SuperadminAuditService.log(req, {
+      action: 'metrics.tenants.export',
+      entity_type: 'export',
+      entity_id: 'tenants_metrics',
+      metadata: { format: 'csv' },
+    });
     return res.status(200).send(csv);
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to export tenant metrics' });
@@ -560,6 +572,12 @@ export async function exportTenantsActivity(req: AuthenticatedRequest, res: Resp
     }));
 
     if (format === 'json') {
+      void SuperadminAuditService.log(req, {
+        action: 'metrics.tenants_activity.export',
+        entity_type: 'export',
+        entity_id: 'tenants_activity',
+        metadata: { format, days, limit },
+      });
       return res.json({ success: true, data });
     }
 
@@ -583,6 +601,12 @@ export async function exportTenantsActivity(req: AuthenticatedRequest, res: Resp
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="superadmin_tenants_activity.csv"');
+    void SuperadminAuditService.log(req, {
+      action: 'metrics.tenants_activity.export',
+      entity_type: 'export',
+      entity_id: 'tenants_activity',
+      metadata: { format: 'csv', days, limit },
+    });
     return res.status(200).send(csv);
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to export tenants activity' });
@@ -780,6 +804,13 @@ export async function exportPlantMetrics(req: AuthenticatedRequest, res: Respons
     });
 
     if (format === 'json') {
+      void SuperadminAuditService.log(req, {
+        action: 'metrics.plants.export',
+        entity_type: 'export',
+        entity_id: 'plants_metrics',
+        affected_tenant_id: tenantId,
+        metadata: { format },
+      });
       return res.json({ success: true, data });
     }
 
@@ -821,6 +852,13 @@ export async function exportPlantMetrics(req: AuthenticatedRequest, res: Respons
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="superadmin_plants_metrics.csv"');
+    void SuperadminAuditService.log(req, {
+      action: 'metrics.plants.export',
+      entity_type: 'export',
+      entity_id: 'plants_metrics',
+      affected_tenant_id: tenantId,
+      metadata: { format: 'csv' },
+    });
     return res.status(200).send(csv);
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to export plant metrics' });
@@ -920,6 +958,13 @@ export async function exportRbacDrift(req: AuthenticatedRequest, res: Response) 
     };
 
     if (format === 'json') {
+      void SuperadminAuditService.log(req, {
+        action: 'diagnostics.rbac_drift.export',
+        entity_type: 'export',
+        entity_id: 'rbac_drift',
+        affected_tenant_id: tenantId,
+        metadata: { format },
+      });
       return res.json({ success: true, data });
     }
 
@@ -939,6 +984,13 @@ export async function exportRbacDrift(req: AuthenticatedRequest, res: Response) 
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="superadmin_rbac_drift.csv"');
+    void SuperadminAuditService.log(req, {
+      action: 'diagnostics.rbac_drift.export',
+      entity_type: 'export',
+      entity_id: 'rbac_drift',
+      affected_tenant_id: tenantId,
+      metadata: { format: 'csv' },
+    });
     return res.status(200).send(csv);
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to export RBAC drift' });
@@ -1034,12 +1086,28 @@ export async function exportUserSecurityInsights(req: AuthenticatedRequest, res:
     const available = await SuperadminAuditService.isAvailable();
     if (!available) {
       const empty = { days, tenantId, topPasswordResets: [] as any[] };
-      if (format === 'json') return res.json({ success: true, data: empty });
+      if (format === 'json') {
+        void SuperadminAuditService.log(req, {
+          action: 'diagnostics.user_security.export',
+          entity_type: 'export',
+          entity_id: 'user_security',
+          affected_tenant_id: tenantId,
+          metadata: { format, days, limit },
+        });
+        return res.json({ success: true, data: empty });
+      }
 
       const headers = ['tenant_id', 'days', 'user_id', 'username', 'email', 'reset_count', 'last_reset_at', 'is_active', 'last_login'];
       const csv = [headers.join(',')].join('\n');
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', 'attachment; filename="superadmin_user_security.csv"');
+      void SuperadminAuditService.log(req, {
+        action: 'diagnostics.user_security.export',
+        entity_type: 'export',
+        entity_id: 'user_security',
+        affected_tenant_id: tenantId,
+        metadata: { format: 'csv', days, limit, empty: true },
+      });
       return res.status(200).send(csv);
     }
 
@@ -1093,6 +1161,13 @@ export async function exportUserSecurityInsights(req: AuthenticatedRequest, res:
 
     const data = { tenantId, days, topPasswordResets };
     if (format === 'json') {
+      void SuperadminAuditService.log(req, {
+        action: 'diagnostics.user_security.export',
+        entity_type: 'export',
+        entity_id: 'user_security',
+        affected_tenant_id: tenantId,
+        metadata: { format, days, limit },
+      });
       return res.json({ success: true, data });
     }
 
@@ -1116,6 +1191,13 @@ export async function exportUserSecurityInsights(req: AuthenticatedRequest, res:
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="superadmin_user_security.csv"');
+    void SuperadminAuditService.log(req, {
+      action: 'diagnostics.user_security.export',
+      entity_type: 'export',
+      entity_id: 'user_security',
+      affected_tenant_id: tenantId,
+      metadata: { format: 'csv', days, limit },
+    });
     return res.status(200).send(csv);
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to export user security insights' });
@@ -1279,6 +1361,13 @@ export async function exportIntegrityChecks(req: AuthenticatedRequest, res: Resp
 
     const data = { tenantId, checks };
     if (format === 'json') {
+      void SuperadminAuditService.log(req, {
+        action: 'diagnostics.integrity.export',
+        entity_type: 'export',
+        entity_id: 'integrity_checks',
+        affected_tenant_id: tenantId,
+        metadata: { format },
+      });
       return res.json({ success: true, data });
     }
 
@@ -1292,6 +1381,13 @@ export async function exportIntegrityChecks(req: AuthenticatedRequest, res: Resp
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="superadmin_integrity_checks.csv"');
+    void SuperadminAuditService.log(req, {
+      action: 'diagnostics.integrity.export',
+      entity_type: 'export',
+      entity_id: 'integrity_checks',
+      affected_tenant_id: tenantId,
+      metadata: { format: 'csv' },
+    });
     return res.status(200).send(csv);
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to export integrity checks' });
@@ -1633,6 +1729,20 @@ export async function exportDiagnosticsBundle(req: AuthenticatedRequest, res: Re
       userSecurity,
     };
 
+    void SuperadminAuditService.log(req, {
+      action: 'diagnostics.bundle.export',
+      entity_type: 'export',
+      entity_id: 'diagnostics_bundle',
+      affected_tenant_id: hasOverride ? tenantId : null,
+      metadata: {
+        format,
+        scope: hasOverride ? 'tenant' : 'global',
+        auditLimit,
+        diagnosticsLimit,
+        dbRunsLimit,
+      },
+    });
+
     if (format === 'zip') {
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader('Content-Disposition', 'attachment; filename="superadmin_diagnostics_bundle.zip"');
@@ -1916,6 +2026,12 @@ export async function exportTenantsHealthScore(req: AuthenticatedRequest, res: R
     const payload = await computeTenantsHealthScore(limit);
 
     if (format === 'json') {
+      void SuperadminAuditService.log(req, {
+        action: 'diagnostics.tenants_healthscore.export',
+        entity_type: 'export',
+        entity_id: 'tenants_healthscore',
+        metadata: { format, limit },
+      });
       return res.json({ success: true, data: payload });
     }
 
@@ -1962,6 +2078,12 @@ export async function exportTenantsHealthScore(req: AuthenticatedRequest, res: R
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="superadmin_tenants_healthscore.csv"');
+    void SuperadminAuditService.log(req, {
+      action: 'diagnostics.tenants_healthscore.export',
+      entity_type: 'export',
+      entity_id: 'tenants_healthscore',
+      metadata: { format: 'csv', limit },
+    });
     return res.status(200).send(csv);
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to export tenants health score' });
@@ -1998,6 +2120,12 @@ export async function exportSuperadminAudit(req: AuthenticatedRequest, res: Resp
     const rows = await SuperadminAuditService.list({ limit, offset: 0, from, to });
 
     if (format === 'json') {
+      void SuperadminAuditService.log(req, {
+        action: 'audit.export',
+        entity_type: 'export',
+        entity_id: 'superadmin_audit_logs',
+        metadata: { format, limit, from, to },
+      });
       return res.json({ success: true, data: rows });
     }
 
@@ -2036,6 +2164,12 @@ export async function exportSuperadminAudit(req: AuthenticatedRequest, res: Resp
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="superadmin_audit_logs.csv"');
+    void SuperadminAuditService.log(req, {
+      action: 'audit.export',
+      entity_type: 'export',
+      entity_id: 'superadmin_audit_logs',
+      metadata: { format: 'csv', limit, from, to },
+    });
     return res.status(200).send(csv);
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to export audit logs' });
@@ -2186,6 +2320,13 @@ export async function exportSetupRuns(req: AuthenticatedRequest, res: Response) 
     const rows = (runs as any)?.rows ?? [];
 
     if (format === 'json') {
+      void SuperadminAuditService.log(req, {
+        action: 'setup.runs.export',
+        entity_type: 'export',
+        entity_id: 'setup_db_runs',
+        affected_tenant_id: tenantId,
+        metadata: { format, limit },
+      });
       return res.json({ success: true, data: rows });
     }
 
@@ -2209,6 +2350,13 @@ export async function exportSetupRuns(req: AuthenticatedRequest, res: Response) 
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="setup_db_runs.csv"');
+    void SuperadminAuditService.log(req, {
+      action: 'setup.runs.export',
+      entity_type: 'export',
+      entity_id: 'setup_db_runs',
+      affected_tenant_id: tenantId,
+      metadata: { format: 'csv', limit },
+    });
     return res.status(200).send(csv);
   } catch {
     return res.status(500).json({ success: false, error: 'Failed to export setup runs' });
