@@ -11,6 +11,9 @@ router.use(authMiddleware);
 router.get('/', ProfileController.getProfile);
 router.get('/home-route', ProfileController.getHomeRoute);
 router.get('/permissions', ProfileController.getPermissions);
+router.get('/sessions', ProfileController.listSessions);
+router.post('/sessions/revoke-others', ProfileController.revokeOtherSessions);
+router.post('/sessions/:sessionId/revoke', ProfileController.revokeSession);
 router.patch('/', validateRequest(UpdateProfileSchema), ProfileController.updateProfile);
 router.patch(
   '/password',

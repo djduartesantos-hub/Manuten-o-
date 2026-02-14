@@ -1,4 +1,8 @@
 import { Response } from 'express';
+import path from 'path';
+import { and, desc, eq } from 'drizzle-orm';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { AuthenticatedRequest } from '../types/index.js';
 import { WorkOrderService } from '../services/workorder.service.js';
 import { NotificationService } from '../services/notification.service.js';
@@ -8,12 +12,24 @@ import { logger } from '../config/logger.js';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 import { StockReservationService } from '../services/stockreservation.service.js';
 import { isSlaOverdue } from '../utils/workorder-sla.js';
+import { db } from '../config/database.js';
+import { attachments, users, workOrders } from '../db/schema.js';
+import { CacheKeys, RedisService } from '../services/redis.service.js';
 import {
   createStockReservationSchema,
   releaseStockReservationSchema,
 } from '../schemas/stockreservation.validation.js';
 
 const stockReservationService = new StockReservationService();
+
+// ESM __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+function computeFileUrlFromUpload(params: { uploadBaseDir: string; file: Express.Multer.File }): string {
+  const relative = path.relative(params.uploadBaseDir, params.file.path).split(path.sep).join('/');
+  return `/uploads/${relative}`;
+}
 
 export class WorkOrderController {
   private static normalizeRole(role?: string | null) {
@@ -98,6 +114,150 @@ export class WorkOrderController {
         success: false,
         error: 'Failed to fetch work orders',
       });
+    }
+  }
+
+  // -------------------- Attachments --------------------
+
+  static async listAttachments(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { workOrderId, plantId } = req.params;
+      const tenantId = req.tenantId;
+
+      if (!tenantId || !workOrderId || !plantId) {
+        res.status(400).json({ success: false, error: 'Work order ID is required' });
+        return;
+      }
+
+      const workOrder = await WorkOrderService.getWorkOrderById(tenantId, workOrderId, plantId);
+      if (!workOrder) {
+        res.status(404).json({ success: false, error: 'Work order not found' });
+        return;
+      }
+
+      const rows = await db
+        .select({
+          id: attachments.id,
+          work_order_id: attachments.work_order_id,
+          file_url: attachments.file_url,
+          file_name: attachments.file_name,
+          file_type: attachments.file_type,
+          file_size: attachments.file_size,
+          uploaded_by: attachments.uploaded_by,
+          created_at: attachments.created_at,
+          uploader_first_name: users.first_name,
+          uploader_last_name: users.last_name,
+        })
+        .from(attachments)
+        .leftJoin(users, eq(attachments.uploaded_by, users.id))
+        .where(and(eq(attachments.tenant_id, tenantId), eq(attachments.work_order_id, workOrderId)))
+        .orderBy(desc(attachments.created_at));
+
+      res.json({
+        success: true,
+        data: (rows || []).map((r: any) => ({
+          id: String(r.id),
+          work_order_id: String(r.work_order_id),
+          file_url: String(r.file_url),
+          file_name: String(r.file_name),
+          file_type: r.file_type ? String(r.file_type) : null,
+          file_size: r.file_size == null ? null : Number(r.file_size),
+          uploaded_by: r.uploaded_by ? String(r.uploaded_by) : null,
+          created_at: r.created_at,
+          uploader: r.uploaded_by
+            ? {
+                id: String(r.uploaded_by),
+                first_name: r.uploader_first_name,
+                last_name: r.uploader_last_name,
+              }
+            : null,
+        })),
+      });
+    } catch (error) {
+      logger.error('List work order attachments error:', error);
+      res.status(500).json({ success: false, error: 'Failed to fetch attachments' });
+    }
+  }
+
+  static async uploadAttachment(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user?.userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
+      const { workOrderId, plantId } = req.params;
+      const tenantId = req.tenantId;
+      const file = (req as any).file as Express.Multer.File | undefined;
+
+      if (!tenantId || !workOrderId || !plantId) {
+        res.status(400).json({ success: false, error: 'Work order ID is required' });
+        return;
+      }
+
+      if (!file) {
+        res.status(400).json({ success: false, error: 'File is required' });
+        return;
+      }
+
+      const workOrder = await WorkOrderService.getWorkOrderById(tenantId, workOrderId, plantId);
+      if (!workOrder) {
+        res.status(404).json({ success: false, error: 'Work order not found' });
+        return;
+      }
+
+      const uploadBaseDir = path.join(__dirname, '../../uploads');
+      const fileUrl = computeFileUrlFromUpload({ uploadBaseDir, file });
+
+      const [created] = await db
+        .insert(attachments)
+        .values({
+          tenant_id: tenantId,
+          work_order_id: workOrderId,
+          file_url: fileUrl,
+          file_name: file.originalname || path.basename(file.filename),
+          file_type: file.mimetype || null,
+          file_size: typeof file.size === 'number' ? file.size : null,
+          uploaded_by: String(req.user.userId),
+          created_at: new Date(),
+        } as any)
+        .returning();
+
+      await db
+        .update(workOrders)
+        .set({ updated_at: new Date() } as any)
+        .where(and(eq(workOrders.tenant_id, tenantId), eq(workOrders.id, workOrderId)));
+
+      try {
+        await RedisService.del(CacheKeys.workOrder(tenantId, workOrderId));
+      } catch {
+        // ignore
+      }
+
+      try {
+        await AuditService.createLog({
+          tenant_id: tenantId,
+          user_id: String(req.user.userId),
+          action: 'create',
+          entity_type: 'work_order',
+          entity_id: workOrderId,
+          new_values: {
+            attachment_id: (created as any)?.id,
+            attachment_file_name: (created as any)?.file_name,
+            attachment_file_url: (created as any)?.file_url,
+            attachment_file_type: (created as any)?.file_type,
+            attachment_file_size: (created as any)?.file_size,
+          },
+          ip_address: req.ip,
+        });
+      } catch {
+        // best-effort
+      }
+
+      res.status(201).json({ success: true, data: created });
+    } catch (error) {
+      logger.error('Upload work order attachment error:', error);
+      res.status(500).json({ success: false, error: 'Failed to upload attachment' });
     }
   }
 

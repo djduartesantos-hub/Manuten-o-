@@ -9,6 +9,7 @@ import { users } from '../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import { TimeoutError, withTimeout } from '../utils/timeout.js';
 import crypto from 'node:crypto';
+import { SecurityPolicyService } from '../services/security-policy.service.js';
 
 export class AuthController {
   static async status(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -71,6 +72,41 @@ export class AuthController {
       const tenantId = req.tenantId || DEFAULT_TENANT_ID;
       const safeUsername = String(username).trim().toLowerCase();
 
+      const policy = await SecurityPolicyService.getTenantPolicy(tenantId);
+      const preLockout = await SecurityPolicyService.getLoginLockoutStatus({
+        tenantId,
+        username: safeUsername,
+        policy,
+      });
+
+      if (preLockout.locked) {
+        const ipAddress =
+          (String(req.headers['x-forwarded-for'] || '').split(',')[0] || '').trim() ||
+          (req.ip ? String(req.ip) : null);
+        const userAgent = req.headers['user-agent'] ? String(req.headers['user-agent']) : null;
+
+        await AuthService.recordLoginEvent({
+          tenantId,
+          username: safeUsername,
+          success: false,
+          userId: null,
+          ipAddress,
+          userAgent,
+          error: 'locked_out',
+        });
+
+        res.setHeader('Retry-After', String(preLockout.retryAfterSeconds));
+        res.status(429).json({
+          success: false,
+          error: 'Conta temporariamente bloqueada. Tente novamente mais tarde.',
+          data: {
+            retryAfterSeconds: preLockout.retryAfterSeconds,
+            failures: preLockout.failures,
+          },
+        });
+        return;
+      }
+
       const ipAddress =
         (String(req.headers['x-forwarded-for'] || '').split(',')[0] || '').trim() ||
         (req.ip ? String(req.ip) : null);
@@ -92,6 +128,26 @@ export class AuthController {
           userAgent,
           error: 'invalid_credentials',
         });
+
+        const postLockout = await SecurityPolicyService.getLoginLockoutStatus({
+          tenantId,
+          username: safeUsername,
+          policy,
+        });
+
+        if (postLockout.locked) {
+          res.setHeader('Retry-After', String(postLockout.retryAfterSeconds));
+          res.status(429).json({
+            success: false,
+            error: 'Conta temporariamente bloqueada. Tente novamente mais tarde.',
+            data: {
+              retryAfterSeconds: postLockout.retryAfterSeconds,
+              failures: postLockout.failures,
+            },
+          });
+          return;
+        }
+
         res.status(401).json({
           success: false,
           error: 'Invalid credentials',

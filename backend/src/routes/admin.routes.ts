@@ -3,8 +3,9 @@ import { authMiddleware } from '../middlewares/auth.js';
 import { requirePermission } from '../middlewares/permissions.js';
 import { validateRequest } from '../middlewares/validation.js';
 import * as AdminController from '../controllers/admin.controller.js';
+import * as SecurityController from '../controllers/security.controller.js';
 import * as SlaController from '../controllers/sla.controller.js';
-import { CreateSLARuleSchema } from '../schemas/validation.js';
+import { CreateSLARuleSchema, UpdateTenantSecurityPolicySchema } from '../schemas/validation.js';
 
 const router = Router();
 
@@ -15,6 +16,15 @@ router.get('/plants', requirePermission('admin:plants', 'tenant'), AdminControll
 router.post('/plants', requirePermission('admin:plants', 'tenant'), AdminController.createPlant);
 router.patch('/plants/:plantId', requirePermission('admin:plants', 'tenant'), AdminController.updatePlant);
 router.delete('/plants/:plantId', requirePermission('admin:plants', 'tenant'), AdminController.deactivatePlant);
+
+// Tenant Security Policy (password policy + login lockout)
+router.get('/security-policy', requirePermission('admin:users', 'tenant'), SecurityController.getTenantSecurityPolicy);
+router.patch(
+	'/security-policy',
+	requirePermission('admin:users', 'tenant'),
+	validateRequest(UpdateTenantSecurityPolicySchema),
+	SecurityController.updateTenantSecurityPolicy,
+);
 
 // Users
 router.get('/users', requirePermission('admin:users', 'tenant'), AdminController.listUsers);

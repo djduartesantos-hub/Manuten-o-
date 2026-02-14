@@ -1,10 +1,12 @@
 import { Response } from 'express';
-import { and, eq, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, ne, sql } from 'drizzle-orm';
 import { AuthenticatedRequest } from '../types/index.js';
 import { db } from '../config/database.js';
-import { users } from '../db/schema.js';
+import { authSessions, users } from '../db/schema.js';
 import { comparePasswords, hashPassword } from '../auth/jwt.js';
 import { RbacService } from '../services/rbac.service.js';
+import { AuthService } from '../services/auth.service.js';
+import { SecurityPolicyService } from '../services/security-policy.service.js';
 
 function toProfileDto(user: any) {
   return {
@@ -58,6 +60,90 @@ const suggestHomeFromPermissions = (permissions: Set<string>): string => {
 };
 
 export class ProfileController {
+  static async listSessions(req: AuthenticatedRequest, res: Response): Promise<Response> {
+    const tenantId = req.tenantId;
+    const userId = req.user?.userId;
+    const currentSessionId = String((req.user as any)?.sessionId || '').trim();
+
+    if (!tenantId || !userId) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    try {
+      const rows = await db
+        .select({
+          id: authSessions.id,
+          ipAddress: authSessions.ip_address,
+          userAgent: authSessions.user_agent,
+          createdAt: authSessions.created_at,
+          lastSeenAt: authSessions.last_seen_at,
+          revokedAt: authSessions.revoked_at,
+          revokedBy: authSessions.revoked_by,
+        })
+        .from(authSessions)
+        .where(and(eq(authSessions.tenant_id, tenantId), eq(authSessions.user_id, userId)))
+        .orderBy(desc(authSessions.last_seen_at))
+        .limit(50);
+
+      const data = rows.map((s) => ({
+        id: s.id,
+        ipAddress: s.ipAddress,
+        userAgent: s.userAgent,
+        createdAt: s.createdAt,
+        lastSeenAt: s.lastSeenAt,
+        revokedAt: s.revokedAt,
+        revokedBy: s.revokedBy,
+        isCurrent: currentSessionId && String(s.id) === currentSessionId,
+      }));
+
+      return res.json({ success: true, data });
+    } catch {
+      return res.status(500).json({ success: false, error: 'Falha ao carregar sessões' });
+    }
+  }
+
+  static async revokeSession(req: AuthenticatedRequest, res: Response): Promise<Response> {
+    const tenantId = req.tenantId;
+    const userId = req.user?.userId;
+    const sessionId = String(req.params?.sessionId || '').trim();
+
+    if (!tenantId || !userId) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    if (!sessionId || sessionId.length > 64) {
+      return res.status(400).json({ success: false, error: 'sessionId inválido' });
+    }
+
+    const revoked = await AuthService.revokeSessionForUser({
+      tenantId,
+      userId,
+      sessionId,
+      revokedByUserId: userId,
+    });
+
+    return res.json({ success: true, data: { revoked } });
+  }
+
+  static async revokeOtherSessions(req: AuthenticatedRequest, res: Response): Promise<Response> {
+    const tenantId = req.tenantId;
+    const userId = req.user?.userId;
+    const currentSessionId = String((req.user as any)?.sessionId || '').trim();
+
+    if (!tenantId || !userId) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const revoked = await AuthService.revokeAllOtherSessionsForUser({
+      tenantId,
+      userId,
+      currentSessionId: currentSessionId || null,
+      revokedByUserId: userId,
+    });
+
+    return res.json({ success: true, data: { revoked } });
+  }
+
   static async getProfile(req: AuthenticatedRequest, res: Response): Promise<Response> {
     const tenantId = req.tenantId;
     const userId = req.user?.userId;
@@ -197,6 +283,12 @@ export class ProfileController {
     const ok = await comparePasswords(String(currentPassword || ''), String(user.password_hash || ''));
     if (!ok) {
       return res.status(400).json({ success: false, error: 'Password atual incorreta' });
+    }
+
+    const policy = await SecurityPolicyService.getTenantPolicy(String(tenantId));
+    const policyError = SecurityPolicyService.validatePassword(String(newPassword || ''), policy);
+    if (policyError) {
+      return res.status(400).json({ success: false, error: policyError });
     }
 
     const passwordHash = await hashPassword(String(newPassword));

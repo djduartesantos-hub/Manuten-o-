@@ -23,6 +23,18 @@ export const ChangePasswordSchema = z.object({
   newPassword: z.string().min(6, 'Password nova mínimo 6 caracteres'),
 });
 
+export const UpdateTenantSecurityPolicySchema = z.object({
+  password_min_length: z.number().int().min(6).max(128).optional(),
+  password_require_lower: z.boolean().optional(),
+  password_require_upper: z.boolean().optional(),
+  password_require_digit: z.boolean().optional(),
+  password_require_special: z.boolean().optional(),
+
+  max_failed_logins: z.number().int().min(0).max(50).optional(),
+  failed_login_window_minutes: z.number().int().min(1).max(240).optional(),
+  lockout_minutes: z.number().int().min(0).max(1440).optional(),
+});
+
 // Work Order Schemas
 export const CreateWorkOrderSchema = z.object({
   asset_id: z.string().uuid('Asset ID deve ser UUID'),

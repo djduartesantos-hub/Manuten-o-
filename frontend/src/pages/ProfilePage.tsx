@@ -2,11 +2,21 @@ import React from 'react';
 import toast from 'react-hot-toast';
 import { MainLayout } from '../layouts/MainLayout';
 import { useAuthStore } from '../context/store';
-import { changePassword, getProfile, updateProfile, type UserProfile } from '../services/api';
+import {
+  changePassword,
+  getProfile,
+  listMySessions,
+  logoutAll,
+  revokeMySession,
+  revokeOtherSessions,
+  updateProfile,
+  type AuthSession,
+  type UserProfile,
+} from '../services/api';
 import { KeyRound, Phone, Mail, User as UserIcon, Shield } from 'lucide-react';
 
 export function ProfilePage() {
-  const { user, token, refreshToken, setAuth } = useAuthStore();
+  const { user, token, refreshToken, setAuth, logout } = useAuthStore();
   const [loading, setLoading] = React.useState(false);
 
   const [profile, setProfile] = React.useState<UserProfile | null>(null);
@@ -18,6 +28,12 @@ export function ProfilePage() {
   const [currentPassword, setCurrentPassword] = React.useState('');
   const [newPassword, setNewPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
+
+  const [sessionsLoading, setSessionsLoading] = React.useState(false);
+  const [sessions, setSessions] = React.useState<AuthSession[]>([]);
+  const [revokingSessionId, setRevokingSessionId] = React.useState<string>('');
+  const [revokingOthers, setRevokingOthers] = React.useState(false);
+  const [revokingAll, setRevokingAll] = React.useState(false);
 
   const initials = React.useMemo(() => {
     const a = (firstName || user?.firstName || '').trim().slice(0, 1);
@@ -35,6 +51,14 @@ export function ProfilePage() {
         setLastName(data.lastName || '');
         setEmail(data.email || '');
         setPhone(data.phone || '');
+
+        setSessionsLoading(true);
+        try {
+          const rows = await listMySessions();
+          setSessions(Array.isArray(rows) ? rows : []);
+        } finally {
+          setSessionsLoading(false);
+        }
       } catch (error: any) {
         toast.error(error?.message || 'Falha ao carregar perfil');
       } finally {
@@ -43,6 +67,18 @@ export function ProfilePage() {
     };
 
     load();
+  }, []);
+
+  const reloadSessions = React.useCallback(async () => {
+    setSessionsLoading(true);
+    try {
+      const rows = await listMySessions();
+      setSessions(Array.isArray(rows) ? rows : []);
+    } catch (error: any) {
+      toast.error(error?.message || 'Falha ao carregar sessões');
+    } finally {
+      setSessionsLoading(false);
+    }
   }, []);
 
   const handleSaveProfile = async (event: React.FormEvent) => {
@@ -107,6 +143,54 @@ export function ProfilePage() {
       toast.error(error?.message || 'Falha ao atualizar password');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRevokeSession = async (sessionId: string, isCurrent?: boolean) => {
+    if (!sessionId) return;
+    setRevokingSessionId(sessionId);
+    try {
+      await revokeMySession(sessionId);
+      toast.success('Sessão terminada');
+
+      if (isCurrent) {
+        // Current session revoked -> logout client-side
+        logout();
+        window.location.href = '/login';
+        return;
+      }
+
+      await reloadSessions();
+    } catch (error: any) {
+      toast.error(error?.message || 'Falha ao terminar sessão');
+    } finally {
+      setRevokingSessionId('');
+    }
+  };
+
+  const handleRevokeOtherSessions = async () => {
+    setRevokingOthers(true);
+    try {
+      const result: any = await revokeOtherSessions();
+      const count = Number(result?.revoked ?? 0);
+      toast.success(count > 0 ? `Terminadas ${count} sessões` : 'Sem outras sessões ativas');
+      await reloadSessions();
+    } catch (error: any) {
+      toast.error(error?.message || 'Falha ao terminar outras sessões');
+    } finally {
+      setRevokingOthers(false);
+    }
+  };
+
+  const handleLogoutAll = async () => {
+    setRevokingAll(true);
+    try {
+      await logoutAll();
+    } catch {
+      // ignore - local logout still clears session client-side
+    } finally {
+      logout();
+      window.location.href = '/login';
     }
   };
 
@@ -337,6 +421,85 @@ export function ProfilePage() {
                 </label>
               </div>
             </form>
+
+            <div className="rounded-2xl border theme-border theme-card p-6">
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-2xl theme-surface">
+                      <Shield className="h-4 w-4 theme-text-muted" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-semibold theme-text">Sessões</h2>
+                      <p className="text-xs theme-text-muted">Dispositivos ativos e gestão de sessões.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleRevokeOtherSessions()}
+                    disabled={sessionsLoading || revokingOthers || revokingAll}
+                    className="btn-secondary h-9 px-3"
+                  >
+                    {revokingOthers ? 'A terminar…' : 'Terminar outras'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleLogoutAll()}
+                    disabled={sessionsLoading || revokingAll || revokingOthers}
+                    className="btn-secondary h-9 px-3"
+                    title="Termina todas as sessões (inclui esta)"
+                  >
+                    {revokingAll ? 'A sair…' : 'Terminar todas'}
+                  </button>
+                </div>
+              </div>
+
+              {sessionsLoading ? (
+                <div className="text-sm theme-text-muted">A carregar sessões…</div>
+              ) : sessions.length === 0 ? (
+                <div className="text-sm theme-text-muted">Sem sessões.</div>
+              ) : (
+                <div className="space-y-2">
+                  {sessions.map((s) => {
+                    const isCurrent = Boolean((s as any)?.isCurrent);
+                    const isRevoked = Boolean((s as any)?.revokedAt);
+                    const label = isCurrent ? 'Atual' : isRevoked ? 'Revogada' : 'Ativa';
+                    return (
+                      <div
+                        key={s.id}
+                        className="rounded-2xl border theme-border theme-card px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold theme-text truncate">
+                            {s.userAgent ? String(s.userAgent) : 'Dispositivo'}
+                          </p>
+                          <p className="text-xs theme-text-muted truncate">
+                            IP: {s.ipAddress || '—'} • Criada: {new Date(s.createdAt).toLocaleString()} • Última atividade: {new Date(s.lastSeenAt).toLocaleString()}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold theme-text-muted">{label}</span>
+                          {!isRevoked ? (
+                            <button
+                              type="button"
+                              onClick={() => void handleRevokeSession(String(s.id), isCurrent)}
+                              disabled={revokingSessionId === String(s.id) || revokingOthers || revokingAll}
+                              className="btn-secondary h-9 px-3"
+                            >
+                              {revokingSessionId === String(s.id) ? 'A terminar…' : 'Terminar'}
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

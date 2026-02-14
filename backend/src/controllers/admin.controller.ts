@@ -6,6 +6,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { AuthenticatedRequest } from '../types/index.js';
 import { db } from '../config/database.js';
 import { assets, plants, rbacRoles, userPlants, users } from '../db/schema.js';
+import { SecurityPolicyService } from '../services/security-policy.service.js';
 
 function generateTempPassword(length = 14): string {
   // Base64url gives URL-safe chars; slice for desired length.
@@ -331,7 +332,24 @@ export async function createUser(req: AuthenticatedRequest, res: Response) {
 
     const shouldGeneratePassword = Boolean(generatePassword ?? generate_password);
     const incomingPassword = typeof password === 'string' ? password : String(password || '');
-    const finalPassword = shouldGeneratePassword ? generateTempPassword() : incomingPassword;
+    const policy = await SecurityPolicyService.getTenantPolicy(String(tenantId));
+
+    let finalPassword = incomingPassword;
+    if (shouldGeneratePassword) {
+      // Generate a temp password that satisfies policy.
+      let candidate = '';
+      for (let i = 0; i < 12; i++) {
+        candidate = generateTempPassword();
+        if (!SecurityPolicyService.validatePassword(candidate, policy)) break;
+      }
+      const genError = SecurityPolicyService.validatePassword(candidate, policy);
+      if (genError) {
+        return res
+          .status(500)
+          .json({ success: false, error: 'Falha ao gerar password temporária compatível com a política' });
+      }
+      finalPassword = candidate;
+    }
 
     if (!username || !email || !first_name || !last_name) {
       return res.status(400).json({ success: false, error: 'Missing required fields' });
@@ -339,6 +357,11 @@ export async function createUser(req: AuthenticatedRequest, res: Response) {
 
     if (!finalPassword || String(finalPassword).trim().length === 0) {
       return res.status(400).json({ success: false, error: 'Password is required' });
+    }
+
+    const policyError = SecurityPolicyService.validatePassword(String(finalPassword || ''), policy);
+    if (policyError) {
+      return res.status(400).json({ success: false, error: policyError });
     }
 
     const roleKey = normalizeRole(role);
@@ -925,6 +948,12 @@ export async function resetUserPassword(req: AuthenticatedRequest, res: Response
 
     if (!password || String(password).length < 6) {
       return res.status(400).json({ success: false, error: 'Password inválida' });
+    }
+
+    const policy = await SecurityPolicyService.getTenantPolicy(String(tenantId));
+    const policyError = SecurityPolicyService.validatePassword(String(password || ''), policy);
+    if (policyError) {
+      return res.status(400).json({ success: false, error: policyError });
     }
 
     const user = await db.query.users.findFirst({

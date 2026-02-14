@@ -837,6 +837,12 @@ export async function logout(): Promise<{ message?: string } | void> {
   });
 }
 
+export async function logoutAll(): Promise<{ revoked?: number } | void> {
+  return apiCall('/auth/logout-all', {
+    method: 'POST',
+  });
+}
+
 export type UserProfile = {
   id: string;
   username: string;
@@ -847,6 +853,17 @@ export type UserProfile = {
   role: string;
   roleLabel?: string | null;
   tenantId: string;
+};
+
+export type AuthSession = {
+  id: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  createdAt: string;
+  lastSeenAt: string;
+  revokedAt?: string | null;
+  revokedBy?: string | null;
+  isCurrent?: boolean;
 };
 
 export type AdminRoleOption = {
@@ -882,6 +899,38 @@ export async function changePassword(data: {
   });
 }
 
+export async function listMySessions(): Promise<AuthSession[]> {
+  return apiCall('/profile/sessions');
+}
+
+export async function revokeMySession(sessionId: string): Promise<{ revoked: boolean } | void> {
+  return apiCall(`/profile/sessions/${encodeURIComponent(String(sessionId))}/revoke`, {
+    method: 'POST',
+  });
+}
+
+export async function revokeOtherSessions(): Promise<{ revoked: number } | void> {
+  return apiCall('/profile/sessions/revoke-others', {
+    method: 'POST',
+  });
+}
+
+export type WorkOrderAttachment = {
+  id: string;
+  work_order_id: string;
+  file_url: string;
+  file_name: string;
+  file_type?: string | null;
+  file_size?: number | null;
+  uploaded_by?: string | null;
+  created_at?: string;
+  uploader?: {
+    id: string;
+    first_name?: string | null;
+    last_name?: string | null;
+  } | null;
+};
+
 export async function getWorkOrders(plantId: string, status?: string) {
   const params = new URLSearchParams();
   if (status) params.append('status', status);
@@ -909,6 +958,26 @@ export async function updateWorkOrder(plantId: string, workOrderId: string, data
 
 export async function getWorkOrderAuditLogs(plantId: string, workOrderId: string) {
   return apiCall(`/${plantId}/work-orders/${workOrderId}/audit`);
+}
+
+export async function listWorkOrderAttachments(plantId: string, workOrderId: string): Promise<WorkOrderAttachment[]> {
+  return apiCall(`/${encodeURIComponent(String(plantId))}/work-orders/${encodeURIComponent(String(workOrderId))}/attachments`);
+}
+
+export async function uploadWorkOrderAttachment(
+  plantId: string,
+  workOrderId: string,
+  file: File,
+): Promise<WorkOrderAttachment> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await apiCallRaw(
+    `/${encodeURIComponent(String(plantId))}/work-orders/${encodeURIComponent(String(workOrderId))}/attachments`,
+    { method: 'POST', body: form },
+  );
+  const json = await res.json();
+  if (!json?.success) throw new Error(json?.error || 'Upload failed');
+  return json.data as WorkOrderAttachment;
 }
 
 export async function getWorkOrderReservations(plantId: string, workOrderId: string) {
@@ -1270,6 +1339,37 @@ export async function getJobQueueStats() {
 // ============================================================================
 // ADMIN MANAGEMENT (plants, users, roles)
 // ============================================================================
+
+export type TenantSecurityPolicy = {
+  passwordMinLength: number;
+  passwordRequireLower: boolean;
+  passwordRequireUpper: boolean;
+  passwordRequireDigit: boolean;
+  passwordRequireSpecial: boolean;
+  maxFailedLogins: number;
+  failedLoginWindowMinutes: number;
+  lockoutMinutes: number;
+};
+
+export async function getAdminSecurityPolicy(): Promise<TenantSecurityPolicy> {
+  return apiCall('/admin/security-policy');
+}
+
+export async function updateAdminSecurityPolicy(patch: {
+  password_min_length?: number;
+  password_require_lower?: boolean;
+  password_require_upper?: boolean;
+  password_require_digit?: boolean;
+  password_require_special?: boolean;
+  max_failed_logins?: number;
+  failed_login_window_minutes?: number;
+  lockout_minutes?: number;
+}): Promise<TenantSecurityPolicy> {
+  return apiCall('/admin/security-policy', {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
+}
 
 export async function getAdminPlants() {
   return apiCall('/admin/plants');

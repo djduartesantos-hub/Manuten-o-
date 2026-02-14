@@ -675,7 +675,7 @@ export async function forwardPlantTicketToCompany(req: AuthenticatedRequest, res
     });
 
     if (!ticket) return res.status(404).json({ success: false, error: 'Ticket not found' });
-    if (Boolean((ticket as any)?.is_general)) {
+    if ((ticket as any)?.is_general) {
       return res.status(400).json({ success: false, error: 'Ticket geral não necessita reencaminhamento' });
     }
 
@@ -1011,7 +1011,7 @@ export async function forwardCompanyTicketToSuperadmin(req: AuthenticatedRequest
     });
     if (!ticket) return res.status(404).json({ success: false, error: 'Ticket not found' });
 
-    if (Boolean((ticket as any)?.is_general)) {
+    if ((ticket as any)?.is_general) {
       return res.status(400).json({ success: false, error: 'Ticket geral já está no SuperAdmin' });
     }
 

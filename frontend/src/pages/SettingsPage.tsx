@@ -67,6 +67,8 @@ import {
   superadminUploadTicketAttachment,
   superadminUpdateTicket,
   applyRbacPatch,
+  getAdminSecurityPolicy,
+  updateAdminSecurityPolicy,
 } from '../services/api';
 import {
   Bell,
@@ -6668,6 +6670,11 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
   const [users, setUsers] = React.useState<any[]>([]);
   const [roles, setRoles] = React.useState<Array<{ value: string; label: string }>>([]);
   const [assets, setAssets] = React.useState<any[]>([]);
+  const [securityPolicy, setSecurityPolicy] = React.useState<any | null>(null);
+  const [loadingPolicy, setLoadingPolicy] = React.useState(false);
+  const [savingPolicy, setSavingPolicy] = React.useState(false);
+  const [policyError, setPolicyError] = React.useState<string | null>(null);
+  const [policySuccess, setPolicySuccess] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
@@ -6745,6 +6752,46 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
     }
   };
 
+  const loadSecurityPolicy = async () => {
+    if (!canManageUsers) return;
+    setLoadingPolicy(true);
+    setPolicyError(null);
+    try {
+      const data = await getAdminSecurityPolicy();
+      setSecurityPolicy(data || null);
+    } catch (err: any) {
+      setPolicyError(err?.message || 'Falha ao carregar política de segurança');
+      setSecurityPolicy(null);
+    } finally {
+      setLoadingPolicy(false);
+    }
+  };
+
+  const handleSaveSecurityPolicy = async () => {
+    if (!canManageUsers || !securityPolicy) return;
+    setSavingPolicy(true);
+    setPolicyError(null);
+    setPolicySuccess(null);
+    try {
+      const updated = await updateAdminSecurityPolicy({
+        password_min_length: Number(securityPolicy.passwordMinLength),
+        password_require_lower: Boolean(securityPolicy.passwordRequireLower),
+        password_require_upper: Boolean(securityPolicy.passwordRequireUpper),
+        password_require_digit: Boolean(securityPolicy.passwordRequireDigit),
+        password_require_special: Boolean(securityPolicy.passwordRequireSpecial),
+        max_failed_logins: Number(securityPolicy.maxFailedLogins),
+        failed_login_window_minutes: Number(securityPolicy.failedLoginWindowMinutes),
+        lockout_minutes: Number(securityPolicy.lockoutMinutes),
+      });
+      setSecurityPolicy(updated || securityPolicy);
+      setPolicySuccess('Política de segurança atualizada');
+    } catch (err: any) {
+      setPolicyError(err?.message || 'Falha ao atualizar política de segurança');
+    } finally {
+      setSavingPolicy(false);
+    }
+  };
+
   const loadAssets = async () => {
     if (!selectedPlant) {
       setAssets([]);
@@ -6767,12 +6814,19 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
   React.useEffect(() => {
     // Evita chamadas a endpoints admin quando não há permissões.
     if (usersOnly) {
-      if (canManageUsers) loadAdminData();
+      if (canManageUsers) {
+        loadAdminData();
+        loadSecurityPolicy();
+      }
       return;
     }
 
     if (canManagePlants || canManageUsers || canRunSetup || canStockRead || canSuppliersRead) {
       loadAdminData();
+    }
+
+    if (canManageUsers) {
+      loadSecurityPolicy();
     }
   }, []);
 
@@ -7399,6 +7453,161 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
           ))}
         </div>
       </div>
+
+      {canManageUsers && !usersOnly && (
+        <div className="relative overflow-hidden rounded-[28px] border theme-border theme-card p-5 shadow-sm space-y-6">
+          <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold theme-text">Política de segurança</h3>
+              <p className="text-sm theme-text-muted">Password e bloqueio por tentativas falhadas</p>
+            </div>
+            <KeyRound className="h-5 w-5 theme-text-muted" />
+          </div>
+
+          {loadingPolicy && (
+            <p className="text-sm theme-text-muted">Carregando política...</p>
+          )}
+
+          {!loadingPolicy && policyError && (
+            <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-800">
+              {policyError}
+            </div>
+          )}
+
+          {!loadingPolicy && policySuccess && (
+            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-800">
+              {policySuccess}
+            </div>
+          )}
+
+          {!loadingPolicy && securityPolicy && (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
+                  Password mínimo (caracteres)
+                </label>
+                <input
+                  type="number"
+                  min={6}
+                  max={128}
+                  className="input"
+                  value={String(securityPolicy.passwordMinLength ?? 8)}
+                  onChange={(e) =>
+                    setSecurityPolicy({
+                      ...securityPolicy,
+                      passwordMinLength: Number(e.target.value || 0),
+                    })
+                  }
+                />
+              </div>
+
+              <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+                <p className="text-xs font-semibold theme-text-muted uppercase tracking-wide">
+                  Requisitos de password
+                </p>
+                <div className="mt-3 space-y-2">
+                  {[
+                    ['passwordRequireLower', 'Minúscula (a-z)'],
+                    ['passwordRequireUpper', 'Maiúscula (A-Z)'],
+                    ['passwordRequireDigit', 'Dígito (0-9)'],
+                    ['passwordRequireSpecial', 'Especial (ex: !@#)'],
+                  ].map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-2 text-sm theme-text">
+                      <input
+                        type="checkbox"
+                        checked={Boolean((securityPolicy as any)[key])}
+                        onChange={(event) =>
+                          setSecurityPolicy({
+                            ...securityPolicy,
+                            [key]: event.target.checked,
+                          })
+                        }
+                        className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
+                  Máximo falhas (0 desativa)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={50}
+                  className="input"
+                  value={String(securityPolicy.maxFailedLogins ?? 8)}
+                  onChange={(e) =>
+                    setSecurityPolicy({
+                      ...securityPolicy,
+                      maxFailedLogins: Number(e.target.value || 0),
+                    })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
+                  Janela de falhas (min)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={240}
+                  className="input"
+                  value={String(securityPolicy.failedLoginWindowMinutes ?? 10)}
+                  onChange={(e) =>
+                    setSecurityPolicy({
+                      ...securityPolicy,
+                      failedLoginWindowMinutes: Number(e.target.value || 0),
+                    })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
+                  Bloqueio (min) (0 desativa)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={1440}
+                  className="input"
+                  value={String(securityPolicy.lockoutMinutes ?? 15)}
+                  onChange={(e) =>
+                    setSecurityPolicy({
+                      ...securityPolicy,
+                      lockoutMinutes: Number(e.target.value || 0),
+                    })
+                  }
+                />
+              </div>
+
+              <div className="md:col-span-2 flex flex-wrap items-center gap-3">
+                <button
+                  className="btn-primary"
+                  onClick={handleSaveSecurityPolicy}
+                  disabled={savingPolicy}
+                >
+                  Guardar política
+                </button>
+                <button
+                  className="btn-secondary"
+                  onClick={loadSecurityPolicy}
+                  disabled={savingPolicy || loadingPolicy}
+                >
+                  Recarregar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {!usersOnly && plantModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">

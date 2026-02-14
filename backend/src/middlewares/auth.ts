@@ -89,6 +89,9 @@ export async function authMiddleware(
         });
         return;
       }
+
+      // Best-effort session activity tracking
+      void AuthService.touchSession(String(payloadAny.sessionId));
     }
 
     req.user = payloadAny;

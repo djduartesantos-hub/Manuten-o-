@@ -179,6 +179,33 @@ export const authLoginEvents = pgTable(
   }),
 );
 
+// Tenant Security Policies (password policy + login lockout)
+export const tenantSecurityPolicies = pgTable(
+  'tenant_security_policies',
+  {
+    tenant_id: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' })
+      .primaryKey(),
+
+    password_min_length: integer('password_min_length').notNull().default(8),
+    password_require_lower: boolean('password_require_lower').notNull().default(true),
+    password_require_upper: boolean('password_require_upper').notNull().default(false),
+    password_require_digit: boolean('password_require_digit').notNull().default(true),
+    password_require_special: boolean('password_require_special').notNull().default(false),
+
+    max_failed_logins: integer('max_failed_logins').notNull().default(8),
+    failed_login_window_minutes: integer('failed_login_window_minutes').notNull().default(10),
+    lockout_minutes: integer('lockout_minutes').notNull().default(15),
+
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_by: uuid('updated_by'),
+  },
+  (table) => ({
+    updatedAtIdx: index('tenant_security_policies_updated_at_idx').on(table.updated_at),
+  }),
+);
+
 // Support Tickets (tenant + SuperAdmin)
 export const tickets = pgTable(
   'tickets',

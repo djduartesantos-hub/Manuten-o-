@@ -39,11 +39,14 @@ import {
   getPreventiveSchedules,
   getWorkOrder,
   getWorkOrderAuditLogs,
+  listWorkOrderAttachments,
+  uploadWorkOrderAttachment,
   getWorkOrderReservations,
   getWorkOrderTasks,
   getSpareParts,
   getStockMovementsByPlant,
   getWorkOrders,
+  type WorkOrderAttachment,
   releaseWorkOrderReservation,
   addWorkOrderTask,
   deleteWorkOrderTask,
@@ -368,6 +371,12 @@ export function WorkOrdersPage() {
   const [tasksError, setTasksError] = useState<string | null>(null);
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [tasksSaving, setTasksSaving] = useState(false);
+
+  const [orderAttachments, setOrderAttachments] = useState<WorkOrderAttachment[]>([]);
+  const [orderAttachmentsLoading, setOrderAttachmentsLoading] = useState(false);
+  const [orderAttachmentsError, setOrderAttachmentsError] = useState<string | null>(null);
+  const [orderAttachmentFile, setOrderAttachmentFile] = useState<File | null>(null);
+  const [orderAttachmentUploading, setOrderAttachmentUploading] = useState(false);
   const [timelineExpanded, setTimelineExpanded] = useState(false);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -1328,6 +1337,22 @@ export function WorkOrdersPage() {
         };
       }
 
+      if (next.attachment_file_url !== undefined || next.attachment_file_name !== undefined) {
+        const name = typeof next.attachment_file_name === 'string' ? next.attachment_file_name.trim() : '';
+        const url = typeof next.attachment_file_url === 'string' ? next.attachment_file_url.trim() : '';
+        if (name) details.push(`Anexo: ${name}`);
+        if (url) details.push(`URL: ${url}`);
+        if (details.length === 0) details.push(...formatAuditFields(log));
+        if (details.length === 0) return null;
+        return {
+          id: log.id,
+          title: 'Anexo enviado',
+          createdAt: log.created_at,
+          userLabel: formatAuditUser(log),
+          details,
+        };
+      }
+
       // Fallback
       details.push(...formatAuditFields(log));
       if (details.length === 0) return null;
@@ -1363,6 +1388,9 @@ export function WorkOrdersPage() {
     setOrderReservationsError(null);
     setOrderTasks([]);
     setTasksError(null);
+    setOrderAttachments([]);
+    setOrderAttachmentsError(null);
+    setOrderAttachmentFile(null);
     setNewTaskDescription('');
     setNotesAppend('');
     setAuditLogs([]);
@@ -1395,8 +1423,24 @@ export function WorkOrdersPage() {
     if (!editingOrder || !selectedPlant) return;
     loadOrderMovements(editingOrder.id);
     loadOrderReservations(editingOrder.id);
+    loadOrderAttachments(editingOrder.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingOrder, selectedPlant]);
+
+  const loadOrderAttachments = async (workOrderId: string) => {
+    if (!selectedPlant) return;
+    setOrderAttachmentsLoading(true);
+    setOrderAttachmentsError(null);
+    try {
+      const rows = await listWorkOrderAttachments(selectedPlant, workOrderId);
+      setOrderAttachments(Array.isArray(rows) ? (rows as WorkOrderAttachment[]) : []);
+    } catch (err: any) {
+      setOrderAttachments([]);
+      setOrderAttachmentsError(err?.message || 'Erro ao carregar anexos.');
+    } finally {
+      setOrderAttachmentsLoading(false);
+    }
+  };
 
   const loadWorkOrderDetails = async (workOrderId: string) => {
     if (!selectedPlant) return;
@@ -1408,6 +1452,7 @@ export function WorkOrdersPage() {
       const workOrder = await getWorkOrder(selectedPlant, workOrderId);
       setEditingOrder(workOrder);
       setNotesAppend('');
+      void loadOrderAttachments(workOrderId);
       try {
         const tasks = await getWorkOrderTasks(selectedPlant, workOrderId);
         setOrderTasks(Array.isArray(tasks) ? (tasks as WorkOrderTask[]) : []);
@@ -1455,6 +1500,28 @@ export function WorkOrdersPage() {
       setAuditError(err.message || 'Erro ao carregar historico.');
     } finally {
       setAuditLoading(false);
+    }
+  };
+
+  const handleUploadOrderAttachment = async () => {
+    if (!selectedPlant || !editingOrder) return;
+    if (!orderAttachmentFile) {
+      setOrderAttachmentsError('Selecione um ficheiro.');
+      return;
+    }
+
+    setOrderAttachmentUploading(true);
+    setOrderAttachmentsError(null);
+    try {
+      await uploadWorkOrderAttachment(selectedPlant, editingOrder.id, orderAttachmentFile);
+      setOrderAttachmentFile(null);
+      await loadOrderAttachments(editingOrder.id);
+      // Refresh audit/timeline and main order snapshot (best-effort)
+      void loadWorkOrderDetails(editingOrder.id);
+    } catch (err: any) {
+      setOrderAttachmentsError(err?.message || 'Erro ao enviar anexo.');
+    } finally {
+      setOrderAttachmentUploading(false);
     }
   };
 

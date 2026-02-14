@@ -120,6 +120,23 @@ export class AuthService {
     }
   }
 
+  static async touchSession(sessionId: string): Promise<void> {
+    if (!sessionId || sessionId.trim() === '') return;
+
+    // Throttle writes: only update last_seen every ~5 minutes.
+    try {
+      await db.execute(sql`
+        UPDATE auth_sessions
+        SET last_seen_at = NOW()
+        WHERE id = ${sessionId}
+          AND revoked_at IS NULL
+          AND (last_seen_at IS NULL OR last_seen_at < (NOW() - INTERVAL '5 minutes'));
+      `);
+    } catch {
+      // ignore (bootstrap/fail-open)
+    }
+  }
+
   static async isSessionActive(sessionId: string, userId?: string): Promise<boolean> {
     if (!sessionId || sessionId.trim() === '') return false;
 
@@ -184,6 +201,71 @@ export class AuthService {
       return updated.length > 0;
     } catch {
       return false;
+    }
+  }
+
+  static async revokeSessionForUser(input: {
+    tenantId: string;
+    userId: string;
+    sessionId: string;
+    revokedByUserId?: string | null;
+  }): Promise<boolean> {
+    if (!input.sessionId || input.sessionId.trim() === '') return false;
+
+    try {
+      const updated = await db
+        .update(authSessions)
+        .set({
+          revoked_at: new Date(),
+          revoked_by: input.revokedByUserId ?? null,
+        })
+        .where(
+          and(
+            eq(authSessions.id, input.sessionId),
+            eq(authSessions.tenant_id, input.tenantId),
+            eq(authSessions.user_id, input.userId),
+            isNull(authSessions.revoked_at),
+          ),
+        )
+        .returning({ id: authSessions.id });
+
+      return updated.length > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  static async revokeAllOtherSessionsForUser(input: {
+    tenantId: string;
+    userId: string;
+    currentSessionId?: string | null;
+    revokedByUserId?: string | null;
+  }): Promise<number> {
+    try {
+      const extraConditions: any[] = [];
+      if (input.currentSessionId && input.currentSessionId.trim() !== '') {
+        extraConditions.push(sql`${authSessions.id} <> ${input.currentSessionId}`);
+      }
+
+      const updated = await db
+        .update(authSessions)
+        .set({
+          revoked_at: new Date(),
+          revoked_by: input.revokedByUserId ?? null,
+        })
+        .where(
+          and(
+            eq(authSessions.tenant_id, input.tenantId),
+            eq(authSessions.user_id, input.userId),
+            isNull(authSessions.revoked_at),
+            ...extraConditions,
+          ),
+        )
+        .returning({ id: authSessions.id });
+
+      return updated.length;
+    } catch {
+      return 0;
     }
   }
 
