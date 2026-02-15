@@ -87,6 +87,8 @@ Overall Project:          ██████████████████
 - [x] Menus: reorganização por perfil (admin/gestor/tecnico/operador) + atalhos de conta
 - [x] Novas entradas: páginas home de Operador e Técnico + permissões de rotas
 - [x] UI: restyle das páginas principais (glass panels, inputs/botoes unificados)
+- [x] Settings: seis blocos reorganizados + agrupamento por contexto
+- [x] Permissões: alinhamento entre menu e rotas (tickets/planner/tecnico)
 
 ### Phase 3B: Real-time Infrastructure (COMPLETE ✅)
 - [x] WebSocket/Socket.io with tenant rooms & JWT auth

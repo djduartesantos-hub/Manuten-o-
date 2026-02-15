@@ -500,7 +500,7 @@ export function TicketsPage() {
 
             <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
               <input
-                className="h-9 rounded-xl border theme-border theme-card px-3 text-sm theme-text"
+                className="input h-9 rounded-xl px-3 text-sm"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 onKeyDown={(e) => {
@@ -510,7 +510,7 @@ export function TicketsPage() {
                 disabled={loading}
               />
               <select
-                className="h-9 rounded-xl border theme-border theme-card px-3 text-sm theme-text"
+                className="input h-9 rounded-xl px-3 text-sm"
                 value={statusFilter}
                 onChange={(e) => {
                   setStatusFilter(e.target.value as any);

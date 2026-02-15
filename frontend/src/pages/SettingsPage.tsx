@@ -118,6 +118,8 @@ type SettingTab =
   | 'management'
   | 'superadmin';
 
+type SettingGroup = 'operations' | 'alerts' | 'intelligence' | 'content' | 'governance' | 'platform';
+
 export function SettingsPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -138,43 +140,49 @@ export function SettingsPage() {
     'suppliers:write',
   ]);
 
-  const tabs: { id: SettingTab; label: string; icon: React.ReactNode; description: string }[] =
+  const tabs: { id: SettingTab; label: string; icon: React.ReactNode; description: string; group: SettingGroup }[] =
     [
       {
         id: 'alerts' as const,
         label: 'Alertas & Notificações',
         icon: <Bell className="w-5 h-5" />,
-        description: 'Configure thresholds e notificações de alertas',
+        description: 'Thresholds e escalonamentos de alertas',
+        group: 'alerts',
       },
       {
         id: 'notifications' as const,
         label: 'Notificações do sistema',
         icon: <Server className="w-5 h-5" />,
         description: 'Regras para eventos e destinatários',
-      },
-      {
-        id: 'preventive' as const,
-        label: 'Manutenção Preventiva',
-        icon: <Cog className="w-5 h-5" />,
-        description: 'Planos e agendamentos preventivos',
-      },
-      {
-        id: 'kits' as const,
-        label: 'Kits',
-        icon: <Boxes className="w-5 h-5" />,
-        description: 'Configurar kits de manutencao (pecas e quantidades)',
+        group: 'alerts',
       },
       {
         id: 'warnings' as const,
         label: 'Alertas Preditivos',
         icon: <AlertTriangle className="w-5 h-5" />,
         description: 'Análise histórica e avisos de risco',
+        group: 'intelligence',
+      },
+      {
+        id: 'preventive' as const,
+        label: 'Manutenção Preventiva',
+        icon: <Cog className="w-5 h-5" />,
+        description: 'Planos e agendamentos preventivos',
+        group: 'operations',
+      },
+      {
+        id: 'kits' as const,
+        label: 'Kits de Manutenção',
+        icon: <Boxes className="w-5 h-5" />,
+        description: 'Kits de peças e quantidades por plano',
+        group: 'operations',
       },
       {
         id: 'documents' as const,
         label: 'Biblioteca de Documentos',
         icon: <FileText className="w-5 h-5" />,
         description: 'Manuais, esquemas e certificados',
+        group: 'content',
       },
       ...(canSeePermissionsTab || canSeeManagementTab
         ? [
@@ -184,7 +192,8 @@ export function SettingsPage() {
                     id: 'permissions' as const,
                     label: 'Permissões & Roles',
                     icon: <Shield className="w-5 h-5" />,
-                    description: 'Gerir acesso por role',
+                    description: 'Matriz de acesso e roles por perfil',
+                    group: 'governance',
                   },
                 ]
               : []),
@@ -194,7 +203,8 @@ export function SettingsPage() {
                     id: 'management' as const,
                     label: 'Gestão administrativa',
                     icon: <Users className="w-5 h-5" />,
-                    description: 'Plantas, utilizadores, roles e equipamentos',
+                    description: 'Plantas, utilizadores, inventario e operacoes',
+                    group: 'governance',
                   },
                 ]
               : []),
@@ -206,7 +216,8 @@ export function SettingsPage() {
               id: 'superadmin' as const,
               label: 'SuperAdministrador',
               icon: <Shield className="w-5 h-5" />,
-              description: 'Gestão do projeto (empresas, bases de dados e RBAC)',
+              description: 'Gestao global, auditoria e diagnosticos',
+              group: 'platform',
             },
           ]
         : []),
@@ -248,6 +259,45 @@ export function SettingsPage() {
       });
 
   const activeMeta = tabs.find((tab) => tab.id === activePanel) || null;
+  const groups: Array<{ id: SettingGroup; label: string; description: string }> = [
+    {
+      id: 'operations',
+      label: 'Operacao & Planeamento',
+      description: 'Planos preventivos, kits e rotinas operacionais.',
+    },
+    {
+      id: 'alerts',
+      label: 'Alertas & Comunicacoes',
+      description: 'Regras de alerta, canais e destinatarios.',
+    },
+    {
+      id: 'intelligence',
+      label: 'Inteligencia & Risco',
+      description: 'Alertas preditivos e leituras de risco.',
+    },
+    {
+      id: 'content',
+      label: 'Conteudo & Documentos',
+      description: 'Biblioteca tecnica e registos de suporte.',
+    },
+    {
+      id: 'governance',
+      label: 'Governanca & Pessoas',
+      description: 'Permissoes, roles e gestao administrativa.',
+    },
+    {
+      id: 'platform',
+      label: 'Plataforma',
+      description: 'Operacoes globais, auditoria e diagnosticos.',
+    },
+  ];
+  const groupedTabs = groups
+    .map((group) => ({
+      ...group,
+      tabs: tabs.filter((tab) => tab.group === group.id),
+    }))
+    .filter((group) => group.tabs.length > 0);
+  const activeGroup = activeMeta ? groups.find((group) => group.id === activeMeta.group) : null;
 
   React.useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -343,48 +393,71 @@ export function SettingsPage() {
         </section>
 
         {!activePanel && (
-          <section className="rounded-[32px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                  Secoes
-                </p>
-                <h2 className="mt-2 text-xl font-semibold text-[color:var(--dash-ink)]">
-                  Escolha o que quer configurar
-                </h2>
-                <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
-                  Layout por cards para ficar mais limpo e objetivo.
-                </p>
+          <section className="space-y-6">
+            <div className="rounded-[32px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                    Secoes
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold text-[color:var(--dash-ink)]">
+                    Seis blocos para configurar
+                  </h2>
+                  <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
+                    Cada bloco agrupa tarefas por contexto para reduzir ruido.
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => openPanel(tab.id)}
-                  className="group rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-5 text-left shadow-[0_12px_28px_-22px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:bg-[color:var(--dash-surface-2)] hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-[color:var(--dash-ink)] truncate">
-                        {tab.label}
-                      </p>
-                      <p className="mt-1 text-xs text-[color:var(--dash-muted)]">
-                        {tab.description}
-                      </p>
-                    </div>
-                    <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] text-[color:var(--dash-accent)] shadow-sm">
-                      {tab.icon}
-                    </span>
+            {groupedTabs.map((group) => (
+              <div
+                key={group.id}
+                className="rounded-[32px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
+                      {group.label}
+                    </p>
+                    <p className="mt-2 text-sm text-[color:var(--dash-muted)]">
+                      {group.description}
+                    </p>
                   </div>
-                  <div className="mt-4 text-xs font-semibold text-[color:var(--dash-accent)]">
-                    Abrir
-                  </div>
-                </button>
-              ))}
-            </div>
+                  <span className="rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-3 py-1 text-xs font-semibold text-[color:var(--dash-muted)]">
+                    {group.tabs.length} itens
+                  </span>
+                </div>
+
+                <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {group.tabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => openPanel(tab.id)}
+                      className="group rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-5 text-left shadow-[0_12px_28px_-22px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:bg-[color:var(--dash-surface-2)] hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-[color:var(--dash-ink)] truncate">
+                            {tab.label}
+                          </p>
+                          <p className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                            {tab.description}
+                          </p>
+                        </div>
+                        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] text-[color:var(--dash-accent)] shadow-sm">
+                          {tab.icon}
+                        </span>
+                      </div>
+                      <div className="mt-4 text-xs font-semibold text-[color:var(--dash-accent)]">
+                        Abrir
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
           </section>
         )}
 
@@ -398,6 +471,11 @@ export function SettingsPage() {
                 <h3 className="mt-2 text-lg font-semibold text-[color:var(--dash-ink)] truncate">
                   {activeMeta?.label}
                 </h3>
+                {activeGroup && (
+                  <span className="mt-2 inline-flex items-center rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-3 py-1 text-xs font-semibold text-[color:var(--dash-muted)]">
+                    {activeGroup.label}
+                  </span>
+                )}
                 {activeMeta?.description && (
                   <p className="mt-1 text-sm text-[color:var(--dash-muted)]">
                     {activeMeta.description}
@@ -7505,458 +7583,496 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
         </div>
       )}
 
-      {!usersOnly && dbTools.length > 0 ? (
-        <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold theme-text">Ferramentas da base de dados</h3>
-              <p className="text-sm theme-text-muted">Menu rápido de configuração e migrações.</p>
-            </div>
+      {!usersOnly && (dbTools.length > 0 || adminPanels.length > 0) ? (
+        <section className="rounded-[30px] border theme-border theme-card p-6 shadow-sm space-y-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
+              Infraestrutura & operacao
+            </p>
+            <h3 className="mt-2 text-lg font-semibold theme-text">Base de dados e catalogos</h3>
+            <p className="mt-1 text-sm theme-text-muted">
+              Ferramentas tecnicas e paginas administrativas em blocos separados.
+            </p>
           </div>
-          <div className="mt-4 grid gap-4 md:grid-cols-3">
-            {dbTools.map((tool) => {
-              const Icon = tool.icon;
-              return (
-                <button
-                  key={tool.id}
-                  onClick={() => setActiveDbTool(tool.id)}
-                  className="group rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 text-left shadow-sm transition hover:bg-[color:var(--dash-surface)]"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold theme-text">{tool.title}</p>
-                      <p className="mt-1 text-xs theme-text-muted">{tool.description}</p>
-                    </div>
-                    <span className="flex h-9 w-9 items-center justify-center rounded-2xl border theme-border bg-[color:var(--dash-surface)] text-[color:var(--dash-accent)] transition group-hover:bg-[color:var(--dash-surface-2)]">
-                      <Icon className="h-4 w-4" />
-                    </span>
-                  </div>
-                  <div className="mt-3 text-xs font-semibold text-[color:var(--dash-accent)]">Abrir</div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
 
-      {!usersOnly && adminPanels.length > 0 ? (
-        <div className="rounded-[28px] border theme-border theme-card p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold theme-text">Menu administrativo</h3>
-              <p className="text-sm theme-text-muted">Aceda às páginas de gestão.</p>
-            </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {dbTools.length > 0 ? (
+              <div className="rounded-[28px] border theme-border bg-[color:var(--dash-panel)] p-5 shadow-sm">
+                <div>
+                  <h4 className="text-base font-semibold theme-text">Ferramentas da base de dados</h4>
+                  <p className="mt-1 text-sm theme-text-muted">Setup, migracoes e reparacao.</p>
+                </div>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  {dbTools.map((tool) => {
+                    const Icon = tool.icon;
+                    return (
+                      <button
+                        key={tool.id}
+                        onClick={() => setActiveDbTool(tool.id)}
+                        className="group rounded-[22px] border theme-border bg-[color:var(--dash-surface)] p-4 text-left shadow-sm transition hover:bg-[color:var(--dash-surface-2)]"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold theme-text">{tool.title}</p>
+                            <p className="mt-1 text-xs theme-text-muted">{tool.description}</p>
+                          </div>
+                          <span className="flex h-9 w-9 items-center justify-center rounded-2xl border theme-border bg-[color:var(--dash-panel)] text-[color:var(--dash-accent)] transition group-hover:bg-[color:var(--dash-surface)]">
+                            <Icon className="h-4 w-4" />
+                          </span>
+                        </div>
+                        <div className="mt-3 text-xs font-semibold text-[color:var(--dash-accent)]">Abrir</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            {adminPanels.length > 0 ? (
+              <div className="rounded-[28px] border theme-border bg-[color:var(--dash-panel)] p-5 shadow-sm">
+                <div>
+                  <h4 className="text-base font-semibold theme-text">Catalogos operacionais</h4>
+                  <p className="mt-1 text-sm theme-text-muted">Plantas, fornecedores e inventario.</p>
+                </div>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  {adminPanels.map((panel) => {
+                    const Icon = panel.icon;
+                    return (
+                      <button
+                        key={panel.id}
+                        onClick={() => setActiveAdminPanel(panel.id)}
+                        className="group rounded-[22px] border theme-border bg-[color:var(--dash-surface)] p-4 text-left shadow-sm transition hover:bg-[color:var(--dash-surface-2)]"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold theme-text">{panel.title}</p>
+                            <p className="mt-1 text-xs theme-text-muted">{panel.description}</p>
+                          </div>
+                          <span className="flex h-9 w-9 items-center justify-center rounded-2xl border theme-border bg-[color:var(--dash-panel)] text-[color:var(--dash-accent)] transition group-hover:bg-[color:var(--dash-surface)]">
+                            <Icon className="h-4 w-4" />
+                          </span>
+                        </div>
+                        <div className="mt-3 text-xs font-semibold text-[color:var(--dash-accent)]">Abrir</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
           </div>
-          <div className="mt-4 grid gap-4 md:grid-cols-3">
-            {adminPanels.map((panel) => {
-              const Icon = panel.icon;
-              return (
-                <button
-                  key={panel.id}
-                  onClick={() => setActiveAdminPanel(panel.id)}
-                  className="group rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 text-left shadow-sm transition hover:bg-[color:var(--dash-surface)]"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold theme-text">{panel.title}</p>
-                      <p className="mt-1 text-xs theme-text-muted">{panel.description}</p>
-                    </div>
-                    <span className="flex h-9 w-9 items-center justify-center rounded-2xl border theme-border bg-[color:var(--dash-surface)] text-[color:var(--dash-accent)] transition group-hover:bg-[color:var(--dash-surface-2)]">
-                      <Icon className="h-4 w-4" />
-                    </span>
-                  </div>
-                  <div className="mt-3 text-xs font-semibold text-[color:var(--dash-accent)]">Abrir</div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        </section>
       ) : null}
 
       {!usersOnly && (canManagePlants || canManageUsers) ? (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="relative overflow-hidden rounded-[28px] border theme-border theme-card p-5 shadow-sm space-y-6">
-          <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold theme-text">Plantas & utilizadores</h3>
-              <p className="text-sm theme-text-muted">Associe utilizadores a cada planta</p>
-            </div>
-            <Building2 className="h-5 w-5 theme-text-muted" />
-          </div>
-          {singlePlantLocked && (
-            <p className="text-xs theme-text-muted">
-              Modo de fábrica única ativo. A criação de novas plantas está bloqueada.
+        <section className="rounded-[30px] border theme-border theme-card p-6 shadow-sm space-y-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
+              Pessoas & ativos
             </p>
-          )}
+            <h3 className="mt-2 text-lg font-semibold theme-text">Plantas, utilizadores e equipamentos</h3>
+            <p className="mt-1 text-sm theme-text-muted">
+              Organizacao por planta e resumo do parque de ativos.
+            </p>
+          </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {loading && <p className="text-sm theme-text-muted">Carregando plantas...</p>}
-            {!loading && plants.length === 0 && (
-              <p className="text-sm theme-text-muted">Nenhuma planta cadastrada.</p>
-            )}
-            {plants.map((plant) => {
-              const assignedUsers = users.filter(
-                (user) => Array.isArray(user.plant_ids) && user.plant_ids.includes(plant.id),
-              );
-              const visibleUsers = assignedUsers.slice(0, 4);
-              const remainingUsers = assignedUsers.length - visibleUsers.length;
+          <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+            <div className="relative overflow-hidden rounded-[28px] border theme-border bg-[color:var(--dash-panel)] p-5 shadow-sm space-y-6">
+              <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-base font-semibold theme-text">Plantas & utilizadores</h4>
+                  <p className="text-sm theme-text-muted">Associe utilizadores a cada planta</p>
+                </div>
+                <Building2 className="h-5 w-5 theme-text-muted" />
+              </div>
+              {singlePlantLocked && (
+                <p className="text-xs theme-text-muted">
+                  Modo de fábrica única ativo. A criação de novas plantas está bloqueada.
+                </p>
+              )}
 
-              return (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {loading && <p className="text-sm theme-text-muted">Carregando plantas...</p>}
+                {!loading && plants.length === 0 && (
+                  <p className="text-sm theme-text-muted">Nenhuma planta cadastrada.</p>
+                )}
+                {plants.map((plant) => {
+                  const assignedUsers = users.filter(
+                    (user) => Array.isArray(user.plant_ids) && user.plant_ids.includes(plant.id),
+                  );
+                  const visibleUsers = assignedUsers.slice(0, 4);
+                  const remainingUsers = assignedUsers.length - visibleUsers.length;
+
+                  return (
+                    <div
+                      key={plant.id}
+                      className="rounded-[22px] border theme-border bg-[color:var(--dash-surface)] p-4 shadow-sm transition hover:bg-[color:var(--dash-surface-2)]"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold theme-text">
+                            {plant.code} - {plant.name}
+                          </p>
+                          <p className="text-xs theme-text-muted">
+                            {plant.city || 'Cidade'} · {plant.country || 'País'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                              plant.is_active
+                                ? 'bg-[color:var(--dash-panel)] text-[color:var(--dash-accent)]'
+                                : 'bg-[color:var(--dash-panel)] theme-text-muted'
+                            }`}
+                          >
+                            {plant.is_active ? 'Ativa' : 'Inativa'}
+                          </span>
+                          <button
+                            className="text-xs theme-text-muted hover:text-[color:var(--dash-text)]"
+                            onClick={() => handleStartPlantEdit(plant)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            className="text-xs theme-text-muted hover:text-[color:var(--dash-text)]"
+                            onClick={() => handleDeactivatePlant(plant.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                        {visibleUsers.length === 0 && (
+                          <span className="text-xs theme-text-muted">
+                            Sem utilizadores atribuídos.
+                          </span>
+                        )}
+                        {visibleUsers.map((user) => (
+                          <span
+                            key={user.id}
+                            className="rounded-full bg-[color:var(--dash-panel)] px-3 py-1 text-xs font-semibold theme-text-muted"
+                          >
+                            {user.first_name} {user.last_name}
+                          </span>
+                        ))}
+                        {remainingUsers > 0 && (
+                          <span className="rounded-full bg-[color:var(--dash-panel)] px-3 py-1 text-xs theme-text-muted">
+                            +{remainingUsers}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button
+                          className="btn-secondary"
+                          onClick={() => handleOpenPlantUsers(plant)}
+                        >
+                          Atribuir utilizadores
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="relative overflow-hidden rounded-[28px] border theme-border bg-[color:var(--dash-panel)] p-5 shadow-sm space-y-5">
+              <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-base font-semibold theme-text">Equipamentos</h4>
+                  <p className="text-sm theme-text-muted">Resumo por planta selecionada</p>
+                </div>
+                <a className="text-sm text-[color:var(--settings-accent)]" href="/assets">
+                  Ver lista
+                </a>
+              </div>
+
+              {!selectedPlant && (
+                <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text">
+                  <span className="badge-warning mr-2 text-xs">Atenção</span>
+                  Selecione uma planta no topo para visualizar equipamentos.
+                </div>
+              )}
+
+              {selectedPlant && (
+                <div className="space-y-3">
+                  <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
+                    <p className="text-xs theme-text-muted">Total</p>
+                    <p className="text-2xl font-semibold theme-text">{assets.length}</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {assets.slice(0, 5).map((asset) => (
+                      <div
+                        key={asset.id}
+                        className="rounded-[20px] border theme-border bg-[color:var(--dash-surface)] p-3 shadow-sm transition hover:bg-[color:var(--dash-surface-2)]"
+                      >
+                        <div>
+                          <p className="text-sm font-medium theme-text">{asset.name}</p>
+                          <p className="text-xs theme-text-muted">{asset.code}</p>
+                        </div>
+                        <span className="mt-2 inline-flex items-center rounded-full bg-[color:var(--dash-panel)] px-2 py-1 text-xs theme-text-muted">
+                          {asset.status || 'ativo'}
+                        </span>
+                      </div>
+                    ))}
+                    {assets.length === 0 && (
+                      <p className="text-sm theme-text-muted">Sem equipamentos cadastrados.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="rounded-[30px] border theme-border theme-card p-6 shadow-sm space-y-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
+            Acessos & seguranca
+          </p>
+          <h3 className="mt-2 text-lg font-semibold theme-text">Utilizadores, roles e politica</h3>
+          <p className="mt-1 text-sm theme-text-muted">
+            Controlo de contas, permissoes e regras de password.
+          </p>
+        </div>
+
+        <div className={canManageUsers && !usersOnly ? 'grid gap-4 lg:grid-cols-2' : 'grid gap-4'}>
+          <div className="relative overflow-hidden rounded-[28px] border theme-border bg-[color:var(--dash-panel)] p-5 shadow-sm space-y-6">
+            <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-base font-semibold theme-text">Utilizadores e roles</h4>
+                <p className="text-sm theme-text-muted">Crie contas e distribua acessos</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="btn-secondary inline-flex items-center gap-2"
+                  onClick={() => {
+                    setUserModalMode('create');
+                    setNewUser({
+                      username: '',
+                      email: '',
+                      password: '',
+                      first_name: '',
+                      last_name: '',
+                      role: 'tecnico',
+                      plant_ids: [],
+                    });
+                    setUserModalOpen(true);
+                    setGenerateUserPassword(false);
+                    setOneTimePassword('');
+                    setOneTimePasswordUsername('');
+                  }}
+                  disabled={saving}
+                >
+                  <Plus className="h-4 w-4" />
+                  Novo utilizador
+                </button>
+                <Users className="h-5 w-5 theme-text-muted" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {loading && <p className="text-sm theme-text-muted">Carregando utilizadores...</p>}
+              {!loading && users.length === 0 && (
+                <p className="text-sm theme-text-muted">Nenhum utilizador encontrado.</p>
+              )}
+              {users.map((user) => (
                 <div
-                  key={plant.id}
-                  className="rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 shadow-sm transition hover:bg-[color:var(--dash-surface)]"
+                  key={user.id}
+                  className="rounded-[22px] border theme-border bg-[color:var(--dash-surface)] p-4 shadow-sm transition hover:bg-[color:var(--dash-surface-2)]"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold theme-text">
-                        {plant.code} - {plant.name}
+                        {user.first_name} {user.last_name}
                       </p>
-                      <p className="text-xs theme-text-muted">
-                        {plant.city || 'Cidade'} · {plant.country || 'País'}
-                      </p>
+                      <p className="text-xs theme-text-muted">{user.username}</p>
+                      <p className="text-xs theme-text-muted">{user.email}</p>
                     </div>
                     <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-[color:var(--dash-panel)] px-3 py-1 text-xs theme-text-muted">
+                        {user.role}
+                      </span>
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                          plant.is_active
-                            ? 'bg-[color:var(--dash-surface)] text-[color:var(--dash-accent)]'
-                            : 'bg-[color:var(--dash-surface)] theme-text-muted'
+                          user.is_active
+                            ? 'bg-[color:var(--dash-panel)] text-[color:var(--dash-accent)]'
+                            : 'bg-[color:var(--dash-panel)] theme-text-muted'
                         }`}
                       >
-                        {plant.is_active ? 'Ativa' : 'Inativa'}
+                        {user.is_active ? 'Ativo' : 'Inativo'}
                       </span>
                       <button
                         className="text-xs theme-text-muted hover:text-[color:var(--dash-text)]"
-                        onClick={() => handleStartPlantEdit(plant)}
+                        onClick={() => handleStartUserEdit(user)}
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
-                      <button
-                        className="text-xs theme-text-muted hover:text-[color:var(--dash-text)]"
-                        onClick={() => handleDeactivatePlant(plant.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {canManageUsers && !usersOnly ? (
+            <div className="relative overflow-hidden rounded-[28px] border theme-border bg-[color:var(--dash-panel)] p-5 shadow-sm space-y-6">
+              <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-base font-semibold theme-text">Política de segurança</h4>
+                  <p className="text-sm theme-text-muted">Password e bloqueio por tentativas falhadas</p>
+                </div>
+                <KeyRound className="h-5 w-5 theme-text-muted" />
+              </div>
+
+              {loadingPolicy && (
+                <p className="text-sm theme-text-muted">Carregando política...</p>
+              )}
+
+              {!loadingPolicy && policyError && (
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-800">
+                  {policyError}
+                </div>
+              )}
+
+              {!loadingPolicy && policySuccess && (
+                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-800">
+                  {policySuccess}
+                </div>
+              )}
+
+              {!loadingPolicy && securityPolicy && (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
+                      Password mínimo (caracteres)
+                    </label>
+                    <input
+                      type="number"
+                      min={6}
+                      max={128}
+                      className="input"
+                      value={String(securityPolicy.passwordMinLength ?? 8)}
+                      onChange={(e) =>
+                        setSecurityPolicy({
+                          ...securityPolicy,
+                          passwordMinLength: Number(e.target.value || 0),
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+                    <p className="text-xs font-semibold theme-text-muted uppercase tracking-wide">
+                      Requisitos de password
+                    </p>
+                    <div className="mt-3 space-y-2">
+                      {[
+                        ['passwordRequireLower', 'Minúscula (a-z)'],
+                        ['passwordRequireUpper', 'Maiúscula (A-Z)'],
+                        ['passwordRequireDigit', 'Dígito (0-9)'],
+                        ['passwordRequireSpecial', 'Especial (ex: !@#)'],
+                      ].map(([key, label]) => (
+                        <label key={key} className="flex items-center gap-2 text-sm theme-text">
+                          <input
+                            type="checkbox"
+                            checked={Boolean((securityPolicy as any)[key])}
+                            onChange={(event) =>
+                              setSecurityPolicy({
+                                ...securityPolicy,
+                                [key]: event.target.checked,
+                              })
+                            }
+                            className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
+                          />
+                          {label}
+                        </label>
+                      ))}
                     </div>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap items-center gap-2">
-                    {visibleUsers.length === 0 && (
-                      <span className="text-xs theme-text-muted">
-                        Sem utilizadores atribuídos.
-                      </span>
-                    )}
-                    {visibleUsers.map((user) => (
-                      <span
-                        key={user.id}
-                        className="rounded-full bg-[color:var(--dash-surface)] px-3 py-1 text-xs font-semibold theme-text-muted"
-                      >
-                        {user.first_name} {user.last_name}
-                      </span>
-                    ))}
-                    {remainingUsers > 0 && (
-                      <span className="rounded-full bg-[color:var(--dash-surface)] px-3 py-1 text-xs theme-text-muted">
-                        +{remainingUsers}
-                      </span>
-                    )}
+                  <div>
+                    <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
+                      Máximo falhas (0 desativa)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={50}
+                      className="input"
+                      value={String(securityPolicy.maxFailedLogins ?? 8)}
+                      onChange={(e) =>
+                        setSecurityPolicy({
+                          ...securityPolicy,
+                          maxFailedLogins: Number(e.target.value || 0),
+                        })
+                      }
+                    />
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
+
+                  <div>
+                    <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
+                      Janela de falhas (min)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={240}
+                      className="input"
+                      value={String(securityPolicy.failedLoginWindowMinutes ?? 10)}
+                      onChange={(e) =>
+                        setSecurityPolicy({
+                          ...securityPolicy,
+                          failedLoginWindowMinutes: Number(e.target.value || 0),
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
+                      Bloqueio (min) (0 desativa)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={1440}
+                      className="input"
+                      value={String(securityPolicy.lockoutMinutes ?? 15)}
+                      onChange={(e) =>
+                        setSecurityPolicy({
+                          ...securityPolicy,
+                          lockoutMinutes: Number(e.target.value || 0),
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 flex flex-wrap items-center gap-3">
+                    <button
+                      className="btn-primary"
+                      onClick={handleSaveSecurityPolicy}
+                      disabled={savingPolicy}
+                    >
+                      Guardar política
+                    </button>
                     <button
                       className="btn-secondary"
-                      onClick={() => handleOpenPlantUsers(plant)}
+                      onClick={loadSecurityPolicy}
+                      disabled={savingPolicy || loadingPolicy}
                     >
-                      Atribuir utilizadores
+                      Recarregar
                     </button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              )}
+            </div>
+          ) : null}
         </div>
-
-        <div className="relative overflow-hidden rounded-[28px] border theme-border theme-card p-5 shadow-sm space-y-5">
-          <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold theme-text">Equipamentos</h3>
-              <p className="text-sm theme-text-muted">Resumo por planta selecionada</p>
-            </div>
-            <a className="text-sm text-[color:var(--settings-accent)]" href="/assets">
-              Ver lista
-            </a>
-          </div>
-
-          {!selectedPlant && (
-            <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text">
-              <span className="badge-warning mr-2 text-xs">Atenção</span>
-              Selecione uma planta no topo para visualizar equipamentos.
-            </div>
-          )}
-
-          {selectedPlant && (
-            <div className="space-y-3">
-              <div className="rounded-2xl border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] p-4">
-                <p className="text-xs theme-text-muted">Total</p>
-                <p className="text-2xl font-semibold theme-text">{assets.length}</p>
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {assets.slice(0, 5).map((asset) => (
-                  <div
-                    key={asset.id}
-                    className="rounded-[20px] border theme-border bg-[color:var(--dash-panel)] p-3 shadow-sm transition hover:bg-[color:var(--dash-surface)]"
-                  >
-                    <div>
-                      <p className="text-sm font-medium theme-text">{asset.name}</p>
-                      <p className="text-xs theme-text-muted">{asset.code}</p>
-                    </div>
-                    <span className="mt-2 inline-flex items-center rounded-full bg-[color:var(--dash-surface)] px-2 py-1 text-xs theme-text-muted">
-                      {asset.status || 'ativo'}
-                    </span>
-                  </div>
-                ))}
-                {assets.length === 0 && (
-                  <p className="text-sm theme-text-muted">Sem equipamentos cadastrados.</p>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-      ) : null}
-
-      <div className="relative overflow-hidden rounded-[28px] border theme-border theme-card p-5 shadow-sm space-y-6">
-        <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold theme-text">Utilizadores e roles</h3>
-            <p className="text-sm theme-text-muted">Crie contas e distribua acessos</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              className="btn-secondary inline-flex items-center gap-2"
-              onClick={() => {
-                setUserModalMode('create');
-                setNewUser({
-                  username: '',
-                  email: '',
-                  password: '',
-                  first_name: '',
-                  last_name: '',
-                  role: 'tecnico',
-                  plant_ids: [],
-                });
-                setUserModalOpen(true);
-                setGenerateUserPassword(false);
-                setOneTimePassword('');
-                setOneTimePasswordUsername('');
-              }}
-              disabled={saving}
-            >
-              <Plus className="h-4 w-4" />
-              Novo utilizador
-            </button>
-            <Users className="h-5 w-5 theme-text-muted" />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {loading && <p className="text-sm theme-text-muted">Carregando utilizadores...</p>}
-          {!loading && users.length === 0 && (
-            <p className="text-sm theme-text-muted">Nenhum utilizador encontrado.</p>
-          )}
-          {users.map((user) => (
-            <div
-              key={user.id}
-              className="rounded-[22px] border theme-border bg-[color:var(--dash-panel)] p-4 shadow-sm transition hover:bg-[color:var(--dash-surface)]"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold theme-text">
-                    {user.first_name} {user.last_name}
-                  </p>
-                  <p className="text-xs theme-text-muted">{user.username}</p>
-                  <p className="text-xs theme-text-muted">{user.email}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-[color:var(--dash-surface)] px-3 py-1 text-xs theme-text-muted">
-                    {user.role}
-                  </span>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      user.is_active
-                        ? 'bg-[color:var(--dash-surface)] text-[color:var(--dash-accent)]'
-                        : 'bg-[color:var(--dash-surface)] theme-text-muted'
-                    }`}
-                  >
-                    {user.is_active ? 'Ativo' : 'Inativo'}
-                  </span>
-                  <button
-                    className="text-xs theme-text-muted hover:text-[color:var(--dash-text)]"
-                    onClick={() => handleStartUserEdit(user)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {canManageUsers && !usersOnly && (
-        <div className="relative overflow-hidden rounded-[28px] border theme-border theme-card p-5 shadow-sm space-y-6">
-          <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold theme-text">Política de segurança</h3>
-              <p className="text-sm theme-text-muted">Password e bloqueio por tentativas falhadas</p>
-            </div>
-            <KeyRound className="h-5 w-5 theme-text-muted" />
-          </div>
-
-          {loadingPolicy && (
-            <p className="text-sm theme-text-muted">Carregando política...</p>
-          )}
-
-          {!loadingPolicy && policyError && (
-            <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-800">
-              {policyError}
-            </div>
-          )}
-
-          {!loadingPolicy && policySuccess && (
-            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-800">
-              {policySuccess}
-            </div>
-          )}
-
-          {!loadingPolicy && securityPolicy && (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
-                  Password mínimo (caracteres)
-                </label>
-                <input
-                  type="number"
-                  min={6}
-                  max={128}
-                  className="input"
-                  value={String(securityPolicy.passwordMinLength ?? 8)}
-                  onChange={(e) =>
-                    setSecurityPolicy({
-                      ...securityPolicy,
-                      passwordMinLength: Number(e.target.value || 0),
-                    })
-                  }
-                />
-              </div>
-
-              <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
-                <p className="text-xs font-semibold theme-text-muted uppercase tracking-wide">
-                  Requisitos de password
-                </p>
-                <div className="mt-3 space-y-2">
-                  {[
-                    ['passwordRequireLower', 'Minúscula (a-z)'],
-                    ['passwordRequireUpper', 'Maiúscula (A-Z)'],
-                    ['passwordRequireDigit', 'Dígito (0-9)'],
-                    ['passwordRequireSpecial', 'Especial (ex: !@#)'],
-                  ].map(([key, label]) => (
-                    <label key={key} className="flex items-center gap-2 text-sm theme-text">
-                      <input
-                        type="checkbox"
-                        checked={Boolean((securityPolicy as any)[key])}
-                        onChange={(event) =>
-                          setSecurityPolicy({
-                            ...securityPolicy,
-                            [key]: event.target.checked,
-                          })
-                        }
-                        className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
-                  Máximo falhas (0 desativa)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={50}
-                  className="input"
-                  value={String(securityPolicy.maxFailedLogins ?? 8)}
-                  onChange={(e) =>
-                    setSecurityPolicy({
-                      ...securityPolicy,
-                      maxFailedLogins: Number(e.target.value || 0),
-                    })
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
-                  Janela de falhas (min)
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={240}
-                  className="input"
-                  value={String(securityPolicy.failedLoginWindowMinutes ?? 10)}
-                  onChange={(e) =>
-                    setSecurityPolicy({
-                      ...securityPolicy,
-                      failedLoginWindowMinutes: Number(e.target.value || 0),
-                    })
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
-                  Bloqueio (min) (0 desativa)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={1440}
-                  className="input"
-                  value={String(securityPolicy.lockoutMinutes ?? 15)}
-                  onChange={(e) =>
-                    setSecurityPolicy({
-                      ...securityPolicy,
-                      lockoutMinutes: Number(e.target.value || 0),
-                    })
-                  }
-                />
-              </div>
-
-              <div className="md:col-span-2 flex flex-wrap items-center gap-3">
-                <button
-                  className="btn-primary"
-                  onClick={handleSaveSecurityPolicy}
-                  disabled={savingPolicy}
-                >
-                  Guardar política
-                </button>
-                <button
-                  className="btn-secondary"
-                  onClick={loadSecurityPolicy}
-                  disabled={savingPolicy || loadingPolicy}
-                >
-                  Recarregar
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      </section>
 
       {!usersOnly && plantModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">

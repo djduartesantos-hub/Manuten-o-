@@ -17,9 +17,14 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 - Ajuste do layout principal para o estado colapsado (padding lateral menor).
 - Menu reorganizado por perfil (admin/gestor/tecnico/operador) com atalhos de conta.
 
+#### Configuracoes
+- Hub de configuracoes reorganizado em **seis blocos** com agrupamento por contexto.
+- Gestao administrativa reestruturada por secoes (infra, operacao, pessoas).
+
 #### Novas funcoes e acessos
 - Home dedicada para **Operador** e **Tecnico** (rotas `/operador` e `/tecnico`).
 - Permissoes atualizadas para permitir acesso por perfil a essas rotas.
+- Alinhamento entre menus e rotas (tickets, planner e tecnico).
 
 #### UI/Estilo
 - Restyle das paginas principais (glass panels, inputs/botoes unificados, cards consistentes).

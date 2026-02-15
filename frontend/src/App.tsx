@@ -350,7 +350,7 @@ function App() {
             <Route
               path="/tickets"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredPermissions={['tickets:read', 'tickets:write', 'tickets:forward']}>
                   <TicketsPage />
                 </ProtectedRoute>
               }

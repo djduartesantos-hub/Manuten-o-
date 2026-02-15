@@ -1,5 +1,5 @@
 export function getRequiredPermissionsForPath(pathRaw: string): string[] | null {
-  const path = String(pathRaw || '').trim();
+  const path = String(pathRaw || '').trim().split('?')[0].split('#')[0];
 
   if (!path) return null;
 
@@ -51,5 +51,12 @@ export function canAccessPathByPermissions(options: {
   if (loading) return required === null;
 
   if (!required || required.length === 0) return true;
+
+  const normalized = String(path || '').trim().split('?')[0].split('#')[0];
+  const requiresAll = new Set(['/planner', '/tecnico', '/maintenance-plans', '/preventive-schedules']);
+  if (requiresAll.has(normalized)) {
+    return required.every((perm) => permissions.has(String(perm).trim()));
+  }
+
   return required.some((perm) => permissions.has(String(perm).trim()));
 }
