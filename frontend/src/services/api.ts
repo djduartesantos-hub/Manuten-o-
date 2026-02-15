@@ -814,21 +814,41 @@ export async function getApiHealth(): Promise<{
   }
 }
 
-export async function login(
-  username: string,
-  password: string,
-): Promise<{
+export type LoginSuccess = {
   token: string;
   refreshToken: string;
   user: any;
-}> {
-  return apiCall(
-    '/auth/login',
-    {
+};
+
+export type LoginMfaRequired = {
+  mfaRequired: true;
+};
+
+export async function login(
+  username: string,
+  password: string,
+  otp?: string,
+): Promise<LoginSuccess | LoginMfaRequired> {
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
-    body: JSON.stringify({ username, password }),
-    },
-  );
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, otp }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    if (payload?.error === 'mfa_required') {
+      return { mfaRequired: true };
+    }
+    throw new Error(payload?.error || 'Login failed');
+  }
+
+  if (!payload?.success) {
+    throw new Error(payload?.error || 'Login failed');
+  }
+
+  return payload.data as LoginSuccess;
 }
 
 export async function logout(): Promise<{ message?: string } | void> {
@@ -896,6 +916,41 @@ export async function changePassword(data: {
   return apiCall('/profile/password', {
     method: 'PATCH',
     body: JSON.stringify(data),
+  });
+}
+
+export type TotpStatus = {
+  enabled: boolean;
+  verifiedAt?: string | null;
+  lastUsedAt?: string | null;
+};
+
+export async function getTotpStatus(): Promise<TotpStatus> {
+  return apiCall('/profile/mfa/totp');
+}
+
+export async function setupTotp(): Promise<{
+  secret: string;
+  otpauthUrl: string;
+  issuer: string;
+  label: string;
+}> {
+  return apiCall('/profile/mfa/totp/setup', {
+    method: 'POST',
+  });
+}
+
+export async function verifyTotp(code: string) {
+  return apiCall('/profile/mfa/totp/verify', {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  });
+}
+
+export async function disableTotp(currentPassword: string) {
+  return apiCall('/profile/mfa/totp', {
+    method: 'DELETE',
+    body: JSON.stringify({ currentPassword }),
   });
 }
 

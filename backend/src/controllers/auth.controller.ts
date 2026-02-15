@@ -10,6 +10,7 @@ import { eq, sql } from 'drizzle-orm';
 import { TimeoutError, withTimeout } from '../utils/timeout.js';
 import crypto from 'node:crypto';
 import { SecurityPolicyService } from '../services/security-policy.service.js';
+import { MfaService } from '../services/mfa.service.js';
 
 export class AuthController {
   static async status(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -153,6 +154,57 @@ export class AuthController {
           error: 'Invalid credentials',
         });
         return;
+      }
+
+      const otp = String(req.body?.otp || '').trim();
+      const mfaStatus = await MfaService.getTotpStatus({ tenantId, userId: user.id });
+      if (mfaStatus.enabled) {
+        if (!otp) {
+          res.status(401).json({
+            success: false,
+            error: 'mfa_required',
+            data: { mfaRequired: true },
+          });
+          return;
+        }
+
+        const otpOk = await MfaService.verifyTotpForLogin({ tenantId, userId: user.id, code: otp });
+        if (!otpOk) {
+          await AuthService.recordLoginEvent({
+            tenantId,
+            username: safeUsername,
+            success: false,
+            userId: user.id,
+            ipAddress,
+            userAgent,
+            error: 'mfa_invalid',
+          });
+
+          const postLockout = await SecurityPolicyService.getLoginLockoutStatus({
+            tenantId,
+            username: safeUsername,
+            policy,
+          });
+
+          if (postLockout.locked) {
+            res.setHeader('Retry-After', String(postLockout.retryAfterSeconds));
+            res.status(429).json({
+              success: false,
+              error: 'Conta temporariamente bloqueada. Tente novamente mais tarde.',
+              data: {
+                retryAfterSeconds: postLockout.retryAfterSeconds,
+                failures: postLockout.failures,
+              },
+            });
+            return;
+          }
+
+          res.status(401).json({
+            success: false,
+            error: 'Código MFA inválido',
+          });
+          return;
+        }
       }
 
       const plantIds = await withTimeout(

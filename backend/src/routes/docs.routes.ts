@@ -86,11 +86,12 @@ const openapi = {
       LoginRequest: {
         type: 'object',
         properties: {
-          email: { type: 'string', format: 'email' },
+          username: { type: 'string', description: 'Username or email.' },
           password: { type: 'string' },
+          otp: { type: 'string', description: '6-digit MFA code (if enabled).' },
           tenant_slug: { type: 'string', description: 'Optional tenant slug when multi-tenant is enabled.' },
         },
-        required: ['email', 'password'],
+        required: ['username', 'password'],
       },
       RefreshRequest: {
         type: 'object',
@@ -565,6 +566,40 @@ const openapi = {
       patch: {
         tags: ['Profile'],
         summary: 'Change password',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object' } } },
+        },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/profile/mfa/totp': {
+      get: {
+        tags: ['Profile'],
+        summary: 'Get MFA TOTP status',
+        responses: { '200': { description: 'OK' } },
+      },
+      delete: {
+        tags: ['Profile'],
+        summary: 'Disable MFA TOTP',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object' } } },
+        },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/profile/mfa/totp/setup': {
+      post: {
+        tags: ['Profile'],
+        summary: 'Start MFA TOTP setup',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/profile/mfa/totp/verify': {
+      post: {
+        tags: ['Profile'],
+        summary: 'Verify MFA TOTP code',
         requestBody: {
           required: true,
           content: { 'application/json': { schema: { type: 'object' } } },

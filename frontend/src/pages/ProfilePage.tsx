@@ -4,13 +4,18 @@ import { MainLayout } from '../layouts/MainLayout';
 import { useAuthStore } from '../context/store';
 import {
   changePassword,
+  disableTotp,
   getProfile,
+  getTotpStatus,
   listMySessions,
   logoutAll,
   revokeMySession,
   revokeOtherSessions,
+  setupTotp,
   updateProfile,
+  verifyTotp,
   type AuthSession,
+  type TotpStatus,
   type UserProfile,
 } from '../services/api';
 import { KeyRound, Phone, Mail, User as UserIcon, Shield } from 'lucide-react';
@@ -28,6 +33,17 @@ export function ProfilePage() {
   const [currentPassword, setCurrentPassword] = React.useState('');
   const [newPassword, setNewPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
+
+  const [mfaStatus, setMfaStatus] = React.useState<TotpStatus | null>(null);
+  const [mfaLoading, setMfaLoading] = React.useState(false);
+  const [mfaSetupData, setMfaSetupData] = React.useState<{
+    secret: string;
+    otpauthUrl: string;
+    issuer: string;
+    label: string;
+  } | null>(null);
+  const [mfaCode, setMfaCode] = React.useState('');
+  const [mfaDisablePassword, setMfaDisablePassword] = React.useState('');
 
   const [sessionsLoading, setSessionsLoading] = React.useState(false);
   const [sessions, setSessions] = React.useState<AuthSession[]>([]);
@@ -51,6 +67,13 @@ export function ProfilePage() {
         setLastName(data.lastName || '');
         setEmail(data.email || '');
         setPhone(data.phone || '');
+
+        try {
+          const status = await getTotpStatus();
+          setMfaStatus(status || null);
+        } catch {
+          setMfaStatus(null);
+        }
 
         setSessionsLoading(true);
         try {
@@ -143,6 +166,71 @@ export function ProfilePage() {
       toast.error(error?.message || 'Falha ao atualizar password');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const reloadMfaStatus = React.useCallback(async () => {
+    try {
+      const status = await getTotpStatus();
+      setMfaStatus(status || null);
+    } catch {
+      setMfaStatus(null);
+    }
+  }, []);
+
+  const handleStartMfa = async () => {
+    setMfaLoading(true);
+    try {
+      const setup = await setupTotp();
+      setMfaSetupData(setup);
+      setMfaCode('');
+      toast.success('MFA preparado. Verifique o codigo na app.');
+    } catch (error: any) {
+      toast.error(error?.message || 'Falha ao iniciar MFA');
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const handleVerifyMfa = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!mfaCode) {
+      toast.error('Introduza o codigo MFA');
+      return;
+    }
+
+    setMfaLoading(true);
+    try {
+      await verifyTotp(mfaCode);
+      setMfaCode('');
+      setMfaSetupData(null);
+      await reloadMfaStatus();
+      toast.success('MFA ativado');
+    } catch (error: any) {
+      toast.error(error?.message || 'Codigo MFA invalido');
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const handleDisableMfa = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!mfaDisablePassword) {
+      toast.error('Introduza a password atual');
+      return;
+    }
+
+    setMfaLoading(true);
+    try {
+      await disableTotp(mfaDisablePassword);
+      setMfaDisablePassword('');
+      setMfaSetupData(null);
+      await reloadMfaStatus();
+      toast.success('MFA desativado');
+    } catch (error: any) {
+      toast.error(error?.message || 'Falha ao desativar MFA');
+    } finally {
+      setMfaLoading(false);
     }
   };
 
@@ -427,6 +515,96 @@ export function ProfilePage() {
                 </label>
               </div>
             </form>
+
+            <div className="rounded-2xl border theme-border glass-panel p-6">
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-2xl theme-surface">
+                      <Shield className="h-4 w-4 theme-text-muted" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-semibold theme-text">MFA (TOTP)</h2>
+                      <p className="text-xs theme-text-muted">Autenticacao em duas etapas.</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-xs theme-text-muted">
+                  {mfaStatus?.enabled ? 'Ativo' : 'Inativo'}
+                </div>
+              </div>
+
+              {mfaStatus?.enabled ? (
+                <form onSubmit={handleDisableMfa} className="space-y-4">
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wider theme-text-muted">
+                      Password atual
+                    </span>
+                    <input
+                      value={mfaDisablePassword}
+                      onChange={(e) => setMfaDisablePassword(e.target.value)}
+                      type="password"
+                      autoComplete="current-password"
+                      className="input rounded-2xl px-4 py-3 text-sm"
+                      disabled={mfaLoading}
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={mfaLoading}
+                    className="btn-secondary rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
+                  >
+                    {mfaLoading ? 'A desativar…' : 'Desativar MFA'}
+                  </button>
+                </form>
+              ) : (
+                <div className="space-y-4">
+                  <button
+                    type="button"
+                    onClick={handleStartMfa}
+                    disabled={mfaLoading}
+                    className="btn-secondary rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
+                  >
+                    {mfaLoading ? 'A preparar…' : 'Configurar MFA'}
+                  </button>
+
+                  {mfaSetupData && (
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border theme-border theme-card px-4 py-3 text-xs theme-text-muted">
+                        <p className="font-semibold theme-text">Chave secreta</p>
+                        <p className="break-all">{mfaSetupData.secret}</p>
+                        <p className="mt-3 font-semibold theme-text">OTPAuth URL</p>
+                        <p className="break-all">{mfaSetupData.otpauthUrl}</p>
+                      </div>
+
+                      <form onSubmit={handleVerifyMfa} className="space-y-3">
+                        <label className="block">
+                          <span className="mb-1 block text-xs font-semibold uppercase tracking-wider theme-text-muted">
+                            Codigo MFA
+                          </span>
+                          <input
+                            value={mfaCode}
+                            onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="\d{6}"
+                            className="input rounded-2xl px-4 py-3 text-sm"
+                            disabled={mfaLoading}
+                          />
+                        </label>
+                        <button
+                          type="submit"
+                          disabled={mfaLoading}
+                          className="btn-primary rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
+                        >
+                          {mfaLoading ? 'A validar…' : 'Ativar MFA'}
+                        </button>
+                      </form>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             <div className="rounded-2xl border theme-border glass-panel p-6">
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

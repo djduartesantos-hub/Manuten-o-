@@ -3,7 +3,8 @@ import { z } from 'zod';
 // Auth Schemas
 export const LoginSchema = z.object({
   username: z.string().min(3, 'Username mínimo 3 caracteres'),
-  password: z.string().min(6, 'Password mínimo 6 caracteres'),
+  password: z.string().min(1, 'Password obrigatória'),
+  otp: z.string().regex(/^\d{6}$/, 'Código MFA inválido').optional(),
 });
 
 export const RefreshTokenSchema = z.object({
@@ -20,7 +21,15 @@ export const UpdateProfileSchema = z.object({
 
 export const ChangePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Password atual obrigatória'),
-  newPassword: z.string().min(6, 'Password nova mínimo 6 caracteres'),
+  newPassword: z.string().min(1, 'Password nova obrigatória'),
+});
+
+export const VerifyTotpSchema = z.object({
+  code: z.string().regex(/^\d{6}$/, 'Código MFA inválido'),
+});
+
+export const DisableTotpSchema = z.object({
+  currentPassword: z.string().min(1, 'Password atual obrigatória'),
 });
 
 export const UpdateTenantSecurityPolicySchema = z.object({

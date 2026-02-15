@@ -199,6 +199,30 @@ export const authLoginEvents = pgTable(
   }),
 );
 
+export const userMfaTotp = pgTable(
+  'user_mfa_totp',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    user_id: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    secret: text('secret').notNull(),
+    is_enabled: boolean('is_enabled').notNull().default(false),
+    verified_at: timestamp('verified_at', { withTimezone: true }),
+    last_used_at: timestamp('last_used_at', { withTimezone: true }),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdx: uniqueIndex('user_mfa_totp_user_id_idx').on(table.user_id),
+    tenantIdx: index('user_mfa_totp_tenant_id_idx').on(table.tenant_id),
+    enabledIdx: index('user_mfa_totp_enabled_idx').on(table.is_enabled),
+  }),
+);
+
 // Tenant Security Policies (password policy + login lockout)
 export const tenantSecurityPolicies = pgTable(
   'tenant_security_policies',

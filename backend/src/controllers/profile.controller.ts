@@ -8,6 +8,7 @@ import { RbacService } from '../services/rbac.service.js';
 import { AuthService } from '../services/auth.service.js';
 import { ensureRbacStructureAndSeed } from '../db/auto-seed.js';
 import { SecurityPolicyService } from '../services/security-policy.service.js';
+import { MfaService } from '../services/mfa.service.js';
 
 function toProfileDto(user: any) {
   return {
@@ -299,6 +300,79 @@ export class ProfileController {
       .where(and(eq(users.tenant_id, tenantId), eq(users.id, userId)));
 
     return res.json({ success: true, message: 'Password atualizada' });
+  }
+
+  static async getTotpStatus(req: AuthenticatedRequest, res: Response): Promise<Response> {
+    const tenantId = req.tenantId;
+    const userId = req.user?.userId;
+
+    if (!tenantId || !userId) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const status = await MfaService.getTotpStatus({ tenantId, userId });
+    return res.json({ success: true, data: status });
+  }
+
+  static async setupTotp(req: AuthenticatedRequest, res: Response): Promise<Response> {
+    const tenantId = req.tenantId;
+    const userId = req.user?.userId;
+    const username = String(req.user?.username || '').trim();
+    const tenantSlug = String(req.tenantSlug || '').trim();
+
+    if (!tenantId || !userId || !username) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const labelSuffix = tenantSlug || String(tenantId).slice(0, 8);
+    const label = `${username}@${labelSuffix}`;
+
+    const setup = await MfaService.startTotpSetup({ tenantId, userId, label });
+    return res.json({ success: true, data: setup });
+  }
+
+  static async verifyTotp(req: AuthenticatedRequest, res: Response): Promise<Response> {
+    const tenantId = req.tenantId;
+    const userId = req.user?.userId;
+    const code = String(req.body?.code || '').trim();
+
+    if (!tenantId || !userId) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const ok = await MfaService.verifyTotpSetup({ tenantId, userId, code });
+    if (!ok) {
+      return res.status(400).json({ success: false, error: 'Código MFA inválido' });
+    }
+
+    return res.json({ success: true, data: { enabled: true } });
+  }
+
+  static async disableTotp(req: AuthenticatedRequest, res: Response): Promise<Response> {
+    const tenantId = req.tenantId;
+    const userId = req.user?.userId;
+    const currentPassword = String(req.body?.currentPassword || '').trim();
+
+    if (!tenantId || !userId) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+
+    const user = await db.query.users.findFirst({
+      where: (fields: any, { eq, and }: any) =>
+        and(eq(fields.tenant_id, tenantId), eq(fields.id, userId)),
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const ok = await comparePasswords(currentPassword, String(user.password_hash || ''));
+    if (!ok) {
+      return res.status(400).json({ success: false, error: 'Password atual incorreta' });
+    }
+
+    await MfaService.disableTotp({ tenantId, userId });
+    return res.json({ success: true, message: 'MFA desativado' });
   }
 
   static async getHomeRoute(req: AuthenticatedRequest, res: Response): Promise<Response> {

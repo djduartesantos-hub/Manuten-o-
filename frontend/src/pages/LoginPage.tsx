@@ -95,6 +95,8 @@ export function LoginPage() {
   const [demoKey, setDemoKey] = React.useState<DemoKey>('admin_empresa');
   const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [mfaRequired, setMfaRequired] = React.useState(false);
+  const [otp, setOtp] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const isDark = theme.name === 'dark';
 
@@ -112,7 +114,15 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await apiLogin(username.trim().toLowerCase(), password);
+      const result: any = await apiLogin(username.trim().toLowerCase(), password, otp);
+
+      if (result?.mfaRequired) {
+        setMfaRequired(true);
+        setError('Introduza o codigo MFA para continuar.');
+        setLoading(false);
+        return;
+      }
+
       setAuth(result.user, result.token, result.refreshToken);
       navigate('/');
     } catch (err) {
@@ -129,6 +139,8 @@ export function LoginPage() {
 
     setUsername(selected.username);
     setPassword(selected.password);
+    setMfaRequired(false);
+    setOtp('');
   }, [demoKey]);
 
   return (
@@ -249,6 +261,58 @@ export function LoginPage() {
                     </div>
                   </div>
 
+                  {mfaRequired && (
+                    <div>
+                      <label
+                        htmlFor="otp"
+                        className="block text-xs font-medium uppercase tracking-[0.2em] theme-text-muted"
+                      >
+                        Codigo MFA (6 digitos)
+                      </label>
+                      <input
+                        id="otp"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="\d{6}"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        autoComplete="one-time-code"
+                        disabled={loading}
+                        className="input mt-2 rounded-2xl px-4 py-3 text-sm"
+                        required
+                      />
+                      <p className="mt-2 text-xs theme-text-muted">
+                        Abra a aplicacao autenticadora e introduza o codigo atual.
+                      </p>
+                    </div>
+                  )}
+
+                  {mfaRequired && (
+                    <div>
+                      <label
+                        htmlFor="otp"
+                        className="block text-xs font-medium uppercase tracking-[0.2em] theme-text-muted"
+                      >
+                        Codigo MFA (6 digitos)
+                      </label>
+                      <input
+                        id="otp"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="\d{6}"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        autoComplete="one-time-code"
+                        disabled={loading}
+                        className="input mt-2 rounded-2xl px-4 py-3 text-sm"
+                        required
+                      />
+                      <p className="mt-2 text-xs theme-text-muted">
+                        Abra a aplicacao autenticadora e introduza o codigo atual.
+                      </p>
+                    </div>
+                  )}
+
                   <button
                     type="submit"
                     disabled={loading}
@@ -360,6 +424,32 @@ export function LoginPage() {
                       </button>
                     </div>
                   </div>
+
+                  {mfaRequired && (
+                    <div>
+                      <label
+                        htmlFor="otp"
+                        className="block text-xs font-medium uppercase tracking-[0.2em] theme-text-muted"
+                      >
+                        Codigo MFA (6 digitos)
+                      </label>
+                      <input
+                        id="otp"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="\d{6}"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        autoComplete="one-time-code"
+                        disabled={loading}
+                        className="input mt-2 rounded-2xl px-4 py-3 text-sm"
+                        required
+                      />
+                      <p className="mt-2 text-xs theme-text-muted">
+                        Abra a aplicacao autenticadora e introduza o codigo atual.
+                      </p>
+                    </div>
+                  )}
 
                   <button
                     type="submit"

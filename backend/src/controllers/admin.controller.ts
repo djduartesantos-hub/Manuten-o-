@@ -516,6 +516,11 @@ export async function updateUser(req: AuthenticatedRequest, res: Response) {
 
     let passwordHash: string | undefined;
     if (password) {
+      const policy = await SecurityPolicyService.getTenantPolicy(String(tenantId));
+      const policyError = SecurityPolicyService.validatePassword(String(password || ''), policy);
+      if (policyError) {
+        return res.status(400).json({ success: false, error: policyError });
+      }
       passwordHash = await bcrypt.hash(password, 10);
     }
 
