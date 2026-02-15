@@ -114,7 +114,14 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      const result: any = await apiLogin(username.trim().toLowerCase(), password, otp);
+      if (mfaRequired && !otp.trim()) {
+        setError('Introduza o codigo MFA para continuar.');
+        setLoading(false);
+        return;
+      }
+
+      const otpValue = mfaRequired ? otp.trim() : undefined;
+      const result: any = await apiLogin(username.trim().toLowerCase(), password, otpValue);
 
       if (result?.mfaRequired) {
         setMfaRequired(true);
