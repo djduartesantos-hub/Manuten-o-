@@ -1683,6 +1683,7 @@ export type TenantSecurityPolicy = {
   maxFailedLogins: number;
   failedLoginWindowMinutes: number;
   lockoutMinutes: number;
+  auditRetentionDays: number;
 };
 
 export async function getAdminSecurityPolicy(): Promise<TenantSecurityPolicy> {
@@ -1698,6 +1699,7 @@ export async function updateAdminSecurityPolicy(patch: {
   max_failed_logins?: number;
   failed_login_window_minutes?: number;
   lockout_minutes?: number;
+  audit_retention_days?: number;
 }): Promise<TenantSecurityPolicy> {
   return apiCall('/admin/security-policy', {
     method: 'PATCH',
@@ -1723,6 +1725,15 @@ export async function getAdminAuditLogs(params?: {
 
   const suffix = qs.toString();
   return apiCall(`/admin/audit-logs${suffix ? `?${suffix}` : ''}`);
+}
+
+export async function purgeAdminAuditLogs(retentionDays?: number) {
+  return apiCall('/admin/audit-logs/purge', {
+    method: 'POST',
+    body: JSON.stringify({
+      retention_days: retentionDays,
+    }),
+  });
 }
 
 export async function getAdminPlants() {

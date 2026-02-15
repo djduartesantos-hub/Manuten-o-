@@ -145,6 +145,40 @@ CREATE TABLE user_plants (
 
 CREATE INDEX user_plants_user_plant_idx ON user_plants(user_id, plant_id);
 
+-- Auth Login Events
+CREATE TABLE auth_login_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  username TEXT NOT NULL,
+  success BOOLEAN NOT NULL DEFAULT FALSE,
+  ip_address TEXT,
+  user_agent TEXT,
+  error TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX auth_login_events_tenant_created_at_idx ON auth_login_events(tenant_id, created_at);
+CREATE INDEX auth_login_events_user_id_idx ON auth_login_events(user_id);
+
+-- Tenant Security Policies (password + lockout + audit retention)
+CREATE TABLE tenant_security_policies (
+  tenant_id UUID PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
+  password_min_length INTEGER NOT NULL DEFAULT 8,
+  password_require_lower BOOLEAN NOT NULL DEFAULT TRUE,
+  password_require_upper BOOLEAN NOT NULL DEFAULT FALSE,
+  password_require_digit BOOLEAN NOT NULL DEFAULT TRUE,
+  password_require_special BOOLEAN NOT NULL DEFAULT FALSE,
+  max_failed_logins INTEGER NOT NULL DEFAULT 8,
+  failed_login_window_minutes INTEGER NOT NULL DEFAULT 10,
+  lockout_minutes INTEGER NOT NULL DEFAULT 15,
+  audit_retention_days INTEGER NOT NULL DEFAULT 90,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_by UUID
+);
+
+CREATE INDEX tenant_security_policies_updated_at_idx ON tenant_security_policies(updated_at);
+
 -- Asset Categories
 CREATE TABLE asset_categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -8044,6 +8044,7 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
         max_failed_logins: Number(securityPolicy.maxFailedLogins),
         failed_login_window_minutes: Number(securityPolicy.failedLoginWindowMinutes),
         lockout_minutes: Number(securityPolicy.lockoutMinutes),
+        audit_retention_days: Number(securityPolicy.auditRetentionDays),
       });
       setSecurityPolicy(updated || securityPolicy);
       setPolicySuccess('Política de segurança atualizada');
@@ -8926,6 +8927,25 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
                         setSecurityPolicy({
                           ...securityPolicy,
                           lockoutMinutes: Number(e.target.value || 0),
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold theme-text-muted uppercase tracking-wide">
+                      Retencao auditoria (dias) (0 desativa)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={3650}
+                      className="input"
+                      value={String(securityPolicy.auditRetentionDays ?? 90)}
+                      onChange={(e) =>
+                        setSecurityPolicy({
+                          ...securityPolicy,
+                          auditRetentionDays: Number(e.target.value || 0),
                         })
                       }
                     />

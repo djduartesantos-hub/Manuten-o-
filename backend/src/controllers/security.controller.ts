@@ -33,6 +33,7 @@ export async function updateTenantSecurityPolicy(req: AuthenticatedRequest, res:
       max_failed_logins: body.max_failed_logins,
       failed_login_window_minutes: body.failed_login_window_minutes,
       lockout_minutes: body.lockout_minutes,
+      audit_retention_days: body.audit_retention_days,
     },
   });
 

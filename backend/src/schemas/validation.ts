@@ -33,6 +33,7 @@ export const UpdateTenantSecurityPolicySchema = z.object({
   max_failed_logins: z.number().int().min(0).max(50).optional(),
   failed_login_window_minutes: z.number().int().min(1).max(240).optional(),
   lockout_minutes: z.number().int().min(0).max(1440).optional(),
+  audit_retention_days: z.number().int().min(0).max(3650).optional(),
 });
 
 // Work Order Schemas

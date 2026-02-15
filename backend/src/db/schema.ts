@@ -217,6 +217,7 @@ export const tenantSecurityPolicies = pgTable(
     max_failed_logins: integer('max_failed_logins').notNull().default(8),
     failed_login_window_minutes: integer('failed_login_window_minutes').notNull().default(10),
     lockout_minutes: integer('lockout_minutes').notNull().default(15),
+    audit_retention_days: integer('audit_retention_days').notNull().default(90),
 
     updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
     updated_by: uuid('updated_by'),

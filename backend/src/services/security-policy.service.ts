@@ -11,6 +11,8 @@ export type TenantSecurityPolicy = {
   maxFailedLogins: number;
   failedLoginWindowMinutes: number;
   lockoutMinutes: number;
+
+  auditRetentionDays: number;
 };
 
 const DEFAULT_POLICY: TenantSecurityPolicy = {
@@ -23,6 +25,8 @@ const DEFAULT_POLICY: TenantSecurityPolicy = {
   maxFailedLogins: 8,
   failedLoginWindowMinutes: 10,
   lockoutMinutes: 15,
+
+  auditRetentionDays: 90,
 };
 
 function normalizeInt(value: unknown, fallback: number): number {
@@ -59,6 +63,11 @@ export class SecurityPolicyService {
           DEFAULT_POLICY.failedLoginWindowMinutes,
         ),
         lockoutMinutes: normalizeInt((row as any).lockout_minutes, DEFAULT_POLICY.lockoutMinutes),
+
+        auditRetentionDays: normalizeInt(
+          (row as any).audit_retention_days,
+          DEFAULT_POLICY.auditRetentionDays,
+        ),
       };
     } catch {
       // Fail-open during bootstrap.
@@ -91,6 +100,7 @@ export class SecurityPolicyService {
       max_failed_logins: number;
       failed_login_window_minutes: number;
       lockout_minutes: number;
+      audit_retention_days: number;
     }>;
     actorUserId?: string | null;
   }): Promise<void> {
@@ -128,6 +138,8 @@ export class SecurityPolicyService {
         existing?.failed_login_window_minutes ??
         DEFAULT_POLICY.failedLoginWindowMinutes,
       lockout_minutes: patch.lockout_minutes ?? existing?.lockout_minutes ?? DEFAULT_POLICY.lockoutMinutes,
+      audit_retention_days:
+        patch.audit_retention_days ?? existing?.audit_retention_days ?? DEFAULT_POLICY.auditRetentionDays,
     };
 
     // Use SQL upsert for compatibility.
@@ -142,6 +154,7 @@ export class SecurityPolicyService {
         max_failed_logins,
         failed_login_window_minutes,
         lockout_minutes,
+        audit_retention_days,
         updated_at,
         updated_by
       ) VALUES (
@@ -154,6 +167,7 @@ export class SecurityPolicyService {
         ${nextValues.max_failed_logins},
         ${nextValues.failed_login_window_minutes},
         ${nextValues.lockout_minutes},
+        ${nextValues.audit_retention_days},
         NOW(),
         ${input.actorUserId ?? null}
       )
@@ -166,6 +180,7 @@ export class SecurityPolicyService {
         max_failed_logins = EXCLUDED.max_failed_logins,
         failed_login_window_minutes = EXCLUDED.failed_login_window_minutes,
         lockout_minutes = EXCLUDED.lockout_minutes,
+        audit_retention_days = EXCLUDED.audit_retention_days,
         updated_at = NOW(),
         updated_by = ${input.actorUserId ?? null};
     `);

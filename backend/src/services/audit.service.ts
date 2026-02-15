@@ -238,4 +238,24 @@ export class AuditService {
       return [];
     }
   }
+
+  static async purgeTenantLogs(tenantId: string, retentionDays: number): Promise<{ deleted: number }> {
+    const days = Number(retentionDays);
+    if (!Number.isFinite(days) || days <= 0) return { deleted: 0 };
+
+    try {
+      const result = await db.execute(sql`
+        DELETE FROM audit_logs
+        WHERE tenant_id = ${tenantId}
+          AND created_at < (NOW() - (${Math.trunc(days)} || ' days')::interval)
+        RETURNING id;
+      `);
+
+      const deleted = Array.isArray((result as any)?.rows) ? (result as any).rows.length : 0;
+      return { deleted };
+    } catch (error) {
+      logger.warn('Audit logs purge failed:', error);
+      return { deleted: 0 };
+    }
+  }
 }

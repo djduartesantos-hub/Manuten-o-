@@ -912,6 +912,17 @@ const openapi = {
         responses: { '200': { description: 'OK' } },
       },
     },
+    '/api/admin/audit-logs/purge': {
+      post: {
+        tags: ['Admin'],
+        summary: 'Purge tenant audit logs by retention policy',
+        requestBody: {
+          required: false,
+          content: { 'application/json': { schema: { type: 'object' } } },
+        },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
     '/api/maintenance-kits/{kitId}': {
       get: {
         tags: ['Kits'],

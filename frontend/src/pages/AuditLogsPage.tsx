@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { MainLayout } from '../layouts/MainLayout';
 import { useProfileAccess } from '../hooks/useProfileAccess';
-import { getAdminAuditLogs } from '../services/api';
+import { getAdminAuditLogs, purgeAdminAuditLogs } from '../services/api';
 import { RefreshCcw, Search } from 'lucide-react';
 
 type AuditUser = {
@@ -70,6 +70,7 @@ export function AuditLogsPage({ embedded = false }: { embedded?: boolean } = {})
   const [action, setAction] = useState('');
   const [userId, setUserId] = useState('');
   const [limit, setLimit] = useState(100);
+  const [retentionDays, setRetentionDays] = useState(90);
 
   const loadLogs = async () => {
     if (!canRead) return;
@@ -87,6 +88,21 @@ export function AuditLogsPage({ embedded = false }: { embedded?: boolean } = {})
       setLogs(rows);
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar auditoria');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePurge = async () => {
+    if (!canRead) return;
+    if (!window.confirm('Purgar auditoria antiga?')) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await purgeAdminAuditLogs(retentionDays);
+      await loadLogs();
+    } catch (err: any) {
+      setError(err.message || 'Falha ao purgar auditoria');
     } finally {
       setLoading(false);
     }
@@ -149,6 +165,14 @@ export function AuditLogsPage({ embedded = false }: { embedded?: boolean } = {})
               value={limit}
               onChange={(e) => setLimit(Number(e.target.value) || 100)}
             />
+            <input
+              className="input"
+              type="number"
+              min={0}
+              max={3650}
+              value={retentionDays}
+              onChange={(e) => setRetentionDays(Number(e.target.value) || 0)}
+            />
             <button className="btn-secondary" onClick={loadLogs} disabled={loading}>
               <Search className="h-4 w-4" />
               Filtrar
@@ -156,6 +180,9 @@ export function AuditLogsPage({ embedded = false }: { embedded?: boolean } = {})
             <button className="btn-secondary" onClick={loadLogs} disabled={loading}>
               <RefreshCcw className="h-4 w-4" />
               Atualizar
+            </button>
+            <button className="btn-secondary" onClick={handlePurge} disabled={loading}>
+              Purgar
             </button>
           </div>
 

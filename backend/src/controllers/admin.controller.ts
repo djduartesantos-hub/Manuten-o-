@@ -1366,3 +1366,45 @@ export async function listAuditLogs(req: AuthenticatedRequest, res: Response) {
     return res.status(500).json({ success: false, error: 'Failed to list audit logs' });
   }
 }
+
+export async function purgeAuditLogs(req: AuthenticatedRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    }
+
+    const body = req.body || {};
+    const retentionDaysRaw = body.retention_days ?? body.audit_retention_days;
+    const policy = await SecurityPolicyService.getTenantPolicy(String(tenantId));
+    const retentionDays = Number.isFinite(Number(retentionDaysRaw))
+      ? Number(retentionDaysRaw)
+      : policy.auditRetentionDays;
+
+    if (!Number.isFinite(retentionDays) || retentionDays <= 0) {
+      return res.status(400).json({ success: false, error: 'Retention days invalid or disabled' });
+    }
+
+    const result = await AuditService.purgeTenantLogs(String(tenantId), retentionDays);
+
+    if (req.user?.userId) {
+      try {
+        await AuditService.createLog({
+          tenant_id: String(tenantId),
+          user_id: String(req.user.userId),
+          action: 'audit.purge',
+          entity_type: 'audit_logs',
+          entity_id: 'tenant',
+          new_values: { retentionDays, deleted: result.deleted },
+          ip_address: getClientIp(req),
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    return res.json({ success: true, data: result, retentionDays });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to purge audit logs' });
+  }
+}
