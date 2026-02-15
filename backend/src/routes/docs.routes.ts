@@ -31,9 +31,12 @@ const openapi = {
     { name: 'Dashboard' },
     { name: 'Search' },
     { name: 'Stocktake' },
+    { name: 'Jobs' },
+    { name: 'Customization' },
     { name: 'Setup' },
     { name: 'Admin' },
     { name: 'SuperAdmin' },
+    { name: 'Debug' },
   ],
   components: {
     securitySchemes: {
@@ -720,6 +723,13 @@ const openapi = {
         responses: { '200': { description: 'OK' } },
       },
     },
+    '/api/plants': {
+      get: {
+        tags: ['Admin'],
+        summary: 'List user plants',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
     '/api/{plantId}/planner': {
       get: {
         tags: ['Planner'],
@@ -768,6 +778,633 @@ const openapi = {
           '400': { description: 'Already initialized' },
           '500': { description: 'Error' },
         },
+      },
+    },
+    '/api/setup/bootstrap': {
+      post: {
+        tags: ['Setup'],
+        summary: 'Bootstrap database (migrations + seed demo data)',
+        security: [],
+        responses: {
+          '200': { description: 'OK' },
+          '400': { description: 'Already initialized' },
+          '500': { description: 'Error' },
+        },
+      },
+    },
+    '/api/setup/status': {
+      get: {
+        tags: ['Setup'],
+        summary: 'Check database status',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/setup/seed': {
+      post: {
+        tags: ['Setup'],
+        summary: 'Seed demo data',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/setup/migrate': {
+      post: {
+        tags: ['Setup'],
+        summary: 'Run SQL migrations',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/setup/migrations/status': {
+      get: {
+        tags: ['Setup'],
+        summary: 'Get SQL migrations status',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/setup/patch/work-orders': {
+      post: {
+        tags: ['Setup'],
+        summary: 'Patch work orders schema (work_performed)',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/setup/patch/work-orders-downtime-rca': {
+      post: {
+        tags: ['Setup'],
+        summary: 'Patch work orders downtime/RCA fields',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/setup/patch/work-orders-sla-pause': {
+      post: {
+        tags: ['Setup'],
+        summary: 'Patch work orders SLA pause fields',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/setup/patch/all': {
+      post: {
+        tags: ['Setup'],
+        summary: 'Apply all corrections and migrations',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/setup/patch/rbac': {
+      post: {
+        tags: ['Setup'],
+        summary: 'Patch RBAC structure + seed',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/setup/patch/maintenance-plans-tolerance-mode': {
+      post: {
+        tags: ['Setup'],
+        summary: 'Patch maintenance plans tolerance mode',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/setup/patch/maintenance-plans-schedule-anchor-mode': {
+      post: {
+        tags: ['Setup'],
+        summary: 'Patch maintenance plans schedule anchor mode',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/setup/patch/stock-reservations': {
+      post: {
+        tags: ['Setup'],
+        summary: 'Patch stock reservations table',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/setup/patch/maintenance-kits': {
+      post: {
+        tags: ['Setup'],
+        summary: 'Patch maintenance kits tables',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/setup/clear': {
+      post: {
+        tags: ['Setup'],
+        summary: 'Clear all data (dangerous)',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/debug/me': {
+      get: {
+        tags: ['Debug'],
+        summary: 'Inspect authenticated token claims',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/jobs/stats': {
+      get: {
+        tags: ['Jobs'],
+        summary: 'Get job queue stats',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/jobs/{queue}/recent': {
+      get: {
+        tags: ['Jobs'],
+        summary: 'List recent jobs for queue',
+        parameters: [{ name: 'queue', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'OK' }, '404': { description: 'Not Found' } },
+      },
+    },
+    '/api/jobs/{queue}/{id}': {
+      get: {
+        tags: ['Jobs'],
+        summary: 'Get job details by id',
+        parameters: [
+          { name: 'queue', in: 'path', required: true, schema: { type: 'string' } },
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+        ],
+        responses: { '200': { description: 'OK' }, '404': { description: 'Not Found' } },
+      },
+    },
+    '/api/jobs/enqueue': {
+      post: {
+        tags: ['Jobs'],
+        summary: 'Enqueue a new job',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  queue: { type: 'string' },
+                  jobName: { type: 'string' },
+                  payload: { type: 'object' },
+                  delayMs: { type: 'number' },
+                },
+                required: ['queue', 'jobName'],
+              },
+            },
+          },
+        },
+        responses: { '201': { description: 'Created' }, '400': { description: 'Bad Request' } },
+      },
+    },
+    '/api/customization/reports': {
+      get: {
+        tags: ['Customization'],
+        summary: 'List scheduled reports',
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Customization'],
+        summary: 'Create scheduled report',
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/customization/reports/{reportId}': {
+      patch: {
+        tags: ['Customization'],
+        summary: 'Update scheduled report',
+        parameters: [{ name: 'reportId', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+      delete: {
+        tags: ['Customization'],
+        summary: 'Delete scheduled report',
+        parameters: [{ name: 'reportId', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/admin/plants': {
+      get: {
+        tags: ['Admin'],
+        summary: 'List plants',
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Admin'],
+        summary: 'Create plant',
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/admin/plants/{plantId}': {
+      patch: {
+        tags: ['Admin'],
+        summary: 'Update plant',
+        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+      delete: {
+        tags: ['Admin'],
+        summary: 'Deactivate plant',
+        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/admin/security-policy': {
+      get: {
+        tags: ['Admin'],
+        summary: 'Get tenant security policy',
+        responses: { '200': { description: 'OK' } },
+      },
+      patch: {
+        tags: ['Admin'],
+        summary: 'Update tenant security policy',
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/admin/users': {
+      get: {
+        tags: ['Admin'],
+        summary: 'List users',
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Admin'],
+        summary: 'Create user',
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/admin/users/{userId}': {
+      patch: {
+        tags: ['Admin'],
+        summary: 'Update user',
+        parameters: [{ name: 'userId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/admin/users/{userId}/reset-password': {
+      post: {
+        tags: ['Admin'],
+        summary: 'Reset user password',
+        parameters: [{ name: 'userId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/admin/roles': {
+      get: {
+        tags: ['Admin'],
+        summary: 'List roles',
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Admin'],
+        summary: 'Create role',
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/admin/roles/{roleKey}': {
+      patch: {
+        tags: ['Admin'],
+        summary: 'Update role',
+        parameters: [{ name: 'roleKey', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/admin/permissions': {
+      get: {
+        tags: ['Admin'],
+        summary: 'List permissions',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/admin/roles/export.csv': {
+      get: {
+        tags: ['Admin'],
+        summary: 'Export RBAC matrix (CSV)',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/admin/roles/{roleKey}/permissions': {
+      get: {
+        tags: ['Admin'],
+        summary: 'Get role permissions',
+        parameters: [{ name: 'roleKey', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+      put: {
+        tags: ['Admin'],
+        summary: 'Set role permissions',
+        parameters: [{ name: 'roleKey', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/admin/role-homes': {
+      get: {
+        tags: ['Admin'],
+        summary: 'List role home pages',
+        responses: { '200': { description: 'OK' } },
+      },
+      put: {
+        tags: ['Admin'],
+        summary: 'Update role home pages',
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/admin/sla-rules': {
+      get: {
+        tags: ['Admin'],
+        summary: 'List SLA rules',
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Admin'],
+        summary: 'Upsert SLA rule',
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/admin/sla-rules/{ruleId}': {
+      delete: {
+        tags: ['Admin'],
+        summary: 'Deactivate SLA rule',
+        parameters: [{ name: 'ruleId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/tenants': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'List tenants',
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['SuperAdmin'],
+        summary: 'Create tenant',
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/superadmin/tenants/{tenantId}': {
+      patch: {
+        tags: ['SuperAdmin'],
+        summary: 'Update tenant',
+        parameters: [{ name: 'tenantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/metrics/dashboard': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Get dashboard metrics',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/metrics/tenants': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'List tenant metrics',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/metrics/tenants/export': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Export tenant metrics',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/metrics/activity/tenants': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Get tenant activity metrics',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/metrics/activity/tenants/export': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Export tenant activity metrics',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/metrics/plants': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'List plant metrics',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/metrics/plants/export': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Export plant metrics',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/metrics/users/anomalies': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Get user anomalies',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/metrics/users/security': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Get user security insights',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/metrics/users/security/export': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Export user security insights',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/metrics/rbac/drift': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Get RBAC drift metrics',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/metrics/rbac/drift/export': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Export RBAC drift metrics',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/db/status': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Get database status',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/health': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Get health status',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/diagnostics/tenants': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Get tenant diagnostics',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/diagnostics/tenants/healthscore': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Get tenants health score',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/diagnostics/tenants/healthscore/export': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Export tenants health score',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/diagnostics/bundle/export': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Export diagnostics bundle',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/diagnostics/integrity': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Get integrity checks',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/diagnostics/integrity/export': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Export integrity checks',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/audit': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'List superadmin audit logs',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/audit/export': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Export superadmin audit logs',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/audit/purge': {
+      post: {
+        tags: ['SuperAdmin'],
+        summary: 'Purge superadmin audit logs',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/users/search': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Search users',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/users/{userId}/reset-password': {
+      post: {
+        tags: ['SuperAdmin'],
+        summary: 'Reset user password',
+        parameters: [{ name: 'userId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/tickets': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'List support tickets',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/tickets/{ticketId}': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Get support ticket',
+        parameters: [{ name: 'ticketId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+      patch: {
+        tags: ['SuperAdmin'],
+        summary: 'Update support ticket',
+        parameters: [{ name: 'ticketId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/tickets/{ticketId}/comments': {
+      post: {
+        tags: ['SuperAdmin'],
+        summary: 'Add support ticket comment',
+        parameters: [{ name: 'ticketId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/tickets/{ticketId}/attachments': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'List support ticket attachments',
+        parameters: [{ name: 'ticketId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['SuperAdmin'],
+        summary: 'Upload support ticket attachment',
+        parameters: [{ name: 'ticketId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: { file: { type: 'string', format: 'binary' } },
+              },
+            },
+          },
+        },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/tickets/suggestions': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'List ticket suggestions',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/tickets/suggestions/{key}/create': {
+      post: {
+        tags: ['SuperAdmin'],
+        summary: 'Create ticket from suggestion',
+        parameters: [{ name: 'key', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/superadmin/db/runs/export': {
+      get: {
+        tags: ['SuperAdmin'],
+        summary: 'Export setup runs',
+        responses: { '200': { description: 'OK' } },
       },
     },
   },

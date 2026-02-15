@@ -38,7 +38,7 @@
 
 ### OpenAPI / Swagger (expansão)
 - [x] Cobertura expandida de rotas core (Assets, Stock/Movimentos, Spare Parts, Kits, Tickets, Profile, Planner, Search, Notifications, Stocktake).
-- [ ] Cobertura completa de rotas (Reports, Admin/Setup, SuperAdmin, Jobs, Customization, Tenants, Documents/Uploads detalhados).
+- [x] Cobertura completa de rotas (Reports, Admin/Setup, SuperAdmin, Jobs, Customization, Tenants, Documents/Uploads detalhados).
 - [ ] Esquemas de erro consistentes (`ErrorResponse`), paginação (`page`, `pageSize`, `total`), sorting/filter (query params) e exemplos por endpoint.
 - [x] `securitySchemes` (JWT/Bearer) + `tags` normalizadas.
 - [ ] Alinhar nomes/IDs (`schedule_id` vs `scheduleId`, etc.) e respostas (status codes, payloads) com a implementação.
