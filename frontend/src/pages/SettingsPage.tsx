@@ -4321,11 +4321,143 @@ function NotificationSettings() {
 
 type PreventiveSection = 'plans' | 'schedules';
 
+type PlanRoiInputs = {
+  downtime_hours_avoided: string;
+  cost_per_downtime_hour: string;
+  labor_hours: string;
+  labor_cost_per_hour: string;
+  parts_cost: string;
+};
+
+type PlanDetails = {
+  baseDescription: string;
+  requiredParts: string[];
+  relatedDocs: string[];
+  roiInputs: PlanRoiInputs;
+};
+
+const defaultRoiInputs: PlanRoiInputs = {
+  downtime_hours_avoided: '',
+  cost_per_downtime_hour: '',
+  labor_hours: '',
+  labor_cost_per_hour: '',
+  parts_cost: '',
+};
+
+const PLAN_DETAILS_HEADER = '---\nDetalhes do plano (auto)\n';
+
 function toIsoFromDatetimeLocal(value: string) {
   if (!value) return '';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
   return date.toISOString();
+}
+
+function calculatePlanRoi(inputs: PlanRoiInputs) {
+  const downtimeHours = Number(inputs.downtime_hours_avoided || 0);
+  const costPerHour = Number(inputs.cost_per_downtime_hour || 0);
+  const laborHours = Number(inputs.labor_hours || 0);
+  const laborCost = Number(inputs.labor_cost_per_hour || 0);
+  const partsCost = Number(inputs.parts_cost || 0);
+
+  const benefitEstimate = downtimeHours * costPerHour;
+  const costEstimate = laborHours * laborCost + partsCost;
+  const roiPercent = costEstimate > 0 ? ((benefitEstimate - costEstimate) / costEstimate) * 100 : null;
+
+  return { benefitEstimate, costEstimate, roiPercent };
+}
+
+function parsePlanDetails(description?: string | null): PlanDetails {
+  const raw = description || '';
+  const markerIndex = raw.indexOf(PLAN_DETAILS_HEADER);
+  const baseDescription = markerIndex === -1 ? raw.trim() : raw.slice(0, markerIndex).trim();
+  const detailsText = markerIndex === -1 ? '' : raw.slice(markerIndex + PLAN_DETAILS_HEADER.length).trim();
+  const requiredParts: string[] = [];
+  const relatedDocs: string[] = [];
+  const roiInputs = { ...defaultRoiInputs };
+
+  let section: 'parts' | 'docs' | 'roi' | null = null;
+  if (detailsText) {
+    detailsText.split('\n').forEach((line) => {
+      const trimmed = line.trim();
+      const lower = trimmed.toLowerCase();
+
+      if (lower.startsWith('peças obrigatórias') || lower.startsWith('pecas obrigatorias')) {
+        section = 'parts';
+        return;
+      }
+
+      if (lower.startsWith('documentos relacionados')) {
+        section = 'docs';
+        return;
+      }
+
+      if (lower.startsWith('roi estimado')) {
+        section = 'roi';
+        return;
+      }
+
+      if (!trimmed.startsWith('-')) return;
+
+      const content = trimmed.replace(/^[-\s]+/, '').trim();
+      if (!content) return;
+
+      if (section === 'parts') {
+        requiredParts.push(content);
+        return;
+      }
+
+      if (section === 'docs') {
+        relatedDocs.push(content);
+        return;
+      }
+
+      if (section === 'roi') {
+        const [rawKey, rawValue] = content.split(':');
+        if (!rawKey || rawValue === undefined) return;
+        const key = rawKey.trim();
+        const value = rawValue.trim();
+        if (key in roiInputs) {
+          roiInputs[key as keyof PlanRoiInputs] = value;
+        }
+      }
+    });
+  }
+
+  return { baseDescription, requiredParts, relatedDocs, roiInputs };
+}
+
+function buildPlanDescription(base: string, details: Omit<PlanDetails, 'baseDescription'>) {
+  const cleanedBase = parsePlanDetails(base).baseDescription;
+  const lines: string[] = [];
+
+  if (details.requiredParts.length) {
+    lines.push('Peças obrigatórias:');
+    details.requiredParts.forEach((part) => lines.push(`- ${part}`));
+  }
+
+  if (details.relatedDocs.length) {
+    lines.push('Documentos relacionados:');
+    details.relatedDocs.forEach((doc) => lines.push(`- ${doc}`));
+  }
+
+  const hasRoi = Object.values(details.roiInputs).some((value) => value.trim());
+  if (hasRoi) {
+    const roi = calculatePlanRoi(details.roiInputs);
+    lines.push('ROI estimado:');
+    Object.entries(details.roiInputs).forEach(([key, value]) => {
+      if (value.trim()) lines.push(`- ${key}: ${value.trim()}`);
+    });
+    lines.push(`- benefit_estimate: ${roi.benefitEstimate.toFixed(2)}`);
+    lines.push(`- cost_estimate: ${roi.costEstimate.toFixed(2)}`);
+    if (roi.roiPercent !== null) {
+      lines.push(`- roi_percent: ${roi.roiPercent.toFixed(1)}`);
+    }
+  }
+
+  if (!lines.length) return cleanedBase;
+  if (!cleanedBase) return `${PLAN_DETAILS_HEADER}${lines.join('\n')}`;
+  return `${cleanedBase}\n\n${PLAN_DETAILS_HEADER}${lines.join('\n')}`;
 }
 
 function PreventiveMaintenanceSettings({
@@ -4432,6 +4564,10 @@ function PreventiveMaintenanceSettings({
   const [showForm, setShowForm] = React.useState(false);
   const [wizardOpen, setWizardOpen] = React.useState(false);
   const [wizardStep, setWizardStep] = React.useState(0);
+  const [requiredParts, setRequiredParts] = React.useState<string[]>([]);
+  const [relatedDocs, setRelatedDocs] = React.useState<string[]>([]);
+  const [roiInputs, setRoiInputs] = React.useState<PlanRoiInputs>({ ...defaultRoiInputs });
+  const wizardSteps = ['Base', 'Cadencia', 'Tarefas', 'Peças & Docs', 'ROI'];
   const [editingPlan, setEditingPlan] = React.useState<any>(null);
   const [selectedTemplateId, setSelectedTemplateId] = React.useState('');
   const [scheduleLoading, setScheduleLoading] = React.useState(false);
@@ -4599,12 +4735,18 @@ function PreventiveMaintenanceSettings({
         ? `/${selectedPlant}/plans/${editingPlan.id}`
         : `/${selectedPlant}/plans`;
 
+      const composedDescription = buildPlanDescription(formData.description, {
+        requiredParts,
+        relatedDocs,
+        roiInputs,
+      });
+
       await apiCall(url, {
         method,
         body: JSON.stringify({
           asset_id: formData.asset_id,
           name: formData.name,
-          description: formData.description || undefined,
+          description: composedDescription || undefined,
           frequency_type: formData.frequency_unit,
           frequency_value: Number(formData.frequency_value),
           auto_schedule: formData.auto_schedule,
@@ -4638,6 +4780,9 @@ function PreventiveMaintenanceSettings({
         tasks: [],
       });
       setSelectedTemplateId('');
+      setRequiredParts([]);
+      setRelatedDocs([]);
+      setRoiInputs({ ...defaultRoiInputs });
       fetchPlans();
     } catch (error) {
       console.error('Failed to save plan:', error);
@@ -4658,13 +4803,14 @@ function PreventiveMaintenanceSettings({
   };
 
   const handleEdit = (plan: any) => {
+    const parsedDetails = parsePlanDetails(plan.description || '');
     setEditingPlan(plan);
     setFormData({
       asset_id: plan.asset_id,
       name: plan.name,
       frequency_value: plan.frequency_value,
       frequency_unit: plan.frequency_type || plan.frequency_unit || 'days',
-      description: plan.description || '',
+      description: parsedDetails.baseDescription || '',
       auto_schedule: plan.auto_schedule !== false,
       schedule_basis: plan.schedule_basis || 'completion',
       schedule_anchor_mode: (plan.schedule_anchor_mode as any) || 'interval',
@@ -4674,6 +4820,9 @@ function PreventiveMaintenanceSettings({
       tolerance_mode: (plan.tolerance_mode as any) || 'soft',
       tasks: plan.tasks || [],
     });
+    setRequiredParts(parsedDetails.requiredParts);
+    setRelatedDocs(parsedDetails.relatedDocs);
+    setRoiInputs({ ...parsedDetails.roiInputs });
     setSelectedTemplateId('');
     setShowForm(true);
   };
@@ -4697,6 +4846,34 @@ function PreventiveMaintenanceSettings({
       tasks: formData.tasks.filter((_, i) => i !== index),
     });
   };
+
+  const addRequiredPart = () => {
+    setRequiredParts((prev) => [...prev, '']);
+  };
+
+  const updateRequiredPart = (index: number, value: string) => {
+    setRequiredParts((prev) => prev.map((item, idx) => (idx === index ? value : item)));
+  };
+
+  const removeRequiredPart = (index: number) => {
+    setRequiredParts((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const addRelatedDoc = () => {
+    setRelatedDocs((prev) => [...prev, '']);
+  };
+
+  const updateRelatedDoc = (index: number, value: string) => {
+    setRelatedDocs((prev) => prev.map((item, idx) => (idx === index ? value : item)));
+  };
+
+  const removeRelatedDoc = (index: number) => {
+    setRelatedDocs((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const roiSummary = React.useMemo(() => calculatePlanRoi(roiInputs), [roiInputs]);
+  const lastWizardStep = wizardSteps.length - 1;
+  const wizardCanContinue = wizardStep === 0 ? !!formData.asset_id && !!formData.name : true;
 
   const visibleSchedules = React.useMemo(() => {
     if (scheduleFilter === 'all') return schedules;
@@ -4916,6 +5093,9 @@ function PreventiveMaintenanceSettings({
             setEditingPlan(null);
             setWizardOpen(false);
             setWizardStep(0);
+            setRequiredParts([]);
+            setRelatedDocs([]);
+            setRoiInputs({ ...defaultRoiInputs });
           }}
           className="inline-flex items-center gap-2 rounded-full bg-[color:var(--settings-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
         >
@@ -4928,6 +5108,9 @@ function PreventiveMaintenanceSettings({
             setShowForm(false);
             setEditingPlan(null);
             setWizardStep(0);
+            setRequiredParts([]);
+            setRelatedDocs([]);
+            setRoiInputs({ ...defaultRoiInputs });
           }}
           className="inline-flex items-center gap-2 rounded-full border theme-border bg-[color:var(--dash-panel)] px-4 py-2 text-sm font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
         >
@@ -4943,15 +5126,17 @@ function PreventiveMaintenanceSettings({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">Assistente</p>
-                <h3 className="mt-1 text-lg font-semibold theme-text">Criar plano em 3 passos</h3>
+                <h3 className="mt-1 text-lg font-semibold theme-text">
+                  Criar plano em {wizardSteps.length} passos
+                </h3>
               </div>
               <span className="rounded-full border theme-border bg-[color:var(--dash-surface)] px-3 py-1 text-xs font-semibold theme-text-muted">
-                Passo {wizardStep + 1} de 3
+                Passo {wizardStep + 1} de {wizardSteps.length}
               </span>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {['Base', 'Cadencia', 'Tarefas'].map((label, idx) => (
+              {wizardSteps.map((label, idx) => (
                 <div
                   key={label}
                   className={
@@ -5177,6 +5362,168 @@ function PreventiveMaintenanceSettings({
               </div>
             )}
 
+            {wizardStep === 3 && (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium theme-text">Peças obrigatórias</label>
+                    <button
+                      type="button"
+                      onClick={addRequiredPart}
+                      className="rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text transition hover:bg-[color:var(--dash-surface)]"
+                    >
+                      + Adicionar peça
+                    </button>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {requiredParts.map((part, idx) => (
+                      <div key={idx} className="flex gap-2">
+                        <input
+                          className="input"
+                          value={part}
+                          onChange={(e) => updateRequiredPart(idx, e.target.value)}
+                          placeholder="Ex: Filtro 10mm (2 un)"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeRequiredPart(idx)}
+                          className="rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    {requiredParts.length === 0 && (
+                      <div className="text-sm theme-text-muted">Sem peças obrigatórias definidas.</div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium theme-text">Documentos relacionados</label>
+                    <button
+                      type="button"
+                      onClick={addRelatedDoc}
+                      className="rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text transition hover:bg-[color:var(--dash-surface)]"
+                    >
+                      + Adicionar documento
+                    </button>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {relatedDocs.map((doc, idx) => (
+                      <div key={idx} className="flex gap-2">
+                        <input
+                          className="input"
+                          value={doc}
+                          onChange={(e) => updateRelatedDoc(idx, e.target.value)}
+                          placeholder="Ex: Manual do equipamento v2"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeRelatedDoc(idx)}
+                          className="rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    {relatedDocs.length === 0 && (
+                      <div className="text-sm theme-text-muted">Sem documentos associados.</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {wizardStep === 4 && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium theme-text mb-1">Horas de paragem evitadas</label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input"
+                      value={roiInputs.downtime_hours_avoided}
+                      onChange={(e) =>
+                        setRoiInputs((prev) => ({ ...prev, downtime_hours_avoided: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium theme-text mb-1">Custo por hora de paragem</label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input"
+                      value={roiInputs.cost_per_downtime_hour}
+                      onChange={(e) =>
+                        setRoiInputs((prev) => ({ ...prev, cost_per_downtime_hour: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium theme-text mb-1">Horas de mao de obra</label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input"
+                      value={roiInputs.labor_hours}
+                      onChange={(e) => setRoiInputs((prev) => ({ ...prev, labor_hours: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium theme-text mb-1">Custo hora mao de obra</label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input"
+                      value={roiInputs.labor_cost_per_hour}
+                      onChange={(e) =>
+                        setRoiInputs((prev) => ({ ...prev, labor_cost_per_hour: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium theme-text mb-1">Custo estimado de pecas</label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input"
+                      value={roiInputs.parts_cost}
+                      onChange={(e) => setRoiInputs((prev) => ({ ...prev, parts_cost: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4">
+                  <div className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
+                    ROI estimado
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                    <div>
+                      <div className="text-sm font-semibold theme-text">Beneficio</div>
+                      <div className="text-xl font-semibold theme-text">
+                        {roiSummary.benefitEstimate.toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold theme-text">Custo</div>
+                      <div className="text-xl font-semibold theme-text">
+                        {roiSummary.costEstimate.toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold theme-text">ROI</div>
+                      <div className="text-xl font-semibold theme-text">
+                        {roiSummary.roiPercent === null ? '—' : `${roiSummary.roiPercent.toFixed(1)}%`}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <button
@@ -5185,6 +5532,9 @@ function PreventiveMaintenanceSettings({
                   onClick={() => {
                     if (wizardStep === 0) {
                       setWizardOpen(false);
+                      setRequiredParts([]);
+                      setRelatedDocs([]);
+                      setRoiInputs({ ...defaultRoiInputs });
                       return;
                     }
                     setWizardStep((s) => Math.max(0, s - 1));
@@ -5192,12 +5542,12 @@ function PreventiveMaintenanceSettings({
                 >
                   {wizardStep === 0 ? 'Fechar' : 'Anterior'}
                 </button>
-                {wizardStep < 2 ? (
+                {wizardStep < lastWizardStep ? (
                   <button
                     type="button"
                     className="btn-primary h-9 px-4"
-                    onClick={() => setWizardStep((s) => Math.min(2, s + 1))}
-                    disabled={!formData.asset_id || !formData.name}
+                    onClick={() => setWizardStep((s) => Math.min(lastWizardStep, s + 1))}
+                    disabled={!wizardCanContinue}
                   >
                     Seguinte
                   </button>
@@ -5218,6 +5568,9 @@ function PreventiveMaintenanceSettings({
                 onClick={() => {
                   setWizardOpen(false);
                   setWizardStep(0);
+                  setRequiredParts([]);
+                  setRelatedDocs([]);
+                  setRoiInputs({ ...defaultRoiInputs });
                 }}
               >
                 Cancelar

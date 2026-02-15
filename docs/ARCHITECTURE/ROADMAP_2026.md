@@ -141,12 +141,12 @@ Este track é o plano **prático** para as próximas iterações, com foco em op
    - ✅ Documentos expirando/alert (UI consumindo `/api/alerts/documents/expiring`)
    - Storage externo (S3/R2) para produção
 
-- [ ] **MaintenancePlannerSettings** - Wizard preventivo
+- [x] **MaintenancePlannerSettings** - Wizard preventivo
    - ✅ Multi-step wizard
    - ✅ Frequência (dias, horas, ciclos)
-   - Peças obrigatórias
-   - Documentos relacionados
-   - ROI calculator
+   - ✅ Peças obrigatórias
+   - ✅ Documentos relacionados
+   - ✅ ROI calculator
    - Tempo estimado: **4-5 dias**
 
 ---
