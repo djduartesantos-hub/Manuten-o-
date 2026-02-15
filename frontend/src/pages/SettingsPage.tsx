@@ -140,32 +140,40 @@ export function SettingsPage() {
     'suppliers:write',
   ]);
 
-  const governanceTabs: { id: SettingTab; label: string; icon: React.ReactNode; description: string; group: SettingGroup }[] = [
-    ...(canSeePermissionsTab
-      ? [
-          {
-            id: 'permissions' as const,
-            label: 'Permissões & Roles',
-            icon: <Shield className="w-5 h-5" />,
-            description: 'Matriz de acesso e roles por perfil',
-            group: 'governance',
-          },
-        ]
-      : []),
-    ...(canSeeManagementTab
-      ? [
-          {
-            id: 'management' as const,
-            label: 'Gestão administrativa',
-            icon: <Users className="w-5 h-5" />,
-            description: 'Plantas, utilizadores, inventario e operacoes',
-            group: 'governance',
-          },
-        ]
-      : []),
-  ];
+  type SettingsTabMeta = { id: SettingTab; label: string; icon: React.ReactNode; description: string; group: SettingGroup };
 
-  const allTabs: { id: SettingTab; label: string; icon: React.ReactNode; description: string; group: SettingGroup }[] = [
+  const governanceTabs: SettingsTabMeta[] = [];
+  if (canSeePermissionsTab) {
+    governanceTabs.push({
+      id: 'permissions',
+      label: 'Permissões & Roles',
+      icon: <Shield className="w-5 h-5" />,
+      description: 'Matriz de acesso e roles por perfil',
+      group: 'governance',
+    });
+  }
+  if (canSeeManagementTab) {
+    governanceTabs.push({
+      id: 'management',
+      label: 'Gestão administrativa',
+      icon: <Users className="w-5 h-5" />,
+      description: 'Plantas, utilizadores, inventario e operacoes',
+      group: 'governance',
+    });
+  }
+
+  const superadminTabs: SettingsTabMeta[] = [];
+  if (isSuperAdmin) {
+    superadminTabs.push({
+      id: 'superadmin',
+      label: 'SuperAdministrador',
+      icon: <Shield className="w-5 h-5" />,
+      description: 'Gestao global, auditoria e diagnosticos',
+      group: 'platform',
+    });
+  }
+
+  const allTabs: SettingsTabMeta[] = [
     {
       id: 'alerts' as const,
       label: 'Alertas & Notificações',
@@ -209,17 +217,7 @@ export function SettingsPage() {
       group: 'content',
     },
     ...governanceTabs,
-    ...(isSuperAdmin
-      ? [
-          {
-            id: 'superadmin' as const,
-            label: 'SuperAdministrador',
-            icon: <Shield className="w-5 h-5" />,
-            description: 'Gestao global, auditoria e diagnosticos',
-            group: 'platform',
-          },
-        ]
-      : []),
+    ...superadminTabs,
   ];
 
   const tabs = allTabs.filter((tab) => {
