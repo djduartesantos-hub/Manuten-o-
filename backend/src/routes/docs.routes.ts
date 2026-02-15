@@ -29,6 +29,7 @@ const openapi = {
     { name: 'Alerts' },
     { name: 'Documents' },
     { name: 'Notifications' },
+    { name: 'Integrations' },
     { name: 'Dashboard' },
     { name: 'Search' },
     { name: 'Stocktake' },
@@ -1240,6 +1241,104 @@ const openapi = {
             content: { 'application/json': { schema: { $ref: '#/components/schemas/PagedEnvelope' } } },
           },
         },
+      },
+    },
+    '/api/notifications/templates': {
+      get: {
+        tags: ['Notifications'],
+        summary: 'List notification templates',
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Notifications'],
+        summary: 'Create notification template',
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/notifications/templates/{templateId}': {
+      patch: {
+        tags: ['Notifications'],
+        summary: 'Update notification template',
+        parameters: [{ name: 'templateId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+      delete: {
+        tags: ['Notifications'],
+        summary: 'Delete notification template',
+        parameters: [{ name: 'templateId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/integrations/webhooks': {
+      get: {
+        tags: ['Integrations'],
+        summary: 'List webhooks',
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Integrations'],
+        summary: 'Create webhook',
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/integrations/webhooks/{webhookId}': {
+      patch: {
+        tags: ['Integrations'],
+        summary: 'Update webhook',
+        parameters: [{ name: 'webhookId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+      delete: {
+        tags: ['Integrations'],
+        summary: 'Delete webhook',
+        parameters: [{ name: 'webhookId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/integrations/webhooks/events': {
+      get: {
+        tags: ['Integrations'],
+        summary: 'List webhook events',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/integrations/webhooks/deliveries': {
+      get: {
+        tags: ['Integrations'],
+        summary: 'List webhook deliveries',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/integrations/api-keys': {
+      get: {
+        tags: ['Integrations'],
+        summary: 'List API keys',
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Integrations'],
+        summary: 'Create API key',
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/integrations/api-keys/{apiKeyId}': {
+      patch: {
+        tags: ['Integrations'],
+        summary: 'Update API key',
+        parameters: [{ name: 'apiKeyId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+      delete: {
+        tags: ['Integrations'],
+        summary: 'Delete API key',
+        parameters: [{ name: 'apiKeyId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
       },
     },
     '/api/plants': {

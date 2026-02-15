@@ -24,6 +24,7 @@ import setupPublicRoutes from './routes/setup.public.routes.js';
 import debugRoutes from './routes/debug.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
+import integrationsRoutes from './routes/integrations.routes.js';
 import docsRoutes from './routes/docs.routes.js';
 import profileRoutes from './routes/profile.routes.js';
 import superadminRoutes from './routes/superadmin.routes.js';
@@ -112,6 +113,7 @@ export function createApp(): Express {
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/alerts', alertRoutes);
   app.use('/api/notifications', notificationRoutes);
+  app.use('/api/integrations', integrationsRoutes);
   app.use('/api/search', searchRoutes);
   app.use('/api/jobs', jobsRoutes);
   app.use('/api/setup', setupRoutes);

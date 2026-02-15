@@ -1853,6 +1853,109 @@ export async function deleteScheduledReport(reportId: string) {
 }
 
 // ============================================================================
+// NOTIFICATION TEMPLATES
+// ============================================================================
+
+export async function getNotificationTemplates() {
+  return apiCall('/notifications/templates');
+}
+
+export async function createNotificationTemplate(data: {
+  eventType: string;
+  channel: 'email' | 'in_app' | 'socket';
+  subject?: string;
+  body: string;
+  isActive?: boolean;
+}) {
+  return apiCall('/notifications/templates', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateNotificationTemplate(templateId: string, data: any) {
+  return apiCall(`/notifications/templates/${templateId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteNotificationTemplate(templateId: string) {
+  return apiCall(`/notifications/templates/${templateId}`, {
+    method: 'DELETE',
+  });
+}
+
+// ============================================================================
+// INTEGRATIONS: WEBHOOKS + API KEYS
+// ============================================================================
+
+export async function getWebhooks() {
+  return apiCall('/integrations/webhooks');
+}
+
+export async function createWebhook(data: any) {
+  return apiCall('/integrations/webhooks', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateWebhook(webhookId: string, data: any) {
+  return apiCall(`/integrations/webhooks/${webhookId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteWebhook(webhookId: string) {
+  return apiCall(`/integrations/webhooks/${webhookId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function getWebhookEvents() {
+  return apiCall('/integrations/webhooks/events');
+}
+
+export async function getWebhookDeliveries(params?: { webhookId?: string; limit?: number }) {
+  const qs = new URLSearchParams();
+  if (params?.webhookId) qs.append('webhookId', params.webhookId);
+  if (params?.limit) qs.append('limit', String(params.limit));
+  const suffix = qs.toString();
+  return apiCall(`/integrations/webhooks/deliveries${suffix ? `?${suffix}` : ''}`);
+}
+
+export async function getApiKeys() {
+  return apiCall('/integrations/api-keys');
+}
+
+export async function createApiKey(data: {
+  name: string;
+  scopes?: string[];
+  expiresAt?: string;
+  isActive?: boolean;
+}) {
+  return apiCall('/integrations/api-keys', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateApiKey(apiKeyId: string, data: any) {
+  return apiCall(`/integrations/api-keys/${apiKeyId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteApiKey(apiKeyId: string) {
+  return apiCall(`/integrations/api-keys/${apiKeyId}`, {
+    method: 'DELETE',
+  });
+}
+
+// ============================================================================
 // ADMIN MANAGEMENT (plants, users, roles)
 // ============================================================================
 

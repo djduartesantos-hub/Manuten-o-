@@ -2,6 +2,7 @@ import { and, eq, inArray, lt, sql } from 'drizzle-orm';
 import { db } from '../config/database.js';
 import {
   assets,
+  notificationTemplates,
   notifications,
   notificationRules,
   preventiveMaintenanceSchedules,
@@ -100,6 +101,51 @@ type NotificationRule = {
 };
 
 export class NotificationService {
+  private static applyTemplate(template: string, data: Record<string, any>): string {
+    return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_match, key) => {
+      const value = data[key];
+      return value === undefined || value === null ? '' : String(value);
+    });
+  }
+
+  private static async resolveEmailTemplate(tenantId: string, payload: {
+    eventType: string;
+    title: string;
+    message: string;
+    entity?: string;
+    entityId?: string;
+  }): Promise<{ subject: string; html: string; text: string } | null> {
+    const template = await db.query.notificationTemplates.findFirst({
+      where: (fields: any, { and, eq }: any) =>
+        and(
+          eq(fields.tenant_id, tenantId),
+          eq(fields.event_type, payload.eventType),
+          eq(fields.channel, 'email'),
+          eq(fields.is_active, true),
+        ),
+    });
+
+    if (!template) return null;
+
+    const baseData = {
+      title: payload.title,
+      message: payload.message,
+      eventType: payload.eventType,
+      entity: payload.entity,
+      entityId: payload.entityId,
+    };
+
+    const subject = template.subject
+      ? NotificationService.applyTemplate(template.subject, baseData)
+      : `Notificacao: ${payload.title}`;
+    const body = NotificationService.applyTemplate(template.body, baseData);
+
+    return {
+      subject,
+      text: body,
+      html: `<div>${body}</div>`,
+    };
+  }
   static async getManagerUserIds(tenantId: string): Promise<string[]> {
     const cacheKey = `notif:manager-users:${tenantId}`;
     try {
@@ -335,13 +381,20 @@ export class NotificationService {
 
     if (channels?.includes('email')) {
       try {
+        const template = await NotificationService.resolveEmailTemplate(tenantId, {
+          eventType: payload.eventType,
+          title: payload.title,
+          message: payload.message,
+          entity: payload.entity,
+          entityId: payload.entityId,
+        });
         const emails = await NotificationService.getUserEmails(tenantId, targetUserIds);
         if (emails.length > 0) {
           await JobQueueService.addJob(QUEUES.EMAIL, 'send-email', {
             to: emails,
-            subject: `Notificacao: ${payload.title}`,
-            text: payload.message,
-            html: `<div><strong>${payload.title}</strong></div><div>${payload.message}</div>`,
+            subject: template?.subject || `Notificacao: ${payload.title}`,
+            text: template?.text || payload.message,
+            html: template?.html || `<div><strong>${payload.title}</strong></div><div>${payload.message}</div>`,
           });
         }
       } catch {

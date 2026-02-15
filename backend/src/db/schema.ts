@@ -1701,6 +1701,124 @@ export const notifications = pgTable(
   }),
 );
 
+// Notification Templates (per tenant/channel)
+export const notificationTemplates = pgTable(
+  'notification_templates',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    event_type: text('event_type').notNull(),
+    channel: text('channel').notNull(),
+    subject: text('subject'),
+    body: text('body').notNull(),
+    is_active: boolean('is_active').default(true),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdx: index('notification_templates_tenant_id_idx').on(table.tenant_id),
+    tenantEventChannelIdx: uniqueIndex('notification_templates_tenant_event_channel_idx').on(
+      table.tenant_id,
+      table.event_type,
+      table.channel,
+    ),
+  }),
+);
+
+// Webhook Endpoints
+export const webhookEndpoints = pgTable(
+  'webhook_endpoints',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    name: text('name').notNull(),
+    url: text('url').notNull(),
+    secret: text('secret').notNull(),
+    event_types: text('event_types').array().default(sql`ARRAY[]::text[]`),
+    headers: jsonb('headers'),
+    is_active: boolean('is_active').default(true),
+    created_by: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdx: index('webhook_endpoints_tenant_id_idx').on(table.tenant_id),
+    tenantNameIdx: uniqueIndex('webhook_endpoints_tenant_name_idx').on(table.tenant_id, table.name),
+  }),
+);
+
+// Webhook Events (store payloads)
+export const webhookEvents = pgTable(
+  'webhook_events',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    event_type: text('event_type').notNull(),
+    entity: text('entity'),
+    entity_id: text('entity_id'),
+    payload: jsonb('payload').notNull(),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdx: index('webhook_events_tenant_id_idx').on(table.tenant_id),
+    tenantEventIdx: index('webhook_events_tenant_event_idx').on(table.tenant_id, table.event_type),
+    tenantCreatedIdx: index('webhook_events_tenant_created_idx').on(table.tenant_id, table.created_at),
+  }),
+);
+
+// Webhook Deliveries
+export const webhookDeliveries = pgTable(
+  'webhook_deliveries',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    webhook_id: uuid('webhook_id')
+      .notNull()
+      .references(() => webhookEndpoints.id, { onDelete: 'cascade' }),
+    event_id: uuid('event_id').references(() => webhookEvents.id, { onDelete: 'set null' }),
+    event_type: text('event_type').notNull(),
+    status: text('status').default('pending'),
+    attempt_count: integer('attempt_count').default(0),
+    last_attempt_at: timestamp('last_attempt_at', { withTimezone: true }),
+    next_attempt_at: timestamp('next_attempt_at', { withTimezone: true }),
+    response_status: integer('response_status'),
+    response_body: text('response_body'),
+    error: text('error'),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdx: index('webhook_deliveries_tenant_id_idx').on(table.tenant_id),
+    webhookIdx: index('webhook_deliveries_webhook_id_idx').on(table.webhook_id),
+    webhookStatusIdx: index('webhook_deliveries_webhook_status_idx').on(table.webhook_id, table.status),
+    nextAttemptIdx: index('webhook_deliveries_next_attempt_idx').on(table.next_attempt_at),
+  }),
+);
+
+// API Keys (tenant integrations)
+export const apiKeys = pgTable(
+  'api_keys',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    name: text('name').notNull(),
+    key_prefix: text('key_prefix').notNull(),
+    key_hash: text('key_hash').notNull(),
+    scopes: text('scopes').array().default(sql`ARRAY[]::text[]`),
+    last_used_at: timestamp('last_used_at', { withTimezone: true }),
+    expires_at: timestamp('expires_at', { withTimezone: true }),
+    is_active: boolean('is_active').default(true),
+    created_by: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdx: index('api_keys_tenant_id_idx').on(table.tenant_id),
+    tenantPrefixIdx: uniqueIndex('api_keys_tenant_prefix_idx').on(table.tenant_id, table.key_prefix),
+    tenantActiveIdx: index('api_keys_tenant_active_idx').on(table.tenant_id, table.is_active),
+  }),
+);
+
 // Scheduled Reports (email delivery)
 export const scheduledReports = pgTable(
   'scheduled_reports',

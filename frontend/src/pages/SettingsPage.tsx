@@ -74,6 +74,18 @@ import {
   createScheduledReport,
   updateScheduledReport,
   deleteScheduledReport,
+  getNotificationTemplates,
+  createNotificationTemplate,
+  updateNotificationTemplate,
+  deleteNotificationTemplate,
+  getWebhooks,
+  createWebhook,
+  updateWebhook,
+  deleteWebhook,
+  getApiKeys,
+  createApiKey,
+  updateApiKey,
+  deleteApiKey,
 } from '../services/api';
 import {
   Bell,
@@ -96,6 +108,7 @@ import {
   RefreshCw,
   Download,
   KeyRound,
+  Link2,
 } from 'lucide-react';
 import { AdminSetupPage } from './AdminSetupPage';
 import { DatabaseUpdatePage } from './DatabaseUpdatePage';
@@ -112,6 +125,7 @@ type SettingTab =
   | 'general'
   | 'alerts'
   | 'notifications'
+  | 'integrations'
   | 'preventive'
   | 'kits'
   | 'warnings'
@@ -195,6 +209,13 @@ export function SettingsPage() {
       group: 'alerts',
     },
     {
+      id: 'integrations' as const,
+      label: 'Integrações',
+      icon: <Link2 className="w-5 h-5" />,
+      description: 'Webhooks e chaves de API por tenant',
+      group: 'governance',
+    },
+    {
       id: 'warnings' as const,
       label: 'Alertas Preditivos',
       icon: <AlertTriangle className="w-5 h-5" />,
@@ -233,6 +254,10 @@ export function SettingsPage() {
 
         if (tab.id === 'alerts' || tab.id === 'notifications') {
           return hasAny(['notifications:read', 'notifications:write']);
+        }
+
+        if (tab.id === 'integrations') {
+          return hasAny(['integrations:read', 'integrations:write']);
         }
 
         if (tab.id === 'preventive') {
@@ -498,6 +523,7 @@ export function SettingsPage() {
             <div className="p-6">
               {activePanel === 'alerts' && <AlertsSettings />}
               {activePanel === 'notifications' && <NotificationSettings />}
+              {activePanel === 'integrations' && <IntegrationsSettings />}
               {activePanel === 'preventive' && (
                 <PreventiveMaintenanceSettings initialSection={preventiveSub || undefined} />
               )}
@@ -3826,6 +3852,18 @@ function NotificationSettings() {
   const [reportsLoading, setReportsLoading] = React.useState(false);
   const [reportsSaving, setReportsSaving] = React.useState(false);
   const [reportError, setReportError] = React.useState('');
+  const [templates, setTemplates] = React.useState<any[]>([]);
+  const [templatesLoading, setTemplatesLoading] = React.useState(false);
+  const [templatesSaving, setTemplatesSaving] = React.useState(false);
+  const [templateError, setTemplateError] = React.useState('');
+  const [editingTemplateId, setEditingTemplateId] = React.useState<string | null>(null);
+  const [templateForm, setTemplateForm] = React.useState({
+    eventType: 'work_order_status_changed',
+    channel: 'email' as 'email' | 'in_app' | 'socket',
+    subject: '',
+    body: '',
+    isActive: true,
+  });
   const [reportForm, setReportForm] = React.useState({
     name: '',
     frequency: 'weekly',
@@ -3839,6 +3877,7 @@ function NotificationSettings() {
   React.useEffect(() => {
     fetchNotificationRules();
     fetchScheduledReports();
+    fetchNotificationTemplates();
   }, []);
 
   const fetchNotificationRules = async () => {
@@ -3914,6 +3953,84 @@ function NotificationSettings() {
       setReportError('Falha ao carregar relatorios agendados');
     } finally {
       setReportsLoading(false);
+    }
+  };
+
+  const fetchNotificationTemplates = async () => {
+    try {
+      setTemplatesLoading(true);
+      setTemplateError('');
+      const data = await getNotificationTemplates();
+      setTemplates(Array.isArray(data) ? data : (data?.data || []));
+    } catch (error) {
+      console.error('Failed to fetch notification templates:', error);
+      setTemplates([]);
+      setTemplateError('Falha ao carregar templates');
+    } finally {
+      setTemplatesLoading(false);
+    }
+  };
+
+  const handleSaveTemplate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!templateForm.body.trim()) {
+      setTemplateError('Corpo do template é obrigatório.');
+      return;
+    }
+
+    try {
+      setTemplatesSaving(true);
+      setTemplateError('');
+
+      const payload = {
+        eventType: templateForm.eventType,
+        channel: templateForm.channel,
+        subject: templateForm.subject.trim() || undefined,
+        body: templateForm.body.trim(),
+        isActive: templateForm.isActive,
+      };
+
+      if (editingTemplateId) {
+        await updateNotificationTemplate(editingTemplateId, payload);
+      } else {
+        await createNotificationTemplate(payload);
+      }
+
+      setEditingTemplateId(null);
+      setTemplateForm({
+        eventType: 'work_order_status_changed',
+        channel: 'email',
+        subject: '',
+        body: '',
+        isActive: true,
+      });
+      await fetchNotificationTemplates();
+    } catch (error) {
+      console.error('Failed to save notification template:', error);
+      setTemplateError('Falha ao salvar template');
+    } finally {
+      setTemplatesSaving(false);
+    }
+  };
+
+  const handleEditTemplate = (template: any) => {
+    setEditingTemplateId(template.id);
+    setTemplateForm({
+      eventType: template.event_type || 'work_order_status_changed',
+      channel: template.channel || 'email',
+      subject: template.subject || '',
+      body: template.body || '',
+      isActive: template.is_active !== false,
+    });
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    if (!window.confirm('Eliminar este template?')) return;
+    try {
+      await deleteNotificationTemplate(templateId);
+      await fetchNotificationTemplates();
+    } catch {
+      setTemplateError('Falha ao eliminar template');
     }
   };
 
@@ -4138,6 +4255,196 @@ function NotificationSettings() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
+              Templates de notificacao
+            </p>
+            <h3 className="mt-1 text-lg font-semibold theme-text">Email e in-app</h3>
+            <p className="text-xs theme-text-muted">
+              Use variaveis: {'{{title}}'}, {'{{message}}'}, {'{{eventType}}'}, {'{{entity}}'}, {'{{entityId}}'}.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary h-9 px-3"
+            onClick={() => fetchNotificationTemplates()}
+            disabled={templatesLoading}
+          >
+            Atualizar
+          </button>
+        </div>
+
+        {templateError && (
+          <div className="mb-3 rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text">
+            <span className="badge-danger mr-2 text-xs">Erro</span>
+            {templateError}
+          </div>
+        )}
+
+        <form
+          onSubmit={handleSaveTemplate}
+          className="grid gap-3 rounded-[22px] border theme-border theme-card p-4 shadow-sm md:grid-cols-2"
+        >
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+              Evento
+            </label>
+            <select
+              className="input mt-2"
+              value={templateForm.eventType}
+              onChange={(e) => setTemplateForm((p) => ({ ...p, eventType: e.target.value }))}
+            >
+              {notificationEvents.map((event) => (
+                <option key={event.value} value={event.value}>
+                  {event.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+              Canal
+            </label>
+            <select
+              className="input mt-2"
+              value={templateForm.channel}
+              onChange={(e) => setTemplateForm((p) => ({ ...p, channel: e.target.value as any }))}
+            >
+              {channelOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+              Assunto (email)
+            </label>
+            <input
+              className="input mt-2"
+              value={templateForm.subject}
+              onChange={(e) => setTemplateForm((p) => ({ ...p, subject: e.target.value }))}
+              placeholder="Ex: Atualizacao de ordem"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">
+              Corpo
+            </label>
+            <textarea
+              className="input mt-2 min-h-[120px]"
+              value={templateForm.body}
+              onChange={(e) => setTemplateForm((p) => ({ ...p, body: e.target.value }))}
+              placeholder="{{title}} - {{message}}"
+            />
+          </div>
+
+          <div className="md:col-span-2 flex items-center justify-between gap-2">
+            <label className="inline-flex items-center gap-2 text-xs theme-text-muted">
+              <input
+                type="checkbox"
+                checked={templateForm.isActive}
+                onChange={(e) => setTemplateForm((p) => ({ ...p, isActive: e.target.checked }))}
+                className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
+              />
+              Ativo
+            </label>
+            <div className="flex items-center gap-2">
+              {editingTemplateId && (
+                <button
+                  type="button"
+                  className="btn-secondary h-9 px-3"
+                  onClick={() => {
+                    setEditingTemplateId(null);
+                    setTemplateForm({
+                      eventType: 'work_order_status_changed',
+                      channel: 'email',
+                      subject: '',
+                      body: '',
+                      isActive: true,
+                    });
+                  }}
+                >
+                  Cancelar
+                </button>
+              )}
+              <button type="submit" className="btn-primary h-9 px-4" disabled={templatesSaving}>
+                {templatesSaving ? 'A guardar...' : editingTemplateId ? 'Atualizar' : 'Criar'}
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <div className="mt-4 space-y-3">
+          {templatesLoading ? (
+            <div className="rounded-2xl border theme-border theme-card p-4 text-sm theme-text-muted">
+              A carregar templates...
+            </div>
+          ) : templates.length === 0 ? (
+            <div className="rounded-2xl border theme-border theme-card p-4 text-sm theme-text-muted">
+              Sem templates configurados.
+            </div>
+          ) : (
+            templates.map((template: any) => (
+              <div key={template.id} className="rounded-2xl border theme-border theme-card p-4 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold theme-text">
+                      {String(template.event_type)} • {String(template.channel)}
+                    </div>
+                    {template.subject && (
+                      <div className="mt-1 text-xs theme-text-muted">Assunto: {template.subject}</div>
+                    )}
+                    <div className="mt-1 text-xs theme-text-muted">
+                      {String(template.body).slice(0, 140)}
+                      {String(template.body).length > 140 ? '...' : ''}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="inline-flex items-center gap-2 text-xs theme-text-muted">
+                      <input
+                        type="checkbox"
+                        checked={template.is_active !== false}
+                        onChange={async (e) => {
+                          try {
+                            await updateNotificationTemplate(template.id, { isActive: e.target.checked });
+                            await fetchNotificationTemplates();
+                          } catch {
+                            setTemplateError('Falha ao atualizar template');
+                          }
+                        }}
+                        className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
+                      />
+                      Ativo
+                    </label>
+                    <button
+                      type="button"
+                      className="btn-secondary h-8 px-3"
+                      onClick={() => handleEditTemplate(template)}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary h-8 px-3"
+                      onClick={() => handleDeleteTemplate(template.id)}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
               Relatorios agendados
             </p>
             <h3 className="mt-1 text-lg font-semibold theme-text">Envio por email</h3>
@@ -4321,6 +4628,443 @@ function NotificationSettings() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function IntegrationsSettings() {
+  const [webhooks, setWebhooks] = React.useState<any[]>([]);
+  const [webhooksLoading, setWebhooksLoading] = React.useState(false);
+  const [webhooksSaving, setWebhooksSaving] = React.useState(false);
+  const [webhookError, setWebhookError] = React.useState('');
+  const [webhookForm, setWebhookForm] = React.useState({
+    name: '',
+    url: '',
+    eventTypes: '',
+    headers: '',
+    isActive: true,
+    secret: '',
+  });
+
+  const [apiKeys, setApiKeys] = React.useState<any[]>([]);
+  const [apiKeysLoading, setApiKeysLoading] = React.useState(false);
+  const [apiKeysSaving, setApiKeysSaving] = React.useState(false);
+  const [apiKeyError, setApiKeyError] = React.useState('');
+  const [newApiKey, setNewApiKey] = React.useState('');
+  const [apiKeyForm, setApiKeyForm] = React.useState({
+    name: '',
+    scopes: '',
+    expiresAt: '',
+    isActive: true,
+  });
+
+  React.useEffect(() => {
+    fetchWebhooks();
+    fetchApiKeys();
+  }, []);
+
+  const fetchWebhooks = async () => {
+    try {
+      setWebhooksLoading(true);
+      setWebhookError('');
+      const data = await getWebhooks();
+      setWebhooks(Array.isArray(data) ? data : (data?.data || []));
+    } catch (error) {
+      console.error('Failed to fetch webhooks:', error);
+      setWebhookError('Falha ao carregar webhooks');
+      setWebhooks([]);
+    } finally {
+      setWebhooksLoading(false);
+    }
+  };
+
+  const fetchApiKeys = async () => {
+    try {
+      setApiKeysLoading(true);
+      setApiKeyError('');
+      const data = await getApiKeys();
+      setApiKeys(Array.isArray(data) ? data : (data?.data || []));
+    } catch (error) {
+      console.error('Failed to fetch api keys:', error);
+      setApiKeyError('Falha ao carregar chaves');
+      setApiKeys([]);
+    } finally {
+      setApiKeysLoading(false);
+    }
+  };
+
+  const handleCreateWebhook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!webhookForm.name.trim() || !webhookForm.url.trim()) {
+      setWebhookError('Nome e URL sao obrigatorios.');
+      return;
+    }
+
+    let headers: Record<string, string> | undefined;
+    if (webhookForm.headers.trim()) {
+      try {
+        headers = JSON.parse(webhookForm.headers);
+      } catch {
+        setWebhookError('Headers devem estar em JSON valido.');
+        return;
+      }
+    }
+
+    const eventTypes = webhookForm.eventTypes
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
+
+    try {
+      setWebhooksSaving(true);
+      setWebhookError('');
+      await createWebhook({
+        name: webhookForm.name.trim(),
+        url: webhookForm.url.trim(),
+        eventTypes,
+        headers,
+        isActive: webhookForm.isActive,
+        secret: webhookForm.secret.trim() || undefined,
+      });
+      setWebhookForm({ name: '', url: '', eventTypes: '', headers: '', isActive: true, secret: '' });
+      await fetchWebhooks();
+    } catch (error) {
+      console.error('Failed to create webhook:', error);
+      setWebhookError('Falha ao criar webhook');
+    } finally {
+      setWebhooksSaving(false);
+    }
+  };
+
+  const handleCreateApiKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!apiKeyForm.name.trim()) {
+      setApiKeyError('Nome e obrigatorio.');
+      return;
+    }
+
+    const scopes = apiKeyForm.scopes
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
+
+    const expiresAt = apiKeyForm.expiresAt
+      ? new Date(apiKeyForm.expiresAt).toISOString()
+      : undefined;
+
+    try {
+      setApiKeysSaving(true);
+      setApiKeyError('');
+      const data = await createApiKey({
+        name: apiKeyForm.name.trim(),
+        scopes,
+        expiresAt,
+        isActive: apiKeyForm.isActive,
+      });
+      const apiKeyValue = data?.data?.apiKey || data?.apiKey || '';
+      setNewApiKey(apiKeyValue);
+      setApiKeyForm({ name: '', scopes: '', expiresAt: '', isActive: true });
+      await fetchApiKeys();
+    } catch (error) {
+      console.error('Failed to create api key:', error);
+      setApiKeyError('Falha ao criar chave');
+    } finally {
+      setApiKeysSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      <section>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
+              Webhooks
+            </p>
+            <h3 className="mt-1 text-lg font-semibold theme-text">Envios automaticos</h3>
+            <p className="text-xs theme-text-muted">Configure endpoints e eventos para integracoes.</p>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary h-9 px-3"
+            onClick={() => fetchWebhooks()}
+            disabled={webhooksLoading}
+          >
+            Atualizar
+          </button>
+        </div>
+
+        {webhookError && (
+          <div className="mb-3 rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text">
+            <span className="badge-danger mr-2 text-xs">Erro</span>
+            {webhookError}
+          </div>
+        )}
+
+        <form
+          onSubmit={handleCreateWebhook}
+          className="grid gap-3 rounded-[22px] border theme-border theme-card p-4 shadow-sm md:grid-cols-2"
+        >
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">Nome</label>
+            <input
+              className="input mt-2"
+              value={webhookForm.name}
+              onChange={(e) => setWebhookForm((p) => ({ ...p, name: e.target.value }))}
+              placeholder="Ex: ERP integracao"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">URL</label>
+            <input
+              className="input mt-2"
+              value={webhookForm.url}
+              onChange={(e) => setWebhookForm((p) => ({ ...p, url: e.target.value }))}
+              placeholder="https://exemplo.com/webhook"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">Eventos</label>
+            <input
+              className="input mt-2"
+              value={webhookForm.eventTypes}
+              onChange={(e) => setWebhookForm((p) => ({ ...p, eventTypes: e.target.value }))}
+              placeholder="work_order_status_changed, stock_low"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">Headers (JSON)</label>
+            <input
+              className="input mt-2"
+              value={webhookForm.headers}
+              onChange={(e) => setWebhookForm((p) => ({ ...p, headers: e.target.value }))}
+              placeholder='{"X-Source": "cmms"}'
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">Secret (opcional)</label>
+            <input
+              className="input mt-2"
+              value={webhookForm.secret}
+              onChange={(e) => setWebhookForm((p) => ({ ...p, secret: e.target.value }))}
+              placeholder="Gerado automaticamente se vazio"
+            />
+          </div>
+          <div className="flex items-end justify-between">
+            <label className="inline-flex items-center gap-2 text-xs theme-text-muted">
+              <input
+                type="checkbox"
+                checked={webhookForm.isActive}
+                onChange={(e) => setWebhookForm((p) => ({ ...p, isActive: e.target.checked }))}
+                className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
+              />
+              Ativo
+            </label>
+            <button type="submit" className="btn-primary h-9 px-4" disabled={webhooksSaving}>
+              {webhooksSaving ? 'A guardar...' : 'Criar webhook'}
+            </button>
+          </div>
+        </form>
+
+        <div className="mt-4 space-y-3">
+          {webhooksLoading ? (
+            <div className="rounded-2xl border theme-border theme-card p-4 text-sm theme-text-muted">
+              A carregar webhooks...
+            </div>
+          ) : webhooks.length === 0 ? (
+            <div className="rounded-2xl border theme-border theme-card p-4 text-sm theme-text-muted">
+              Sem webhooks configurados.
+            </div>
+          ) : (
+            webhooks.map((webhook: any) => (
+              <div key={webhook.id} className="rounded-2xl border theme-border theme-card p-4 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold theme-text">{webhook.name}</div>
+                    <div className="mt-1 text-xs theme-text-muted">{webhook.url}</div>
+                    <div className="mt-1 text-xs theme-text-muted">
+                      Eventos: {Array.isArray(webhook.event_types) ? webhook.event_types.join(', ') : 'Todos'}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="inline-flex items-center gap-2 text-xs theme-text-muted">
+                      <input
+                        type="checkbox"
+                        checked={webhook.is_active !== false}
+                        onChange={async (e) => {
+                          try {
+                            await updateWebhook(webhook.id, { isActive: e.target.checked });
+                            await fetchWebhooks();
+                          } catch {
+                            setWebhookError('Falha ao atualizar webhook');
+                          }
+                        }}
+                        className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
+                      />
+                      Ativo
+                    </label>
+                    <button
+                      type="button"
+                      className="btn-secondary h-8 px-3"
+                      onClick={async () => {
+                        if (!window.confirm('Eliminar este webhook?')) return;
+                        try {
+                          await deleteWebhook(webhook.id);
+                          await fetchWebhooks();
+                        } catch {
+                          setWebhookError('Falha ao eliminar webhook');
+                        }
+                      }}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
+              API Keys
+            </p>
+            <h3 className="mt-1 text-lg font-semibold theme-text">Acesso por token</h3>
+            <p className="text-xs theme-text-muted">Gere chaves para integrações externas.</p>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary h-9 px-3"
+            onClick={() => fetchApiKeys()}
+            disabled={apiKeysLoading}
+          >
+            Atualizar
+          </button>
+        </div>
+
+        {apiKeyError && (
+          <div className="mb-3 rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text">
+            <span className="badge-danger mr-2 text-xs">Erro</span>
+            {apiKeyError}
+          </div>
+        )}
+
+        {newApiKey && (
+          <div className="mb-3 rounded-2xl border theme-border bg-[color:var(--dash-surface)] p-4 text-sm theme-text">
+            <span className="badge-success mr-2 text-xs">Nova chave</span>
+            <span className="break-all">{newApiKey}</span>
+          </div>
+        )}
+
+        <form
+          onSubmit={handleCreateApiKey}
+          className="grid gap-3 rounded-[22px] border theme-border theme-card p-4 shadow-sm md:grid-cols-2"
+        >
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">Nome</label>
+            <input
+              className="input mt-2"
+              value={apiKeyForm.name}
+              onChange={(e) => setApiKeyForm((p) => ({ ...p, name: e.target.value }))}
+              placeholder="Ex: Integração ERP"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">Scopes</label>
+            <input
+              className="input mt-2"
+              value={apiKeyForm.scopes}
+              onChange={(e) => setApiKeyForm((p) => ({ ...p, scopes: e.target.value }))}
+              placeholder="assets:read, workorders:write"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">Expira em</label>
+            <input
+              type="date"
+              className="input mt-2"
+              value={apiKeyForm.expiresAt}
+              onChange={(e) => setApiKeyForm((p) => ({ ...p, expiresAt: e.target.value }))}
+            />
+          </div>
+          <div className="flex items-end justify-between">
+            <label className="inline-flex items-center gap-2 text-xs theme-text-muted">
+              <input
+                type="checkbox"
+                checked={apiKeyForm.isActive}
+                onChange={(e) => setApiKeyForm((p) => ({ ...p, isActive: e.target.checked }))}
+                className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
+              />
+              Ativo
+            </label>
+            <button type="submit" className="btn-primary h-9 px-4" disabled={apiKeysSaving}>
+              {apiKeysSaving ? 'A guardar...' : 'Criar chave'}
+            </button>
+          </div>
+        </form>
+
+        <div className="mt-4 space-y-3">
+          {apiKeysLoading ? (
+            <div className="rounded-2xl border theme-border theme-card p-4 text-sm theme-text-muted">
+              A carregar chaves...
+            </div>
+          ) : apiKeys.length === 0 ? (
+            <div className="rounded-2xl border theme-border theme-card p-4 text-sm theme-text-muted">
+              Sem chaves criadas.
+            </div>
+          ) : (
+            apiKeys.map((key: any) => (
+              <div key={key.id} className="rounded-2xl border theme-border theme-card p-4 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold theme-text">{key.name}</div>
+                    <div className="mt-1 text-xs theme-text-muted">Prefixo: {key.key_prefix}</div>
+                    <div className="mt-1 text-xs theme-text-muted">
+                      Scopes: {Array.isArray(key.scopes) && key.scopes.length > 0 ? key.scopes.join(', ') : 'Todos'}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="inline-flex items-center gap-2 text-xs theme-text-muted">
+                      <input
+                        type="checkbox"
+                        checked={key.is_active !== false}
+                        onChange={async (e) => {
+                          try {
+                            await updateApiKey(key.id, { isActive: e.target.checked });
+                            await fetchApiKeys();
+                          } catch {
+                            setApiKeyError('Falha ao atualizar chave');
+                          }
+                        }}
+                        className="rounded border theme-border bg-[color:var(--dash-panel)] accent-[color:var(--dash-accent)]"
+                      />
+                      Ativo
+                    </label>
+                    <button
+                      type="button"
+                      className="btn-secondary h-8 px-3"
+                      onClick={async () => {
+                        if (!window.confirm('Eliminar esta chave?')) return;
+                        try {
+                          await deleteApiKey(key.id);
+                          await fetchApiKeys();
+                        } catch {
+                          setApiKeyError('Falha ao eliminar chave');
+                        }
+                      }}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
     </div>
   );
 }
