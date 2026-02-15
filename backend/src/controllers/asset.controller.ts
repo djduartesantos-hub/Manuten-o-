@@ -7,6 +7,8 @@ import { logger } from '../config/logger.js';
 import { ZodError } from 'zod';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 import { db } from '../config/database.js';
+import { AuditService } from '../services/audit.service.js';
+import { buildAuditDiffFromPatch, getClientIp } from '../utils/audit.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -176,6 +178,29 @@ export class AssetController {
 
       const asset = await AssetService.createAsset(tenantId, plantId, validatedData);
 
+      if (req.user?.userId) {
+        try {
+          await AuditService.createLog({
+            tenant_id: tenantId,
+            user_id: String(req.user.userId),
+            action: 'create',
+            entity_type: 'asset',
+            entity_id: String(asset.id),
+            old_values: null,
+            new_values: {
+              id: asset.id,
+              name: asset.name,
+              code: asset.code,
+              category_id: asset.category_id,
+              plant_id: asset.plant_id,
+            },
+            ip_address: getClientIp(req),
+          });
+        } catch {
+          // ignore
+        }
+      }
+
       // Emit real-time notification
       if (isSocketManagerReady()) {
         const socketManager = getSocketManager();
@@ -244,7 +269,34 @@ export class AssetController {
       // Validar payload com Zod
       const validatedData = UpdateAssetSchema.parse(req.body);
 
+      const before = await AssetService.getAssetById(tenantId, id, plantId || undefined);
       const asset = await AssetService.updateAsset(tenantId, id, validatedData, plantId);
+
+      if (req.user?.userId && before) {
+        const diff = buildAuditDiffFromPatch({
+          before: before as any,
+          after: asset as any,
+          patch: validatedData as any,
+        });
+
+        if (Object.keys(diff.oldValues).length > 0) {
+          try {
+            await AuditService.createLog({
+              tenant_id: tenantId,
+              user_id: String(req.user.userId),
+              action: 'update',
+              entity_type: 'asset',
+              entity_id: String(asset.id),
+              old_values: diff.oldValues,
+              new_values: diff.newValues,
+              ip_address: getClientIp(req),
+            });
+          } catch {
+            // ignore
+          }
+        }
+      }
+
 
       // Emit real-time notification
       if (isSocketManagerReady()) {
@@ -311,7 +363,31 @@ export class AssetController {
         return;
       }
 
+      const before = await AssetService.getAssetById(tenantId, id, plantId || undefined);
       await AssetService.deleteAsset(tenantId, id, plantId);
+
+      if (req.user?.userId && before) {
+        try {
+          await AuditService.createLog({
+            tenant_id: tenantId,
+            user_id: String(req.user.userId),
+            action: 'delete',
+            entity_type: 'asset',
+            entity_id: String(id),
+            old_values: {
+              id: (before as any).id,
+              name: (before as any).name,
+              code: (before as any).code,
+              category_id: (before as any).category_id,
+              plant_id: (before as any).plant_id,
+            },
+            new_values: null,
+            ip_address: getClientIp(req),
+          });
+        } catch {
+          // ignore
+        }
+      }
 
       res.json({
         success: true,

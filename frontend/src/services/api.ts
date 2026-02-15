@@ -1705,6 +1705,26 @@ export async function updateAdminSecurityPolicy(patch: {
   });
 }
 
+export async function getAdminAuditLogs(params?: {
+  entity_type?: string;
+  entity_id?: string;
+  action?: string;
+  user_id?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const qs = new URLSearchParams();
+  if (params?.entity_type) qs.append('entity_type', params.entity_type);
+  if (params?.entity_id) qs.append('entity_id', params.entity_id);
+  if (params?.action) qs.append('action', params.action);
+  if (params?.user_id) qs.append('user_id', params.user_id);
+  if (params?.limit && Number.isFinite(params.limit)) qs.append('limit', String(params.limit));
+  if (params?.offset && Number.isFinite(params.offset)) qs.append('offset', String(params.offset));
+
+  const suffix = qs.toString();
+  return apiCall(`/admin/audit-logs${suffix ? `?${suffix}` : ''}`);
+}
+
 export async function getAdminPlants() {
   return apiCall('/admin/plants');
 }

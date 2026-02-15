@@ -1329,3 +1329,40 @@ export async function setRolePermissions(req: AuthenticatedRequest, res: Respons
     return res.status(500).json({ success: false, error: 'Failed to update role permissions' });
   }
 }
+
+export async function listAuditLogs(req: AuthenticatedRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, error: 'Tenant ID is required' });
+    }
+
+    const entityTypeRaw = (req.query as any)?.entity_type;
+    const entityIdRaw = (req.query as any)?.entity_id;
+    const actionRaw = (req.query as any)?.action;
+    const userIdRaw = (req.query as any)?.user_id;
+    const limitRaw = Number((req.query as any)?.limit || 50);
+    const offsetRaw = Number((req.query as any)?.offset || 0);
+
+    const entityType = entityTypeRaw ? String(entityTypeRaw).trim() : null;
+    const entityId = entityIdRaw ? String(entityIdRaw).trim() : null;
+    const action = actionRaw ? String(actionRaw).trim() : null;
+    const userId = userIdRaw ? String(userIdRaw).trim() : null;
+    const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(200, limitRaw)) : 50;
+    const offset = Number.isFinite(offsetRaw) ? Math.max(0, Math.trunc(offsetRaw)) : 0;
+
+    const logs = await AuditService.listLogs({
+      tenantId: String(tenantId),
+      entityType,
+      entityId,
+      action,
+      userId,
+      limit,
+      offset,
+    });
+
+    return res.json({ success: true, data: logs });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Failed to list audit logs' });
+  }
+}

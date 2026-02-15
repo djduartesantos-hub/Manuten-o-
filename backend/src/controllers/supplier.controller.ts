@@ -6,6 +6,8 @@ import {
   CreateSupplierSchema,
   UpdateSupplierSchema,
 } from '../schemas/validation.js';
+import { AuditService } from '../services/audit.service.js';
+import { buildAuditDiffFromPatch, getClientIp } from '../utils/audit.js';
 
 const supplierService = new SupplierService();
 
@@ -64,6 +66,28 @@ export async function createSupplier(req: AuthenticatedRequest, res: Response) {
 
     const supplier = await supplierService.createSupplier(req.tenantId!, data);
 
+    if (req.user?.userId) {
+      try {
+        await AuditService.createLog({
+          tenant_id: String(req.tenantId),
+          user_id: String(req.user.userId),
+          action: 'create',
+          entity_type: 'supplier',
+          entity_id: String(supplier.id),
+          old_values: null,
+          new_values: {
+            id: supplier.id,
+            name: supplier.name,
+            email: supplier.email,
+            phone: supplier.phone,
+          },
+          ip_address: getClientIp(req),
+        });
+      } catch {
+        // ignore
+      }
+    }
+
     res.status(201).json({
       success: true,
       data: supplier,
@@ -103,11 +127,37 @@ export async function updateSupplier(req: AuthenticatedRequest, res: Response) {
       return;
     }
 
+    const before = await supplierService.getSupplierById(req.tenantId!, supplier_id);
     const supplier = await supplierService.updateSupplier(
       req.tenantId!,
       supplier_id,
       validation.data,
     );
+
+    if (req.user?.userId && before) {
+      const diff = buildAuditDiffFromPatch({
+        before: before as any,
+        after: supplier as any,
+        patch: validation.data as any,
+      });
+
+      if (Object.keys(diff.oldValues).length > 0) {
+        try {
+          await AuditService.createLog({
+            tenant_id: String(req.tenantId),
+            user_id: String(req.user.userId),
+            action: 'update',
+            entity_type: 'supplier',
+            entity_id: String(supplier.id),
+            old_values: diff.oldValues,
+            new_values: diff.newValues,
+            ip_address: getClientIp(req),
+          });
+        } catch {
+          // ignore
+        }
+      }
+    }
 
     res.json({
       success: true,
@@ -135,7 +185,30 @@ export async function deleteSupplier(req: AuthenticatedRequest, res: Response) {
       return;
     }
 
+    const before = await supplierService.getSupplierById(req.tenantId!, supplier_id);
     await supplierService.deleteSupplier(req.tenantId!, supplier_id);
+
+    if (req.user?.userId && before) {
+      try {
+        await AuditService.createLog({
+          tenant_id: String(req.tenantId),
+          user_id: String(req.user.userId),
+          action: 'delete',
+          entity_type: 'supplier',
+          entity_id: String(supplier_id),
+          old_values: {
+            id: (before as any).id,
+            name: (before as any).name,
+            email: (before as any).email,
+            phone: (before as any).phone,
+          },
+          new_values: null,
+          ip_address: getClientIp(req),
+        });
+      } catch {
+        // ignore
+      }
+    }
 
     res.json({
       success: true,

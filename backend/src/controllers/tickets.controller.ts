@@ -9,6 +9,8 @@ import { RbacService } from '../services/rbac.service.js';
 import { NotificationService } from '../services/notification.service.js';
 import { ticketAttachments, ticketComments, ticketEvents, tickets, tenants, users } from '../db/schema.js';
 import { computeTicketSlaDeadlines, type TicketPriority } from '../utils/ticket-sla.js';
+import { AuditService } from '../services/audit.service.js';
+import { buildAuditDiffFromPatch, getClientIp } from '../utils/audit.js';
 
 function logAndReturn500(params: {
   req: AuthenticatedRequest;
@@ -433,6 +435,30 @@ export async function createPlantTicket(req: AuthenticatedRequest, res: Response
       } catch {
         // best-effort
       }
+
+      if (req.user?.userId) {
+        try {
+          await AuditService.createLog({
+            tenant_id: tenantId,
+            user_id: String(req.user.userId),
+            action: 'create',
+            entity_type: 'ticket',
+            entity_id: createdId,
+            old_values: null,
+            new_values: {
+              id: createdId,
+              title: String(title || '').trim(),
+              status: 'aberto',
+              level,
+              priority: prio,
+              plant_id: plantId,
+            },
+            ip_address: getClientIp(req),
+          });
+        } catch {
+          // ignore
+        }
+      }
     }
 
     return res.status(201).json({ success: true, data: created, message: 'Ticket criado com sucesso' });
@@ -627,6 +653,52 @@ export async function updatePlantTicketStatus(req: AuthenticatedRequest, res: Re
       .where(and(eq(tickets.id, String(ticket.id)), eq(tickets.tenant_id, tenantId)))
       .returning();
 
+    if (req.user?.userId && updated) {
+      const diff = buildAuditDiffFromPatch({
+        before: ticket as any,
+        after: updated as any,
+        patch,
+      });
+
+      if (Object.keys(diff.oldValues).length > 0) {
+        try {
+          await AuditService.createLog({
+            tenant_id: tenantId,
+            user_id: String(req.user.userId),
+            action: 'update',
+            entity_type: 'ticket',
+            entity_id: String(ticket.id),
+            old_values: diff.oldValues,
+            new_values: diff.newValues,
+            ip_address: getClientIp(req),
+          });
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    if (req.user?.userId) {
+      const diff = buildAuditDiffFromPatch({
+        before: ticket as Record<string, any>,
+        after: (updated as any) as Record<string, any>,
+        patch: patch as Record<string, any>,
+      });
+
+      if (Object.keys(diff.newValues).length > 0) {
+        await AuditService.createLog({
+          tenant_id: tenantId,
+          user_id: String(req.user.userId),
+          action: 'update',
+          entity_type: 'ticket',
+          entity_id: String(ticket.id),
+          old_values: diff.oldValues,
+          new_values: diff.newValues,
+          ip_address: getClientIp(req),
+        });
+      }
+    }
+
     await logTicketEvent({
       tenantId,
       ticketId: String(ticket.id),
@@ -710,6 +782,37 @@ export async function forwardPlantTicketToCompany(req: AuthenticatedRequest, res
       } as any)
       .where(and(eq(tickets.id, String(ticket.id)), eq(tickets.tenant_id, tenantId)))
       .returning();
+
+    if (req.user?.userId && updated) {
+      const patchForAudit = {
+        level: 'empresa',
+        forwarded_by_user_id: String(req.user.userId),
+        forwarded_at: (updated as any).forwarded_at,
+        forward_note: note || null,
+      };
+      const diff = buildAuditDiffFromPatch({
+        before: ticket as any,
+        after: updated as any,
+        patch: patchForAudit,
+      });
+
+      if (Object.keys(diff.oldValues).length > 0) {
+        try {
+          await AuditService.createLog({
+            tenant_id: tenantId,
+            user_id: String(req.user.userId),
+            action: 'ticket.forward.company',
+            entity_type: 'ticket',
+            entity_id: String(ticket.id),
+            old_values: diff.oldValues,
+            new_values: diff.newValues,
+            ip_address: getClientIp(req),
+          });
+        } catch {
+          // ignore
+        }
+      }
+    }
 
     await logTicketEvent({
       tenantId,
@@ -972,6 +1075,35 @@ export async function updateCompanyTicketStatus(req: AuthenticatedRequest, res: 
       .where(and(eq(tickets.id, String((ticket as any).id)), eq(tickets.tenant_id, tenantId)))
       .returning();
 
+    if (req.user?.userId && updated) {
+      const patchForAudit: Record<string, any> = { status: nextStatus };
+      if ('resolved_at' in ts) patchForAudit.resolved_at = ts.resolved_at;
+      if ('closed_at' in ts) patchForAudit.closed_at = ts.closed_at;
+
+      const diff = buildAuditDiffFromPatch({
+        before: ticket as any,
+        after: updated as any,
+        patch: patchForAudit,
+      });
+
+      if (Object.keys(diff.oldValues).length > 0) {
+        try {
+          await AuditService.createLog({
+            tenant_id: tenantId,
+            user_id: String(req.user.userId),
+            action: 'update',
+            entity_type: 'ticket',
+            entity_id: String((ticket as any).id),
+            old_values: diff.oldValues,
+            new_values: diff.newValues,
+            ip_address: getClientIp(req),
+          });
+        } catch {
+          // ignore
+        }
+      }
+    }
+
     await logTicketEvent({
       tenantId,
       ticketId: String((ticket as any).id),
@@ -1046,6 +1178,37 @@ export async function forwardCompanyTicketToSuperadmin(req: AuthenticatedRequest
       } as any)
       .where(and(eq(tickets.id, String((ticket as any).id)), eq(tickets.tenant_id, tenantId)))
       .returning();
+
+    if (req.user?.userId && updated) {
+      const patchForAudit = {
+        level: 'superadmin',
+        forwarded_by_user_id: String(req.user.userId),
+        forwarded_at: (updated as any).forwarded_at,
+        forward_note: note || null,
+      };
+      const diff = buildAuditDiffFromPatch({
+        before: ticket as any,
+        after: updated as any,
+        patch: patchForAudit,
+      });
+
+      if (Object.keys(diff.oldValues).length > 0) {
+        try {
+          await AuditService.createLog({
+            tenant_id: tenantId,
+            user_id: String(req.user.userId),
+            action: 'ticket.forward.superadmin',
+            entity_type: 'ticket',
+            entity_id: String((ticket as any).id),
+            old_values: diff.oldValues,
+            new_values: diff.newValues,
+            ip_address: getClientIp(req),
+          });
+        } catch {
+          // ignore
+        }
+      }
+    }
 
     await logTicketEvent({
       tenantId,
@@ -1129,6 +1292,52 @@ export async function updateCompanyTicket(req: AuthenticatedRequest, res: Respon
       .set(patch)
       .where(and(eq(tickets.id, String((before as any).id)), eq(tickets.tenant_id, tenantId)))
       .returning();
+
+    if (req.user?.userId && updated) {
+      const diff = buildAuditDiffFromPatch({
+        before: before as any,
+        after: updated as any,
+        patch,
+      });
+
+      if (Object.keys(diff.oldValues).length > 0) {
+        try {
+          await AuditService.createLog({
+            tenant_id: tenantId,
+            user_id: String(req.user.userId),
+            action: 'update',
+            entity_type: 'ticket',
+            entity_id: String((before as any).id),
+            old_values: diff.oldValues,
+            new_values: diff.newValues,
+            ip_address: getClientIp(req),
+          });
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    if (req.user?.userId) {
+      const diff = buildAuditDiffFromPatch({
+        before: before as Record<string, any>,
+        after: (updated as any) as Record<string, any>,
+        patch: patch as Record<string, any>,
+      });
+
+      if (Object.keys(diff.newValues).length > 0) {
+        await AuditService.createLog({
+          tenant_id: tenantId,
+          user_id: String(req.user.userId),
+          action: 'update',
+          entity_type: 'ticket',
+          entity_id: String((before as any).id),
+          old_values: diff.oldValues,
+          new_values: diff.newValues,
+          ip_address: getClientIp(req),
+        });
+      }
+    }
 
     const changes: any = {};
     if (patch.assigned_to_user_id !== undefined) {

@@ -92,4 +92,150 @@ export class AuditService {
       return [];
     }
   }
+
+  static async listTenantLogs(params: {
+    tenantId: string;
+    entityType?: string | null;
+    entityId?: string | null;
+    action?: string | null;
+    userId?: string | null;
+    limit?: number;
+    offset?: number;
+  }) {
+    const {
+      tenantId,
+      entityType,
+      entityId,
+      action,
+      userId,
+      limit = 100,
+      offset = 0,
+    } = params;
+
+    try {
+      const tableCheck = await db.execute(sql`SELECT to_regclass('public.audit_logs') AS name`);
+      const tableName = (tableCheck as any)?.rows?.[0]?.name;
+      if (!tableName) {
+        return [];
+      }
+
+      const whereParts = [eq(auditLogs.tenant_id, tenantId)];
+      if (entityType) whereParts.push(eq(auditLogs.entity_type, entityType));
+      if (entityId) whereParts.push(eq(auditLogs.entity_id, entityId));
+      if (action) whereParts.push(eq(auditLogs.action, action));
+      if (userId) whereParts.push(eq(auditLogs.user_id, userId));
+
+      const rows = await db
+        .select({
+          id: auditLogs.id,
+          action: auditLogs.action,
+          entity_type: auditLogs.entity_type,
+          entity_id: auditLogs.entity_id,
+          old_values: auditLogs.old_values,
+          new_values: auditLogs.new_values,
+          ip_address: auditLogs.ip_address,
+          created_at: auditLogs.created_at,
+          user_id: auditLogs.user_id,
+          user_first_name: users.first_name,
+          user_last_name: users.last_name,
+        })
+        .from(auditLogs)
+        .leftJoin(users, eq(auditLogs.user_id, users.id))
+        .where(and(...whereParts))
+        .orderBy(desc(auditLogs.created_at))
+        .limit(limit)
+        .offset(offset);
+
+      return rows.map((row) => ({
+        id: row.id,
+        action: row.action,
+        entity_type: row.entity_type,
+        entity_id: row.entity_id,
+        old_values: row.old_values,
+        new_values: row.new_values,
+        ip_address: row.ip_address,
+        created_at: row.created_at,
+        user: row.user_id
+          ? {
+              id: row.user_id,
+              first_name: row.user_first_name,
+              last_name: row.user_last_name,
+            }
+          : null,
+      }));
+    } catch (error) {
+      logger.warn('Audit logs list failed, returning empty list:', error);
+      return [];
+    }
+  }
+
+  static async listLogs(params: {
+    tenantId: string;
+    entityType?: string | null;
+    entityId?: string | null;
+    action?: string | null;
+    userId?: string | null;
+    limit?: number;
+    offset?: number;
+  }) {
+    const { tenantId, entityType, entityId, action, userId } = params;
+    const limit = Number.isFinite(params.limit) ? Math.max(1, Math.min(200, Number(params.limit))) : 50;
+    const offset = Number.isFinite(params.offset) ? Math.max(0, Math.trunc(Number(params.offset))) : 0;
+
+    try {
+      const tableCheck = await db.execute(sql`SELECT to_regclass('public.audit_logs') AS name`);
+      const tableName = (tableCheck as any)?.rows?.[0]?.name;
+      if (!tableName) {
+        return [];
+      }
+
+      const whereParts: any[] = [eq(auditLogs.tenant_id, tenantId)];
+      if (entityType) whereParts.push(eq(auditLogs.entity_type, entityType));
+      if (entityId) whereParts.push(eq(auditLogs.entity_id, entityId));
+      if (action) whereParts.push(eq(auditLogs.action, action));
+      if (userId) whereParts.push(eq(auditLogs.user_id, userId));
+
+      const rows = await db
+        .select({
+          id: auditLogs.id,
+          action: auditLogs.action,
+          entity_type: auditLogs.entity_type,
+          entity_id: auditLogs.entity_id,
+          old_values: auditLogs.old_values,
+          new_values: auditLogs.new_values,
+          ip_address: auditLogs.ip_address,
+          created_at: auditLogs.created_at,
+          user_id: auditLogs.user_id,
+          user_first_name: users.first_name,
+          user_last_name: users.last_name,
+        })
+        .from(auditLogs)
+        .leftJoin(users, eq(auditLogs.user_id, users.id))
+        .where(and(...whereParts))
+        .orderBy(desc(auditLogs.created_at))
+        .limit(limit)
+        .offset(offset);
+
+      return rows.map((row) => ({
+        id: row.id,
+        action: row.action,
+        entity_type: row.entity_type,
+        entity_id: row.entity_id,
+        old_values: row.old_values,
+        new_values: row.new_values,
+        ip_address: row.ip_address,
+        created_at: row.created_at,
+        user: row.user_id
+          ? {
+              id: row.user_id,
+              first_name: row.user_first_name,
+              last_name: row.user_last_name,
+            }
+          : null,
+      }));
+    } catch (error) {
+      logger.warn('Audit logs fetch failed, returning empty list:', error);
+      return [];
+    }
+  }
 }

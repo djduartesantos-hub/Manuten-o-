@@ -897,6 +897,21 @@ const openapi = {
         responses: { '201': { description: 'Created' } },
       },
     },
+    '/api/admin/audit-logs': {
+      get: {
+        tags: ['Admin'],
+        summary: 'List tenant audit logs',
+        parameters: [
+          { name: 'entity_type', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'entity_id', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'action', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'user_id', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'limit', in: 'query', required: false, schema: { type: 'integer' } },
+          { name: 'offset', in: 'query', required: false, schema: { type: 'integer' } },
+        ],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
     '/api/maintenance-kits/{kitId}': {
       get: {
         tags: ['Kits'],

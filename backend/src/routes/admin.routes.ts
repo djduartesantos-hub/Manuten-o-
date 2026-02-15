@@ -82,6 +82,9 @@ router.put(
 router.get('/role-homes', requirePermission('admin:rbac', 'tenant'), AdminController.listRoleHomePages);
 router.put('/role-homes', requirePermission('admin:rbac', 'tenant'), rbacWriteLimiter, AdminController.setRoleHomePages);
 
+// Audit Logs (tenant scoped)
+router.get('/audit-logs', requirePermission('admin:rbac', 'tenant'), AdminController.listAuditLogs);
+
 // SLA Rules (work_order + ticket)
 router.get('/sla-rules', requirePermission('admin:rbac', 'tenant'), SlaController.listSlaRules);
 router.post(

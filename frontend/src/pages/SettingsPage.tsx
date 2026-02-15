@@ -106,6 +106,7 @@ import { StockEntryPage } from './StockEntryPage';
 import { SparePartRegisterPage } from './SparePartRegisterPage';
 import { MaintenanceKitsPage } from './MaintenanceKitsPage';
 import { WorkOrderWorkflowPage } from './WorkOrderWorkflowPage';
+import { AuditLogsPage } from './AuditLogsPage';
 
 type SettingTab =
   | 'general'
@@ -7905,6 +7906,7 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
   const canSuppliersWrite = can('suppliers:write');
   const canAssetsRead = can('assets:read') || can('assets:write');
   const canWorkflowsRead = can('workflows:read') || can('workflows:write');
+  const canAuditRead = can('admin:rbac');
   const [plants, setPlants] = React.useState<any[]>([]);
   const [users, setUsers] = React.useState<any[]>([]);
   const [roles, setRoles] = React.useState<Array<{ value: string; label: string }>>([]);
@@ -7918,7 +7920,7 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [activeDbTool, setActiveDbTool] = React.useState<'setup' | 'migrations' | 'bootstrap' | null>(null);
-  const [activeAdminPanel, setActiveAdminPanel] = React.useState<'plants' | 'suppliers' | 'spareparts' | 'stock' | 'workflow' | null>(null);
+  const [activeAdminPanel, setActiveAdminPanel] = React.useState<'plants' | 'suppliers' | 'spareparts' | 'stock' | 'workflow' | 'audit' | null>(null);
   const [plantModalOpen, setPlantModalOpen] = React.useState(false);
   const [userModalOpen, setUserModalOpen] = React.useState(false);
   const [userModalMode, setUserModalMode] = React.useState<'create' | 'edit'>('create');
@@ -8424,12 +8426,19 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
       description: 'Regras e aprovações de estados de OT.',
       icon: Cog,
     },
+    {
+      id: 'audit' as const,
+      title: 'Auditoria',
+      description: 'Historico com diff por entidade e utilizador.',
+      icon: Shield,
+    },
   ].filter((panel) => {
     if (panel.id === 'plants') return canManagePlants;
     if (panel.id === 'suppliers') return canSuppliersRead;
     if (panel.id === 'spareparts') return canStockWrite;
     if (panel.id === 'stock') return canStockRead;
     if (panel.id === 'workflow') return canWorkflowsRead;
+    if (panel.id === 'audit') return canAuditRead;
     return true;
   });
 
@@ -9529,6 +9538,45 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
             </button>
             <div className="max-h-[80vh] overflow-y-auto pr-1">
               <WorkOrderWorkflowPage embedded />
+            </div>
+          </div>
+        </div>
+      )}
+      {!usersOnly && activeAdminPanel === 'audit' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setActiveAdminPanel(null)}
+          />
+          <div className="relative w-full max-w-6xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-lg">
+            <button
+              onClick={() => setActiveAdminPanel(null)}
+              className="absolute right-6 top-6 z-10 rounded-full border theme-border theme-card px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
+            >
+              Fechar
+            </button>
+            <div className="max-h-[80vh] overflow-y-auto pr-1">
+              <AuditLogsPage embedded />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!usersOnly && activeAdminPanel === 'audit' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setActiveAdminPanel(null)}
+          />
+          <div className="relative w-full max-w-5xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-lg">
+            <button
+              onClick={() => setActiveAdminPanel(null)}
+              className="absolute right-6 top-6 z-10 rounded-full border theme-border theme-card px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
+            >
+              Fechar
+            </button>
+            <div className="max-h-[80vh] overflow-y-auto pr-1">
+              <AuditLogsPage embedded />
             </div>
           </div>
         </div>

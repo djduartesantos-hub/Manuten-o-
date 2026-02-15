@@ -9,6 +9,10 @@ import {
   createStockMovementSchema,
 } from '../schemas/sparepart.validation.js';
 import { SparePartForecastService } from '../services/sparepartforecast.service.js';
+import { AuditService } from '../services/audit.service.js';
+import { buildAuditDiffFromPatch, getClientIp } from '../utils/audit.js';
+import { AuditService } from '../services/audit.service.js';
+import { buildAuditDiffFromPatch, getClientIp } from '../utils/audit.js';
 
 const sparePartService = new SparePartService();
 const sparePartForecastService = new SparePartForecastService();
@@ -116,6 +120,28 @@ export async function createSparePart(req: AuthenticatedRequest, res: Response) 
 
     const part = await sparePartService.createSparePart(req.tenantId!, validation.data);
 
+    if (req.user?.userId) {
+      try {
+        await AuditService.createLog({
+          tenant_id: String(req.tenantId),
+          user_id: String(req.user.userId),
+          action: 'create',
+          entity_type: 'spare_part',
+          entity_id: String(part.id),
+          old_values: null,
+          new_values: {
+            id: part.id,
+            code: part.code,
+            name: part.name,
+            supplier_id: part.supplier_id,
+          },
+          ip_address: getClientIp(req),
+        });
+      } catch {
+        // ignore
+      }
+    }
+
     res.status(201).json({
       success: true,
       data: part,
@@ -157,11 +183,60 @@ export async function updateSparePart(req: AuthenticatedRequest, res: Response) 
       return;
     }
 
+    const before = await sparePartService.getSparePartById(req.tenantId!, spare_part_id);
+
+    const before = await sparePartService.getSparePartById(req.tenantId!, spare_part_id);
     const part = await sparePartService.updateSparePart(
       req.tenantId!,
       spare_part_id,
       validation.data
     );
+
+    if (req.user?.userId && before) {
+      const diff = buildAuditDiffFromPatch({
+        before: before as any,
+        after: part as any,
+        patch: validation.data as any,
+      });
+
+      if (Object.keys(diff.oldValues).length > 0) {
+        try {
+          await AuditService.createLog({
+            tenant_id: String(req.tenantId),
+            user_id: String(req.user.userId),
+            action: 'update',
+            entity_type: 'spare_part',
+            entity_id: String(part.id),
+            old_values: diff.oldValues,
+            new_values: diff.newValues,
+            ip_address: getClientIp(req),
+          });
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    if (req.user?.userId && before) {
+      const diff = buildAuditDiffFromPatch({
+        before: before as Record<string, any>,
+        after: part as Record<string, any>,
+        patch: validation.data as Record<string, any>,
+      });
+
+      if (Object.keys(diff.newValues).length > 0) {
+        await AuditService.createLog({
+          tenant_id: String(req.tenantId),
+          user_id: String(req.user.userId),
+          action: 'update',
+          entity_type: 'spare_part',
+          entity_id: String(spare_part_id),
+          old_values: diff.oldValues,
+          new_values: diff.newValues,
+          ip_address: getClientIp(req),
+        });
+      }
+    }
 
     res.json({
       success: true,
@@ -193,7 +268,30 @@ export async function deleteSparePart(req: AuthenticatedRequest, res: Response) 
       return;
     }
 
+    const before = await sparePartService.getSparePartById(req.tenantId!, spare_part_id);
     await sparePartService.deleteSparePart(req.tenantId!, spare_part_id);
+
+    if (req.user?.userId && before) {
+      try {
+        await AuditService.createLog({
+          tenant_id: String(req.tenantId),
+          user_id: String(req.user.userId),
+          action: 'delete',
+          entity_type: 'spare_part',
+          entity_id: String(spare_part_id),
+          old_values: {
+            id: (before as any).id,
+            code: (before as any).code,
+            name: (before as any).name,
+            supplier_id: (before as any).supplier_id,
+          },
+          new_values: null,
+          ip_address: getClientIp(req),
+        });
+      } catch {
+        // ignore
+      }
+    }
 
     res.json({
       success: true,
