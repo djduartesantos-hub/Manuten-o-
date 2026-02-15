@@ -54,6 +54,16 @@ const openapi = {
         },
         required: ['error'],
       },
+      ErrorResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: false },
+          error: { type: 'string', example: 'Invalid input' },
+          details: { type: 'array', items: { type: 'object' }, nullable: true },
+          requestId: { type: 'string', nullable: true },
+        },
+        required: ['success', 'error'],
+      },
       SuccessEnvelope: {
         type: 'object',
         properties: {
@@ -61,6 +71,17 @@ const openapi = {
           data: {},
         },
         required: ['success'],
+      },
+      PagedEnvelope: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
+          data: { type: 'array', items: {} },
+          total: { type: 'integer', example: 120 },
+          limit: { type: 'integer', example: 50, nullable: true },
+          offset: { type: 'integer', example: 0, nullable: true },
+        },
+        required: ['success', 'data'],
       },
       LoginRequest: {
         type: 'object',
@@ -128,6 +149,53 @@ const openapi = {
           tags: { type: 'array', items: { type: 'string' } },
           expires_at: { type: 'string', format: 'date-time', nullable: true },
         },
+      },
+    },
+    parameters: {
+      QueryParam: {
+        name: 'q',
+        in: 'query',
+        required: false,
+        schema: { type: 'string' },
+        description: 'Pesquisa por titulo/descricao.',
+      },
+      StatusParam: {
+        name: 'status',
+        in: 'query',
+        required: false,
+        schema: { type: 'string' },
+      },
+      LimitParam: {
+        name: 'limit',
+        in: 'query',
+        required: false,
+        schema: { type: 'integer', minimum: 1, maximum: 200 },
+      },
+      OffsetParam: {
+        name: 'offset',
+        in: 'query',
+        required: false,
+        schema: { type: 'integer', minimum: 0 },
+      },
+      SortParam: {
+        name: 'sort',
+        in: 'query',
+        required: false,
+        schema: { type: 'string' },
+        description: 'Campo de ordenacao (quando suportado).',
+      },
+      OrderParam: {
+        name: 'order',
+        in: 'query',
+        required: false,
+        schema: { type: 'string', enum: ['asc', 'desc'] },
+        description: 'Direcao de ordenacao (quando suportado).',
+      },
+    },
+    responses: {
+      ErrorResponse: {
+        description: 'Erro',
+        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
       },
     },
   },
@@ -201,7 +269,10 @@ const openapi = {
           { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
         ],
         responses: {
-          '200': { description: 'OK' },
+          '200': {
+            description: 'OK',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/PagedEnvelope' } } },
+          },
           '401': { description: 'Unauthorized' },
         },
       },
@@ -232,8 +303,16 @@ const openapi = {
         summary: 'List preventive schedules',
         parameters: [
           { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'asset_id', in: 'query', required: false, schema: { type: 'string', format: 'uuid' } },
+          { name: 'plan_id', in: 'query', required: false, schema: { type: 'string', format: 'uuid' } },
+          { $ref: '#/components/parameters/StatusParam' },
         ],
-        responses: { '200': { description: 'OK' } },
+        responses: {
+          '200': {
+            description: 'OK',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/PagedEnvelope' } } },
+          },
+        },
       },
       post: {
         tags: ['Preventive'],
@@ -248,6 +327,22 @@ const openapi = {
           },
         },
         responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/{plantId}/preventive-schedules/upcoming': {
+      get: {
+        tags: ['Preventive'],
+        summary: 'List upcoming preventive schedules (dashboard)',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { $ref: '#/components/parameters/LimitParam' },
+        ],
+        responses: {
+          '200': {
+            description: 'OK',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/PagedEnvelope' } } },
+          },
+        },
       },
     },
     '/api/{plantId}/preventive-schedules/{schedule_id}/skip': {
@@ -278,7 +373,12 @@ const openapi = {
         parameters: [
           { name: 'asset_id', in: 'query', required: false, schema: { type: 'string', format: 'uuid' } },
         ],
-        responses: { '200': { description: 'OK' } },
+        responses: {
+          '200': {
+            description: 'OK',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/PagedEnvelope' } } },
+          },
+        },
       },
       post: {
         tags: ['Alerts'],
@@ -307,7 +407,12 @@ const openapi = {
         parameters: [
           { name: 'asset_id', in: 'query', required: false, schema: { type: 'string', format: 'uuid' } },
         ],
-        responses: { '200': { description: 'OK' } },
+        responses: {
+          '200': {
+            description: 'OK',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/PagedEnvelope' } } },
+          },
+        },
       },
       post: {
         tags: ['Documents'],
@@ -443,7 +548,12 @@ const openapi = {
         tags: ['Assets'],
         summary: 'List assets',
         parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
-        responses: { '200': { description: 'OK' } },
+        responses: {
+          '200': {
+            description: 'OK',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/PagedEnvelope' } } },
+          },
+        },
       },
       post: {
         tags: ['Assets'],
@@ -488,7 +598,12 @@ const openapi = {
         tags: ['SpareParts'],
         summary: 'List spare parts',
         parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
-        responses: { '200': { description: 'OK' } },
+        responses: {
+          '200': {
+            description: 'OK',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/PagedEnvelope' } } },
+          },
+        },
       },
       post: {
         tags: ['SpareParts'],
@@ -561,7 +676,12 @@ const openapi = {
         tags: ['Suppliers'],
         summary: 'List suppliers',
         parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
-        responses: { '200': { description: 'OK' } },
+        responses: {
+          '200': {
+            description: 'OK',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/PagedEnvelope' } } },
+          },
+        },
       },
       post: {
         tags: ['Suppliers'],
@@ -605,7 +725,12 @@ const openapi = {
       get: {
         tags: ['Kits'],
         summary: 'List maintenance kits',
-        responses: { '200': { description: 'OK' } },
+        responses: {
+          '200': {
+            description: 'OK',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/PagedEnvelope' } } },
+          },
+        },
       },
       post: {
         tags: ['Kits'],
@@ -648,8 +773,21 @@ const openapi = {
       get: {
         tags: ['Tickets'],
         summary: 'List plant tickets',
-        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
-        responses: { '200': { description: 'OK' } },
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { $ref: '#/components/parameters/QueryParam' },
+          { $ref: '#/components/parameters/StatusParam' },
+          { $ref: '#/components/parameters/LimitParam' },
+          { $ref: '#/components/parameters/OffsetParam' },
+          { $ref: '#/components/parameters/SortParam' },
+          { $ref: '#/components/parameters/OrderParam' },
+        ],
+        responses: {
+          '200': {
+            description: 'OK',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/PagedEnvelope' } } },
+          },
+        },
       },
       post: {
         tags: ['Tickets'],
@@ -698,7 +836,20 @@ const openapi = {
       get: {
         tags: ['Tickets'],
         summary: 'List company tickets',
-        responses: { '200': { description: 'OK' } },
+        parameters: [
+          { $ref: '#/components/parameters/QueryParam' },
+          { $ref: '#/components/parameters/StatusParam' },
+          { $ref: '#/components/parameters/LimitParam' },
+          { $ref: '#/components/parameters/OffsetParam' },
+          { $ref: '#/components/parameters/SortParam' },
+          { $ref: '#/components/parameters/OrderParam' },
+        ],
+        responses: {
+          '200': {
+            description: 'OK',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/PagedEnvelope' } } },
+          },
+        },
       },
     },
     '/api/tickets/company/{ticketId}': {
@@ -720,7 +871,12 @@ const openapi = {
       get: {
         tags: ['Notifications'],
         summary: 'List notifications',
-        responses: { '200': { description: 'OK' } },
+        responses: {
+          '200': {
+            description: 'OK',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/PagedEnvelope' } } },
+          },
+        },
       },
     },
     '/api/plants': {
@@ -757,8 +913,16 @@ const openapi = {
       get: {
         tags: ['Stocktake'],
         summary: 'List stocktakes',
-        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
-        responses: { '200': { description: 'OK' } },
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { $ref: '#/components/parameters/StatusParam' },
+        ],
+        responses: {
+          '200': {
+            description: 'OK',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/PagedEnvelope' } } },
+          },
+        },
       },
       post: {
         tags: ['Stocktake'],
@@ -1333,7 +1497,20 @@ const openapi = {
       get: {
         tags: ['SuperAdmin'],
         summary: 'List support tickets',
-        responses: { '200': { description: 'OK' } },
+        parameters: [
+          { $ref: '#/components/parameters/QueryParam' },
+          { $ref: '#/components/parameters/StatusParam' },
+          { $ref: '#/components/parameters/LimitParam' },
+          { $ref: '#/components/parameters/OffsetParam' },
+          { $ref: '#/components/parameters/SortParam' },
+          { $ref: '#/components/parameters/OrderParam' },
+        ],
+        responses: {
+          '200': {
+            description: 'OK',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/PagedEnvelope' } } },
+          },
+        },
       },
     },
     '/api/superadmin/tickets/{ticketId}': {
