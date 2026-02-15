@@ -53,6 +53,24 @@ export const stockReservationStatusEnum = pgEnum('stock_reservation_status', [
 
 export const stocktakeStatusEnum = pgEnum('stocktake_status', ['aberta', 'fechada', 'cancelada']);
 
+export const purchaseRequestStatusEnum = pgEnum('purchase_request_status', [
+  'draft',
+  'submitted',
+  'approved',
+  'rejected',
+  'ordered',
+  'received',
+  'cancelled',
+]);
+
+export const purchaseOrderStatusEnum = pgEnum('purchase_order_status', [
+  'draft',
+  'sent',
+  'partially_received',
+  'received',
+  'cancelled',
+]);
+
 export const ticketStatusEnum = pgEnum('ticket_status', [
   'aberto',
   'em_progresso',
@@ -927,6 +945,162 @@ export const suppliers = pgTable(
   }),
 );
 
+// Purchase Requests
+export const purchaseRequests = pgTable(
+  'purchase_requests',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    plant_id: uuid('plant_id')
+      .notNull()
+      .references(() => plants.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    description: text('description'),
+    status: purchaseRequestStatusEnum('status').notNull().default('draft'),
+    priority: priorityEnum('priority').default('media'),
+    needed_by: timestamp('needed_by', { withTimezone: true }),
+    created_by: uuid('created_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'set null' }),
+    approved_by: uuid('approved_by').references(() => users.id, { onDelete: 'set null' }),
+    approved_at: timestamp('approved_at', { withTimezone: true }),
+    rejected_by: uuid('rejected_by').references(() => users.id, { onDelete: 'set null' }),
+    rejected_at: timestamp('rejected_at', { withTimezone: true }),
+    rejection_reason: text('rejection_reason'),
+    ordered_at: timestamp('ordered_at', { withTimezone: true }),
+    received_at: timestamp('received_at', { withTimezone: true }),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index('purchase_requests_tenant_id_idx').on(table.tenant_id),
+    plantIdIdx: index('purchase_requests_plant_id_idx').on(table.plant_id),
+    statusIdx: index('purchase_requests_status_idx').on(table.status),
+    createdAtIdx: index('purchase_requests_created_at_idx').on(table.created_at),
+  }),
+);
+
+export const purchaseRequestItems = pgTable(
+  'purchase_request_items',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    request_id: uuid('request_id')
+      .notNull()
+      .references(() => purchaseRequests.id, { onDelete: 'cascade' }),
+    spare_part_id: uuid('spare_part_id')
+      .notNull()
+      .references(() => spareParts.id, { onDelete: 'restrict' }),
+    supplier_id: uuid('supplier_id').references(() => suppliers.id, { onDelete: 'set null' }),
+    quantity: integer('quantity').notNull(),
+    unit_cost: decimal('unit_cost', { precision: 15, scale: 2 }),
+    notes: text('notes'),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    requestIdx: index('purchase_request_items_request_id_idx').on(table.request_id),
+    sparePartIdx: index('purchase_request_items_spare_part_id_idx').on(table.spare_part_id),
+  }),
+);
+
+// Purchase Orders
+export const purchaseOrders = pgTable(
+  'purchase_orders',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    plant_id: uuid('plant_id')
+      .notNull()
+      .references(() => plants.id, { onDelete: 'cascade' }),
+    supplier_id: uuid('supplier_id')
+      .notNull()
+      .references(() => suppliers.id, { onDelete: 'restrict' }),
+    request_id: uuid('request_id').references(() => purchaseRequests.id, { onDelete: 'set null' }),
+    status: purchaseOrderStatusEnum('status').notNull().default('draft'),
+    ordered_at: timestamp('ordered_at', { withTimezone: true }),
+    expected_at: timestamp('expected_at', { withTimezone: true }),
+    notes: text('notes'),
+    created_by: uuid('created_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'set null' }),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index('purchase_orders_tenant_id_idx').on(table.tenant_id),
+    plantIdIdx: index('purchase_orders_plant_id_idx').on(table.plant_id),
+    supplierIdx: index('purchase_orders_supplier_id_idx').on(table.supplier_id),
+    statusIdx: index('purchase_orders_status_idx').on(table.status),
+    createdAtIdx: index('purchase_orders_created_at_idx').on(table.created_at),
+  }),
+);
+
+export const purchaseOrderItems = pgTable(
+  'purchase_order_items',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    purchase_order_id: uuid('purchase_order_id')
+      .notNull()
+      .references(() => purchaseOrders.id, { onDelete: 'cascade' }),
+    spare_part_id: uuid('spare_part_id')
+      .notNull()
+      .references(() => spareParts.id, { onDelete: 'restrict' }),
+    quantity: integer('quantity').notNull(),
+    unit_cost: decimal('unit_cost', { precision: 15, scale: 2 }),
+    received_quantity: integer('received_quantity').notNull().default(0),
+    notes: text('notes'),
+  },
+  (table) => ({
+    orderIdx: index('purchase_order_items_order_id_idx').on(table.purchase_order_id),
+    sparePartIdx: index('purchase_order_items_spare_part_id_idx').on(table.spare_part_id),
+  }),
+);
+
+// Purchase Receipts
+export const purchaseReceipts = pgTable(
+  'purchase_receipts',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    plant_id: uuid('plant_id')
+      .notNull()
+      .references(() => plants.id, { onDelete: 'cascade' }),
+    purchase_order_id: uuid('purchase_order_id')
+      .notNull()
+      .references(() => purchaseOrders.id, { onDelete: 'cascade' }),
+    received_by: uuid('received_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'set null' }),
+    received_at: timestamp('received_at', { withTimezone: true }).defaultNow().notNull(),
+    notes: text('notes'),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    orderIdx: index('purchase_receipts_order_id_idx').on(table.purchase_order_id),
+    plantIdx: index('purchase_receipts_plant_id_idx').on(table.plant_id),
+  }),
+);
+
+export const purchaseReceiptItems = pgTable(
+  'purchase_receipt_items',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    receipt_id: uuid('receipt_id')
+      .notNull()
+      .references(() => purchaseReceipts.id, { onDelete: 'cascade' }),
+    purchase_order_item_id: uuid('purchase_order_item_id').references(() => purchaseOrderItems.id, { onDelete: 'set null' }),
+    spare_part_id: uuid('spare_part_id')
+      .notNull()
+      .references(() => spareParts.id, { onDelete: 'restrict' }),
+    quantity: integer('quantity').notNull(),
+    unit_cost: decimal('unit_cost', { precision: 15, scale: 2 }),
+    stock_movement_id: uuid('stock_movement_id').references(() => stockMovements.id, { onDelete: 'set null' }),
+  },
+  (table) => ({
+    receiptIdx: index('purchase_receipt_items_receipt_id_idx').on(table.receipt_id),
+    sparePartIdx: index('purchase_receipt_items_spare_part_id_idx').on(table.spare_part_id),
+  }),
+);
+
 // Meter Readings
 export const meterReadings = pgTable(
   'meter_readings',
@@ -1002,6 +1176,28 @@ export const workOrderEvents = pgTable(
     tenantCreatedIdx: index('work_order_events_tenant_id_created_at_idx').on(table.tenant_id, table.created_at),
     plantCreatedIdx: index('work_order_events_plant_id_created_at_idx').on(table.plant_id, table.created_at),
     eventTypeIdx: index('work_order_events_event_type_idx').on(table.event_type),
+  }),
+);
+
+// Work Order Workflow Configs
+export const workOrderWorkflows = pgTable(
+  'work_order_workflows',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    plant_id: uuid('plant_id').references(() => plants.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    is_default: boolean('is_default').notNull().default(false),
+    config: jsonb('config').notNull(),
+    created_by: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    updated_by: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index('work_order_workflows_tenant_id_idx').on(table.tenant_id),
+    plantIdIdx: index('work_order_workflows_plant_id_idx').on(table.plant_id),
+    defaultIdx: index('work_order_workflows_default_idx').on(table.tenant_id, table.plant_id, table.is_default),
   }),
 );
 

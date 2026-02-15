@@ -298,6 +298,56 @@ const openapi = {
         },
       },
     },
+    '/api/{plantId}/work-orders/workflow': {
+      get: {
+        tags: ['WorkOrders'],
+        summary: 'Get active work order workflow config',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/{plantId}/work-orders/workflows': {
+      get: {
+        tags: ['WorkOrders'],
+        summary: 'List work order workflows',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['WorkOrders'],
+        summary: 'Create work order workflow',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/{plantId}/work-orders/workflows/{workflowId}': {
+      patch: {
+        tags: ['WorkOrders'],
+        summary: 'Update work order workflow',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'workflowId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+      delete: {
+        tags: ['WorkOrders'],
+        summary: 'Delete work order workflow',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'workflowId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
     '/api/{plantId}/preventive-schedules': {
       get: {
         tags: ['Preventive'],
@@ -726,6 +776,106 @@ const openapi = {
           { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
           { name: 'supplier_id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
         ],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/{plantId}/purchase-requests': {
+      get: {
+        tags: ['Purchases'],
+        summary: 'List purchase requests',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { $ref: '#/components/parameters/StatusParam' },
+        ],
+        responses: {
+          '200': {
+            description: 'OK',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/PagedEnvelope' } } },
+          },
+        },
+      },
+      post: {
+        tags: ['Purchases'],
+        summary: 'Create purchase request',
+        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/{plantId}/purchase-requests/{requestId}': {
+      get: {
+        tags: ['Purchases'],
+        summary: 'Get purchase request',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'requestId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: { '200': { description: 'OK' } },
+      },
+      patch: {
+        tags: ['Purchases'],
+        summary: 'Update purchase request',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'requestId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/{plantId}/purchase-orders': {
+      get: {
+        tags: ['Purchases'],
+        summary: 'List purchase orders',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { $ref: '#/components/parameters/StatusParam' },
+        ],
+        responses: {
+          '200': {
+            description: 'OK',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/PagedEnvelope' } } },
+          },
+        },
+      },
+      post: {
+        tags: ['Purchases'],
+        summary: 'Create purchase order',
+        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/{plantId}/purchase-orders/{orderId}': {
+      get: {
+        tags: ['Purchases'],
+        summary: 'Get purchase order',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'orderId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: { '200': { description: 'OK' } },
+      },
+      patch: {
+        tags: ['Purchases'],
+        summary: 'Update purchase order',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'orderId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/{plantId}/purchase-orders/{orderId}/receive': {
+      post: {
+        tags: ['Purchases'],
+        summary: 'Receive purchase order items',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'orderId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
         responses: { '200': { description: 'OK' } },
       },
     },

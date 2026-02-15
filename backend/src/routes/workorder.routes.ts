@@ -5,6 +5,7 @@ import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { WorkOrderController } from '../controllers/workorder.controller.js';
+import { WorkOrderWorkflowController } from '../controllers/workorderworkflow.controller.js';
 import { authMiddleware, plantMiddleware } from '../middlewares/auth.js';
 import { requirePermission } from '../middlewares/permissions.js';
 
@@ -47,6 +48,32 @@ router.use(authMiddleware);
 router.use(plantMiddleware);
 
 // Routes
+router.get(
+	'/:plantId/work-orders/workflow',
+	requirePermission('workflows:read'),
+	WorkOrderWorkflowController.getActive,
+);
+router.get(
+	'/:plantId/work-orders/workflows',
+	requirePermission('workflows:read'),
+	WorkOrderWorkflowController.list,
+);
+router.post(
+	'/:plantId/work-orders/workflows',
+	requirePermission('workflows:write'),
+	WorkOrderWorkflowController.create,
+);
+router.patch(
+	'/:plantId/work-orders/workflows/:workflowId',
+	requirePermission('workflows:write'),
+	WorkOrderWorkflowController.update,
+);
+router.delete(
+	'/:plantId/work-orders/workflows/:workflowId',
+	requirePermission('workflows:write'),
+	WorkOrderWorkflowController.remove,
+);
+
 router.get('/:plantId/work-orders', requirePermission('workorders:read'), WorkOrderController.list);
 router.post('/:plantId/work-orders', requirePermission('workorders:write'), WorkOrderController.create);
 router.get('/:plantId/work-orders/:workOrderId', requirePermission('workorders:read'), WorkOrderController.get);

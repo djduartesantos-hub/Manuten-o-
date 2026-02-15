@@ -35,10 +35,34 @@ GRANT ALL PRIVILEGES ON DATABASE cmms_enterprise TO cmms_user;
 -- 3. ENUM TYPES
 -- ========================================
 
-CREATE TYPE order_status AS ENUM ('aberta', 'atribuida', 'em_curso', 'concluida', 'cancelada');
+CREATE TYPE order_status AS ENUM (
+  'aberta',
+  'em_analise',
+  'em_execucao',
+  'em_pausa',
+  'concluida',
+  'fechada',
+  'cancelada'
+);
 CREATE TYPE maintenance_type AS ENUM ('preventiva', 'corretiva');
 CREATE TYPE priority AS ENUM ('baixa', 'media', 'alta', 'critica');
 CREATE TYPE stock_movement_type AS ENUM ('entrada', 'saida', 'ajuste');
+CREATE TYPE purchase_request_status AS ENUM (
+  'draft',
+  'submitted',
+  'approved',
+  'rejected',
+  'ordered',
+  'received',
+  'cancelled'
+);
+CREATE TYPE purchase_order_status AS ENUM (
+  'draft',
+  'sent',
+  'partially_received',
+  'received',
+  'cancelled'
+);
 
 -- ========================================
 -- 4. CORE TABLES
@@ -240,6 +264,24 @@ CREATE TABLE work_order_tasks (
 
 CREATE INDEX work_order_tasks_work_order_id_idx ON work_order_tasks(work_order_id);
 
+-- Work Order Workflows
+CREATE TABLE work_order_workflows (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL,
+  plant_id UUID REFERENCES plants(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  is_default BOOLEAN NOT NULL DEFAULT FALSE,
+  config JSONB NOT NULL,
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  updated_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX work_order_workflows_tenant_id_idx ON work_order_workflows(tenant_id);
+CREATE INDEX work_order_workflows_plant_id_idx ON work_order_workflows(plant_id);
+CREATE INDEX work_order_workflows_default_idx ON work_order_workflows(tenant_id, plant_id, is_default);
+
 -- ========================================
 -- 6. SPARE PARTS & STOCK TABLES
 -- ========================================
@@ -292,6 +334,110 @@ CREATE TABLE stock_movements (
   created_by UUID NOT NULL REFERENCES users(id),
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
+
+-- Purchase Requests
+CREATE TABLE purchase_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL,
+  plant_id UUID NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  status purchase_request_status NOT NULL DEFAULT 'draft',
+  priority priority DEFAULT 'media',
+  needed_by TIMESTAMPTZ,
+  created_by UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+  approved_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  approved_at TIMESTAMPTZ,
+  rejected_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  rejected_at TIMESTAMPTZ,
+  rejection_reason TEXT,
+  ordered_at TIMESTAMPTZ,
+  received_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX purchase_requests_tenant_id_idx ON purchase_requests(tenant_id);
+CREATE INDEX purchase_requests_plant_id_idx ON purchase_requests(plant_id);
+CREATE INDEX purchase_requests_status_idx ON purchase_requests(status);
+CREATE INDEX purchase_requests_created_at_idx ON purchase_requests(created_at);
+
+CREATE TABLE purchase_request_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id UUID NOT NULL REFERENCES purchase_requests(id) ON DELETE CASCADE,
+  spare_part_id UUID NOT NULL REFERENCES spare_parts(id) ON DELETE RESTRICT,
+  supplier_id UUID REFERENCES suppliers(id) ON DELETE SET NULL,
+  quantity INTEGER NOT NULL,
+  unit_cost DECIMAL(15, 2),
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX purchase_request_items_request_id_idx ON purchase_request_items(request_id);
+CREATE INDEX purchase_request_items_spare_part_id_idx ON purchase_request_items(spare_part_id);
+
+-- Purchase Orders
+CREATE TABLE purchase_orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL,
+  plant_id UUID NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
+  supplier_id UUID NOT NULL REFERENCES suppliers(id) ON DELETE RESTRICT,
+  request_id UUID REFERENCES purchase_requests(id) ON DELETE SET NULL,
+  status purchase_order_status NOT NULL DEFAULT 'draft',
+  ordered_at TIMESTAMPTZ,
+  expected_at TIMESTAMPTZ,
+  notes TEXT,
+  created_by UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX purchase_orders_tenant_id_idx ON purchase_orders(tenant_id);
+CREATE INDEX purchase_orders_plant_id_idx ON purchase_orders(plant_id);
+CREATE INDEX purchase_orders_supplier_id_idx ON purchase_orders(supplier_id);
+CREATE INDEX purchase_orders_status_idx ON purchase_orders(status);
+CREATE INDEX purchase_orders_created_at_idx ON purchase_orders(created_at);
+
+CREATE TABLE purchase_order_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  purchase_order_id UUID NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
+  spare_part_id UUID NOT NULL REFERENCES spare_parts(id) ON DELETE RESTRICT,
+  quantity INTEGER NOT NULL,
+  unit_cost DECIMAL(15, 2),
+  received_quantity INTEGER NOT NULL DEFAULT 0,
+  notes TEXT
+);
+
+CREATE INDEX purchase_order_items_order_id_idx ON purchase_order_items(purchase_order_id);
+CREATE INDEX purchase_order_items_spare_part_id_idx ON purchase_order_items(spare_part_id);
+
+-- Purchase Receipts
+CREATE TABLE purchase_receipts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL,
+  plant_id UUID NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
+  purchase_order_id UUID NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
+  received_by UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+  received_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX purchase_receipts_order_id_idx ON purchase_receipts(purchase_order_id);
+CREATE INDEX purchase_receipts_plant_id_idx ON purchase_receipts(plant_id);
+
+CREATE TABLE purchase_receipt_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  receipt_id UUID NOT NULL REFERENCES purchase_receipts(id) ON DELETE CASCADE,
+  purchase_order_item_id UUID REFERENCES purchase_order_items(id) ON DELETE SET NULL,
+  spare_part_id UUID NOT NULL REFERENCES spare_parts(id) ON DELETE RESTRICT,
+  quantity INTEGER NOT NULL,
+  unit_cost DECIMAL(15, 2),
+  stock_movement_id UUID REFERENCES stock_movements(id) ON DELETE SET NULL
+);
+
+CREATE INDEX purchase_receipt_items_receipt_id_idx ON purchase_receipt_items(receipt_id);
+CREATE INDEX purchase_receipt_items_spare_part_id_idx ON purchase_receipt_items(spare_part_id);
 
 CREATE INDEX stock_movements_tenant_id_idx ON stock_movements(tenant_id);
 CREATE INDEX stock_movements_plant_id_idx ON stock_movements(plant_id);

@@ -30,6 +30,7 @@ import ticketRoutes from './routes/tickets.routes.js';
 import plannerRoutes from './routes/planner.routes.js';
 import stocktakeRoutes from './routes/stocktake.routes.js';
 import customizationRoutes from './routes/customization.routes.js';
+import purchaseRoutes from './routes/purchase.routes.js';
 import { errorHandler, notFoundHandler, requestLogger } from './middlewares/error.js';
 import { tenantSlugMiddleware } from './middlewares/tenant.js';
 import { requestIdMiddleware } from './middlewares/requestId.js';
@@ -119,6 +120,7 @@ export function createApp(): Express {
   app.use('/api', ticketRoutes);
   app.use('/api', plannerRoutes);
   app.use('/api/customization', customizationRoutes);
+  app.use('/api', purchaseRoutes);
 
   // Health check
   app.get('/health', (_req, res) => {

@@ -154,7 +154,7 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - [x] Inventário por fábrica.
 
 **Should**
-- Requisições internas e receção.
+- [x] Requisições internas e receção.
 - Lotes/validade (se necessário ao mercado).
 
 **Could**

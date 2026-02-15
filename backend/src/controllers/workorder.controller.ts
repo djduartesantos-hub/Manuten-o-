@@ -11,6 +11,7 @@ import { AuditService } from '../services/audit.service.js';
 import { logger } from '../config/logger.js';
 import { getSocketManager, isSocketManagerReady } from '../utils/socket-instance.js';
 import { StockReservationService } from '../services/stockreservation.service.js';
+import { WorkOrderWorkflowService } from '../services/workorderworkflow.service.js';
 import { isSlaOverdue } from '../utils/workorder-sla.js';
 import { db } from '../config/database.js';
 import { attachments, users, workOrderEvents, workOrders } from '../db/schema.js';
@@ -22,6 +23,7 @@ import {
 } from '../schemas/stockreservation.validation.js';
 
 const stockReservationService = new StockReservationService();
+const workOrderWorkflowService = new WorkOrderWorkflowService();
 
 // ESM __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -474,6 +476,7 @@ export class WorkOrderController {
       const updates = req.body;
       const userId = req.user?.userId;
       const role = req.user?.role;
+  const normalizedRole = WorkOrderController.normalizeRole(role);
 
       if (!tenantId || !workOrderId || !plantId) {
         res.status(400).json({
@@ -554,6 +557,8 @@ export class WorkOrderController {
       };
 
       const normalizedExistingStatus = normalizeExistingStatus(existing.status);
+      const workflowRow = await workOrderWorkflowService.getActiveWorkflow(tenantId, plantId);
+      const workflowConfig = workOrderWorkflowService.getConfigOrDefault(workflowRow);
       const reopenReason = Object.prototype.hasOwnProperty.call(updates, 'reopen_reason')
         ? String(updates.reopen_reason || '').trim()
         : '';
@@ -583,6 +588,42 @@ export class WorkOrderController {
         }
 
         if (next === 'cancelada') return;
+
+        if (workflowConfig?.transitions?.length) {
+          const rule = workflowConfig.transitions.find((r: any) => {
+            if (!r || String(r.from || '') !== current) return false;
+            if (Array.isArray(r.to)) return r.to.includes(next);
+            return String(r.to || '') === next;
+          });
+
+          if (!rule) {
+            throw new Error(`Transição de estado inválida: ${current} → ${next}`);
+          }
+
+          const allowedRoles = Array.isArray((rule as any).allowed_roles)
+            ? (rule as any).allowed_roles
+            : Array.isArray((rule as any).allowedRoles)
+              ? (rule as any).allowedRoles
+              : [];
+          const approvalRoles = Array.isArray((rule as any).approval_roles)
+            ? (rule as any).approval_roles
+            : Array.isArray((rule as any).approvalRoles)
+              ? (rule as any).approvalRoles
+              : [];
+
+          const normalize = (value: string) => WorkOrderController.normalizeRole(value);
+          const hasRole = (roles: string[]) => roles.map(normalize).includes(normalizedRole);
+
+          if (allowedRoles.length > 0 && !(hasRole(allowedRoles) || isAdmin || isManager)) {
+            throw new Error('Transição de estado não permitida para o seu role');
+          }
+
+          if (approvalRoles.length > 0 && !(hasRole(approvalRoles) || isAdmin || isManager)) {
+            throw new Error(`Transição requer aprovação (${approvalRoles.join(', ')})`);
+          }
+
+          return;
+        }
 
         if (next === 'em_pausa') {
           if (current !== 'em_execucao') {
