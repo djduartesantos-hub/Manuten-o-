@@ -1,7 +1,9 @@
 import React, { type CSSProperties } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../context/store';
+import { useI18n } from '../context/I18nContext';
 import {
   apiCall,
   getDashboardMetrics,
@@ -84,6 +86,8 @@ interface UpcomingPreventiveSchedule {
 export function DashboardPage() {
   const { user, isAuthenticated } = useAuth();
   const { selectedPlant } = useAppStore();
+  const { t } = useI18n();
+  const navigate = useNavigate();
   const [metrics, setMetrics] = React.useState<Metrics | null>(null);
   const [kpis, setKPIs] = React.useState<KPIs | null>(null);
   const [orders, setOrders] = React.useState<DashboardWorkOrder[]>([]);
@@ -95,6 +99,8 @@ export function DashboardPage() {
   const [error, setError] = React.useState('');
   const [draggingOrderId, setDraggingOrderId] = React.useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = React.useState<string | null>(null);
+  const userName = user?.firstName?.trim();
+  const welcomeName = userName || t('dashboard.hero.guest');
 
   const canManageFlow = React.useMemo(() => {
     const role = user?.role;
@@ -103,59 +109,112 @@ export function DashboardPage() {
     );
   }, [user?.role]);
 
+  const persona = React.useMemo(() => {
+    const role = String(user?.role || '').toLowerCase();
+    if (['superadmin', 'admin_empresa', 'gestor_manutencao'].includes(role)) {
+      return {
+        title: t('dashboard.persona.admin'),
+        actions: [
+          { label: t('dashboard.persona.action.orders'), path: '/work-orders' },
+          { label: t('dashboard.persona.action.planner'), path: '/planner' },
+          { label: t('dashboard.persona.action.reports'), path: '/reports' },
+          { label: t('dashboard.persona.action.assets'), path: '/assets' },
+        ],
+      };
+    }
+    if (role === 'supervisor') {
+      return {
+        title: t('dashboard.persona.supervisor'),
+        actions: [
+          { label: t('dashboard.persona.action.orders'), path: '/work-orders' },
+          { label: t('dashboard.persona.action.planner'), path: '/planner' },
+          { label: t('dashboard.persona.action.tickets'), path: '/tickets' },
+          { label: t('dashboard.persona.action.assets'), path: '/assets' },
+        ],
+      };
+    }
+    if (role === 'tecnico') {
+      return {
+        title: t('dashboard.persona.technician'),
+        actions: [
+          { label: t('dashboard.persona.action.technicianHome'), path: '/tecnico' },
+          { label: t('dashboard.persona.action.orders'), path: '/work-orders' },
+          { label: t('dashboard.persona.action.assets'), path: '/assets' },
+        ],
+      };
+    }
+    if (role === 'operador') {
+      return {
+        title: t('dashboard.persona.operator'),
+        actions: [
+          { label: t('dashboard.persona.action.operatorHome'), path: '/operador' },
+          { label: t('dashboard.persona.action.orders'), path: '/work-orders' },
+          { label: t('dashboard.persona.action.tickets'), path: '/tickets' },
+        ],
+      };
+    }
+    return {
+      title: t('dashboard.persona.operator'),
+      actions: [
+        { label: t('dashboard.persona.action.orders'), path: '/work-orders' },
+        { label: t('dashboard.persona.action.assets'), path: '/assets' },
+      ],
+    };
+  }, [t, user?.role]);
+
   const statusColumns = React.useMemo(
     () => [
       {
         key: 'aberta',
-        label: 'Abertas',
+        label: t('dashboard.status.open'),
         tone: 'theme-card theme-border theme-text',
         iconTone: 'text-amber-700',
         Icon: AlertTriangle,
       },
       {
         key: 'em_analise',
-        label: 'Em Análise',
+        label: t('dashboard.status.analysis'),
         tone: 'theme-card theme-border theme-text',
         iconTone: 'text-sky-700',
         Icon: Search,
       },
       {
         key: 'em_execucao',
-        label: 'Em Execução',
+        label: t('dashboard.status.execution'),
         tone: 'theme-card theme-border theme-text',
         iconTone: 'text-emerald-700',
         Icon: Activity,
       },
       {
         key: 'em_pausa',
-        label: 'Em Pausa',
+        label: t('dashboard.status.paused'),
         tone: 'theme-card theme-border theme-text',
         iconTone: 'text-amber-700',
         Icon: PauseCircle,
       },
       {
         key: 'concluida',
-        label: 'Concluídas',
+        label: t('dashboard.status.completed'),
         tone: 'theme-card theme-border theme-text',
         iconTone: 'text-emerald-700',
         Icon: Check,
       },
       {
         key: 'fechada',
-        label: 'Fechadas',
+        label: t('dashboard.status.closed'),
         tone: 'theme-card theme-border theme-text',
         iconTone: 'text-[color:var(--dash-muted)]',
         Icon: Lock,
       },
       {
         key: 'cancelada',
-        label: 'Canceladas',
+        label: t('dashboard.status.cancelled'),
         tone: 'theme-card theme-border theme-text',
         iconTone: 'text-rose-700',
         Icon: XCircle,
       },
     ],
-    [],
+    [t],
   );
 
   const toneForPercent = (value: number) => {
@@ -202,7 +261,7 @@ export function DashboardPage() {
 
   const loadData = React.useCallback(async () => {
     if (!isAuthenticated || !selectedPlant) {
-      setError('Plant não selecionada');
+      setError(t('dashboard.error.plantRequired'));
       setLoading(false);
       return;
     }
@@ -233,11 +292,11 @@ export function DashboardPage() {
       setAlerts(Array.isArray(alertsData) ? alertsData : []);
       setUpcomingPreventive(Array.isArray(upcomingPreventiveData) ? upcomingPreventiveData : []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load dashboard');
+      setError(err instanceof Error ? err.message : t('dashboard.error.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, selectedPlant]);
+  }, [isAuthenticated, selectedPlant, t]);
 
   React.useEffect(() => {
     loadData();
@@ -263,32 +322,38 @@ export function DashboardPage() {
     baixa: 'border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] text-[color:var(--dash-muted)]',
   };
   const priorityIcon = (priority?: string | null) => {
+    const labels = {
+      critica: t('priority.critical'),
+      alta: t('priority.high'),
+      media: t('priority.medium'),
+      baixa: t('priority.low'),
+    };
     const value = priority || 'media';
     if (value === 'critica') {
       return {
         Icon: AlertTriangle,
         className: 'text-rose-600',
-        label: 'Crítica',
+        label: labels.critica,
       };
     }
     if (value === 'alta') {
       return {
         Icon: AlertCircle,
         className: 'text-amber-600',
-        label: 'Alta',
+        label: labels.alta,
       };
     }
     if (value === 'baixa') {
       return {
         Icon: Clock,
         className: 'text-[color:var(--dash-muted)]',
-        label: 'Baixa',
+        label: labels.baixa,
       };
     }
     return {
       Icon: Activity,
       className: 'text-emerald-600',
-      label: 'Média',
+      label: labels.media,
     };
   };
 
@@ -306,76 +371,76 @@ export function DashboardPage() {
     () => [
       {
         key: 'aberta',
-        label: 'Abertas',
+        label: t('dashboard.status.open'),
         count: metrics?.open_orders ?? 0,
         tone: 'border-amber-200/80 bg-amber-50/70 text-amber-800',
         bar: 'bg-amber-400/80',
         Icon: AlertTriangle,
         iconTone: 'bg-amber-100 text-amber-700',
-        description: 'Ordens novas, ainda por iniciar.',
+        description: t('dashboard.statusDesc.open'),
       },
       {
         key: 'em_analise',
-        label: 'Em Análise',
+        label: t('dashboard.status.analysis'),
         count: metrics?.analysis ?? metrics?.assigned_orders ?? 0,
         tone: 'border-sky-200/80 bg-sky-50/70 text-sky-800',
         bar: 'bg-sky-400/80',
         Icon: Search,
         iconTone: 'bg-sky-100 text-sky-700',
-        description: 'Ordens em triagem/validação antes de iniciar.',
+        description: t('dashboard.statusDesc.analysis'),
       },
       {
         key: 'em_execucao',
-        label: 'Em Execução',
+        label: t('dashboard.status.execution'),
         count: metrics?.execution ?? metrics?.in_progress ?? 0,
         tone: 'border-emerald-200/80 bg-emerald-50/70 text-emerald-800',
         bar: 'bg-emerald-400/80',
         Icon: Activity,
         iconTone: 'bg-emerald-100 text-emerald-700',
-        description: 'Ordens atualmente em trabalho no terreno.',
+        description: t('dashboard.statusDesc.execution'),
       },
       {
         key: 'em_pausa',
-        label: 'Em Pausa',
+        label: t('dashboard.status.paused'),
         count: metrics?.paused ?? 0,
         tone: 'border-amber-200/80 bg-amber-50/70 text-amber-800',
         bar: 'bg-amber-400/80',
         Icon: PauseCircle,
         iconTone: 'bg-amber-100 text-amber-700',
-        description: 'Ordens paradas (aguarda peças, acesso, etc.).',
+        description: t('dashboard.statusDesc.paused'),
       },
       {
         key: 'concluida',
-        label: 'Concluídas',
+        label: t('dashboard.status.completed'),
         count: metrics?.completed ?? 0,
         tone: 'border-emerald-200/80 bg-emerald-50/70 text-emerald-800',
         bar: 'bg-emerald-400/80',
         Icon: Check,
         iconTone: 'bg-emerald-100 text-emerald-700',
-        description: 'Trabalho concluído; pode seguir para fecho.',
+        description: t('dashboard.statusDesc.completed'),
       },
       {
         key: 'fechada',
-        label: 'Fechadas',
+        label: t('dashboard.status.closed'),
         count: metrics?.closed ?? 0,
         tone: 'border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] text-[color:var(--dash-ink)]',
         bar: 'bg-[color:var(--dash-border)]',
         Icon: Lock,
         iconTone: 'border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] text-[color:var(--dash-muted)]',
-        description: 'Ordens encerradas com dados finais registados.',
+        description: t('dashboard.statusDesc.closed'),
       },
       {
         key: 'cancelada',
-        label: 'Canceladas',
+        label: t('dashboard.status.cancelled'),
         count: metrics?.cancelled ?? 0,
         tone: 'border-rose-200/80 bg-rose-50/70 text-rose-700',
         bar: 'bg-rose-400/80',
         Icon: XCircle,
         iconTone: 'bg-rose-100 text-rose-700',
-        description: 'Ordens anuladas e fora do fluxo.',
+        description: t('dashboard.statusDesc.cancelled'),
       },
     ],
-    [metrics],
+    [metrics, t],
   );
 
   const urgentOrders = React.useMemo(() => {
@@ -426,7 +491,7 @@ export function DashboardPage() {
     try {
       await updateWorkOrder(selectedPlant, draggingOrderId, { status });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao atualizar status');
+      setError(err instanceof Error ? err.message : t('dashboard.error.updateStatus'));
       await loadData();
     } finally {
       handleDragEnd();
@@ -438,8 +503,8 @@ export function DashboardPage() {
       <MainLayout>
         <div className="text-center py-12">
           <AlertCircle className="w-12 h-12 text-rose-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold theme-text mb-2">Não Autenticado</h2>
-          <p className="theme-text-muted">Por favor, faça login para acessar o dashboard</p>
+          <h2 className="text-xl font-semibold theme-text mb-2">{t('dashboard.auth.title')}</h2>
+          <p className="theme-text-muted">{t('dashboard.auth.subtitle')}</p>
         </div>
       </MainLayout>
     );
@@ -456,43 +521,42 @@ export function DashboardPage() {
           <div className="relative grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div className="space-y-4">
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-700">
-                Painel vivo
+                {t('dashboard.hero.eyebrow')}
               </p>
               <h1 className="text-3xl font-semibold text-[color:var(--dash-ink)] sm:text-4xl lg:text-5xl">
-                Dashboard da manutencao
+                {t('dashboard.hero.title')}
               </h1>
               <p className="max-w-2xl text-sm text-[color:var(--dash-muted)]">
-                Bem-vindo, {user?.firstName}! Visibilidade total de backlog, SLA e
-                operacao em tempo real.
+                {t('dashboard.hero.subtitle', { name: welcomeName })}
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
                 <span
                   className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-emerald-700 dark:text-emerald-300"
-                  title="SLA (Service Level Agreement): percentagem de ordens dentro do prazo."
+                  title={t('dashboard.hero.slaTitle')}
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  SLA {kpis?.sla_compliance ?? 0}%
+                  {t('dashboard.hero.slaLabel', { value: kpis?.sla_compliance ?? 0 })}
                 </span>
                 <span
                   className="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-amber-700 dark:text-amber-300"
-                  title="Backlog: ordens pendentes (em aberto e em execução/pausa/análise conforme regras do KPI)."
+                  title={t('dashboard.hero.backlogTitle')}
                 >
                   <AlertCircle className="h-3.5 w-3.5" />
-                  Backlog {kpis?.backlog ?? 0}
+                  {t('dashboard.hero.backlogLabel', { value: kpis?.backlog ?? 0 })}
                 </span>
                 <span
                   className="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 text-sky-700 dark:text-sky-300"
-                  title="MTTR (Mean Time To Repair): tempo médio de reparação."
+                  title={t('dashboard.hero.mttrTitle')}
                 >
                   <Clock className="h-3.5 w-3.5" />
-                  MTTR {kpis?.mttr ?? 0}h
+                  {t('dashboard.hero.mttrLabel', { value: kpis?.mttr ?? 0 })}
                 </span>
                 <span
                   className="inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-indigo-700 dark:text-indigo-300"
-                  title="MTBF (Mean Time Between Failures): tempo médio entre falhas."
+                  title={t('dashboard.hero.mtbfTitle')}
                 >
                   <Activity className="h-3.5 w-3.5" />
-                  MTBF {kpis?.mtbf ?? 0}h
+                  {t('dashboard.hero.mtbfLabel', { value: kpis?.mtbf ?? 0 })}
                 </span>
               </div>
             </div>
@@ -501,16 +565,16 @@ export function DashboardPage() {
               <div className="rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm lg:order-1">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                    Alertas recentes
+                    {t('dashboard.alerts.title')}
                   </p>
                   <span className="text-[10px] text-[color:var(--dash-muted)]">
-                    {alerts.length} itens
+                    {t('dashboard.alerts.items', { count: alerts.length })}
                   </span>
                 </div>
                 <div className="mt-3 space-y-2">
                   {alerts.length === 0 && (
                     <div className="rounded-2xl border border-dashed border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-4 py-4 text-center text-xs text-[color:var(--dash-muted)]">
-                      Nenhum alerta recente
+                      {t('dashboard.alerts.empty')}
                     </div>
                   )}
                   {alerts.slice(0, 3).map((alert) => (
@@ -540,73 +604,109 @@ export function DashboardPage() {
               <div className="grid gap-4 sm:grid-cols-2 lg:order-2">
                 <div
                   className="dash-reveal rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur"
-                  title="Total de ordens de trabalho no sistema (planta atual)."
+                  title={t('dashboard.metric.total.title')}
                 >
                   <div className="flex items-center justify-between">
                     <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
                       <BarChart3 className="h-4 w-4" />
                     </div>
                     <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                      total
+                      {t('dashboard.metric.total.label')}
                     </span>
                   </div>
                   <p className="mt-4 text-2xl font-semibold text-[color:var(--dash-ink)]">
                     {metrics?.total_orders ?? 0}
                   </p>
-                  <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Ordens registradas</p>
+                  <p className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                    {t('dashboard.metric.total.subtitle')}
+                  </p>
                 </div>
                 <div
                   className="dash-reveal dash-reveal-delay-1 rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur"
-                  title="Ordens abertas: criadas e ainda sem execução iniciada."
+                  title={t('dashboard.metric.open.title')}
                 >
                   <div className="flex items-center justify-between">
                     <div className="rounded-2xl bg-amber-100 p-2 text-amber-700">
                       <AlertCircle className="h-4 w-4" />
                     </div>
                     <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                      abertas
+                      {t('dashboard.metric.open.label')}
                     </span>
                   </div>
                   <p className="mt-4 text-2xl font-semibold text-[color:var(--dash-ink)]">
                     {metrics?.open_orders ?? 0}
                   </p>
-                  <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Aguardando início</p>
+                  <p className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                    {t('dashboard.metric.open.subtitle')}
+                  </p>
                 </div>
                 <div
                   className="dash-reveal dash-reveal-delay-2 rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur"
-                  title="Em Análise: ordens em triagem/validação (antigo 'atribuída')."
+                  title={t('dashboard.metric.analysis.title')}
                 >
                   <div className="flex items-center justify-between">
                     <div className="rounded-2xl bg-sky-100 p-2 text-sky-700">
                       <Clock className="h-4 w-4" />
                     </div>
                     <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                      análise
+                      {t('dashboard.metric.analysis.label')}
                     </span>
                   </div>
                   <p className="mt-4 text-2xl font-semibold text-[color:var(--dash-ink)]">
                     {metrics?.analysis ?? metrics?.assigned_orders ?? 0}
                   </p>
-                  <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Em fila de equipa</p>
+                  <p className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                    {t('dashboard.metric.analysis.subtitle')}
+                  </p>
                 </div>
                 <div
                   className="dash-reveal dash-reveal-delay-3 rounded-[26px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-4 shadow-sm backdrop-blur"
-                  title="Em Execução: ordens com trabalho em curso no terreno."
+                  title={t('dashboard.metric.execution.title')}
                 >
                   <div className="flex items-center justify-between">
                     <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
                       <Activity className="h-4 w-4" />
                     </div>
                     <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                      execução
+                      {t('dashboard.metric.execution.label')}
                     </span>
                   </div>
                   <p className="mt-4 text-2xl font-semibold text-[color:var(--dash-ink)]">
                     {metrics?.in_progress ?? 0}
                   </p>
-                  <p className="mt-1 text-xs text-[color:var(--dash-muted)]">Ordens em execução</p>
+                  <p className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                    {t('dashboard.metric.execution.subtitle')}
+                  </p>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-[30px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-[color:var(--dash-muted)]">
+                {t('dashboard.persona.title')}
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-[color:var(--dash-ink)]">
+                {persona.title}
+              </h2>
+              <p className="mt-1 text-xs text-[color:var(--dash-muted)]">
+                {t('dashboard.persona.subtitle')}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {persona.actions.map((action) => (
+                <button
+                  key={action.path}
+                  type="button"
+                  onClick={() => navigate(action.path)}
+                  className="rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-4 py-2 text-xs font-semibold text-[color:var(--dash-ink)] shadow-sm transition hover:-translate-y-0.5 hover:bg-[color:var(--dash-surface-2)]"
+                >
+                  {action.label}
+                </button>
+              ))}
             </div>
           </div>
         </section>
@@ -625,7 +725,7 @@ export function DashboardPage() {
         {loading && (
           <div className="rounded-[28px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-12 text-center shadow-sm">
             <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
-            <p className="text-sm text-[color:var(--dash-muted)]">Carregando dados...</p>
+            <p className="text-sm text-[color:var(--dash-muted)]">{t('dashboard.loading')}</p>
           </div>
         )}
 
@@ -662,7 +762,7 @@ export function DashboardPage() {
                         />
                       </div>
                       <p className="mt-2 text-[11px] text-[color:var(--dash-ink)] opacity-80">
-                        {percent}% do total
+                        {t('dashboard.status.percentOfTotal', { percent })}
                       </p>
                     </div>
                   );
@@ -673,32 +773,34 @@ export function DashboardPage() {
                 <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent),var(--dash-accent-2))]" />
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-lg font-semibold text-[color:var(--dash-ink)]">Fluxo das ordens</h2>
+                    <h2 className="text-lg font-semibold text-[color:var(--dash-ink)]">
+                      {t('dashboard.flow.title')}
+                    </h2>
                     <p className="text-xs text-[color:var(--dash-muted)]">
                       {canManageFlow
-                        ? 'Arraste para atualizar o estado'
-                        : 'Atualizacao de estado reservada a gestores'}
+                        ? t('dashboard.flow.subtitle.manage')
+                        : t('dashboard.flow.subtitle.view')}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-[color:var(--dash-muted)]">
                     <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] px-3 py-1">
                       <Activity className="h-3.5 w-3.5 text-emerald-300" />
-                      {metrics.in_progress} em execução
+                      {t('dashboard.flow.chip.execution', { count: metrics.in_progress })}
                     </span>
                     <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] px-3 py-1">
                       <AlertTriangle className="h-3.5 w-3.5 text-amber-300" />
-                      {metrics.open_orders} abertas
+                      {t('dashboard.flow.chip.open', { count: metrics.open_orders })}
                     </span>
                     <span className="hidden items-center gap-2 rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] px-3 py-1 lg:inline-flex">
                       <span className="text-[10px] font-semibold uppercase tracking-[0.3em]">
-                        Legenda:
+                        {t('dashboard.flow.legend')}
                       </span>
                       {(
                         [
-                          { key: 'critica', label: 'Crítica' },
-                          { key: 'alta', label: 'Alta' },
-                          { key: 'media', label: 'Média' },
-                          { key: 'baixa', label: 'Baixa' },
+                          { key: 'critica', label: t('priority.critical') },
+                          { key: 'alta', label: t('priority.high') },
+                          { key: 'media', label: t('priority.medium') },
+                          { key: 'baixa', label: t('priority.low') },
                         ] as const
                       ).map((item) => {
                         const { Icon, className } = priorityIcon(item.key);
@@ -766,7 +868,7 @@ export function DashboardPage() {
                                 <p className="text-xs text-[color:var(--dash-muted)]">
                                   {order.asset
                                     ? `${order.asset.code} - ${order.asset.name}`
-                                    : 'Sem ativo'}
+                                    : t('dashboard.asset.none')}
                                 </p>
                               </div>
                               {(() => {
@@ -775,7 +877,7 @@ export function DashboardPage() {
                                 return (
                                   <span
                                     className="inline-flex items-center rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-surface)] px-2 py-1"
-                                    title={`Prioridade: ${meta.label}`}
+                                    title={t('priority.title', { label: meta.label })}
                                   >
                                     <Icon className={`h-4 w-4 ${meta.className}`} />
                                   </span>
@@ -792,7 +894,7 @@ export function DashboardPage() {
                         ))}
                         {(groupedOrders[column.key] || []).length === 0 && (
                           <div className="rounded-2xl border border-dashed border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-3 py-6 text-center text-xs text-[color:var(--dash-muted)]">
-                            Sem ordens
+                            {t('dashboard.orders.none')}
                           </div>
                         )}
                       </div>
@@ -804,11 +906,13 @@ export function DashboardPage() {
               {kpis && (
                 <div className="relative overflow-hidden rounded-[28px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
                   <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,#38bdf8,var(--dash-accent))]" />
-                  <h2 className="text-lg font-semibold text-[color:var(--dash-ink)]">Indicadores-chave</h2>
+                  <h2 className="text-lg font-semibold text-[color:var(--dash-ink)]">
+                    {t('dashboard.kpis.title')}
+                  </h2>
                   <div className="mt-6 grid gap-4 md:grid-cols-4">
                     <div
                       className="rounded-2xl border border-sky-500/20 bg-sky-500/10 p-4"
-                      title="MTTR (Mean Time To Repair): tempo médio de reparação."
+                      title={t('dashboard.kpis.mttr.title')}
                     >
                       <div className="flex items-center justify-between">
                         <div className="rounded-2xl bg-sky-100 p-2 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
@@ -816,7 +920,7 @@ export function DashboardPage() {
                         </div>
                       </div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                        MTTR - Tempo medio de reparacao
+                        {t('dashboard.kpis.mttr.label')}
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-sky-700 dark:text-sky-300">
                         {kpis.mttr}h
@@ -824,7 +928,7 @@ export function DashboardPage() {
                     </div>
                     <div
                       className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4"
-                      title="MTBF (Mean Time Between Failures): tempo médio entre falhas."
+                      title={t('dashboard.kpis.mtbf.title')}
                     >
                       <div className="flex items-center justify-between">
                         <div className="rounded-2xl bg-indigo-100 p-2 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
@@ -832,7 +936,7 @@ export function DashboardPage() {
                         </div>
                       </div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                        MTBF - Tempo medio entre falhas
+                        {t('dashboard.kpis.mtbf.label')}
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-indigo-700 dark:text-indigo-300">
                         {kpis.mtbf}h
@@ -840,7 +944,7 @@ export function DashboardPage() {
                     </div>
                     <div
                       className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4"
-                      title="SLA (Service Level Agreement): percentagem de ordens dentro do prazo."
+                      title={t('dashboard.kpis.sla.title')}
                     >
                       <div className="flex items-center justify-between">
                         <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
@@ -848,7 +952,7 @@ export function DashboardPage() {
                         </div>
                       </div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                        SLA - Cumprimento do acordo de nivel de servico
+                        {t('dashboard.kpis.sla.label')}
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-emerald-700 dark:text-emerald-300">
                         {kpis.sla_compliance}%
@@ -856,7 +960,7 @@ export function DashboardPage() {
                     </div>
                     <div
                       className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4"
-                      title="Backlog: volume de ordens pendentes."
+                      title={t('dashboard.kpis.backlog.title')}
                     >
                       <div className="flex items-center justify-between">
                         <div className="rounded-2xl bg-amber-100 p-2 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
@@ -864,7 +968,7 @@ export function DashboardPage() {
                         </div>
                       </div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                        Backlog - Ordens pendentes
+                        {t('dashboard.kpis.backlog.label')}
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-amber-700 dark:text-amber-300">
                         {kpis.backlog}
@@ -878,14 +982,16 @@ export function DashboardPage() {
             <aside className="space-y-6">
               <div className="relative overflow-hidden rounded-[28px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
                 <div className="absolute left-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent),#38bdf8)]" />
-                <h3 className="text-sm font-semibold text-[color:var(--dash-ink)]">Próximas a realizar</h3>
+                <h3 className="text-sm font-semibold text-[color:var(--dash-ink)]">
+                  {t('dashboard.preventive.title')}
+                </h3>
                 <p className="mt-2 text-xs text-[color:var(--dash-muted)]">
-                  Preventivas agendadas para breve.
+                  {t('dashboard.preventive.subtitle')}
                 </p>
                 <div className="mt-4 space-y-3">
                   {upcomingPreventive.length === 0 && (
                     <div className="rounded-2xl border border-dashed border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] px-4 py-6 text-center text-xs text-[color:var(--dash-muted)]">
-                      Sem preventivas agendadas.
+                      {t('dashboard.preventive.empty')}
                     </div>
                   )}
                   {upcomingPreventive.map((item) => (
@@ -897,14 +1003,14 @@ export function DashboardPage() {
                         <p className="text-sm font-semibold text-[color:var(--dash-ink)]">
                           {item.asset_code
                             ? `${item.asset_code} - ${item.asset_name || ''}`
-                            : item.asset_name || 'Sem ativo'}
+                            : item.asset_name || t('dashboard.asset.none')}
                         </p>
                         <span className="rounded-full bg-[color:var(--dash-panel)] px-2 py-1 text-[10px] font-semibold text-[color:var(--dash-muted)]">
                           {item.status}
                         </span>
                       </div>
                       <p className="mt-1 text-xs text-[color:var(--dash-muted)]">
-                        {item.plan_name || 'Plano preventivo'}
+                        {item.plan_name || t('dashboard.preventive.planFallback')}
                       </p>
                       <p className="mt-2 text-xs font-semibold text-[color:var(--dash-ink)]">
                         {formatDateTime(item.scheduled_for)}
@@ -916,14 +1022,16 @@ export function DashboardPage() {
 
               <div className="relative overflow-hidden rounded-[28px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
                 <div className="absolute right-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent-2),var(--dash-accent))]" />
-                <h3 className="text-sm font-semibold text-[color:var(--dash-ink)]">Foco imediato</h3>
+                <h3 className="text-sm font-semibold text-[color:var(--dash-ink)]">
+                  {t('dashboard.urgent.title')}
+                </h3>
                 <p className="mt-2 text-xs text-[color:var(--dash-muted)]">
-                  Ordens com maior prioridade em andamento.
+                  {t('dashboard.urgent.subtitle')}
                 </p>
                 <div className="mt-4 space-y-3">
                   {urgentOrders.length === 0 && (
                     <div className="rounded-2xl border border-dashed border-[color:var(--dash-border)] bg-[color:var(--dash-surface-2)] px-4 py-6 text-center text-xs text-[color:var(--dash-muted)]">
-                      Sem prioridades criticas no momento.
+                      {t('dashboard.urgent.empty')}
                     </div>
                   )}
                   {urgentOrders.map((order) => (
@@ -941,7 +1049,7 @@ export function DashboardPage() {
                           return (
                             <span
                               className="inline-flex items-center rounded-full border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] px-2 py-1"
-                              title={`Prioridade: ${meta.label}`}
+                              title={t('priority.title', { label: meta.label })}
                             >
                               <Icon className={`h-4 w-4 ${meta.className}`} />
                             </span>
@@ -951,7 +1059,7 @@ export function DashboardPage() {
                       <p className="mt-1 text-[11px] text-[color:var(--dash-muted)]">
                         {order.asset
                           ? `${order.asset.code} - ${order.asset.name}`
-                          : 'Sem ativo'}
+                          : t('dashboard.asset.none')}
                       </p>
                       <p className="mt-2 text-[11px] text-[color:var(--dash-muted)]">
                         {formatDateTime(order.created_at)}
@@ -964,13 +1072,17 @@ export function DashboardPage() {
                 <div className="relative overflow-hidden rounded-[28px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel)] p-6 shadow-sm">
                   <div className="absolute right-0 top-0 h-1 w-full bg-[linear-gradient(90deg,var(--dash-accent-2),var(--dash-accent))]" />
                   <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-400/20 blur-2xl" />
-                  <h3 className="text-sm font-semibold text-[color:var(--dash-ink)]">Top ativos</h3>
+                  <h3 className="text-sm font-semibold text-[color:var(--dash-ink)]">
+                    {t('dashboard.topAssets.title')}
+                  </h3>
                 <p className="mt-2 text-xs text-[color:var(--dash-muted)]">
-                  Equipamentos com mais ordens recentes.
+                  {t('dashboard.topAssets.subtitle')}
                 </p>
                 <div className="mt-4 space-y-3">
                   {topAssets.length === 0 && (
-                    <p className="text-xs text-[color:var(--dash-muted)]">Sem dados suficientes.</p>
+                    <p className="text-xs text-[color:var(--dash-muted)]">
+                      {t('dashboard.topAssets.empty')}
+                    </p>
                   )}
                   {topAssets.map((asset) => (
                     <div
@@ -992,11 +1104,11 @@ export function DashboardPage() {
               <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div
                   className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2.5 shadow-sm"
-                  title="Efetividade: percentagem de ordens concluídas/fechadas no total."
+                  title={t('dashboard.stats.effectiveness.title')}
                 >
                   <div className="flex items-center justify-between">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                      Efetividade
+                      {t('dashboard.stats.effectiveness.label')}
                     </p>
                     <Check className="h-4 w-4 text-emerald-600" />
                   </div>
@@ -1007,11 +1119,11 @@ export function DashboardPage() {
 
                 <div
                   className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2.5 shadow-sm"
-                  title="Pressão de backlog: participação do backlog no total de ordens."
+                  title={t('dashboard.stats.backlogPressure.title')}
                 >
                   <div className="flex items-center justify-between">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                      Pressao backlog
+                      {t('dashboard.stats.backlogPressure.label')}
                     </p>
                     <AlertTriangle className="h-4 w-4 text-amber-600" />
                   </div>
@@ -1022,11 +1134,11 @@ export function DashboardPage() {
 
                 <div
                   className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2.5 shadow-sm"
-                  title="SLA: percentagem de ordens dentro do prazo."
+                  title={t('dashboard.stats.sla.title')}
                 >
                   <div className="flex items-center justify-between">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                      SLA
+                      {t('dashboard.stats.sla.label')}
                     </p>
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                   </div>
@@ -1037,11 +1149,11 @@ export function DashboardPage() {
 
                 <div
                   className="rounded-[20px] border border-[color:var(--dash-border)] bg-[color:var(--dash-panel-2)] px-4 py-2.5 shadow-sm"
-                  title="Backlog: total de ordens pendentes."
+                  title={t('dashboard.stats.backlog.title')}
                 >
                   <div className="flex items-center justify-between">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--dash-muted)]">
-                      Backlog
+                      {t('dashboard.stats.backlog.label')}
                     </p>
                     <AlertCircle className="h-4 w-4 text-amber-600" />
                   </div>

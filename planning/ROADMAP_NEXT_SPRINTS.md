@@ -49,7 +49,7 @@ Objetivo: consolidar o backlog pendente em sprints claros para orientar o desenv
 - Seeds de exemplo para compliance.
 - Testes: alertas de expiracao e permissao por role.
 
-## Sprint 3 - Notificacoes e integracoes (crescimento)
+## Sprint 3 - Notificacoes e integracoes (crescimento) — COMPLETO ✅
 
 ### BD
 - Tabelas de templates de notificacao por tenant.

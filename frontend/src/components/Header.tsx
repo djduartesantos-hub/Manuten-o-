@@ -14,6 +14,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../context/store';
 import { useSocket } from '../context/SocketContext';
 import { useTheme } from '../context/ThemeContext';
+import { useI18n } from '../context/I18nContext';
 import { getSuperadminDbStatus, getSuperadminTenants, logout as apiLogout } from '../services/api';
 import { useProfileAccess } from '../hooks/useProfileAccess';
 import { canAccessPathByPermissions } from '../utils/routePermissions';
@@ -30,6 +31,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
+  const { locale, setLocale, t } = useI18n();
   const isDark = theme.name === 'dark';
   const role = String(user?.role || '').trim().toLowerCase();
   const isSuperAdmin = role === 'superadmin';
@@ -161,29 +163,42 @@ export function Header({ onToggleSidebar }: HeaderProps) {
             M
           </span>
           <div className="hidden sm:block">
-            <div className="text-sm font-semibold theme-text">Manutencao</div>
+            <div className="text-sm font-semibold theme-text">{t('app.name')}</div>
             <div className="text-[10px] uppercase tracking-[0.32em] theme-text-muted">
-              Ops Studio
+              {t('app.subtitle')}
             </div>
           </div>
         </Link>
 
         <div className="ml-auto flex items-center gap-2">
           {!isSuperAdmin && plants.length > 0 && (
+              <div className="hidden md:flex items-center">
+                <select
+                  className="rounded-2xl border theme-border bg-[color:var(--dash-panel-2)] px-3 py-2 text-sm font-semibold theme-text focus:outline-none focus:ring-2 focus:ring-[color:var(--dash-accent)]/30"
+                  value={selectedPlant || ''}
+                  onChange={(event) => setSelectedPlant(event.target.value)}
+                >
+                  {plants.map((plant) => (
+                    <option key={plant.id} value={plant.id}>
+                      {plant.code} - {plant.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+          )}
             <div className="hidden md:flex items-center">
               <select
                 className="rounded-2xl border theme-border bg-[color:var(--dash-panel-2)] px-3 py-2 text-sm font-semibold theme-text focus:outline-none focus:ring-2 focus:ring-[color:var(--dash-accent)]/30"
-                value={selectedPlant || ''}
-                onChange={(event) => setSelectedPlant(event.target.value)}
+                value={locale}
+                onChange={(event) => setLocale(event.target.value as any)}
+                aria-label={t('header.language')}
+                title={t('header.language')}
               >
-                {plants.map((plant) => (
-                  <option key={plant.id} value={plant.id}>
-                    {plant.code} - {plant.name}
-                  </option>
-                ))}
+                <option value="pt">PT</option>
+                <option value="en">EN</option>
+                <option value="es">ES</option>
               </select>
             </div>
-          )}
 
           {isSuperAdmin && (
             <div className="hidden lg:flex items-center gap-2">
@@ -194,7 +209,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                   <WifiOff className="w-4 h-4 text-rose-600" />
                 )}
                 <div className="text-xs font-semibold text-[color:var(--dash-muted)]">
-                  {isConnected ? 'Online' : 'Offline'}
+                  {isConnected ? t('header.online') : t('header.offline')}
                 </div>
               </div>
 
@@ -249,12 +264,12 @@ export function Header({ onToggleSidebar }: HeaderProps) {
               {isConnected ? (
                 <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1">
                   <Wifi className="w-4 h-4 text-emerald-600" />
-                  <span className="text-xs font-semibold text-emerald-700">Conectado</span>
+                  <span className="text-xs font-semibold text-emerald-700">{t('header.connected')}</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-1">
                   <WifiOff className="w-4 h-4 text-rose-600" />
-                  <span className="text-xs font-semibold text-rose-700">Desconectado</span>
+                  <span className="text-xs font-semibold text-rose-700">{t('header.disconnected')}</span>
                 </div>
               )}
             </div>

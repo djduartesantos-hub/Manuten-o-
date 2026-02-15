@@ -22,6 +22,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../context/store';
 import { useProfileAccess } from '../hooks/useProfileAccess';
 import { canAccessPathByPermissions } from '../utils/routePermissions';
+import { useI18n } from '../context/I18nContext';
 
 interface NavItem {
   label: string;
@@ -46,30 +47,31 @@ function buildNavSections(options: {
   permissions: Set<string>;
   loading: boolean;
   role?: string | null;
+  t: (key: string) => string;
 }): NavSection[] {
-  const { pathname, isSuperAdmin, permissions, loading, role } = options;
+  const { pathname, isSuperAdmin, permissions, loading, role, t } = options;
 
   const roleKey = String(role || '').trim().toLowerCase();
   const roleTitleMap: Record<string, string> = {
-    operador: 'Operador',
-    tecnico: 'Tecnico',
-    supervisor: 'Supervisor',
-    gestor_manutencao: 'Gestor',
-    admin_empresa: 'Admin Empresa',
+    operador: t('dashboard.persona.operator'),
+    tecnico: t('dashboard.persona.technician'),
+    supervisor: t('dashboard.persona.supervisor'),
+    gestor_manutencao: t('dashboard.persona.admin'),
+    admin_empresa: t('dashboard.persona.admin'),
   };
-  const primaryTitle = roleTitleMap[roleKey] || 'Operacoes';
+  const primaryTitle = roleTitleMap[roleKey] || t('nav.operations');
 
   const profileHomeItem: NavItem | null =
     roleKey === 'operador'
       ? {
-          label: 'Minhas ordens',
+          label: t('nav.myOrders'),
           href: '/operador',
           icon: ClipboardList,
           active: pathname === '/operador',
         }
       : roleKey === 'tecnico'
         ? {
-            label: 'Minhas ordens',
+            label: t('nav.myOrders'),
             href: '/tecnico',
             icon: ClipboardList,
             active: pathname === '/tecnico',
@@ -79,46 +81,46 @@ function buildNavSections(options: {
   const sections: NavSection[] = isSuperAdmin
     ? [
         {
-          title: 'SuperAdmin',
+          title: t('nav.superadmin'),
           items: [
             {
-              label: 'Dashboard',
+              label: t('nav.superadmin.dashboard'),
               href: '/superadmin/dashboard',
               icon: Shield,
               active: pathname.startsWith('/superadmin/dashboard'),
             },
             {
-              label: 'Empresas',
+              label: t('nav.superadmin.companies'),
               href: '/superadmin/empresas',
               icon: Building2,
               active: pathname.startsWith('/superadmin/empresas'),
             },
             {
-              label: 'Fabricas',
+              label: t('nav.superadmin.plants'),
               href: '/superadmin/fabricas',
               icon: Building2,
               active: pathname.startsWith('/superadmin/fabricas'),
             },
             {
-              label: 'Utilizadores',
+              label: t('nav.superadmin.users'),
               href: '/superadmin/utilizadores',
               icon: Users,
               active: pathname.startsWith('/superadmin/utilizadores'),
             },
             {
-              label: 'Atualizacoes',
+              label: t('nav.superadmin.updates'),
               href: '/superadmin/atualizacoes',
               icon: ClipboardCheck,
               active: pathname.startsWith('/superadmin/atualizacoes'),
             },
             {
-              label: 'Suporte',
+              label: t('nav.superadmin.support'),
               href: '/superadmin/suporte',
               icon: LifeBuoy,
               active: pathname.startsWith('/superadmin/suporte'),
             },
             {
-              label: 'Configuracoes',
+              label: t('nav.settings'),
               href: '/settings?panel=superadmin',
               icon: Settings,
               active: pathname.startsWith('/settings'),
@@ -126,16 +128,16 @@ function buildNavSections(options: {
           ],
         },
         {
-          title: 'Conta',
+          title: t('nav.account'),
           items: [
             {
-              label: 'Notificacoes',
+              label: t('nav.notifications'),
               href: '/notifications',
               icon: Bell,
               active: pathname === '/notifications',
             },
             {
-              label: 'Perfil',
+              label: t('nav.profile'),
               href: '/profile',
               icon: User,
               active: pathname === '/profile',
@@ -149,31 +151,31 @@ function buildNavSections(options: {
           items: [
             ...(profileHomeItem ? [profileHomeItem] : []),
             {
-              label: 'Dashboard',
+              label: t('nav.dashboard'),
               href: '/dashboard',
               icon: LayoutDashboard,
               active: pathname === '/dashboard',
             },
             {
-              label: 'Pesquisa',
+              label: t('nav.search'),
               href: '/search',
               icon: Search,
               active: pathname === '/search',
             },
             {
-              label: 'Ordens',
+              label: t('nav.workOrders'),
               href: '/work-orders',
               icon: ClipboardList,
               active: pathname === '/work-orders',
             },
             {
-              label: 'Tickets',
+              label: t('nav.tickets'),
               href: '/tickets',
               icon: LifeBuoy,
               active: pathname === '/tickets',
             },
             {
-              label: 'Planeamento',
+              label: t('nav.planner'),
               href: '/planner',
               icon: CalendarClock,
               active: pathname === '/planner',
@@ -181,40 +183,40 @@ function buildNavSections(options: {
           ],
         },
         {
-          title: 'Inventario',
+          title: t('nav.inventory'),
           items: [
             {
-              label: 'Equipamentos',
+              label: t('nav.assets'),
               href: '/assets',
               icon: Wrench,
               active: pathname === '/assets',
             },
             {
-              label: 'Compliance',
+              label: t('nav.compliance'),
               href: '/compliance',
               icon: ClipboardCheck,
               active: pathname === '/compliance',
             },
             {
-              label: 'Pecas',
+              label: t('nav.spareParts'),
               href: '/spare-parts',
               icon: Package,
               active: pathname === '/spare-parts',
             },
             {
-              label: 'Kits',
+              label: t('nav.kits'),
               href: '/maintenance-kits',
               icon: ClipboardCheck,
               active: pathname === '/maintenance-kits',
             },
             {
-              label: 'Fornecedores',
+              label: t('nav.suppliers'),
               href: '/suppliers',
               icon: Users,
               active: pathname === '/suppliers',
             },
             {
-              label: 'Compras',
+              label: t('nav.purchases'),
               href: '/purchases',
               icon: Truck,
               active: pathname === '/purchases',
@@ -222,10 +224,10 @@ function buildNavSections(options: {
           ],
         },
         {
-          title: 'Insights',
+          title: t('nav.insights'),
           items: [
             {
-              label: 'Relatorios',
+              label: t('nav.reports'),
               href: '/reports',
               icon: FileText,
               active: pathname === '/reports',
@@ -233,16 +235,16 @@ function buildNavSections(options: {
           ],
         },
         {
-          title: 'Administracao',
+          title: t('nav.admin'),
           items: [
             {
-              label: 'Configuracoes',
+              label: t('nav.settings'),
               href: '/settings',
               icon: Settings,
               active: pathname.startsWith('/settings'),
             },
             {
-              label: 'Fabricas',
+              label: t('nav.plants'),
               href: '/plants',
               icon: Building2,
               active: pathname === '/plants',
@@ -250,16 +252,16 @@ function buildNavSections(options: {
           ],
         },
         {
-          title: 'Conta',
+          title: t('nav.account'),
           items: [
             {
-              label: 'Notificacoes',
+              label: t('nav.notifications'),
               href: '/notifications',
               icon: Bell,
               active: pathname === '/notifications',
             },
             {
-              label: 'Perfil',
+              label: t('nav.profile'),
               href: '/profile',
               icon: User,
               active: pathname === '/profile',
@@ -287,6 +289,7 @@ export function SidebarNav({ open, onClose }: SidebarNavProps) {
   const { user } = useAuth();
   const { selectedPlant, plants, setSelectedPlant } = useAppStore();
   const { permissions, loading: permissionsLoading, isSuperAdmin } = useProfileAccess();
+  const { t } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -298,8 +301,9 @@ export function SidebarNav({ open, onClose }: SidebarNavProps) {
         permissions,
         loading: permissionsLoading,
         role: user?.role,
+        t,
       }),
-    [isSuperAdmin, permissions, permissionsLoading, location.pathname, user?.role],
+    [isSuperAdmin, permissions, permissionsLoading, location.pathname, user?.role, t],
   );
 
   return (
@@ -331,9 +335,9 @@ export function SidebarNav({ open, onClose }: SidebarNavProps) {
                 M
               </span>
               <div className="text-left transition lg:opacity-0 lg:translate-x-2 lg:group-hover:opacity-100 lg:group-hover:translate-x-0">
-                <div className="text-base font-semibold theme-text">Manutencao</div>
+                <div className="text-base font-semibold theme-text">{t('app.name')}</div>
                 <div className="text-[11px] uppercase tracking-[0.3em] theme-text-muted">
-                  Ops Studio
+                  {t('app.subtitle')}
                 </div>
               </div>
             </button>
@@ -341,7 +345,7 @@ export function SidebarNav({ open, onClose }: SidebarNavProps) {
             {!isSuperAdmin && plants.length > 0 && (
               <div className="mt-6 transition lg:opacity-0 lg:pointer-events-none lg:group-hover:opacity-100 lg:group-hover:pointer-events-auto">
                 <label className="text-[10px] font-semibold uppercase tracking-[0.28em] theme-text-muted">
-                  Fabrica ativa
+                  {t('nav.activePlant')}
                 </label>
                 <select
                   className="mt-2 w-full rounded-2xl border theme-border bg-[color:var(--dash-panel-2)] px-3 py-2 text-sm font-semibold theme-text focus:outline-none focus:ring-2 focus:ring-[color:var(--dash-accent)]/30"
@@ -355,7 +359,7 @@ export function SidebarNav({ open, onClose }: SidebarNavProps) {
                   ))}
                 </select>
                 {!selectedPlant ? (
-                  <p className="mt-2 text-xs theme-text-muted">Selecione uma fabrica para carregar dados.</p>
+                  <p className="mt-2 text-xs theme-text-muted">{t('nav.selectPlant')}</p>
                 ) : null}
               </div>
             )}
