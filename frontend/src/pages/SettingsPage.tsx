@@ -4430,6 +4430,8 @@ function PreventiveMaintenanceSettings({
   const [assets, setAssets] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [showForm, setShowForm] = React.useState(false);
+  const [wizardOpen, setWizardOpen] = React.useState(false);
+  const [wizardStep, setWizardStep] = React.useState(0);
   const [editingPlan, setEditingPlan] = React.useState<any>(null);
   const [selectedTemplateId, setSelectedTemplateId] = React.useState('');
   const [scheduleLoading, setScheduleLoading] = React.useState(false);
@@ -4585,6 +4587,10 @@ function PreventiveMaintenanceSettings({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    await savePlan();
+  };
+
+  const savePlan = async () => {
     try {
       if (!selectedPlant) return;
 
@@ -4613,6 +4619,8 @@ function PreventiveMaintenanceSettings({
       });
 
       setShowForm(false);
+      setWizardOpen(false);
+      setWizardStep(0);
       setEditingPlan(null);
       setFormData({
         asset_id: '',
@@ -4906,13 +4914,318 @@ function PreventiveMaintenanceSettings({
           onClick={() => {
             setShowForm(!showForm);
             setEditingPlan(null);
+            setWizardOpen(false);
+            setWizardStep(0);
           }}
           className="inline-flex items-center gap-2 rounded-full bg-[color:var(--settings-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
         >
           <Plus className="h-4 w-4" />
           Novo plano
         </button>
+        <button
+          onClick={() => {
+            setWizardOpen(true);
+            setShowForm(false);
+            setEditingPlan(null);
+            setWizardStep(0);
+          }}
+          className="inline-flex items-center gap-2 rounded-full border theme-border bg-[color:var(--dash-panel)] px-4 py-2 text-sm font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
+        >
+          Assistente
+        </button>
       </div>
+
+      {/* Wizard */}
+      {wizardOpen && (
+        <div className="mb-6 overflow-hidden rounded-[24px] border theme-border theme-card shadow-sm">
+          <div className="h-1 w-full bg-[linear-gradient(90deg,var(--settings-accent),var(--settings-accent-2))]" />
+          <div className="p-5 space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">Assistente</p>
+                <h3 className="mt-1 text-lg font-semibold theme-text">Criar plano em 3 passos</h3>
+              </div>
+              <span className="rounded-full border theme-border bg-[color:var(--dash-surface)] px-3 py-1 text-xs font-semibold theme-text-muted">
+                Passo {wizardStep + 1} de 3
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {['Base', 'Cadencia', 'Tarefas'].map((label, idx) => (
+                <div
+                  key={label}
+                  className={
+                    idx === wizardStep
+                      ? 'rounded-full bg-[color:var(--settings-accent)] px-3 py-1 text-xs font-semibold text-white'
+                      : 'rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text-muted'
+                  }
+                >
+                  {label}
+                </div>
+              ))}
+            </div>
+
+            {wizardStep === 0 && (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium theme-text mb-1">Template (opcional)</label>
+                  <select
+                    value={selectedTemplateId}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setSelectedTemplateId(next);
+                      const tpl = planTemplates.find((t) => t.id === next);
+                      if (!tpl) return;
+                      setFormData((prev) => ({
+                        ...prev,
+                        name: tpl.data.name,
+                        description: tpl.data.description,
+                        frequency_value: tpl.data.frequency_value,
+                        frequency_unit: tpl.data.frequency_unit,
+                        auto_schedule: tpl.data.auto_schedule,
+                        schedule_basis: tpl.data.schedule_basis as any,
+                        schedule_anchor_mode: (tpl.data as any).schedule_anchor_mode || 'interval',
+                        tolerance_unit: tpl.data.tolerance_unit as any,
+                        tolerance_before_value: tpl.data.tolerance_before_value,
+                        tolerance_after_value: tpl.data.tolerance_after_value,
+                        tolerance_mode: (tpl.data as any).tolerance_mode || 'soft',
+                        tasks: [...tpl.data.tasks],
+                      }));
+                    }}
+                    className="input"
+                  >
+                    <option value="">Selecionar…</option>
+                    {planTemplates.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium theme-text mb-1">Equipamento</label>
+                  <select
+                    value={formData.asset_id}
+                    onChange={(e) => setFormData({ ...formData, asset_id: e.target.value })}
+                    className="input"
+                  >
+                    <option value="">Selecionar...</option>
+                    {assets.map((asset) => (
+                      <option key={asset.id} value={asset.id}>
+                        {asset.name} ({asset.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium theme-text mb-1">Nome do plano</label>
+                  <input
+                    className="input"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium theme-text mb-1">Descricao</label>
+                  <textarea
+                    className="input min-h-[90px]"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
+
+            {wizardStep === 1 && (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium theme-text mb-1">Frequencia</label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="input"
+                    value={formData.frequency_value}
+                    onChange={(e) => setFormData({ ...formData, frequency_value: Number(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium theme-text mb-1">Unidade</label>
+                  <select
+                    className="input"
+                    value={formData.frequency_unit}
+                    onChange={(e) => setFormData({ ...formData, frequency_unit: e.target.value })}
+                  >
+                    <option value="days">Dias</option>
+                    <option value="hours">Horas</option>
+                    <option value="months">Meses</option>
+                    <option value="meter">Ciclos</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium theme-text mb-1">Base</label>
+                  <select
+                    className="input"
+                    value={formData.schedule_basis}
+                    onChange={(e) => setFormData({ ...formData, schedule_basis: e.target.value as any })}
+                  >
+                    <option value="completion">Conclusao</option>
+                    <option value="scheduled">Cadencia</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium theme-text mb-1">Ancora</label>
+                  <select
+                    className="input"
+                    value={formData.schedule_anchor_mode}
+                    onChange={(e) => setFormData({ ...formData, schedule_anchor_mode: e.target.value as any })}
+                  >
+                    <option value="interval">Intervalo</option>
+                    <option value="fixed">Fixo</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium theme-text mb-1">Tolerancia</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      className="input h-10 w-24"
+                      value={formData.tolerance_before_value}
+                      onChange={(e) => setFormData({ ...formData, tolerance_before_value: Number(e.target.value || 0) })}
+                    />
+                    <span className="text-sm theme-text-muted">/</span>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input h-10 w-24"
+                      value={formData.tolerance_after_value}
+                      onChange={(e) => setFormData({ ...formData, tolerance_after_value: Number(e.target.value || 0) })}
+                    />
+                    <select
+                      className="input h-10"
+                      value={formData.tolerance_unit}
+                      onChange={(e) => setFormData({ ...formData, tolerance_unit: e.target.value as any })}
+                    >
+                      <option value="days">dias</option>
+                      <option value="hours">horas</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium theme-text mb-1">Modo</label>
+                  <select
+                    className="input"
+                    value={formData.tolerance_mode}
+                    onChange={(e) => setFormData({ ...formData, tolerance_mode: e.target.value as any })}
+                  >
+                    <option value="soft">Soft</option>
+                    <option value="hard">Hard</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2 flex items-center justify-between rounded-2xl border theme-border bg-[color:var(--dash-surface)] px-4 py-3">
+                  <div>
+                    <div className="text-sm font-semibold theme-text">Auto agendamento</div>
+                    <div className="text-xs theme-text-muted">Criar proximo ciclo ao concluir.</div>
+                  </div>
+                  <label className="inline-flex items-center gap-2 text-sm font-semibold theme-text">
+                    <input
+                      type="checkbox"
+                      checked={!!formData.auto_schedule}
+                      onChange={(e) => setFormData({ ...formData, auto_schedule: e.target.checked })}
+                      className="h-4 w-4 rounded border theme-border accent-[color:var(--settings-accent)]"
+                    />
+                    Ativo
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {wizardStep === 2 && (
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium theme-text">Tarefas</label>
+                  <button
+                    type="button"
+                    onClick={addTask}
+                    className="rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text transition hover:bg-[color:var(--dash-surface)]"
+                  >
+                    + Adicionar tarefa
+                  </button>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {formData.tasks.map((task, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <input
+                        className="input"
+                        value={task}
+                        onChange={(e) => updateTask(idx, e.target.value)}
+                        placeholder="Descrever tarefa..."
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeTask(idx)}
+                        className="rounded-full border theme-border bg-[color:var(--dash-panel)] px-3 py-2 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  {formData.tasks.length === 0 && (
+                    <div className="text-sm theme-text-muted">Sem tarefas adicionadas.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="btn-secondary h-9 px-4"
+                  onClick={() => {
+                    if (wizardStep === 0) {
+                      setWizardOpen(false);
+                      return;
+                    }
+                    setWizardStep((s) => Math.max(0, s - 1));
+                  }}
+                >
+                  {wizardStep === 0 ? 'Fechar' : 'Anterior'}
+                </button>
+                {wizardStep < 2 ? (
+                  <button
+                    type="button"
+                    className="btn-primary h-9 px-4"
+                    onClick={() => setWizardStep((s) => Math.min(2, s + 1))}
+                    disabled={!formData.asset_id || !formData.name}
+                  >
+                    Seguinte
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-primary h-9 px-4"
+                    onClick={() => void savePlan()}
+                    disabled={!formData.asset_id || !formData.name}
+                  >
+                    Guardar plano
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                className="text-xs font-semibold theme-text-muted"
+                onClick={() => {
+                  setWizardOpen(false);
+                  setWizardStep(0);
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Form */}
       {showForm && (
@@ -6026,9 +6339,17 @@ function DocumentsLibrarySettings() {
   const [expandedDoc, setExpandedDoc] = React.useState<string | null>(null);
   const [versionsByDocId, setVersionsByDocId] = React.useState<Record<string, any[]>>({});
   const [versionsLoadingId, setVersionsLoadingId] = React.useState<string | null>(null);
+  const [expiringDocs, setExpiringDocs] = React.useState<any[]>([]);
+  const [expiringLoading, setExpiringLoading] = React.useState(false);
+  const [editDocId, setEditDocId] = React.useState<string | null>(null);
+  const [editTags, setEditTags] = React.useState('');
+  const [editExpiresAt, setEditExpiresAt] = React.useState('');
+  const [editDescription, setEditDescription] = React.useState('');
+  const [savingMeta, setSavingMeta] = React.useState(false);
 
   React.useEffect(() => {
     fetchAssets();
+    fetchExpiring();
   }, [selectedPlant]);
 
   React.useEffect(() => {
@@ -6059,6 +6380,20 @@ function DocumentsLibrarySettings() {
       console.error('Failed to fetch documents:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchExpiring = async (days: number = 30) => {
+    setExpiringLoading(true);
+    try {
+      const data = await apiCall(`/alerts/documents/expiring?days=${days}`);
+      const rows = Array.isArray(data) ? data : (data?.data || []);
+      setExpiringDocs(rows);
+    } catch (error) {
+      console.error('Failed to fetch expiring documents:', error);
+      setExpiringDocs([]);
+    } finally {
+      setExpiringLoading(false);
     }
   };
 
@@ -6145,8 +6480,56 @@ function DocumentsLibrarySettings() {
       if (selectedAsset) {
         fetchDocuments(selectedAsset);
       }
+      fetchExpiring();
     } catch (error) {
       console.error('Failed to delete document:', error);
+    }
+  };
+
+  const parseTags = (value: string) =>
+    String(value || '')
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .slice(0, 12);
+
+  const toDateInputValue = (value?: string) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  };
+
+  const openEditMeta = (doc: any) => {
+    setEditDocId(doc.id);
+    setEditTags(Array.isArray(doc.tags) ? doc.tags.join(', ') : '');
+    setEditExpiresAt(toDateInputValue(doc.expires_at));
+    setEditDescription(String(doc.description || ''));
+  };
+
+  const saveMeta = async () => {
+    if (!editDocId) return;
+    setSavingMeta(true);
+    try {
+      const payload: any = {
+        tags: parseTags(editTags),
+        description: editDescription.trim() || undefined,
+        expires_at: editExpiresAt ? new Date(editExpiresAt).toISOString() : null,
+      };
+      await apiCall(`/alerts/documents/${editDocId}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+      if (selectedAsset) {
+        await fetchDocuments(selectedAsset);
+      }
+      await fetchExpiring();
+      setEditDocId(null);
+    } catch (error) {
+      console.error('Failed to update document metadata:', error);
+    } finally {
+      setSavingMeta(false);
     }
   };
 
@@ -6218,6 +6601,56 @@ function DocumentsLibrarySettings() {
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="mb-6 rounded-[24px] border theme-border theme-card p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] theme-text-muted">
+              Documentos a expirar
+            </p>
+            <p className="mt-1 text-sm theme-text-muted">
+              Lista de certificados e garantias com validade a terminar.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary h-9 px-3"
+            onClick={() => void fetchExpiring()}
+            disabled={expiringLoading}
+          >
+            {expiringLoading ? 'A carregar…' : 'Atualizar'}
+          </button>
+        </div>
+        <div className="mt-4 space-y-2">
+          {expiringLoading ? (
+            <div className="text-sm theme-text-muted">A carregar documentos...</div>
+          ) : expiringDocs.length === 0 ? (
+            <div className="text-sm theme-text-muted">Sem documentos a expirar.</div>
+          ) : (
+            expiringDocs.slice(0, 6).map((doc) => (
+              <div
+                key={doc.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border theme-border bg-[color:var(--dash-surface)] px-3 py-2"
+              >
+                <div>
+                  <div className="text-sm font-semibold theme-text">{doc.title}</div>
+                  <div className="text-xs theme-text-muted">
+                    {doc.asset?.name || 'Equipamento'} • expira {doc.expires_at ? new Date(doc.expires_at).toLocaleDateString('pt-PT') : '—'}
+                  </div>
+                </div>
+                <a
+                  href={doc.file_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text transition hover:bg-[color:var(--dash-panel)]"
+                >
+                  Abrir
+                </a>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {/* Upload Area */}
@@ -6382,6 +6815,80 @@ function DocumentsLibrarySettings() {
                       <div>
                         <span className="font-medium theme-text">Tags:</span>
                         <p className="theme-text-muted">{doc.tags.join(', ')}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-2xl border theme-border bg-[color:var(--dash-panel)] p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-sm font-semibold theme-text">Metadados</div>
+                      {editDocId === doc.id ? null : (
+                        <button
+                          type="button"
+                          className="rounded-full border theme-border px-3 py-1 text-xs font-semibold theme-text transition hover:bg-[color:var(--dash-surface)]"
+                          onClick={() => openEditMeta(doc)}
+                        >
+                          Editar
+                        </button>
+                      )}
+                    </div>
+
+                    {editDocId === doc.id ? (
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <label className="text-xs font-semibold uppercase tracking-wide theme-text-muted">
+                            Tags (virgula)
+                          </label>
+                          <input
+                            className="input mt-1"
+                            value={editTags}
+                            onChange={(e) => setEditTags(e.target.value)}
+                            placeholder="ex: garantia, critico"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold uppercase tracking-wide theme-text-muted">
+                            Expira em
+                          </label>
+                          <input
+                            type="date"
+                            className="input mt-1"
+                            value={editExpiresAt}
+                            onChange={(e) => setEditExpiresAt(e.target.value)}
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="text-xs font-semibold uppercase tracking-wide theme-text-muted">
+                            Descricao
+                          </label>
+                          <textarea
+                            className="input mt-1 min-h-[90px]"
+                            value={editDescription}
+                            onChange={(e) => setEditDescription(e.target.value)}
+                          />
+                        </div>
+                        <div className="sm:col-span-2 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            className="btn-primary h-9 px-4"
+                            onClick={() => void saveMeta()}
+                            disabled={savingMeta}
+                          >
+                            {savingMeta ? 'A guardar...' : 'Guardar'}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary h-9 px-4"
+                            onClick={() => setEditDocId(null)}
+                            disabled={savingMeta}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-2 text-xs theme-text-muted">
+                        Atualize tags, descricao e data de expiracao para alertas automaticos.
                       </div>
                     )}
                   </div>

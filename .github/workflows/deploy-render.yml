@@ -18,16 +18,18 @@ jobs:
 
     # Only deploy when CI succeeded on main.
     if: >-
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'main')
-      ||
-      (github.event_name == 'workflow_dispatch')
+      github.repository == 'djduartesantos-hub/Manuten-o-' &&
+      ((github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main')
+       ||
+       (github.event_name == 'workflow_dispatch'))
 
     steps:
       - name: Trigger Render deploy hook
         env:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          RENDER_HEALTHCHECK_URL: ${{ secrets.RENDER_HEALTHCHECK_URL }}
         run: |
           if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
             echo "Missing secret: RENDER_DEPLOY_HOOK_URL"
@@ -38,3 +40,22 @@ jobs:
           echo "Triggering Render deploy..."
           curl -fsSL -X POST "$RENDER_DEPLOY_HOOK_URL"
           echo "Deploy hook triggered."
+
+          if [ -z "$RENDER_HEALTHCHECK_URL" ]; then
+            echo "RENDER_HEALTHCHECK_URL not set. Skipping post-deploy healthcheck."
+            exit 0
+          fi
+
+          echo "Waiting for service to become healthy..."
+          sleep 30
+          for i in 1 2 3 4 5; do
+            if curl -fsSL "$RENDER_HEALTHCHECK_URL" > /dev/null; then
+              echo "Healthcheck OK."
+              exit 0
+            fi
+            echo "Healthcheck attempt $i failed. Retrying..."
+            sleep 10
+          done
+
+          echo "Healthcheck failed after retries."
+          exit 1
