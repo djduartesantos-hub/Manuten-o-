@@ -10,6 +10,21 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 
 ## 1) TL;DR (o que mudou na prática)
 
+### Atualização adicional — 2026-02-15 (UX + Menus + Perfis)
+
+#### Navegação e Layout
+- Sidebar com comportamento **encolhe/expande ao hover** (mais area de conteudo).
+- Ajuste do layout principal para o estado colapsado (padding lateral menor).
+- Menu reorganizado por perfil (admin/gestor/tecnico/operador) com atalhos de conta.
+
+#### Novas funcoes e acessos
+- Home dedicada para **Operador** e **Tecnico** (rotas `/operador` e `/tecnico`).
+- Permissoes atualizadas para permitir acesso por perfil a essas rotas.
+
+#### UI/Estilo
+- Restyle das paginas principais (glass panels, inputs/botoes unificados, cards consistentes).
+- Correcao de JSX no `TicketsPage` que causava falha no build.
+
 ### Atualização adicional — 2026-02-12 (SuperAdministrador — painel global)
 
 #### Settings / SuperAdministrador

@@ -40,7 +40,7 @@ Documentação técnica sobre arquitetura, roadmap e status de desenvolvimento.
 ## 📊 Status Rápido
 
 **Versão Atual:** v1.3.0-beta.2  
-**Status (docs):** atualizado a 14 Fevereiro 2026  
+**Status (docs):** atualizado a 15 Fevereiro 2026  
 **Timeline:** Fevereiro-Setembro 2026
 
 Para contexto recente e decisões operacionais:

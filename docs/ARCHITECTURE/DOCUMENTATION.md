@@ -256,7 +256,7 @@ Veja [CONTRIBUTING.md](./CONTRIBUTING.md) (a criar) para detalhes.
 
 ---
 
-**Última atualização:** Janeiro 2026  
+**Última atualização:** Fevereiro 2026  
 **Mantido por:** Equipa Manuten-o  
 **Próxima revisão:** Trimestral
 

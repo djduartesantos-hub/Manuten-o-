@@ -1,6 +1,6 @@
 # 📊 Development Status Dashboard
 
-**Last Updated:** 14 February 2026  
+**Last Updated:** 15 February 2026  
 **Project:** Manuten-o CMMS v1.3.0-beta.2  
 **Status:** Dashboard (parcial) + track “fábrica + gestão” em curso
 
@@ -83,6 +83,10 @@ Overall Project:          ██████████████████
 - [x] SuperAdmin: auditoria para todos os exports/downloads (incl. diagnostics bundle)
 - [x] Ops: `x-request-id` end-to-end + hardening de erros 5xx (sem leak de mensagens internas)
 - [x] Stocktakes: criação de inventário por fábrica otimizada (bulk compute + bulk insert)
+- [x] Navegação: sidebar com hover (encolhe/expande) + ajuste de padding no layout
+- [x] Menus: reorganização por perfil (admin/gestor/tecnico/operador) + atalhos de conta
+- [x] Novas entradas: páginas home de Operador e Técnico + permissões de rotas
+- [x] UI: restyle das páginas principais (glass panels, inputs/botoes unificados)
 
 ### Phase 3B: Real-time Infrastructure (COMPLETE ✅)
 - [x] WebSocket/Socket.io with tenant rooms & JWT auth
