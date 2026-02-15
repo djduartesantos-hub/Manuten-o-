@@ -140,89 +140,89 @@ export function SettingsPage() {
     'suppliers:write',
   ]);
 
-  const tabs: { id: SettingTab; label: string; icon: React.ReactNode; description: string; group: SettingGroup }[] =
-    [
-      {
-        id: 'alerts' as const,
-        label: 'Alertas & Notificações',
-        icon: <Bell className="w-5 h-5" />,
-        description: 'Thresholds e escalonamentos de alertas',
-        group: 'alerts',
-      },
-      {
-        id: 'notifications' as const,
-        label: 'Notificações do sistema',
-        icon: <Server className="w-5 h-5" />,
-        description: 'Regras para eventos e destinatários',
-        group: 'alerts',
-      },
-      {
-        id: 'warnings' as const,
-        label: 'Alertas Preditivos',
-        icon: <AlertTriangle className="w-5 h-5" />,
-        description: 'Análise histórica e avisos de risco',
-        group: 'intelligence',
-      },
-      {
-        id: 'preventive' as const,
-        label: 'Manutenção Preventiva',
-        icon: <Cog className="w-5 h-5" />,
-        description: 'Planos e agendamentos preventivos',
-        group: 'operations',
-      },
-      {
-        id: 'kits' as const,
-        label: 'Kits de Manutenção',
-        icon: <Boxes className="w-5 h-5" />,
-        description: 'Kits de peças e quantidades por plano',
-        group: 'operations',
-      },
-      {
-        id: 'documents' as const,
-        label: 'Biblioteca de Documentos',
-        icon: <FileText className="w-5 h-5" />,
-        description: 'Manuais, esquemas e certificados',
-        group: 'content',
-      },
-      ...(canSeePermissionsTab || canSeeManagementTab
-        ? [
-            ...(canSeePermissionsTab
-              ? [
-                  {
-                    id: 'permissions' as const,
-                    label: 'Permissões & Roles',
-                    icon: <Shield className="w-5 h-5" />,
-                    description: 'Matriz de acesso e roles por perfil',
-                    group: 'governance',
-                  },
-                ]
-              : []),
-            ...(canSeeManagementTab
-              ? [
-                  {
-                    id: 'management' as const,
-                    label: 'Gestão administrativa',
-                    icon: <Users className="w-5 h-5" />,
-                    description: 'Plantas, utilizadores, inventario e operacoes',
-                    group: 'governance',
-                  },
-                ]
-              : []),
-          ]
-        : []),
-      ...(isSuperAdmin
-        ? [
-            {
-              id: 'superadmin' as const,
-              label: 'SuperAdministrador',
-              icon: <Shield className="w-5 h-5" />,
-              description: 'Gestao global, auditoria e diagnosticos',
-              group: 'platform',
-            },
-          ]
-        : []),
-    ]
-      .filter((tab) => {
+  const allTabs: { id: SettingTab; label: string; icon: React.ReactNode; description: string; group: SettingGroup }[] = [
+    {
+      id: 'alerts' as const,
+      label: 'Alertas & Notificações',
+      icon: <Bell className="w-5 h-5" />,
+      description: 'Thresholds e escalonamentos de alertas',
+      group: 'alerts',
+    },
+    {
+      id: 'notifications' as const,
+      label: 'Notificações do sistema',
+      icon: <Server className="w-5 h-5" />,
+      description: 'Regras para eventos e destinatários',
+      group: 'alerts',
+    },
+    {
+      id: 'warnings' as const,
+      label: 'Alertas Preditivos',
+      icon: <AlertTriangle className="w-5 h-5" />,
+      description: 'Análise histórica e avisos de risco',
+      group: 'intelligence',
+    },
+    {
+      id: 'preventive' as const,
+      label: 'Manutenção Preventiva',
+      icon: <Cog className="w-5 h-5" />,
+      description: 'Planos e agendamentos preventivos',
+      group: 'operations',
+    },
+    {
+      id: 'kits' as const,
+      label: 'Kits de Manutenção',
+      icon: <Boxes className="w-5 h-5" />,
+      description: 'Kits de peças e quantidades por plano',
+      group: 'operations',
+    },
+    {
+      id: 'documents' as const,
+      label: 'Biblioteca de Documentos',
+      icon: <FileText className="w-5 h-5" />,
+      description: 'Manuais, esquemas e certificados',
+      group: 'content',
+    },
+    ...(canSeePermissionsTab || canSeeManagementTab
+      ? [
+          ...(canSeePermissionsTab
+            ? [
+                {
+                  id: 'permissions' as const,
+                  label: 'Permissões & Roles',
+                  icon: <Shield className="w-5 h-5" />,
+                  description: 'Matriz de acesso e roles por perfil',
+                  group: 'governance',
+                },
+              ]
+            : []),
+          ...(canSeeManagementTab
+            ? [
+                {
+                  id: 'management' as const,
+                  label: 'Gestão administrativa',
+                  icon: <Users className="w-5 h-5" />,
+                  description: 'Plantas, utilizadores, inventario e operacoes',
+                  group: 'governance',
+                },
+              ]
+            : []),
+        ]
+      : []),
+    ...(isSuperAdmin
+      ? [
+          {
+            id: 'superadmin' as const,
+            label: 'SuperAdministrador',
+            icon: <Shield className="w-5 h-5" />,
+            description: 'Gestao global, auditoria e diagnosticos',
+            group: 'platform',
+          },
+        ]
+      : []),
+  ];
+
+  const tabs = allTabs.filter((tab) => {
         if (isSuperAdmin) return true;
 
         if (tab.id === 'superadmin') return false;
