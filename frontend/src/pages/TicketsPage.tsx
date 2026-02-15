@@ -481,7 +481,7 @@ export function TicketsPage() {
         </section>
 
         <div className="grid gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-1 space-y-4">
+          <div className="lg:col-span-1 space-y-4">
           <div className="rounded-2xl border theme-border glass-panel p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
@@ -575,7 +575,7 @@ export function TicketsPage() {
                 <div>
                   <label className="text-xs font-semibold theme-text-muted">Título</label>
                   <input
-                    className="mt-1 w-full h-10 rounded-xl border theme-border theme-card px-3 text-sm theme-text"
+                    className="input mt-1 h-10 rounded-xl px-3 text-sm"
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     placeholder="Ex: Erro ao abrir ordem"
@@ -585,7 +585,7 @@ export function TicketsPage() {
                 <div>
                   <label className="text-xs font-semibold theme-text-muted">Descrição</label>
                   <textarea
-                    className="mt-1 w-full min-h-[120px] rounded-xl border theme-border theme-card px-3 py-2 text-sm theme-text"
+                    className="input mt-1 min-h-[120px] rounded-xl px-3 py-2 text-sm"
                     value={newDescription}
                     onChange={(e) => setNewDescription(e.target.value)}
                     placeholder="Descreva o problema com detalhe…"
@@ -610,7 +610,7 @@ export function TicketsPage() {
                   <div>
                     <label className="text-xs font-semibold theme-text-muted">Prioridade</label>
                     <select
-                      className="mt-1 w-full h-10 rounded-xl border theme-border theme-card px-3 text-sm theme-text"
+                      className="input mt-1 h-10 rounded-xl px-3 text-sm"
                       value={newPriority}
                       onChange={(e) => setNewPriority(e.target.value as TicketPriority)}
                       disabled={creating}
@@ -624,7 +624,7 @@ export function TicketsPage() {
                   <div>
                     <label className="text-xs font-semibold theme-text-muted">Tags (separadas por vírgula)</label>
                     <input
-                      className="mt-1 w-full h-10 rounded-xl border theme-border theme-card px-3 text-sm theme-text"
+                      className="input mt-1 h-10 rounded-xl px-3 text-sm"
                       value={newTagsText}
                       onChange={(e) => setNewTagsText(e.target.value)}
                       placeholder="ex: login, app, urgente"
@@ -641,8 +641,8 @@ export function TicketsPage() {
           ) : null}
         </div>
 
-        <div className="lg:col-span-2">
-          <div className="rounded-2xl border theme-border glass-panel p-5">
+          <div className="lg:col-span-2">
+            <div className="rounded-2xl border theme-border glass-panel p-5">
             {!selectedId ? (
               <div className="text-sm theme-text-muted">Selecione um ticket para ver detalhe.</div>
             ) : detailLoading ? (
@@ -688,7 +688,7 @@ export function TicketsPage() {
 
                   <div className="flex items-center gap-2">
                     <select
-                      className="h-9 rounded-xl border theme-border theme-card px-3 text-sm theme-text"
+                      className="input h-9 rounded-xl px-3 text-sm"
                       value={selectedTicket.status}
                       onChange={(e) => handleUpdateStatus(e.target.value as TicketStatus)}
                     >
@@ -712,19 +712,19 @@ export function TicketsPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-2xl border theme-border theme-card p-4">
+                <div className="mt-4 rounded-2xl border theme-border glass-panel p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] theme-text-muted">Descrição</p>
                   <p className="mt-2 text-sm theme-text whitespace-pre-wrap">{selectedTicket.description}</p>
                 </div>
 
                 {viewMode === 'empresa' ? (
-                  <div className="mt-4 rounded-2xl border theme-border theme-card p-4">
+                  <div className="mt-4 rounded-2xl border theme-border glass-panel p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] theme-text-muted">Gestão (Empresa)</p>
                     <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-semibold theme-text-muted">Prioridade</label>
                         <select
-                          className="mt-1 w-full h-10 rounded-xl border theme-border theme-card px-3 text-sm theme-text"
+                          className="input mt-1 h-10 rounded-xl px-3 text-sm"
                           value={companyPriority}
                           onChange={(e) => setCompanyPriority(e.target.value as TicketPriority)}
                           disabled={savingCompanyPatch}
@@ -738,7 +738,7 @@ export function TicketsPage() {
                       <div>
                         <label className="text-xs font-semibold theme-text-muted">Tags</label>
                         <input
-                          className="mt-1 w-full h-10 rounded-xl border theme-border theme-card px-3 text-sm theme-text"
+                          className="input mt-1 h-10 rounded-xl px-3 text-sm"
                           value={companyTagsText}
                           onChange={(e) => setCompanyTagsText(e.target.value)}
                           placeholder="ex: cliente, backend"
@@ -754,7 +754,7 @@ export function TicketsPage() {
                   </div>
                 ) : null}
 
-                <div className="mt-4 rounded-2xl border theme-border theme-card p-4">
+                <div className="mt-4 rounded-2xl border theme-border glass-panel p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] theme-text-muted">Anexos</p>
 
                   <div className="mt-3">
@@ -811,7 +811,7 @@ export function TicketsPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-2xl border theme-border theme-card p-4">
+                <div className="mt-4 rounded-2xl border theme-border glass-panel p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] theme-text-muted">Timeline</p>
 
                   <div className="mt-3 space-y-2">
@@ -870,7 +870,7 @@ export function TicketsPage() {
 
                   <form onSubmit={handleAddComment} className="mt-4 grid gap-3">
                     <textarea
-                      className="w-full min-h-[90px] rounded-2xl border theme-border theme-card px-3 py-2 text-sm theme-text"
+                      className="input min-h-[90px] rounded-2xl px-3 py-2 text-sm"
                       value={commentBody}
                       onChange={(e) => setCommentBody(e.target.value)}
                       placeholder="Escreva uma resposta…"
@@ -883,6 +883,7 @@ export function TicketsPage() {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </div>
       </div>
