@@ -140,6 +140,31 @@ export function SettingsPage() {
     'suppliers:write',
   ]);
 
+  const governanceTabs: { id: SettingTab; label: string; icon: React.ReactNode; description: string; group: SettingGroup }[] = [
+    ...(canSeePermissionsTab
+      ? [
+          {
+            id: 'permissions' as const,
+            label: 'Permissões & Roles',
+            icon: <Shield className="w-5 h-5" />,
+            description: 'Matriz de acesso e roles por perfil',
+            group: 'governance',
+          },
+        ]
+      : []),
+    ...(canSeeManagementTab
+      ? [
+          {
+            id: 'management' as const,
+            label: 'Gestão administrativa',
+            icon: <Users className="w-5 h-5" />,
+            description: 'Plantas, utilizadores, inventario e operacoes',
+            group: 'governance',
+          },
+        ]
+      : []),
+  ];
+
   const allTabs: { id: SettingTab; label: string; icon: React.ReactNode; description: string; group: SettingGroup }[] = [
     {
       id: 'alerts' as const,
@@ -183,32 +208,7 @@ export function SettingsPage() {
       description: 'Manuais, esquemas e certificados',
       group: 'content',
     },
-    ...(canSeePermissionsTab || canSeeManagementTab
-      ? [
-          ...(canSeePermissionsTab
-            ? [
-                {
-                  id: 'permissions' as const,
-                  label: 'Permissões & Roles',
-                  icon: <Shield className="w-5 h-5" />,
-                  description: 'Matriz de acesso e roles por perfil',
-                  group: 'governance',
-                },
-              ]
-            : []),
-          ...(canSeeManagementTab
-            ? [
-                {
-                  id: 'management' as const,
-                  label: 'Gestão administrativa',
-                  icon: <Users className="w-5 h-5" />,
-                  description: 'Plantas, utilizadores, inventario e operacoes',
-                  group: 'governance',
-                },
-              ]
-            : []),
-        ]
-      : []),
+    ...governanceTabs,
     ...(isSuperAdmin
       ? [
           {
