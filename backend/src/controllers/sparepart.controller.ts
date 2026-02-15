@@ -184,8 +184,6 @@ export async function updateSparePart(req: AuthenticatedRequest, res: Response) 
     }
 
     const before = await sparePartService.getSparePartById(req.tenantId!, spare_part_id);
-
-    const before = await sparePartService.getSparePartById(req.tenantId!, spare_part_id);
     const part = await sparePartService.updateSparePart(
       req.tenantId!,
       spare_part_id,
@@ -214,27 +212,6 @@ export async function updateSparePart(req: AuthenticatedRequest, res: Response) 
         } catch {
           // ignore
         }
-      }
-    }
-
-    if (req.user?.userId && before) {
-      const diff = buildAuditDiffFromPatch({
-        before: before as Record<string, any>,
-        after: part as Record<string, any>,
-        patch: validation.data as Record<string, any>,
-      });
-
-      if (Object.keys(diff.newValues).length > 0) {
-        await AuditService.createLog({
-          tenant_id: String(req.tenantId),
-          user_id: String(req.user.userId),
-          action: 'update',
-          entity_type: 'spare_part',
-          entity_id: String(spare_part_id),
-          old_values: diff.oldValues,
-          new_values: diff.newValues,
-          ip_address: getClientIp(req),
-        });
       }
     }
 
