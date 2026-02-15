@@ -20,11 +20,17 @@ Este ficheiro existe para **capturar em detalhe** o que foi implementado recente
 #### Configuracoes
 - Hub de configuracoes reorganizado em **seis blocos** com agrupamento por contexto.
 - Gestao administrativa reestruturada por secoes (infra, operacao, pessoas).
+- Biblioteca de documentos com **metadados (tags/expiracao)** e painel de expiracao.
+- Assistente (wizard) para planos preventivos (3 passos).
 
 #### Novas funcoes e acessos
 - Home dedicada para **Operador** e **Tecnico** (rotas `/operador` e `/tecnico`).
 - Permissoes atualizadas para permitir acesso por perfil a essas rotas.
 - Alinhamento entre menus e rotas (tickets, planner e tecnico).
+
+#### Docs e Deploy
+- OpenAPI expandido para rotas core (assets/stock/kits/tickets/profile/planner/search).
+- Workflow Render com healthcheck opcional e guard de repo.
 
 #### UI/Estilo
 - Restyle das paginas principais (glass panels, inputs/botoes unificados, cards consistentes).

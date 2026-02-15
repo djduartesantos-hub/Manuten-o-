@@ -15,11 +15,25 @@ const openapi = {
   tags: [
     { name: 'Health' },
     { name: 'Auth' },
+    { name: 'Profile' },
     { name: 'WorkOrders' },
     { name: 'Preventive' },
+    { name: 'Planner' },
+    { name: 'Assets' },
+    { name: 'SpareParts' },
+    { name: 'Stock' },
+    { name: 'Suppliers' },
+    { name: 'Kits' },
+    { name: 'Tickets' },
     { name: 'Alerts' },
     { name: 'Documents' },
+    { name: 'Notifications' },
+    { name: 'Dashboard' },
+    { name: 'Search' },
+    { name: 'Stocktake' },
     { name: 'Setup' },
+    { name: 'Admin' },
+    { name: 'SuperAdmin' },
   ],
   components: {
     securitySchemes: {
@@ -76,6 +90,40 @@ const openapi = {
         properties: {
           reason: { type: 'string' },
           notes: { type: 'string' },
+        },
+      },
+      TicketCreateRequest: {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          description: { type: 'string' },
+          priority: { type: 'string', example: 'media' },
+          is_general: { type: 'boolean' },
+          tags: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['title', 'description'],
+      },
+      TicketCommentRequest: {
+        type: 'object',
+        properties: {
+          body: { type: 'string' },
+        },
+        required: ['body'],
+      },
+      TicketStatusRequest: {
+        type: 'object',
+        properties: {
+          status: { type: 'string', example: 'em_progresso' },
+        },
+        required: ['status'],
+      },
+      DocumentUpdateRequest: {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          description: { type: 'string' },
+          tags: { type: 'array', items: { type: 'string' } },
+          expires_at: { type: 'string', format: 'date-time', nullable: true },
         },
       },
     },
@@ -306,6 +354,408 @@ const openapi = {
           },
         ],
         responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/alerts/documents/{id}': {
+      put: {
+        tags: ['Documents'],
+        summary: 'Update document metadata',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/DocumentUpdateRequest' } },
+          },
+        },
+        responses: { '200': { description: 'OK' }, '400': { description: 'Bad Request' } },
+      },
+      delete: {
+        tags: ['Documents'],
+        summary: 'Delete document',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'OK' }, '404': { description: 'Not Found' } },
+      },
+    },
+    '/api/alerts/documents/expiring': {
+      get: {
+        tags: ['Documents'],
+        summary: 'List expiring documents',
+        parameters: [
+          { name: 'days', in: 'query', required: false, schema: { type: 'integer', example: 30 } },
+        ],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/profile': {
+      get: {
+        tags: ['Profile'],
+        summary: 'Get my profile',
+        responses: { '200': { description: 'OK' } },
+      },
+      patch: {
+        tags: ['Profile'],
+        summary: 'Update profile',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object' } } },
+        },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/profile/password': {
+      patch: {
+        tags: ['Profile'],
+        summary: 'Change password',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object' } } },
+        },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/profile/sessions': {
+      get: {
+        tags: ['Profile'],
+        summary: 'List my sessions',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/profile/sessions/revoke-others': {
+      post: {
+        tags: ['Profile'],
+        summary: 'Revoke other sessions',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/profile/sessions/{sessionId}/revoke': {
+      post: {
+        tags: ['Profile'],
+        summary: 'Revoke session',
+        parameters: [{ name: 'sessionId', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/{plantId}/assets': {
+      get: {
+        tags: ['Assets'],
+        summary: 'List assets',
+        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Assets'],
+        summary: 'Create asset',
+        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/{plantId}/assets/{id}': {
+      get: {
+        tags: ['Assets'],
+        summary: 'Get asset detail',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: { '200': { description: 'OK' }, '404': { description: 'Not Found' } },
+      },
+      put: {
+        tags: ['Assets'],
+        summary: 'Update asset',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+      delete: {
+        tags: ['Assets'],
+        summary: 'Delete asset',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/{plantId}/spareparts': {
+      get: {
+        tags: ['SpareParts'],
+        summary: 'List spare parts',
+        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['SpareParts'],
+        summary: 'Create spare part',
+        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/{plantId}/spareparts/forecast': {
+      get: {
+        tags: ['SpareParts'],
+        summary: 'Spare parts forecast',
+        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/{plantId}/spareparts/{spare_part_id}': {
+      get: {
+        tags: ['SpareParts'],
+        summary: 'Get spare part',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'spare_part_id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: { '200': { description: 'OK' } },
+      },
+      patch: {
+        tags: ['SpareParts'],
+        summary: 'Update spare part',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'spare_part_id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+      delete: {
+        tags: ['SpareParts'],
+        summary: 'Delete spare part',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'spare_part_id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/{plantId}/stock-movements': {
+      post: {
+        tags: ['Stock'],
+        summary: 'Create stock movement',
+        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/{plantId}/stock-movements/plant/{plant_id}': {
+      get: {
+        tags: ['Stock'],
+        summary: 'List stock movements by plant',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'plant_id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/{plantId}/suppliers': {
+      get: {
+        tags: ['Suppliers'],
+        summary: 'List suppliers',
+        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Suppliers'],
+        summary: 'Create supplier',
+        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/{plantId}/suppliers/{supplier_id}': {
+      get: {
+        tags: ['Suppliers'],
+        summary: 'Get supplier',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'supplier_id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: { '200': { description: 'OK' } },
+      },
+      patch: {
+        tags: ['Suppliers'],
+        summary: 'Update supplier',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'supplier_id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+      delete: {
+        tags: ['Suppliers'],
+        summary: 'Delete supplier',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'supplier_id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/maintenance-kits': {
+      get: {
+        tags: ['Kits'],
+        summary: 'List maintenance kits',
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Kits'],
+        summary: 'Create maintenance kit',
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/maintenance-kits/{kitId}': {
+      get: {
+        tags: ['Kits'],
+        summary: 'Get maintenance kit',
+        parameters: [{ name: 'kitId', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+      patch: {
+        tags: ['Kits'],
+        summary: 'Update maintenance kit',
+        parameters: [{ name: 'kitId', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/maintenance-kits/{kitId}/items': {
+      get: {
+        tags: ['Kits'],
+        summary: 'List maintenance kit items',
+        parameters: [{ name: 'kitId', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+      put: {
+        tags: ['Kits'],
+        summary: 'Upsert maintenance kit items',
+        parameters: [{ name: 'kitId', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'array', items: { type: 'object' } } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/plants/{plantId}/tickets': {
+      get: {
+        tags: ['Tickets'],
+        summary: 'List plant tickets',
+        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Tickets'],
+        summary: 'Create plant ticket',
+        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/TicketCreateRequest' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/plants/{plantId}/tickets/{ticketId}': {
+      get: {
+        tags: ['Tickets'],
+        summary: 'Get plant ticket',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'ticketId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/plants/{plantId}/tickets/{ticketId}/comments': {
+      post: {
+        tags: ['Tickets'],
+        summary: 'Add plant ticket comment',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'ticketId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/TicketCommentRequest' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/plants/{plantId}/tickets/{ticketId}/status': {
+      patch: {
+        tags: ['Tickets'],
+        summary: 'Update plant ticket status',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'ticketId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/TicketStatusRequest' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/tickets/company': {
+      get: {
+        tags: ['Tickets'],
+        summary: 'List company tickets',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/tickets/company/{ticketId}': {
+      get: {
+        tags: ['Tickets'],
+        summary: 'Get company ticket',
+        parameters: [{ name: 'ticketId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+      patch: {
+        tags: ['Tickets'],
+        summary: 'Update company ticket',
+        parameters: [{ name: 'ticketId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/notifications': {
+      get: {
+        tags: ['Notifications'],
+        summary: 'List notifications',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/{plantId}/planner': {
+      get: {
+        tags: ['Planner'],
+        summary: 'Get planner overview',
+        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/search': {
+      get: {
+        tags: ['Search'],
+        summary: 'Search across assets/work orders',
+        parameters: [{ name: 'q', in: 'query', required: false, schema: { type: 'string' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/dashboard/metrics': {
+      get: {
+        tags: ['Dashboard'],
+        summary: 'Get dashboard metrics',
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/{plantId}/stocktakes': {
+      get: {
+        tags: ['Stocktake'],
+        summary: 'List stocktakes',
+        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Stocktake'],
+        summary: 'Create stocktake',
+        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
       },
     },
     '/api/setup/initialize': {

@@ -89,6 +89,10 @@ Overall Project:          ██████████████████
 - [x] UI: restyle das páginas principais (glass panels, inputs/botoes unificados)
 - [x] Settings: seis blocos reorganizados + agrupamento por contexto
 - [x] Permissões: alinhamento entre menu e rotas (tickets/planner/tecnico)
+- [x] Docs: OpenAPI expandido (assets/stock/kits/tickets/profile/planner/search)
+- [x] Docs Library: metadados (tags/expiracao) + painel de expiracao
+- [x] Preventivas: assistente (wizard) para criacao de planos
+- [x] CD: healthcheck opcional no workflow de deploy Render
 
 ### Phase 3B: Real-time Infrastructure (COMPLETE ✅)
 - [x] WebSocket/Socket.io with tenant rooms & JWT auth

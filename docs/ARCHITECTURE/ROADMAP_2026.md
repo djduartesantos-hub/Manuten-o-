@@ -37,15 +37,16 @@
 > Itens identificados após o fecho de CI/CD (Render) + baseline de OpenAPI.
 
 ### OpenAPI / Swagger (expansão)
-- [ ] Cobertura completa de rotas (Assets, Stock/Movimentos, Spare Parts, Kits, Work Orders, Preventivas/Schedules, Reports, Admin/Setup, Documents/Uploads).
+- [x] Cobertura expandida de rotas core (Assets, Stock/Movimentos, Spare Parts, Kits, Tickets, Profile, Planner, Search, Notifications, Stocktake).
+- [ ] Cobertura completa de rotas (Reports, Admin/Setup, SuperAdmin, Jobs, Customization, Tenants, Documents/Uploads detalhados).
 - [ ] Esquemas de erro consistentes (`ErrorResponse`), paginação (`page`, `pageSize`, `total`), sorting/filter (query params) e exemplos por endpoint.
-- [ ] `securitySchemes` (JWT/Bearer) + requisitos por rota (auth vs admin), e `tags` normalizadas.
+- [x] `securitySchemes` (JWT/Bearer) + `tags` normalizadas.
 - [ ] Alinhar nomes/IDs (`schedule_id` vs `scheduleId`, etc.) e respostas (status codes, payloads) com a implementação.
 
 ### CD (Render) — “polish”
 - [ ] Melhorar observabilidade do deploy: logs mais claros no workflow + link direto para o deploy/serviço (quando aplicável).
-- [ ] Gating/segurança do workflow: impedir deploy em PRs/forks; reforçar branch protections e required checks.
-- [ ] Healthcheck pós-deploy (ex.: chamar endpoint `/api/health` e falhar workflow se não responder).
+- [x] Gating/segurança do workflow: impedir deploy em PRs/forks.
+- [x] Healthcheck pós-deploy (ex.: chamar endpoint `/api/health` e falhar workflow se não responder).
 - [ ] Rever estratégia de migrations no arranque (alternativa a instalar dev deps no runtime: mover tooling necessário para deps, ou correr migrations noutro passo controlado).
 
 ---
@@ -136,17 +137,17 @@ Este track é o plano **prático** para as próximas iterações, com foco em op
    - Upload + preview + histórico de versões (fallback local em `/uploads/...`)
 
 - [ ] **DocumentsLibrary (polish)**
-   - Tagging system (UX + validações)
-   - Documentos expirando/alert (UI consumindo `/api/alerts/documents/expiring`)
+   - ✅ Tagging system (UX + validações)
+   - ✅ Documentos expirando/alert (UI consumindo `/api/alerts/documents/expiring`)
    - Storage externo (S3/R2) para produção
 
 - [ ] **MaintenancePlannerSettings** - Wizard preventivo
-  - Multi-step wizard
-  - Frequência (dias, horas, ciclos)
-  - Peças obrigatórias
-  - Documentos relacionados
-  - ROI calculator
-  - Tempo estimado: **4-5 dias**
+   - ✅ Multi-step wizard
+   - ✅ Frequência (dias, horas, ciclos)
+   - Peças obrigatórias
+   - Documentos relacionados
+   - ROI calculator
+   - Tempo estimado: **4-5 dias**
 
 ---
 
@@ -211,12 +212,12 @@ Este track é o plano **prático** para as próximas iterações, com foco em op
 
 ---
 
-#### Phase 3D: Multi-fábrica + Perfil + Home por Role (3-5 semanas) 🔜
+#### Phase 3D: Multi-fábrica + Perfil + Home por Role (3-5 semanas) ✅
 **Objetivo:** desbloquear operação multi-fábrica e melhorar a experiência pós-login
 
 **Nota de âmbito (2026):** a curto prazo existe **apenas 1 empresa/tenant**. O foco é **multi-fábrica (plants) dentro do mesmo tenant**. O suporte a **multi-empresa (multi-tenant real)** fica planeado para uma fase futura.
 
-1. **Multi-fábrica (ativação completa)**
+1. **Multi-fábrica (ativação completa)** ✅
    - Permitir **criar novas fábricas/plantas** (admin) e gerir dados base por fábrica.
    - Seleção de **fábrica ativa** no frontend (selector persistido) e scoping consistente em toda a app.
    - Regras de acesso: memberships por fábrica (role por fábrica quando necessário).
@@ -230,20 +231,20 @@ Este track é o plano **prático** para as próximas iterações, com foco em op
    - Admin cria fábrica nova; utilizadores só veem dados da(s) fábrica(s) onde têm acesso.
    - Nenhuma rota “vaza” dados entre fábricas (inclui relatórios, uploads, sockets e cache).
 
-2. **Sistema de Perfil de Utilizador (clicar no nome)**
+2. **Sistema de Perfil de Utilizador (clicar no nome)** ✅
    - Ao clicar no nome (header): menu com **Perfil**, **Preferências** (ex.: idioma/tema), **Sair**.
    - Página “Perfil”: dados do utilizador + ações (ex.: alterar palavra-passe).
    - (Opcional) “Atividade recente” derivada de audit logs.
 
-3. **Página inicial pós-login por Role**
-   - Landing diferente por role (e/ou por permissão):
-     - `admin`: visão de saúde do sistema + gestão (utilizadores, fábricas, configs)
-     - `manager`: KPIs + backlog + SLA/aging
-     - `technician`: ordens atribuídas + hoje/atrasadas + ações rápidas
-     - `viewer`: visão read-only (resumo + relatórios)
-   - Layout e widgets mínimos (sem inventar novas páginas além do necessário).
+3. **Página inicial pós-login por Role** ✅
+    - Landing diferente por role (e/ou por permissão):
+       - `admin`: visão de saúde do sistema + gestão (utilizadores, fábricas, configs)
+       - `manager`: KPIs + backlog + SLA/aging
+       - `technician`: ordens atribuídas + hoje/atrasadas + ações rápidas
+       - `viewer`: visão read-only (resumo + relatórios)
+    - Layout e widgets mínimos (sem inventar novas páginas além do necessário).
 
-4. **Modificar a página de Login (UX + segurança)**
+4. **Modificar a página de Login (UX + segurança)** ✅
    - Melhorias de UX (validações, mensagens de erro, loading states, acessibilidade).
    - Preparar base para: “Esqueci-me da password”, e/ou MFA/SSO (se entrar no plano).
 
