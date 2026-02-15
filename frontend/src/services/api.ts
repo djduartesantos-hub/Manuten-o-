@@ -1190,6 +1190,34 @@ export async function deleteWorkOrder(plantId: string, workOrderId: string) {
   });
 }
 
+export async function getWorkOrderWorkflow(plantId: string) {
+  return apiCall(`/${encodeURIComponent(String(plantId))}/work-orders/workflow`);
+}
+
+export async function listWorkOrderWorkflows(plantId: string) {
+  return apiCall(`/${encodeURIComponent(String(plantId))}/work-orders/workflows`);
+}
+
+export async function createWorkOrderWorkflow(plantId: string, data: any) {
+  return apiCall(`/${encodeURIComponent(String(plantId))}/work-orders/workflows`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateWorkOrderWorkflow(plantId: string, workflowId: string, data: any) {
+  return apiCall(`/${encodeURIComponent(String(plantId))}/work-orders/workflows/${encodeURIComponent(workflowId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteWorkOrderWorkflow(plantId: string, workflowId: string) {
+  return apiCall(`/${encodeURIComponent(String(plantId))}/work-orders/workflows/${encodeURIComponent(workflowId)}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function getDashboardMetrics(plantId: string) {
   return apiCall(`/dashboard/${plantId}/metrics`);
 }
@@ -1373,6 +1401,63 @@ export async function getSuppliers(plantId: string, search?: string) {
 
   const query = params.toString();
   return apiCall(`/${plantId}/suppliers${query ? `?${query}` : ''}`);
+}
+
+// ============================================================================
+// PURCHASES (Requisicoes e compras)
+// ============================================================================
+
+export async function listPurchaseRequests(plantId: string, status?: string) {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  return apiCall(`/${encodeURIComponent(String(plantId))}/purchase-requests${qs}`);
+}
+
+export async function getPurchaseRequest(plantId: string, requestId: string) {
+  return apiCall(`/${encodeURIComponent(String(plantId))}/purchase-requests/${encodeURIComponent(requestId)}`);
+}
+
+export async function createPurchaseRequest(plantId: string, data: any) {
+  return apiCall(`/${encodeURIComponent(String(plantId))}/purchase-requests`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updatePurchaseRequest(plantId: string, requestId: string, data: any) {
+  return apiCall(`/${encodeURIComponent(String(plantId))}/purchase-requests/${encodeURIComponent(requestId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function listPurchaseOrders(plantId: string, status?: string) {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  return apiCall(`/${encodeURIComponent(String(plantId))}/purchase-orders${qs}`);
+}
+
+export async function getPurchaseOrder(plantId: string, orderId: string) {
+  return apiCall(`/${encodeURIComponent(String(plantId))}/purchase-orders/${encodeURIComponent(orderId)}`);
+}
+
+export async function createPurchaseOrder(plantId: string, data: any) {
+  return apiCall(`/${encodeURIComponent(String(plantId))}/purchase-orders`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updatePurchaseOrder(plantId: string, orderId: string, data: any) {
+  return apiCall(`/${encodeURIComponent(String(plantId))}/purchase-orders/${encodeURIComponent(orderId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function receivePurchaseOrder(plantId: string, orderId: string, data: any) {
+  return apiCall(`/${encodeURIComponent(String(plantId))}/purchase-orders/${encodeURIComponent(orderId)}/receive`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 // ============================================================================

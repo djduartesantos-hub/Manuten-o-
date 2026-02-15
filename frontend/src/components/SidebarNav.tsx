@@ -16,6 +16,7 @@ import {
   Building2,
   User,
   Bell,
+  Truck,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../context/store';
@@ -205,6 +206,12 @@ function buildNavSections(options: {
               href: '/suppliers',
               icon: Users,
               active: pathname === '/suppliers',
+            },
+            {
+              label: 'Compras',
+              href: '/purchases',
+              icon: Truck,
+              active: pathname === '/purchases',
             },
           ],
         },

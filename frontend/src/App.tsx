@@ -17,6 +17,7 @@ import { AssetsPage } from './pages/AssetsPage';
 import { SparePartsPage } from './pages/SparePartsPage';
 import { SuppliersPage } from './pages/SuppliersPage';
 import { ReportsPage } from './pages/ReportsPage';
+import { PurchasesPage } from './pages/PurchasesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SearchPage } from './pages/SearchPage';
 import { AdminSetupPage } from './pages/AdminSetupPage';
@@ -269,6 +270,15 @@ function App() {
               element={
                 <ProtectedRoute requiredPermissions={['stock:read', 'stock:write']}>
                   <SparePartsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/purchases"
+              element={
+                <ProtectedRoute requiredPermissions={['purchases:read', 'purchases:write']}>
+                  <PurchasesPage />
                 </ProtectedRoute>
               }
             />

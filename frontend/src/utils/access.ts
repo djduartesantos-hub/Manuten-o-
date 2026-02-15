@@ -49,6 +49,7 @@ export function canAccessPath(roleRaw: string | undefined, pathRaw: string): boo
   if (path === '/spare-parts') return isOneOf(role, [ROLE.adminEmpresa, ROLE.gestorManutencao, ROLE.supervisor]);
   if (path === '/maintenance-kits') return isOneOf(role, [ROLE.adminEmpresa, ROLE.gestorManutencao, ROLE.supervisor]);
   if (path === '/suppliers') return isOneOf(role, [ROLE.adminEmpresa, ROLE.gestorManutencao, ROLE.supervisor]);
+  if (path === '/purchases') return isOneOf(role, [ROLE.adminEmpresa, ROLE.gestorManutencao, ROLE.supervisor]);
 
   if (path === '/settings') return isOneOf(role, [ROLE.adminEmpresa, ROLE.gestorManutencao, ROLE.supervisor]);
 
@@ -80,6 +81,7 @@ export function getAllowedRolesForPath(pathRaw: string): string[] | null {
   if (path === '/spare-parts') return [ROLE.adminEmpresa, ROLE.gestorManutencao, ROLE.supervisor, ROLE.superadmin];
   if (path === '/maintenance-kits') return [ROLE.adminEmpresa, ROLE.gestorManutencao, ROLE.supervisor, ROLE.superadmin];
   if (path === '/suppliers') return [ROLE.adminEmpresa, ROLE.gestorManutencao, ROLE.supervisor, ROLE.superadmin];
+  if (path === '/purchases') return [ROLE.adminEmpresa, ROLE.gestorManutencao, ROLE.supervisor, ROLE.superadmin];
 
   if (path === '/maintenance-plans') return [ROLE.adminEmpresa, ROLE.gestorManutencao, ROLE.supervisor, ROLE.superadmin];
   if (path === '/preventive-schedules') return [ROLE.adminEmpresa, ROLE.gestorManutencao, ROLE.supervisor, ROLE.superadmin];

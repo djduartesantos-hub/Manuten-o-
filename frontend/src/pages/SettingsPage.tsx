@@ -105,6 +105,7 @@ import { SuppliersPage } from './SuppliersPage';
 import { StockEntryPage } from './StockEntryPage';
 import { SparePartRegisterPage } from './SparePartRegisterPage';
 import { MaintenanceKitsPage } from './MaintenanceKitsPage';
+import { WorkOrderWorkflowPage } from './WorkOrderWorkflowPage';
 
 type SettingTab =
   | 'general'
@@ -138,6 +139,10 @@ export function SettingsPage() {
     'assets:write',
     'stock:write',
     'suppliers:write',
+    'workflows:write',
+    'workflows:read',
+    'purchases:write',
+    'purchases:read',
   ]);
 
   type SettingsTabMeta = { id: SettingTab; label: string; icon: React.ReactNode; description: string; group: SettingGroup };
@@ -7899,6 +7904,7 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
   const canSuppliersRead = can('suppliers:read') || can('suppliers:write');
   const canSuppliersWrite = can('suppliers:write');
   const canAssetsRead = can('assets:read') || can('assets:write');
+  const canWorkflowsRead = can('workflows:read') || can('workflows:write');
   const [plants, setPlants] = React.useState<any[]>([]);
   const [users, setUsers] = React.useState<any[]>([]);
   const [roles, setRoles] = React.useState<Array<{ value: string; label: string }>>([]);
@@ -7912,7 +7918,7 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [activeDbTool, setActiveDbTool] = React.useState<'setup' | 'migrations' | 'bootstrap' | null>(null);
-  const [activeAdminPanel, setActiveAdminPanel] = React.useState<'plants' | 'suppliers' | 'spareparts' | 'stock' | null>(null);
+  const [activeAdminPanel, setActiveAdminPanel] = React.useState<'plants' | 'suppliers' | 'spareparts' | 'stock' | 'workflow' | null>(null);
   const [plantModalOpen, setPlantModalOpen] = React.useState(false);
   const [userModalOpen, setUserModalOpen] = React.useState(false);
   const [userModalMode, setUserModalMode] = React.useState<'create' | 'edit'>('create');
@@ -8412,11 +8418,18 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
       description: 'Registar entradas e reposições de inventário.',
       icon: Boxes,
     },
+    {
+      id: 'workflow' as const,
+      title: 'Workflow de ordens',
+      description: 'Regras e aprovações de estados de OT.',
+      icon: Cog,
+    },
   ].filter((panel) => {
     if (panel.id === 'plants') return canManagePlants;
     if (panel.id === 'suppliers') return canSuppliersRead;
     if (panel.id === 'spareparts') return canStockWrite;
     if (panel.id === 'stock') return canStockRead;
+    if (panel.id === 'workflow') return canWorkflowsRead;
     return true;
   });
 
@@ -9496,6 +9509,26 @@ function ManagementSettings({ mode = 'full' }: { mode?: ManagementSettingsMode }
             </button>
             <div className="max-h-[80vh] overflow-y-auto pr-1">
               <StockEntryPage embedded />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!usersOnly && activeAdminPanel === 'workflow' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setActiveAdminPanel(null)}
+          />
+          <div className="relative w-full max-w-5xl overflow-hidden rounded-[28px] border theme-border theme-card p-6 shadow-lg">
+            <button
+              onClick={() => setActiveAdminPanel(null)}
+              className="absolute right-6 top-6 z-10 rounded-full border theme-border theme-card px-3 py-1 text-xs font-semibold theme-text-muted transition hover:bg-[color:var(--dash-surface)]"
+            >
+              Fechar
+            </button>
+            <div className="max-h-[80vh] overflow-y-auto pr-1">
+              <WorkOrderWorkflowPage embedded />
             </div>
           </div>
         </div>
