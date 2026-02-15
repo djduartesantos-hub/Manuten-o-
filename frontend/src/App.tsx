@@ -14,6 +14,7 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { WorkOrdersPage } from './pages/WorkOrdersPage';
 import { AssetsPage } from './pages/AssetsPage';
+import { CompliancePage } from './pages/CompliancePage';
 import { SparePartsPage } from './pages/SparePartsPage';
 import { SuppliersPage } from './pages/SuppliersPage';
 import { ReportsPage } from './pages/ReportsPage';
@@ -246,6 +247,14 @@ function App() {
               element={
                 <ProtectedRoute requiredPermissions={['assets:read', 'assets:write']}>
                   <AssetsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/compliance"
+              element={
+                <ProtectedRoute requiredPermissions={['assets:read', 'assets:write']}>
+                  <CompliancePage />
                 </ProtectedRoute>
               }
             />

@@ -13,6 +13,7 @@ export function getRequiredPermissionsForPath(pathRaw: string): string[] | null 
   if (path === '/operador') return ['workorders:write'];
 
   if (path === '/assets') return ['assets:read', 'assets:write'];
+  if (path === '/compliance') return ['assets:read', 'assets:write'];
 
   if (path === '/spare-parts') return ['stock:read', 'stock:write'];
   if (path === '/suppliers') return ['suppliers:read', 'suppliers:write'];

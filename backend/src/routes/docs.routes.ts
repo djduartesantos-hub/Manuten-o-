@@ -20,6 +20,7 @@ const openapi = {
     { name: 'Preventive' },
     { name: 'Planner' },
     { name: 'Assets' },
+    { name: 'Compliance' },
     { name: 'SpareParts' },
     { name: 'Stock' },
     { name: 'Suppliers' },
@@ -676,6 +677,149 @@ const openapi = {
           { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
           { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
         ],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/compliance/assets/{assetId}/lifecycle': {
+      get: {
+        tags: ['Compliance'],
+        summary: 'Get asset lifecycle',
+        parameters: [{ name: 'assetId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+      put: {
+        tags: ['Compliance'],
+        summary: 'Upsert asset lifecycle',
+        parameters: [{ name: 'assetId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/compliance/assets/{assetId}/certifications': {
+      get: {
+        tags: ['Compliance'],
+        summary: 'List asset certifications',
+        parameters: [{ name: 'assetId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Compliance'],
+        summary: 'Create asset certification',
+        parameters: [{ name: 'assetId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/compliance/certifications/{id}': {
+      patch: {
+        tags: ['Compliance'],
+        summary: 'Update asset certification',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+      delete: {
+        tags: ['Compliance'],
+        summary: 'Delete asset certification',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/compliance/assets/{assetId}/inspections': {
+      get: {
+        tags: ['Compliance'],
+        summary: 'List asset inspections',
+        parameters: [{ name: 'assetId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Compliance'],
+        summary: 'Create asset inspection',
+        parameters: [{ name: 'assetId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/compliance/inspections/{id}': {
+      patch: {
+        tags: ['Compliance'],
+        summary: 'Update asset inspection',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+      delete: {
+        tags: ['Compliance'],
+        summary: 'Delete asset inspection',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/compliance/assets/{assetId}/calibrations': {
+      get: {
+        tags: ['Compliance'],
+        summary: 'List asset calibrations',
+        parameters: [{ name: 'assetId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Compliance'],
+        summary: 'Create asset calibration',
+        parameters: [{ name: 'assetId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/compliance/calibrations/{id}': {
+      patch: {
+        tags: ['Compliance'],
+        summary: 'Update asset calibration',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+      delete: {
+        tags: ['Compliance'],
+        summary: 'Delete asset calibration',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/compliance/assets/{assetId}/tags': {
+      get: {
+        tags: ['Compliance'],
+        summary: 'List asset tags (QR/NFC)',
+        parameters: [{ name: 'assetId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Compliance'],
+        summary: 'Create asset tag (QR/NFC)',
+        parameters: [{ name: 'assetId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/compliance/tags/lookup': {
+      get: {
+        tags: ['Compliance'],
+        summary: 'Lookup tag by code',
+        parameters: [{ name: 'code', in: 'query', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/compliance/tags/{id}': {
+      patch: {
+        tags: ['Compliance'],
+        summary: 'Update asset tag',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+      delete: {
+        tags: ['Compliance'],
+        summary: 'Delete asset tag',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
         responses: { '200': { description: 'OK' } },
       },
     },

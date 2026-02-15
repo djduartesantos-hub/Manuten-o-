@@ -190,6 +190,12 @@ function buildNavSections(options: {
               active: pathname === '/assets',
             },
             {
+              label: 'Compliance',
+              href: '/compliance',
+              icon: ClipboardCheck,
+              active: pathname === '/compliance',
+            },
+            {
               label: 'Pecas',
               href: '/spare-parts',
               icon: Package,

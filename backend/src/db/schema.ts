@@ -510,6 +510,142 @@ export const assets = pgTable(
   }),
 );
 
+// Asset lifecycle (custos, depreciacao, datas, substituicao)
+export const assetLifecycle = pgTable(
+  'asset_lifecycle',
+  {
+    asset_id: uuid('asset_id')
+      .notNull()
+      .references(() => assets.id, { onDelete: 'cascade' })
+      .primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    commissioning_date: timestamp('commissioning_date', { withTimezone: true }),
+    warranty_expires_at: timestamp('warranty_expires_at', { withTimezone: true }),
+    expected_lifespan_years: integer('expected_lifespan_years'),
+    depreciation_method: text('depreciation_method'),
+    depreciation_years: integer('depreciation_years'),
+    depreciation_rate: decimal('depreciation_rate', { precision: 5, scale: 2 }),
+    residual_value: decimal('residual_value', { precision: 15, scale: 2 }),
+    replacement_due_at: timestamp('replacement_due_at', { withTimezone: true }),
+    decommissioned_at: timestamp('decommissioned_at', { withTimezone: true }),
+    notes: text('notes'),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index('asset_lifecycle_tenant_id_idx').on(table.tenant_id),
+    replacementIdx: index('asset_lifecycle_replacement_due_at_idx').on(table.replacement_due_at),
+    decommissionedIdx: index('asset_lifecycle_decommissioned_at_idx').on(table.decommissioned_at),
+  }),
+);
+
+// Asset tags (QR/NFC)
+export const assetTags = pgTable(
+  'asset_tags',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    asset_id: uuid('asset_id').references(() => assets.id, { onDelete: 'set null' }),
+    plant_id: uuid('plant_id').references(() => plants.id, { onDelete: 'set null' }),
+    tag_type: text('tag_type').notNull(),
+    tag_code: text('tag_code').notNull(),
+    status: text('status').default('assigned'),
+    assigned_at: timestamp('assigned_at', { withTimezone: true }),
+    assigned_by: uuid('assigned_by').references(() => users.id, { onDelete: 'set null' }),
+    notes: text('notes'),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tagCodeIdx: uniqueIndex('asset_tags_tag_code_idx').on(table.tag_code),
+    tenantIdIdx: index('asset_tags_tenant_id_idx').on(table.tenant_id),
+    assetIdIdx: index('asset_tags_asset_id_idx').on(table.asset_id),
+    plantIdIdx: index('asset_tags_plant_id_idx').on(table.plant_id),
+    tagTypeIdx: index('asset_tags_tag_type_idx').on(table.tag_type),
+  }),
+);
+
+// Asset certifications
+export const assetCertifications = pgTable(
+  'asset_certifications',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    asset_id: uuid('asset_id')
+      .notNull()
+      .references(() => assets.id, { onDelete: 'cascade' }),
+    certification_type: text('certification_type').notNull(),
+    standard: text('standard'),
+    issuer: text('issuer'),
+    reference_code: text('reference_code'),
+    issued_at: timestamp('issued_at', { withTimezone: true }),
+    expires_at: timestamp('expires_at', { withTimezone: true }),
+    status: text('status').default('valid'),
+    document_id: uuid('document_id').references(() => assetDocuments.id, { onDelete: 'set null' }),
+    notes: text('notes'),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index('asset_certifications_tenant_id_idx').on(table.tenant_id),
+    assetIdIdx: index('asset_certifications_asset_id_idx').on(table.asset_id),
+    expiresIdx: index('asset_certifications_expires_at_idx').on(table.expires_at),
+    statusIdx: index('asset_certifications_status_idx').on(table.status),
+  }),
+);
+
+// Asset inspections
+export const assetInspections = pgTable(
+  'asset_inspections',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    asset_id: uuid('asset_id')
+      .notNull()
+      .references(() => assets.id, { onDelete: 'cascade' }),
+    certification_id: uuid('certification_id').references(() => assetCertifications.id, { onDelete: 'set null' }),
+    inspection_date: timestamp('inspection_date', { withTimezone: true }).notNull(),
+    inspector: text('inspector'),
+    result: text('result').default('passed'),
+    next_due_at: timestamp('next_due_at', { withTimezone: true }),
+    document_id: uuid('document_id').references(() => assetDocuments.id, { onDelete: 'set null' }),
+    notes: text('notes'),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index('asset_inspections_tenant_id_idx').on(table.tenant_id),
+    assetIdIdx: index('asset_inspections_asset_id_idx').on(table.asset_id),
+    nextDueIdx: index('asset_inspections_next_due_at_idx').on(table.next_due_at),
+  }),
+);
+
+// Asset calibrations
+export const assetCalibrations = pgTable(
+  'asset_calibrations',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenant_id: uuid('tenant_id').notNull(),
+    asset_id: uuid('asset_id')
+      .notNull()
+      .references(() => assets.id, { onDelete: 'cascade' }),
+    calibration_date: timestamp('calibration_date', { withTimezone: true }).notNull(),
+    due_at: timestamp('due_at', { withTimezone: true }),
+    provider: text('provider'),
+    reference_code: text('reference_code'),
+    status: text('status').default('valid'),
+    document_id: uuid('document_id').references(() => assetDocuments.id, { onDelete: 'set null' }),
+    notes: text('notes'),
+    created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdIdx: index('asset_calibrations_tenant_id_idx').on(table.tenant_id),
+    assetIdIdx: index('asset_calibrations_asset_id_idx').on(table.asset_id),
+    dueIdx: index('asset_calibrations_due_at_idx').on(table.due_at),
+  }),
+);
+
 // Maintenance Plans
 export const maintenancePlans = pgTable(
   'maintenance_plans',

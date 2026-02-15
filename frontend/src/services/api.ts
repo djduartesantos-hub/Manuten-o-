@@ -1347,6 +1347,133 @@ export async function deleteAsset(plantId: string, assetId: string) {
   });
 }
 
+export type AssetLifecycle = {
+  asset_id: string;
+  commissioning_date?: string | null;
+  warranty_expires_at?: string | null;
+  expected_lifespan_years?: number | null;
+  depreciation_method?: string | null;
+  depreciation_years?: number | null;
+  depreciation_rate?: number | null;
+  residual_value?: number | null;
+  replacement_due_at?: string | null;
+  decommissioned_at?: string | null;
+  notes?: string | null;
+};
+
+export async function getAssetLifecycle(assetId: string): Promise<AssetLifecycle | null> {
+  return apiCall(`/compliance/assets/${encodeURIComponent(String(assetId))}/lifecycle`);
+}
+
+export async function upsertAssetLifecycle(assetId: string, payload: any) {
+  return apiCall(`/compliance/assets/${encodeURIComponent(String(assetId))}/lifecycle`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function listAssetCertifications(assetId: string) {
+  return apiCall(`/compliance/assets/${encodeURIComponent(String(assetId))}/certifications`);
+}
+
+export async function createAssetCertification(assetId: string, payload: any) {
+  return apiCall(`/compliance/assets/${encodeURIComponent(String(assetId))}/certifications`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAssetCertification(id: string, payload: any) {
+  return apiCall(`/compliance/certifications/${encodeURIComponent(String(id))}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteAssetCertification(id: string) {
+  return apiCall(`/compliance/certifications/${encodeURIComponent(String(id))}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function listAssetInspections(assetId: string) {
+  return apiCall(`/compliance/assets/${encodeURIComponent(String(assetId))}/inspections`);
+}
+
+export async function createAssetInspection(assetId: string, payload: any) {
+  return apiCall(`/compliance/assets/${encodeURIComponent(String(assetId))}/inspections`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAssetInspection(id: string, payload: any) {
+  return apiCall(`/compliance/inspections/${encodeURIComponent(String(id))}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteAssetInspection(id: string) {
+  return apiCall(`/compliance/inspections/${encodeURIComponent(String(id))}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function listAssetCalibrations(assetId: string) {
+  return apiCall(`/compliance/assets/${encodeURIComponent(String(assetId))}/calibrations`);
+}
+
+export async function createAssetCalibration(assetId: string, payload: any) {
+  return apiCall(`/compliance/assets/${encodeURIComponent(String(assetId))}/calibrations`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAssetCalibration(id: string, payload: any) {
+  return apiCall(`/compliance/calibrations/${encodeURIComponent(String(id))}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteAssetCalibration(id: string) {
+  return apiCall(`/compliance/calibrations/${encodeURIComponent(String(id))}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function listAssetTags(assetId: string) {
+  return apiCall(`/compliance/assets/${encodeURIComponent(String(assetId))}/tags`);
+}
+
+export async function lookupAssetTag(code: string) {
+  const params = new URLSearchParams();
+  params.append('code', code);
+  return apiCall(`/compliance/tags/lookup?${params.toString()}`);
+}
+
+export async function createAssetTag(assetId: string, payload: any) {
+  return apiCall(`/compliance/assets/${encodeURIComponent(String(assetId))}/tags`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAssetTag(id: string, payload: any) {
+  return apiCall(`/compliance/tags/${encodeURIComponent(String(id))}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteAssetTag(id: string) {
+  return apiCall(`/compliance/tags/${encodeURIComponent(String(id))}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function getAssetCategories() {
   return apiCall('/asset-categories');
 }

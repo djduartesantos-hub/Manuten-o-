@@ -122,6 +122,69 @@ export const UpdateAssetSchema = z.object({
   status: z.enum(['operacional', 'parado', 'manutencao']).optional(),
 });
 
+export const UpsertAssetLifecycleSchema = z.object({
+  commissioning_date: z.string().datetime().optional(),
+  warranty_expires_at: z.string().datetime().optional(),
+  expected_lifespan_years: z.number().int().positive().optional(),
+  depreciation_method: z.string().max(50).optional(),
+  depreciation_years: z.number().int().positive().optional(),
+  depreciation_rate: z.number().optional(),
+  residual_value: z.number().optional(),
+  replacement_due_at: z.string().datetime().optional(),
+  decommissioned_at: z.string().datetime().optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export const CreateAssetCertificationSchema = z.object({
+  certification_type: z.string().min(1).max(120),
+  standard: z.string().max(120).optional(),
+  issuer: z.string().max(200).optional(),
+  reference_code: z.string().max(120).optional(),
+  issued_at: z.string().datetime().optional(),
+  expires_at: z.string().datetime().optional(),
+  status: z.string().max(60).optional(),
+  document_id: z.string().uuid().optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export const UpdateAssetCertificationSchema = CreateAssetCertificationSchema.partial();
+
+export const CreateAssetInspectionSchema = z.object({
+  certification_id: z.string().uuid().optional(),
+  inspection_date: z.string().datetime(),
+  inspector: z.string().max(200).optional(),
+  result: z.string().max(60).optional(),
+  next_due_at: z.string().datetime().optional(),
+  document_id: z.string().uuid().optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export const UpdateAssetInspectionSchema = CreateAssetInspectionSchema.partial();
+
+export const CreateAssetCalibrationSchema = z.object({
+  calibration_date: z.string().datetime(),
+  due_at: z.string().datetime().optional(),
+  provider: z.string().max(200).optional(),
+  reference_code: z.string().max(120).optional(),
+  status: z.string().max(60).optional(),
+  document_id: z.string().uuid().optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export const UpdateAssetCalibrationSchema = CreateAssetCalibrationSchema.partial();
+
+export const CreateAssetTagSchema = z.object({
+  plant_id: z.string().uuid().optional(),
+  tag_type: z.string().min(1).max(40),
+  tag_code: z.string().min(1).max(120),
+  status: z.string().max(40).optional(),
+  assigned_at: z.string().datetime().optional(),
+  assigned_by: z.string().uuid().optional(),
+  notes: z.string().max(1000).optional(),
+});
+
+export const UpdateAssetTagSchema = CreateAssetTagSchema.partial();
+
 // Asset Category Schemas
 export const CreateAssetCategorySchema = z.object({
   name: z.string().min(3, 'Nome mínimo 3 caracteres').max(100),

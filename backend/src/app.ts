@@ -14,6 +14,7 @@ import dashboardRoutes from './routes/dashboard.routes.js';
 import maintenanceRoutes from './routes/maintenance.routes.js';
 import maintenanceKitRoutes from './routes/maintenancekit.routes.js';
 import sparePartRoutes from './routes/sparepart.routes.js';
+import complianceRoutes from './routes/compliance.routes.js';
 import supplierRoutes from './routes/supplier.routes.js';
 import alertRoutes from './routes/alert.routes.js';
 import searchRoutes from './routes/search.routes.js';
@@ -102,6 +103,7 @@ export function createApp(): Express {
   app.use('/api', workOrderRoutes);
   app.use('/api', assetRoutes);
   app.use('/api', assetCategoryRoutes);
+  app.use('/api/compliance', complianceRoutes);
   app.use('/api', maintenanceRoutes);
   app.use('/api', maintenanceKitRoutes);
   app.use('/api', sparePartRoutes);
