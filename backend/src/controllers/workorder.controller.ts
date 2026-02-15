@@ -133,6 +133,7 @@ export class WorkOrderController {
       res.json({
         success: true,
         data: filtered,
+        total: filtered.length,
       });
     } catch (error) {
       logger.error('List work orders error:', error);
@@ -524,6 +525,7 @@ export class WorkOrderController {
         'pause_reason',
         'cancelled_at',
         'cancel_reason',
+        'reopen_reason',
         'downtime_started_at',
         'downtime_ended_at',
         'downtime_minutes',
@@ -551,13 +553,32 @@ export class WorkOrderController {
         return status;
       };
 
+      const normalizedExistingStatus = normalizeExistingStatus(existing.status);
+      const reopenReason = Object.prototype.hasOwnProperty.call(updates, 'reopen_reason')
+        ? String(updates.reopen_reason || '').trim()
+        : '';
+      const isReopenRequest =
+        normalizedExistingStatus === 'fechada' &&
+        Object.prototype.hasOwnProperty.call(updates, 'status') &&
+        ['aberta', 'em_analise'].includes(String(updates.status));
+
       const assertValidTransition = (currentRaw: string, nextRaw: string) => {
         const current = normalizeExistingStatus(currentRaw);
         const next = normalizeExistingStatus(nextRaw);
 
         if (!current || !next || current === next) return;
 
-        if (current === 'fechada' || current === 'cancelada') {
+        if (current === 'fechada') {
+          if (['aberta', 'em_analise'].includes(next)) {
+            if (!reopenReason || reopenReason.length < 3) {
+              throw new Error('Motivo é obrigatório ao reabrir a ordem');
+            }
+            return;
+          }
+          throw new Error('Esta ordem já está finalizada e não pode mudar de estado');
+        }
+
+        if (current === 'cancelada') {
           throw new Error('Esta ordem já está finalizada e não pode mudar de estado');
         }
 
@@ -590,8 +611,6 @@ export class WorkOrderController {
         }
       };
 
-      const normalizedExistingStatus = normalizeExistingStatus(existing.status);
-
       if (Object.prototype.hasOwnProperty.call(updates, 'status') && updates.status) {
         try {
           assertValidTransition(String(existing.status), String(updates.status));
@@ -602,6 +621,14 @@ export class WorkOrderController {
           });
           return;
         }
+      }
+
+      if (isReopenRequest && !isAdmin && !isManager) {
+        res.status(403).json({
+          success: false,
+          error: 'Sem permissao para reabrir esta ordem',
+        });
+        return;
       }
 
       const isStartingOrder =
@@ -791,6 +818,15 @@ export class WorkOrderController {
         }
       }
 
+      if (isReopenRequest) {
+        updates.closed_at = null;
+        updates.closed_by = null;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(updates, 'reopen_reason')) {
+        delete updates.reopen_reason;
+      }
+
       const hasDowntimeStart = Object.prototype.hasOwnProperty.call(updates, 'downtime_started_at');
       const hasDowntimeEnd = Object.prototype.hasOwnProperty.call(updates, 'downtime_ended_at');
 
@@ -861,6 +897,18 @@ export class WorkOrderController {
           meta: { from: existing.status, to: workOrder.status },
           actorUserId: userId ? String(userId) : null,
         });
+
+        if (isReopenRequest) {
+          await logWorkOrderEvent({
+            tenantId,
+            plantId,
+            workOrderId: workOrder.id,
+            eventType: 'work_order_reopened',
+            message: 'Ordem reaberta',
+            meta: { reason: reopenReason },
+            actorUserId: userId ? String(userId) : null,
+          });
+        }
       }
 
       if (didChangeAssignment) {

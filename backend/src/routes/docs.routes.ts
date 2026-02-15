@@ -267,6 +267,7 @@ const openapi = {
         summary: 'List work orders',
         parameters: [
           { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { $ref: '#/components/parameters/StatusParam' },
         ],
         responses: {
           '200': {
@@ -597,7 +598,11 @@ const openapi = {
       get: {
         tags: ['SpareParts'],
         summary: 'List spare parts',
-        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'supplier_id', in: 'query', required: false, schema: { type: 'string', format: 'uuid' } },
+          { name: 'search', in: 'query', required: false, schema: { type: 'string' } },
+        ],
         responses: {
           '200': {
             description: 'OK',
@@ -617,7 +622,10 @@ const openapi = {
       get: {
         tags: ['SpareParts'],
         summary: 'Spare parts forecast',
-        parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'days', in: 'query', required: false, schema: { type: 'integer', example: 30 } },
+        ],
         responses: { '200': { description: 'OK' } },
       },
     },
@@ -890,7 +898,51 @@ const openapi = {
       get: {
         tags: ['Planner'],
         summary: 'Get planner overview',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'start', in: 'query', required: false, schema: { type: 'string', format: 'date-time' } },
+          { name: 'end', in: 'query', required: false, schema: { type: 'string', format: 'date-time' } },
+        ],
+        responses: { '200': { description: 'OK' } },
+      },
+    },
+    '/api/{plantId}/planned-downtimes': {
+      get: {
+        tags: ['Planner'],
+        summary: 'List planned downtimes',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'start', in: 'query', required: false, schema: { type: 'string', format: 'date-time' } },
+          { name: 'end', in: 'query', required: false, schema: { type: 'string', format: 'date-time' } },
+        ],
+        responses: { '200': { description: 'OK' } },
+      },
+      post: {
+        tags: ['Planner'],
+        summary: 'Create planned downtime',
         parameters: [{ name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '201': { description: 'Created' } },
+      },
+    },
+    '/api/{plantId}/planned-downtimes/{downtimeId}': {
+      put: {
+        tags: ['Planner'],
+        summary: 'Update planned downtime',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'downtimeId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object' } } } },
+        responses: { '200': { description: 'OK' } },
+      },
+      delete: {
+        tags: ['Planner'],
+        summary: 'Delete planned downtime',
+        parameters: [
+          { name: 'plantId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'downtimeId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
         responses: { '200': { description: 'OK' } },
       },
     },

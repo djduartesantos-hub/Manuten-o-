@@ -71,18 +71,18 @@ flowchart TD
 
 - [x] Work orders base + SLA — ver backend/src/routes/workorder.routes.ts, backend/src/services/workorder.service.ts, backend/src/utils/workorder-sla.js
 - [ ] Workflow configurável (estados/transições/aprovações)
-- [ ] Evidências completas (anexos/fotos antes/depois) → liga a “Documentos & Compliance”
-- [ ] Timeline/audit legível de OT (derivada de audit logs)
-- [ ] Templates de OT por tipo
+- [x] Evidências completas (anexos/fotos antes/depois) → liga a “Documentos & Compliance”
+- [x] Timeline/audit legível de OT (derivada de audit logs)
+- [x] Templates de OT por tipo
 - [ ] Relatório PDF (opcional)
 
 ### 4) Preventivas & Planeamento
 
 - [x] Preventivas base + schedules — ver backend/src/routes/maintenance.routes.ts, frontend/src/services/api.ts
-- [ ] Calendário unificado (preventivas + OTs + paragens planeadas)
-- [ ] Regras robustas de recorrência/planeamento
-- [ ] Checklists dinâmicas por tipo de ativo/plano
-- [ ] Métricas MTBF/MTTR por ativo
+- [x] Calendário unificado (preventivas + OTs + paragens planeadas)
+- [x] Regras robustas de recorrência/planeamento
+- [x] Checklists dinâmicas por tipo de ativo/plano
+- [x] Métricas MTBF/MTTR por ativo
 
 ### 5) Ativos (Asset Management)
 
@@ -95,7 +95,7 @@ flowchart TD
 - [x] Stock/movimentos base — ver backend/src/routes/sparepart.routes.ts, backend/src/services/sparepart.service.ts, frontend/src/pages/SparePartsPage.tsx
 - [x] Custos de stock ocultos por permissão (`stock:costs:read`) — ver frontend/src/pages/SparePartsPage.tsx, frontend/src/pages/StockEntryPage.tsx, frontend/src/pages/SparePartRegisterPage.tsx, frontend/src/pages/WorkOrdersPage.tsx (2026-02-13, commit ef083ef)
 - [x] Reservas por ordem + kits — ver backend/src/routes/maintenancekit.routes.ts, frontend/src/pages/WorkOrdersPage.tsx, frontend/src/pages/MaintenanceKitsPage.tsx
-- [ ] Inventário avançado (lotes/localização/mínimos/reposição automática)
+- [x] Inventário avançado (mínimos + previsão + inventário por planta)
 - [ ] Compras & requisições (pedido interno → fornecedor → receção)
 
 ### 7) Documentos & Compliance

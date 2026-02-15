@@ -41,7 +41,7 @@
 - [x] Cobertura completa de rotas (Reports, Admin/Setup, SuperAdmin, Jobs, Customization, Tenants, Documents/Uploads detalhados).
 - [x] Esquemas de erro consistentes (`ErrorResponse`), paginação (`limit`, `offset`, `total`), sorting/filter (query params) e exemplos por endpoint.
 - [x] `securitySchemes` (JWT/Bearer) + `tags` normalizadas.
-- [ ] Alinhar nomes/IDs (`schedule_id` vs `scheduleId`, etc.) e respostas (status codes, payloads) com a implementação.
+- [x] Alinhar nomes/IDs (`schedule_id` vs `scheduleId`, etc.) e respostas (status codes, payloads) com a implementação.
 
 ### CD (Render) — “polish”
 - [ ] Melhorar observabilidade do deploy: logs mais claros no workflow + link direto para o deploy/serviço (quando aplicável).

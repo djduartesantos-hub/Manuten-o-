@@ -2244,6 +2244,36 @@ export function WorkOrdersPage() {
     }
   };
 
+  const handleReopenOrder = async () => {
+    if (!selectedPlant || !editingOrder) return;
+    if (!isAdmin && !isManager) {
+      setError('Apenas gestor ou admin pode reabrir a ordem');
+      return;
+    }
+
+    const reason = window.prompt('Motivo para reabrir esta ordem?')?.trim() || '';
+    if (!reason) {
+      setError('Motivo é obrigatório ao reabrir a ordem');
+      return;
+    }
+
+    setUpdating(true);
+    setError(null);
+
+    try {
+      await updateWorkOrder(selectedPlant, editingOrder.id, {
+        status: 'em_analise',
+        reopen_reason: reason,
+      });
+      setEditingOrder(null);
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao reabrir ordem');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const handleDeleteOrder = async () => {
     if (!selectedPlant || !editingOrder) return;
     const canDelete = isAdmin || editingOrder.created_by === userId;
@@ -4011,6 +4041,15 @@ export function WorkOrdersPage() {
                       disabled={updating}
                     >
                       Fechar ordem
+                    </button>
+                  )}
+                  {editingOrder.status === 'fechada' && (isAdmin || isManager) && (
+                    <button
+                      onClick={handleReopenOrder}
+                      className="btn-secondary"
+                      disabled={updating}
+                    >
+                      Reabrir ordem
                     </button>
                   )}
                   {!editingPermissions?.canAssumeOrder && (

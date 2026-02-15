@@ -94,8 +94,8 @@ Objetivo: transformar o projeto num produto **vendável/profissional** com previ
 - [x] SLA por prioridade (pelo menos cálculo e reporting básico).
 
 **Should**
-- [ ] Templates de OT por tipo de manutenção.
-- [ ] Reabertura com motivo.
+- [x] Templates de OT por tipo de manutenção.
+- [x] Reabertura com motivo.
 
 **Could**
 - Assinatura (simples) e relatório PDF.
